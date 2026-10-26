@@ -1,0 +1,63 @@
+
+.bookkeeping-page .page-heading .quiet{max-width:720px;line-height:1.6}
+.bookkeeping-tabs{display:flex;gap:5px;padding:5px;border-radius:14px;background:#edf2f4;width:fit-content;max-width:100%}
+.bookkeeping-tabs button{border:0;background:transparent;border-radius:10px;padding:12px 18px;min-height:43px;font-weight:800;font-size:13px;color:#6b7b88;cursor:pointer}
+.bookkeeping-tabs button.active{background:#fff;color:#193f4b;box-shadow:0 3px 10px rgba(15,50,60,.08)}
+.bookkeeping-toolbar{display:flex;justify-content:space-between;align-items:end;gap:14px;flex-wrap:wrap}
+.bookkeeping-toolbar label{display:flex;gap:12px;align-items:center;color:#637383;font-size:12px;font-weight:800}
+.bookkeeping-toolbar select{min-width:155px;padding:10px 11px;background:#fff;border:1px solid #dce4e9;border-radius:9px;color:#273e49;font:inherit}
+.bookkeeping-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.bookkeeping-overview article{border:1px solid #e3e9ef;background:#fff;border-radius:16px;padding:21px;display:grid;gap:10px;min-width:0}
+.bookkeeping-overview small{font-size:11px;color:#748590;font-weight:800}
+.bookkeeping-overview strong{font-size:clamp(24px,3vw,33px);color:#172f3b;letter-spacing:-.05em;line-height:1}
+.bookkeeping-overview span{font-size:10px;line-height:1.5;color:#82909b}
+.bookkeeping-caution{font-size:12px;color:#51697a;line-height:1.65;background:#f3f7f8;border-left:4px solid #98bbc2;padding:14px 17px;border-radius:0 11px 11px 0;margin:0}
+.bookkeeping-list{background:#fff;border:1px solid #e3e8ed;border-radius:17px;overflow:hidden}
+.bookkeeping-list-title{padding:21px 23px;border-bottom:1px solid #edf1f4;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.bookkeeping-list-title h2{font-size:18px;letter-spacing:-.025em;margin:0;color:#1a3442}
+.bookkeeping-list-title span{font-size:11px;color:#74818f}
+.bookkeeping-table-wrap{overflow-x:auto;max-width:100%}
+.bookkeeping-table{width:100%;border-collapse:collapse;min-width:710px}
+.bookkeeping-table th{padding:14px 16px;text-align:left;background:#f8fafb;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7a8795}
+.bookkeeping-table td{padding:14px 16px;border-top:1px solid #edf0f3;font-size:12px;color:#536372;vertical-align:middle}
+.bookkeeping-table td>strong{display:block;color:#273a47;font-size:12px;line-height:1.4}
+.bookkeeping-table td>small{display:block;font-size:10px;color:#91a0a8;margin-top:5px}
+.bookkeeping-table .amount{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bookkeeping-table td.amount{font-weight:850;font-size:13px}
+.bookkeeping-table td.income{color:#1c8b69}.bookkeeping-table td.expense{color:#9d5542}
+.bookkeeping-kind{display:inline-flex;font-weight:800;font-size:10px;padding:6px 8px;border-radius:20px;white-space:nowrap}
+.bookkeeping-kind.income{color:#177e60;background:#e4f5ed}.bookkeeping-kind.expense{color:#a45d43;background:#fbebe5}
+.bookkeeping-connect{background:#fff;border:1px solid #d9e4e9;border-radius:18px;padding:24px;display:grid;gap:16px}
+.bookkeeping-connect-head{display:flex;align-items:center;gap:14px}
+.bookkeeping-connect-icon{background:#28763b;color:#fff;width:48px;height:48px;display:grid;place-items:center;font-size:18px;font-weight:900;letter-spacing:-.05em;border-radius:12px}
+.bookkeeping-connect-head h2{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin:0;font-size:20px;letter-spacing:-.03em}
+.bookkeeping-connect-head p{font-size:11px;color:#8c97a3;margin:5px 0 0}
+.bookkeeping-readonly{font-size:9px;font-weight:850;color:#1e825e;background:#e2f4eb;border-radius:30px;padding:5px 8px;letter-spacing:.03em}
+.bookkeeping-explainer{color:#536d7c;font-size:13px;line-height:1.6;margin:0}
+.bookkeeping-consent{display:flex;gap:13px;align-items:flex-start;background:#f5f9f6;border:1px solid #dfece6;border-radius:12px;padding:15px;font-size:12px;color:#4b625b;line-height:1.65}
+.bookkeeping-consent input{width:18px;min-width:18px;height:18px;accent-color:#328f65;margin-top:2px}
+.bookkeeping-connect>.primary-button{justify-self:start}
+.bookkeeping-connect-actions{display:flex;gap:13px;align-items:center;flex-wrap:wrap;padding:14px 0}
+.bookkeeping-connect-actions>div{flex:1 1 260px;display:grid;gap:5px}
+.bookkeeping-connect-actions strong{font-size:13px;color:#1d4d42}
+.bookkeeping-connect-actions small{font-size:11px;color:#778992;line-height:1.4}
+.bookkeeping-small{font-size:11px;color:#7d8a95;line-height:1.65;margin:0}
+.bookkeeping-small a{color:#2c7e63;text-decoration:underline}
+.bookkeeping-modal{width:min(100%,610px);max-height:90vh;overflow:auto}
+.bookkeeping-entry-form{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.bookkeeping-entry-form>label{min-width:0}
+.bookkeeping-entry-form>label.full,.bookkeeping-entry-form>.full{grid-column:1/-1}
+.bookkeeping-entry-form input,.bookkeeping-entry-form select,.bookkeeping-entry-form textarea{max-width:100%}
+.bookkeeping-entry-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:7px}
+@media(max-width:720px){
+ .bookkeeping-overview{grid-template-columns:1fr}
+ .bookkeeping-overview article{padding:17px;gap:7px}
+ .bookkeeping-overview strong{font-size:27px}
+ .bookkeeping-page .page-heading.split-heading{align-items:flex-start;gap:14px}
+ .bookkeeping-connect{padding:18px}
+ .bookkeeping-tabs{width:100%}
+ .bookkeeping-tabs button{flex:1;min-width:0;padding:10px;font-size:12px}
+ .bookkeeping-entry-form{grid-template-columns:1fr}
+ .bookkeeping-entry-form>label.full,.bookkeeping-entry-form>.full{grid-column:1}
+ .bookkeeping-connect-actions{align-items:stretch}
+}
