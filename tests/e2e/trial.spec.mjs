@@ -77,10 +77,10 @@ test('valid password update completes and signs out', async ({ page }) => {
   await page.getByLabel('Confirm password').fill('TrialPassword123!')
   await page.getByRole('button', { name: 'Update password' }).click()
   await expect(page.getByRole('heading', { name: 'Password updated' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Return to Owedly' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Return to Velnu' })).toBeEnabled()
   expect(requests.filter(item => item.path.endsWith('/user') && item.method === 'PUT')).toHaveLength(1)
   expect(requests.filter(item => item.path.endsWith('/logout'))).toHaveLength(1)
-  await page.getByRole('button', { name: 'Return to Owedly' }).click()
+  await page.getByRole('button', { name: 'Return to Velnu' }).click()
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
 })
 
