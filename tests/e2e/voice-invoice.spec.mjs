@@ -35,7 +35,7 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
 
   // Simulate browser speech recognition, rather than calling a paid transcription API.
   await page.addInitScript(() => {
-    window.webkitSpeechRecognition = class {
+    window.SpeechRecognition = window.webkitSpeechRecognition = class {
       start() {}
       stop() {
         this.onresult?.({ results: [[{ transcript: 'Create an invoice for Bob Smith for $150' }]] })
