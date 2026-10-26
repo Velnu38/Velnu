@@ -133,7 +133,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
       </>}
       {step === 2 && <>
         <h2>Help Velnu understand your business</h2>
-        <p className="quiet">This is optional context for future assistant features. It is saved to your business profile, not used to train a public AI model. The assistant should still ask before deciding prices, dates, or staffing.</p>
+        <p className="quiet">This optional context is saved to your business profile. If advanced AI is enabled later, relevant details may be sent to the configured AI provider to interpret your requests; Velnu does not fine-tune a model on this profile. The assistant must still ask before deciding prices, dates, or staffing.</p>
         <label>What does your business do?
           <textarea value={draft.business_description} onChange={e => update('business_description', e.target.value)}
             placeholder="We are a residential plumbing company specializing in service calls…" maxLength={1500} rows={3} disabled={busy} />
