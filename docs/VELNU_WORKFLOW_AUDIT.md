@@ -49,3 +49,10 @@ Cloud speech transcription and advanced AI actions remain **unavailable** until 
 - Real voice transcription and advanced AI remain explicitly marked unavailable until configured; user-facing errors explain failures.
 - Outbound links/emails become available only with a verified sender and public app URL; provider receipts and activity records are checked for real deliveries.
 - Security advisory issues are triaged and addressed before onboarding paying customers.
+
+
+## Web app, optional modules, and shared scheduling roadmap
+
+See [INTEGRATION_BACKLOG.md](./INTEGRATION_BACKLOG.md) for the maintained integration list. It now tracks the custom Velnu domain, the same full-featured web app on desktop/mobile and as an optional PWA, a la carte paid add-ons and Stripe-style entitlement controls, plus **Google Calendar**, **Microsoft Outlook/Microsoft 365 Calendar**, and owner-controlled calendar sharing with employees.
+
+**Current status:** the Schedule page has internal job/appointment records. Neither external calendar sync nor employee logins/permissions are live. The recommended order is calendar export/invitations, single-calendar one-way sync, employee role and assignment controls, and finally advanced two-way provider synchronization after permission and conflict-resolution tests.
