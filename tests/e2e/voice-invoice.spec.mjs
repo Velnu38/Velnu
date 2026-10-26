@@ -78,3 +78,58 @@ test('multiple stated amounts are never silently turned into a one-line invoice'
   await expect(page.getByText(/multiple amounts/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save draft invoice' })).toBeDisabled()
 })
+
+
+test('Safari no-speech error shows a keyboard microphone fallback instead of a silent failure', async ({ page }) => {
+  await signedIn(page)
+  await page.route('https://example.supabase.co/**', route => {
+    const path = new URL(route.request().url()).pathname
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    const body = path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
+  })
+  await page.addInitScript(() => {
+    window.SpeechRecognition = window.webkitSpeechRecognition = class {
+      start() {}
+      stop() {
+        this.onerror?.({ error: 'no-speech' })
+        this.onend?.()
+      }
+    }
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Talk to Velnu' }).click()
+  await page.getByRole('button', { name: 'Tap and speak' }).click()
+  await page.getByRole('button', { name: 'Tap to stop' }).click()
+  await expect(page.getByText(/No speech detected by Safari/)).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Describe your invoice or request' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Review invoice' })).toHaveCount(0)
+})
+
+test('Safari retains speech for other commands and makes the user submit deliberately', async ({ page }) => {
+  await signedIn(page)
+  const invoked = []
+  await page.route('https://example.supabase.co/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    invoked.push(path)
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    const body = path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
+  })
+  await page.addInitScript(() => {
+    window.SpeechRecognition = window.webkitSpeechRecognition = class {
+      start() {}
+      stop() {
+        this.onresult?.({ results: [[{ transcript: 'Who has not paid me?' }]] })
+        this.onend?.()
+      }
+    }
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Talk to Velnu' }).click()
+  await page.getByRole('button', { name: 'Tap and speak' }).click()
+  await page.getByRole('button', { name: 'Tap to stop' }).click()
+  await expect(page.getByRole('textbox', { name: 'Describe your invoice or request' })).toHaveValue('Who has not paid me?')
+  await expect(page.getByRole('button', { name: 'Send command' })).toBeEnabled()
+  expect(invoked.filter(path => path.includes('/functions/v1/ai-command'))).toHaveLength(0)
+})
