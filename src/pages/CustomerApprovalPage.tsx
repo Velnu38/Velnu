@@ -11,7 +11,7 @@ type ApprovalData = {
   items: Array<{ description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }>
   customer: { first_name: string | null; last_name: string | null; company: string | null } | null
   expires_at: string
-  completed: { action: 'approved' | 'declined'; typed_name: string; amount: number; created_at: string } | null
+  completed: { action: 'approved' | 'declined'; typed_name: string; amount: number; created_at: string; terms_agreed?: boolean } | null
 }
 
 function customerName(customer: ApprovalData['customer']) {
@@ -82,7 +82,7 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
         {doc.customer_message && <div className="estimate-customer-terms"><strong>Additional terms from {data.business_name}</strong><p>{doc.customer_message}</p></div>}
       </section>}
       {data.business_profile?.document_footer && <p className="document-footer">{data.business_profile.document_footer}</p>}
-      {data.completed ? <section className={`approval-complete ${data.completed.action}`}><h2>{data.completed.action === 'approved' ? `Document ${approvedVerb}` : 'Document declined'}</h2><p>Recorded for {data.completed.typed_name} on {new Date(data.completed.created_at).toLocaleString()}.</p><p className="quiet">{data.document_type === 'estimate' && data.completed.action === 'approved' ? 'Agreement to the displayed estimate terms was recorded with the document and amount at acceptance.' : 'This decision is recorded with the document’s approval history.'}</p></section> :
+      {data.completed ? <section className={`approval-complete ${data.completed.action}`}><h2>{data.completed.action === 'approved' ? `Document ${approvedVerb}` : 'Document declined'}</h2><p>Recorded for {data.completed.typed_name} on {new Date(data.completed.created_at).toLocaleString()}.</p><p className="quiet">{data.document_type === 'estimate' && data.completed.action === 'approved' && data.completed.terms_agreed ? 'Agreement to the displayed estimate terms was recorded with the document and amount at acceptance.' : 'This decision is recorded with the document’s approval history.'}</p></section> :
       <section className="approval-decision">
         <h2>{data.document_type === 'estimate' ? 'Accept or decline this estimate' : 'Your decision'}</h2>
         <p>Review the scope and total above. Enter your full name to identify your decision.</p>
