@@ -31,7 +31,7 @@ function describe(action: ParsedAction) {
   if (f.scheduled_at_text) parts.push(`Starts ${String(f.scheduled_at_text)}`)
   if (f.scheduled_end_text) parts.push(`Ends ${String(f.scheduled_end_text)}`)
   if (Number.isInteger(f.schedule_impact_days) && f.schedule_impact_days !== 0) parts.push(`${f.schedule_impact_days > 0 ? '+' : ''}${f.schedule_impact_days} day schedule impact`)
-  return parts.join(' · ') || 'Owedly is ready to perform this action.'
+  return parts.join(' · ') || 'Velnu is ready to perform this action.'
 }
 
 function ResultView({ result }: { result: any }) {
@@ -78,7 +78,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         onChanged()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Owedly could not understand that request')
+      setError(err instanceof Error ? err.message : 'Velnu could not understand that request')
     } finally {
       setBusy(false)
     }
@@ -144,9 +144,9 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   }
 
   return <>
-    <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Owedly"><span className="mic-dot">●</span><span>Talk to Owedly</span></button>
+    <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Velnu"><span className="mic-dot">●</span><span>Talk to Velnu</span></button>
     {open && <div className="assistant-backdrop" onMouseDown={() => !recording && setOpen(false)}><section className="assistant-panel" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="assistant-head"><div><p className="eyebrow">Owedly Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)}>×</button></div>
+      <div className="assistant-head"><div><p className="eyebrow">Velnu Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)}>×</button></div>
       <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy}><span className="record-orb">●</span>{recording ? 'Tap to stop' : busy ? 'Working…' : 'Tap and speak'}</button>
       <div className="assistant-divider"><span>or type it</span></div>
       <div className="command-box"><textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Create an invoice for Bob Smith…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>Send</button></div>
