@@ -51,12 +51,12 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-brand"><div className="logo-mark small">O</div><span>Owedly</span></div>
+        <div className="sidebar-brand"><div className="logo-mark small">V</div><span>Velnu</span></div>
         <nav>{nav.map((item) => <button key={item.id} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
         <div className="sidebar-footer"><div className="business-chip"><strong>{business.name}</strong><span>{business.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </aside>
       <main className="workspace">
-        <header className="topbar"><div className="mobile-brand"><div className="logo-mark small">O</div><strong>Owedly</strong></div><div className="topbar-business"><span>{business.name}</span><span className="role-pill">{business.role}</span></div></header>
+        <header className="topbar"><div className="mobile-brand"><div className="logo-mark small">V</div><strong>Velnu</strong></div><div className="topbar-business"><span>{business.name}</span><span className="role-pill">{business.role}</span></div></header>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}>{page()}</div>
       </main>
       <nav className="mobile-nav">
@@ -68,7 +68,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       </nav>
       {showMobileMore && <div className="mobile-more-backdrop" onMouseDown={() => setShowMobileMore(false)}><section className="mobile-more-sheet" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mobile-more-handle" />
-        <div className="mobile-more-head"><div><p className="eyebrow">Owedly</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)}>×</button></div>
+        <div className="mobile-more-head"><div><p className="eyebrow">Velnu</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)}>×</button></div>
         <div className="mobile-more-grid">{mobileMore.map((id) => {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon">{item.icon}</span><strong>{item.label}</strong></button>
