@@ -1,0 +1,171 @@
+import { test, expect } from '@playwright/test'
+
+// Browser workflow tests use a fake Supabase API. No customers are emailed, no
+// live payments are recorded, and no production data is changed.
+const businessId = '11111111-1111-4111-8111-111111111111'
+const userId = '33333333-3333-4333-8333-333333333333'
+const customerId = '44444444-4444-4444-8444-444444444444'
+const invoiceId = '22222222-2222-4222-8222-222222222222'
+const estimateId = '55555555-5555-4555-8555-555555555555'
+const paymentId = '66666666-6666-4666-8666-666666666666'
+const user = { id: userId, email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
+const customer = { id: customerId, first_name: 'Jane', last_name: 'Doe', company: null, phone: '757-555-0100', email: 'jane@example.test' }
+const company = { id: businessId, name: 'Test Plumbing', role: 'owner', phone: '757-555-0188', email: 'office@example.test', address_line1: '100 Main Street', city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', profile_completed_at: '2026-10-01T00:00:00Z' }
+
+async function installSession(page) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({ sub: userId, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url')
+  const session = { access_token: header + '.' + payload + '.test', refresh_token: 'refresh', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user }
+  await page.addInitScript(s => localStorage.setItem('sb-example-auth-token', JSON.stringify(s)), session)
+}
+
+async function mockWorkspace(page, seed = {}) {
+  const state = {
+    customers: [customer],
+    invoices: [...(seed.invoices || [])],
+    estimates: [...(seed.estimates || [])],
+    payments: [],
+    requests: [],
+  }
+  await installSession(page)
+  await page.route('https://example.supabase.co/**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const path = url.pathname
+    const method = request.method()
+    let body = null
+    try { body = request.postDataJSON() } catch {}
+    state.requests.push({ path, method, url: request.url(), body })
+    const fulfill = (obj, status = 200) => route.fulfill({
+      status, contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*', 'content-range': '0-0/0' },
+      body: JSON.stringify(obj),
+    })
+    if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if (path.endsWith('/user')) return fulfill(user)
+    if (path.endsWith('/business_members')) return fulfill({ role: 'owner', business_id: businessId, businesses: company })
+    if (path.endsWith('/rpc/create_document')) {
+      const isInvoice = body.document_kind === 'invoice'
+      const items = body.payload.items
+      const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+      const tax_amount = items.reduce((sum, item) => sum + item.quantity * item.unit_price * item.tax_rate / 100, 0)
+      const next = {
+        id: isInvoice ? invoiceId : estimateId, business_id: businessId, customer_id: body.payload.customer_id,
+        invoice_number: isInvoice ? 'INV-1001' : undefined, estimate_number: isInvoice ? undefined : 'EST-1001',
+        status: 'draft', issue_date: '2026-10-26', due_date: body.payload.due_date || null,
+        expires_on: body.payload.expires_on || null, subtotal, tax_amount, total: subtotal + tax_amount,
+        amount_paid: 0, balance_due: subtotal + tax_amount,
+        notes: body.payload.notes || null, customer_message: null, customers: customer,
+      }
+      if (isInvoice) state.invoices.push(next)
+      else state.estimates.push(next)
+      return fulfill(next)
+    }
+    if (path.endsWith('/rpc/convert_estimate_to_invoice')) {
+      const e = state.estimates.find(row => row.id === body.target_estimate_id)
+      if (e) e.status = 'converted'
+      return fulfill(invoiceId)
+    }
+    if (path.endsWith('/rpc/record_manual_payment')) {
+      state.payments.push({ id: paymentId, amount: body.payment_amount, method: body.payment_method, status: 'succeeded', paid_at: new Date().toISOString(), invoice_id: body.invoice_id, invoices: state.invoices.find(i => i.id === body.invoice_id) })
+      return fulfill(state.payments.at(-1))
+    }
+    if (path.endsWith('/customers')) return fulfill(state.customers)
+    if (path.endsWith('/invoices')) {
+      const row = state.invoices.find(i => i.id === url.searchParams.get('id')?.replace(/^eq\./, ''))
+      if (row) return fulfill(row)
+      const isOpenSelector = url.searchParams.has('balance_due') && url.searchParams.has('status')
+      return fulfill(isOpenSelector ? state.invoices.filter(i => i.status !== 'draft' && i.status !== 'void') : state.invoices)
+    }
+    if (path.endsWith('/estimates')) {
+      if (method === 'PATCH') {
+        const target = state.estimates.find(i => i.id === url.searchParams.get('id')?.replace(/^eq\./, ''))
+        if (target) target.status = body.status
+        return fulfill([])
+      }
+      return fulfill(state.estimates)
+    }
+    if (path.endsWith('/payments')) return fulfill(state.payments)
+    if (path.endsWith('/invoice_items')) return fulfill(state.invoices.length ? [{ id: 'a', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }] : [])
+    if (path.endsWith('/estimate_items')) return fulfill([{ id: 'b', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }])
+    if (path.endsWith('/messages') || path.endsWith('/jobs') || path.endsWith('/appointments') || path.endsWith('/reminders') || path.endsWith('/change_orders')) return fulfill([])
+    return fulfill([])
+  })
+  return state
+}
+
+test('owner creates a branded invoice atomically and it remains a draft until manually sent', async ({ page }) => {
+  const state = await mockWorkspace(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await page.getByRole('button', { name: '+ New invoice' }).click()
+  await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
+  await page.getByPlaceholder('Description').fill('Faucet repair')
+  await page.getByPlaceholder('Unit price').fill('150')
+  await page.getByPlaceholder('Tax %').fill('5')
+  await page.getByRole('button', { name: 'Create invoice' }).click()
+  await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
+  await expect(page.getByText('Test Plumbing')).toBeVisible()
+  await expect(page.getByText('100 Main Street')).toBeVisible()
+  const created = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
+  expect(created).toHaveLength(1)
+  expect(created[0].body.document_kind).toBe('invoice')
+  expect(created[0].body.payload.items[0].tax_rate).toBe(5)
+  expect(created[0].body.request_id).toBeTruthy()
+  expect(state.requests.filter(x => x.path.endsWith('/invoices') && x.method === 'POST')).toHaveLength(0)
+  expect(state.requests.filter(x => x.path.includes('/send-invoice-email'))).toHaveLength(0)
+  await expect(page.getByRole('button', { name: 'Record payment' })).toHaveCount(0)
+})
+
+test('estimate requires explicit offline acceptance before conversion to invoice', async ({ page }) => {
+  const state = await mockWorkspace(page)
+  page.on('dialog', async dialog => { await dialog.accept() })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await page.getByRole('button', { name: '+ New estimate' }).click()
+  await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
+  await page.getByPlaceholder('Description').fill('Faucet repair')
+  await page.getByPlaceholder('Unit price').fill('150')
+  await page.getByRole('button', { name: 'Create estimate' }).click()
+  await expect(page.getByRole('button', { name: 'Mark sent manually' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create invoice' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Mark sent manually' }).click()
+  await page.getByRole('button', { name: 'Record acceptance' }).click()
+  await expect(page.getByRole('button', { name: 'Create invoice' })).toBeVisible()
+  await page.getByRole('button', { name: 'Create invoice' }).click()
+  await expect(page.getByRole('heading', { name: /Create invoice from/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Create draft invoice' }).click()
+  expect(state.requests.some(x => x.path.endsWith('/rpc/convert_estimate_to_invoice'))).toBe(true)
+  const created = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
+  expect(created[0].body.document_kind).toBe('estimate')
+  expect(state.estimates[0].status).toBe('converted')
+})
+
+test('payments exclude draft invoices and use retry-safe server recording', async ({ page }) => {
+  const draft = { id: '77777777-7777-4777-8777-777777777777', invoice_number: 'INV-DRAFT', status: 'draft', total: 150, balance_due: 150, amount_paid: 0, customers: customer }
+  const sent = { id: invoiceId, invoice_number: 'INV-SENT', status: 'sent', total: 150, balance_due: 150, amount_paid: 0, customers: customer }
+  const state = await mockWorkspace(page, { invoices: [draft, sent] })
+  page.on('dialog', async dialog => { await dialog.accept() })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Payments', exact: true }).click()
+  await page.getByRole('button', { name: '+ Record payment' }).click()
+  const options = await page.getByLabel('Invoice', { exact: true }).locator('option').allTextContents()
+  expect(options.join(' ')).toContain('INV-SENT')
+  expect(options.join(' ')).not.toContain('INV-DRAFT')
+  await page.getByLabel('Invoice', { exact: true }).selectOption(invoiceId)
+  await page.getByRole('button', { name: 'Record payment', exact: true }).last().click()
+  const requests = state.requests.filter(x => x.path.endsWith('/rpc/record_manual_payment'))
+  expect(requests).toHaveLength(1)
+  expect(requests[0].body.payment_amount).toBe(150)
+  expect(requests[0].body.request_id).toBeTruthy()
+  expect(state.requests.filter(x => x.path.endsWith('/payments') && x.method === 'POST')).toHaveLength(0)
+})
+
+test('mobile More menu exposes invoices and editable company settings', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await mockWorkspace(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'More' }).click()
+  await page.getByRole('button', { name: 'Company settings' }).last().click()
+  await expect(page.getByRole('heading', { name: 'Make Velnu yours.' })).toBeVisible()
+})
