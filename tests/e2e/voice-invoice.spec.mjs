@@ -33,12 +33,22 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
     return json([])
   })
 
+  // Simulate browser speech recognition, rather than calling a paid transcription API.
+  await page.addInitScript(() => {
+    window.webkitSpeechRecognition = class {
+      start() {}
+      stop() {
+        this.onresult?.({ results: [[{ transcript: 'Create an invoice for Bob Smith for $150' }]] })
+        this.onend?.()
+      }
+    }
+  })
   await page.goto('/')
   await expect(page.getByRole('button', { name: 'Talk to Velnu' })).toBeVisible()
   await page.getByRole('button', { name: 'Talk to Velnu' }).click()
-  await page.getByRole('textbox', { name: 'Describe your invoice or request' }).fill('Create an invoice for Bob Smith for $150')
-  await expect(page.getByRole('button', { name: 'Review invoice' })).toBeVisible()
-  await page.getByRole('button', { name: 'Review invoice' }).click()
+  await page.getByRole('button', { name: 'Tap and speak' }).click()
+  await expect(page.getByRole('button', { name: 'Tap to stop' })).toBeVisible()
+  await page.getByRole('button', { name: 'Tap to stop' }).click()
   await expect(page.getByRole('heading', { name: 'Review the invoice before saving' })).toBeVisible()
   await expect(page.getByLabel('New customer name or company')).toHaveValue('Bob Smith')
   await expect(page.getByLabel('Amount ($)')).toHaveValue('150')
