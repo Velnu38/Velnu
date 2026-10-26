@@ -22,9 +22,9 @@ export default function BusinessOnboarding({ onCreated }: { onCreated: (business
   return (
     <main className="onboarding-page">
       <section className="onboarding-card">
-        <div className="logo-mark">O</div>
+        <div className="logo-mark">V</div>
         <p className="eyebrow">One quick setup</p>
-        <h1>What should Owedly call your business?</h1>
+        <h1>What should Velnu call your business?</h1>
         <p>This is the workspace your customers, jobs, estimates, invoices and schedule will belong to.</p>
         <form onSubmit={submit}>
           <label>Business name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Smith Plumbing" autoFocus required /></label>
