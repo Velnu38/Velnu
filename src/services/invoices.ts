@@ -21,57 +21,41 @@ export async function listInvoices(businessId: string) {
 
 export async function createInvoice(
   businessId: string,
-  input: { customer_id: string; due_date?: string; notes?: string; customer_message?: string; items: InvoiceLineInput[] },
+  input: { customer_id: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
 ) {
   if (!input.customer_id) throw new Error('Choose a customer')
-  if (!input.items.length) throw new Error('Add at least one line item')
+  if (!input.items.length || input.items.length > 50) throw new Error('Enter 1 to 50 line items')
+  if (input.notes && input.notes.length > 4000) throw new Error('Internal notes must be at most 4,000 characters')
+  if (input.customer_message && input.customer_message.length > 4000) throw new Error('Customer message must be at most 4,000 characters')
 
+  const validMoney = (value: number) => Number.isFinite(value) && Math.abs(value * 100 - Math.round(value * 100)) < 1e-7
   for (const item of input.items) {
     if (!item.description.trim()) throw new Error('Every line item needs a description')
-    if (!Number.isFinite(item.quantity) || item.quantity <= 0) throw new Error('Quantity must be greater than zero')
-    if (!Number.isFinite(item.unit_price) || item.unit_price < 0) throw new Error('Unit price cannot be negative')
-    if ((item.tax_rate ?? 0) < 0) throw new Error('Tax rate cannot be negative')
+    if (!validMoney(item.quantity) || item.quantity <= 0 || item.quantity > 100000) throw new Error('Enter a valid quantity with at most 2 decimal places')
+    if (!validMoney(item.unit_price) || item.unit_price < 0 || item.unit_price > 10000000) throw new Error('Enter a valid unit price with at most 2 decimal places')
+    const tax = item.tax_rate ?? 0
+    if (!validMoney(tax) || tax < 0 || tax > 100) throw new Error('Tax rate must be between 0% and 100%, with at most 2 decimal places')
   }
 
-  const { data: invoice, error } = await supabase
-    .from('invoices')
-    .insert({
-      business_id: businessId,
+  // This database function inserts the document and all line items atomically.
+  // An identical request_id can be retried safely after a lost network response.
+  const { data, error } = await supabase.rpc('create_document', {
+    target_business_id: businessId,
+    document_kind: 'invoice',
+    request_id: input.request_id ?? crypto.randomUUID(),
+    payload: {
       customer_id: input.customer_id,
-      status: 'draft',
       due_date: input.due_date || null,
       notes: input.notes?.trim() || null,
       customer_message: input.customer_message?.trim() || null,
-    })
-    .select('id,invoice_number')
-    .single()
-
+      items: input.items.map(item => ({
+        description: item.description.trim(), quantity: item.quantity,
+        unit_price: item.unit_price, tax_rate: item.tax_rate ?? 0,
+      })),
+    },
+  })
   if (error) throw error
-
-  const rows = input.items.map((item, index) => ({
-    invoice_id: invoice.id,
-    business_id: businessId,
-    description: item.description.trim(),
-    quantity: item.quantity,
-    unit_price: item.unit_price,
-    tax_rate: item.tax_rate ?? 0,
-    sort_order: index,
-  }))
-
-  const { error: itemError } = await supabase.from('invoice_items').insert(rows)
-  if (itemError) {
-    await supabase.from('invoices').delete().eq('id', invoice.id)
-    throw itemError
-  }
-
-  const { data: full, error: fullError } = await supabase
-    .from('invoices')
-    .select('id,invoice_number,status,subtotal,tax_amount,total,amount_paid,balance_due,due_date')
-    .eq('id', invoice.id)
-    .single()
-
-  if (fullError) throw fullError
-  return full
+  return data as { id: string; invoice_number: string | null; status: string; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; due_date: string | null }
 }
 
 export async function updateInvoiceStatus(invoiceId: string, status: 'draft' | 'sent' | 'viewed' | 'partial' | 'paid' | 'overdue' | 'void') {
