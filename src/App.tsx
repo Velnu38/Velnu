@@ -2,22 +2,29 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { getCurrentBusiness, type CurrentBusiness } from './lib/business'
+import { hasAcceptedAgreement } from './lib/userAgreement'
 import AuthScreen from './components/AuthScreen'
 import PasswordRecovery from './components/PasswordRecovery'
 import BusinessOnboarding from './components/BusinessOnboarding'
 import AppShell from './components/AppShell'
+import AccountAgreement from './components/AccountAgreement'
 import CustomerApprovalPage from './pages/CustomerApprovalPage'
+import LandingPage from './pages/LandingPage'
+import LegalPage from './pages/LegalPage'
 
 const initialQuery = new URLSearchParams(window.location.search)
 const initialHash = new URLSearchParams(window.location.hash.slice(1))
 const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get('type') === 'recovery'
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
+const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
+const publicPath = window.location.pathname
 
 export default function App() {
   const approvalToken = initialQuery.get('approval')
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [recovery, setRecovery] = useState(initialRecovery)
+  const [agreementStatus, setAgreementStatus] = useState<'checking' | 'needed' | 'accepted'>('checking')
   const [business, setBusiness] = useState<CurrentBusiness | null>(null)
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -25,11 +32,10 @@ export default function App() {
   const userId = session?.user.id ?? null
 
   useEffect(() => {
-    if (approvalToken) return
+    if (approvalToken || publicPath === '/terms' || publicPath === '/privacy') return
     let active = true
     let eventReceived = false
-    // Keep this callback synchronous. Awaiting a Supabase call here can hold
-    // the auth lock and prevent workspace loading or token refresh completing.
+    // Keep the auth callback synchronous to avoid holding the session lock.
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return
       eventReceived = true
@@ -51,7 +57,7 @@ export default function App() {
       setAuthReady(true)
     }).catch(() => {
       if (!active || eventReceived) return
-      setAuthError('Unable to check your session. Please reload and try again.')
+      setAuthError('Unable to check your session. Reload and try again.')
       setAuthReady(true)
     })
     return () => { active = false; data.subscription.unsubscribe() }
@@ -62,7 +68,19 @@ export default function App() {
     setBusiness(null)
     setLoadedUserId(null)
     setError('')
+    setAgreementStatus('checking')
     if (!userId || recovery || approvalToken) return () => { active = false }
+    void hasAcceptedAgreement(userId).then(accepted => {
+      if (active) setAgreementStatus(accepted ? 'accepted' : 'needed')
+    }).catch(err => {
+      if (active) setError(err instanceof Error ? err.message : 'Unable to verify the current user agreement.')
+    })
+    return () => { active = false }
+  }, [userId, recovery, approvalToken])
+
+  useEffect(() => {
+    let active = true
+    if (!userId || recovery || agreementStatus !== 'accepted' || approvalToken) return () => { active = false }
     void getCurrentBusiness().then(next => {
       if (active) setBusiness(next)
     }).catch(err => {
@@ -71,19 +89,32 @@ export default function App() {
       if (active) setLoadedUserId(userId)
     })
     return () => { active = false }
-  }, [userId, recovery, approvalToken])
+  }, [userId, agreementStatus, recovery, approvalToken])
 
   function finishRecovery() {
-    window.history.replaceState({}, '', window.location.pathname)
+    window.history.replaceState({}, '', '/auth?mode=signin')
     setRecovery(false)
   }
 
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
+  if (publicPath === '/terms') return <LegalPage variant="terms" />
+  if (publicPath === '/privacy') return <LegalPage variant="privacy" />
   if (!authReady) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening Velnu…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
-  if (!session) return <AuthScreen initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />
+  if (!session) {
+    if (publicPath === '/auth' || invalidAuthLink) {
+      return <AuthScreen initialMode={initialAuthMode} initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />
+    }
+    return <LandingPage />
+  }
+  if (error) return <main className="loading-page"><div className="logo-mark">V</div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
+  if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark">V</div><p>Checking your account agreement…</p></main>
+  if (agreementStatus === 'needed') return <AccountAgreement
+    userId={session.user.id} email={session.user.email ?? 'your account'}
+    onAccepted={() => setAgreementStatus('accepted')}
+    onSignOut={() => void supabase.auth.signOut()}
+  />
   if (loadedUserId !== userId) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening your workspace…</p></main>
-  if (error) return <main className="loading-page"><div className="logo-mark">V</div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button></main>
   if (!business) return <BusinessOnboarding onCreated={setBusiness} />
   return <AppShell business={business} />
 }
