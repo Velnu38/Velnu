@@ -12,6 +12,7 @@ import './customer-approval.css';
 import './office-dashboard.css';
 import './company-profile.css';
 import './marketing.css';
+import './bookkeeping.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing root element');

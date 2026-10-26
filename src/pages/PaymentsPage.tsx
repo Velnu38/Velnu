@@ -12,7 +12,7 @@ function customerName(customer?: Customer) {
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
 }
 
-export default function PaymentsPage({ business }: { business: CurrentBusiness }) {
+export default function PaymentsPage({ business, onOpenWorkbook }: { business: CurrentBusiness; onOpenWorkbook?: () => void }) {
   const [payments, setPayments] = useState<Payment[]>([])
   const [openInvoices, setOpenInvoices] = useState<OpenInvoice[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -52,7 +52,7 @@ export default function PaymentsPage({ business }: { business: CurrentBusiness }
   }
 
   return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View bookkeeping</button>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
     <section className="list-card">
       {payments.length === 0 ? <div className="empty-state"><div className="empty-icon">$</div><h2>No payments yet</h2><p>Record a payment here when you have actually received the funds.</p></div> : payments.map((payment) => {
         const invoice = payment.invoices?.[0]

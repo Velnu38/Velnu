@@ -61,3 +61,5 @@
  .bookkeeping-entry-form>label.full,.bookkeeping-entry-form>.full{grid-column:1}
  .bookkeeping-connect-actions{align-items:stretch}
 }
+
+.payment-heading-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
