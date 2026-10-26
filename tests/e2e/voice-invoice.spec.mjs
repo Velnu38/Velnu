@@ -25,6 +25,7 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
     const json = (obj, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(obj) })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' })
     if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } })
     if (path.endsWith('/customers') && method === 'POST') return json({ id: newCustomerId, company: 'Bob Smith', first_name: null, last_name: null, email: null, phone: null }, 201)
     if (path.endsWith('/rpc/create_document')) return json({ id: invoiceId, invoice_number: 'INV-TEST-1', status: 'draft', subtotal: 150, tax_amount: 0, total: 150, amount_paid: 0, balance_due: 150, due_date: null })
@@ -69,7 +70,7 @@ test('multiple stated amounts are never silently turned into a one-line invoice'
   await page.route('https://example.supabase.co/**', route => {
     const path = new URL(route.request().url()).pathname
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
+    const body = path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' } : path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
   })
   await page.goto('/')
@@ -86,7 +87,7 @@ test('Safari no-speech error shows a keyboard microphone fallback instead of a s
   await page.route('https://example.supabase.co/**', route => {
     const path = new URL(route.request().url()).pathname
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
+    const body = path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' } : path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
   })
   await page.addInitScript(() => {
@@ -114,7 +115,7 @@ test('Safari retains speech for other commands and makes the user submit deliber
     const path = new URL(route.request().url()).pathname
     invoked.push(path)
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
+    const body = path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' } : path.endsWith('/user') ? user : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } } : []
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
   })
   await page.addInitScript(() => {
@@ -151,6 +152,7 @@ test('cloud recording uses server transcription and opens draft review, without 
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' })
     if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } })
     if (path.endsWith('/functions/v1/transcribe-voice')) {
       return request.headers()['content-type']?.includes('application/json')

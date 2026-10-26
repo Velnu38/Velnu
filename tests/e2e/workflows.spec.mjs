@@ -43,6 +43,7 @@ async function mockWorkspace(page, seed = {}) {
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return fulfill(user)
+    if (path.endsWith('/user_agreement_acceptances')) return fulfill({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' })
     if (path.endsWith('/business_members')) return fulfill({ role: 'owner', business_id: businessId, businesses: company })
     if (path.endsWith('/rpc/create_document')) {
       const isInvoice = body.document_kind === 'invoice'

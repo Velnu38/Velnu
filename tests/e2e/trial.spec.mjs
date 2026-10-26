@@ -40,7 +40,7 @@ async function mockApi(page, options = {}) {
 
 test('forgot password requests an on-site recovery link and gives a generic account message', async ({ page }) => {
   const requests = await mockApi(page)
-  await page.goto('/')
+  await page.goto('/auth?mode=signin')
   await page.getByRole('button', { name: 'Forgot password?' }).click()
   await page.getByLabel('Email', { exact: true }).fill(user.email)
   await page.getByRole('button', { name: 'Send reset link' }).click()
@@ -127,7 +127,7 @@ test('canceling the email confirmation never sends a message', async ({ page }) 
 test('sign-in and password recovery remain usable on a phone-sized screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockApi(page)
-  await page.goto('/')
+  await page.goto('/auth?mode=signin')
   await page.getByRole('button', { name: 'Forgot password?' }).click()
   await expect(page.getByRole('button', { name: 'Send reset link' })).toBeVisible()
   await expect(page.getByLabel('Email', { exact: true })).toBeVisible()
