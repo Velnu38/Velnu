@@ -3,9 +3,13 @@ import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { createJob } from '../services/jobs'
 import { listAppointments, updateAppointmentStatus } from '../services/schedule'
+import GoogleMapTools from '../components/GoogleMapTools'
+import CustomerPropertySelect from '../components/CustomerPropertySelect'
+import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
-type Appointment = { id: string; title: string; starts_at: string; ends_at: string | null; status: string; customers: Customer[] | null }
+type Property = ServiceAddress & { id: string; label: string | null }
+type Appointment = { id: string; title: string; starts_at: string; ends_at: string | null; status: string; customers: Customer[] | null; jobs?: Array<{ id: string; title: string; properties?: Property[] }> | null }
 
 function name(customer?: Customer) {
   if (!customer) return 'Customer'
@@ -18,7 +22,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ customer_id: '', title: '', description: '', starts_at: '', ends_at: '' })
+  const [form, setForm] = useState({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' })
 
   async function refresh() {
     const from = new Date(); from.setHours(0, 0, 0, 0)
@@ -40,7 +44,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   }, [appointments])
 
   function resetForm() {
-    setForm({ customer_id: '', title: '', description: '', starts_at: '', ends_at: '' }); setError('')
+    setForm({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' }); setError('')
   }
 
   async function submit(event: FormEvent) {
@@ -52,6 +56,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
       if (end && (Number.isNaN(end.getTime()) || end < start)) throw new Error('End time must be after the start time')
       await createJob(business.id, {
         customer_id: form.customer_id,
+        property_id: form.property_id || undefined,
         title: form.title,
         description: form.description,
         scheduled_start: start.toISOString(),
@@ -71,12 +76,13 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   return <div className="page-stack">
     <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><h1>Know where you need to be next.</h1></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Schedule work</button>}</div>
     <section className="schedule-card">
-      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Velnu when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{name(appointment.customers?.[0])}</span></div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
+      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Velnu when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{name(appointment.customers?.[0])}</span>{appointment.jobs?.[0]?.properties?.[0] && <div className="schedule-location"><span>{formatServiceAddress(appointment.jobs[0].properties![0])}</span><GoogleMapTools address={appointment.jobs[0].properties![0]} compact /></div>}</div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
     </section>
     {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
       <div className="modal-head"><div><p className="eyebrow">Schedule work</p><h2>Add a job to the calendar</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form className="form-grid" onSubmit={submit}>
-        <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{name(customer)}</option>)}</select></label>
+        <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value, property_id: '' })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{name(customer)}</option>)}</select></label>
+        <CustomerPropertySelect businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
         <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace garbage disposal" required /></label>
         <label>Starts<input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} required /></label>
         <label>Ends<input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></label>
