@@ -106,7 +106,7 @@ export const privacySections = [
   {
     title: 'Service providers',
     paragraphs: [
-      'The preview uses Supabase for authentication and business data, Vercel for website hosting, and may use OpenAI for voice and AI tasks. Resend customer email delivery is not yet enabled. The processing arrangements and retention terms of each provider require verification for the final deployment.',
+      'The preview uses Supabase for authentication and business data, Vercel for website hosting, and may use OpenAI for voice and AI tasks. Resend customer email delivery is not yet enabled. When you click a Google Maps or directions link, Velnu passes the selected service street address to Google in a URL. If an embedded map is enabled, Google receives the address when you choose to show that map. Google Maps has its own terms and privacy practices. Velnu never includes private property access notes or gate codes in map links. The processing arrangements and retention terms of each provider require verification for the final deployment.',
       'Logos uploaded for public documents may be accessible to anyone with the file URL. Do not upload confidential photos as business logos.'
     ]
   },
