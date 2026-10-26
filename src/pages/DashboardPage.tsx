@@ -18,7 +18,7 @@ function personName(customer?: { first_name: string | null; last_name: string | 
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
 }
 
-export default function DashboardPage({ business }: { business: CurrentBusiness }) {
+export default function DashboardPage({ business, onSetup }: { business: CurrentBusiness; onSetup?: () => void }) {
   const [snapshot, setSnapshot] = useState(empty)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -55,6 +55,7 @@ export default function DashboardPage({ business }: { business: CurrentBusiness 
       <button className="secondary-button compact" onClick={refresh} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
+    {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="metric-grid">
       <article className="metric-card"><span>Outstanding</span><strong>{loading ? '—' : money.format(snapshot.outstandingBalance)}</strong><small>{snapshot.openInvoices} unpaid invoice{snapshot.openInvoices === 1 ? '' : 's'}</small></article>
       <article className="metric-card"><span>Jobs next 7 days</span><strong>{loading ? '—' : snapshot.jobsThisWeek}</strong><small>{snapshot.todayAppointments.length} scheduled today</small></article>
