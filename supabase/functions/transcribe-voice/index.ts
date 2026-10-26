@@ -14,10 +14,10 @@ const respond = (status: number, body: unknown) =>
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const allowedExtensions = /\.(webm|mp3|mp4|mpeg|mpga|m4a|ogg|wav|flac)$/i;
 const allowedMime = /^(audio\/(webm|mpeg|mp4|x-m4a|m4a|wav|x-wav|ogg|flac)|video\/mp4)(;|$)/;
-const allowedModels = new Set(["gpt-transcribe", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]);
+const allowedModels = new Set(["gpt-4o-transcribe", "gpt-4o-mini-transcribe"]);
 const model = allowedModels.has(Deno.env.get("OPENAI_TRANSCRIPTION_MODEL") ?? "")
   ? Deno.env.get("OPENAI_TRANSCRIPTION_MODEL")!
-  : "gpt-transcribe";
+  : "gpt-4o-transcribe";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: jsonHeaders });
