@@ -6,6 +6,8 @@ async function explainFunctionError(error: unknown, type: 'transcription' | 'com
   if (context instanceof Response) {
     const data = await context.clone().json().catch(() => null) as { error?: string } | null
     const serverMessage = data?.error || ''
+    const serverCode = (data as { code?: string } | null)?.code
+    if (serverCode === 'transcription_not_configured') return new Error(serverMessage)
     if (context.status === 503 && /OPENAI_API_KEY/i.test(serverMessage)) {
       return new Error(type === 'transcription'
         ? 'Cloud transcription is not configured yet. On iPhone Safari try browser dictation, or use the keyboard microphone in the text box and tap Review invoice.'
@@ -62,10 +64,18 @@ export async function executeAiAction(actionId: string) {
   return data
 }
 
+export async function getTranscriptionStatus(businessId: string): Promise<{ configured: boolean; model: string | null }> {
+  const { data, error } = await supabase.functions.invoke('transcribe-voice', {
+    body: { action: 'status', business_id: businessId },
+  })
+  if (error) throw await explainFunctionError(error, 'transcription')
+  return { configured: data?.configured === true, model: typeof data?.model === 'string' ? data.model : null }
+}
+
 export async function transcribeVoice(businessId: string, audio: Blob, durationSeconds?: number, prompt?: string) {
   const form = new FormData()
   const mime = (audio.type || '').toLowerCase()
-  const extension = mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : 'webm'
+  const extension = mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : mime.includes('mpeg') ? 'mp3' : mime.includes('flac') ? 'flac' : 'webm'
   form.append('audio', audio, 'velnu-command.' + extension)
   form.append('business_id', businessId)
   if (durationSeconds && Number.isFinite(durationSeconds)) form.append('duration_seconds', durationSeconds.toFixed(2))
