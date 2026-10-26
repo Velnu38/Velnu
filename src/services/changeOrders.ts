@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { asList } from './relations'
 
 export interface ChangeOrderLineInput {
   description: string
@@ -24,12 +25,12 @@ export interface ChangeOrderInput {
 export async function listChangeOrders(businessId: string) {
   const { data, error } = await supabase
     .from('change_orders')
-    .select('id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,issue_date,subtotal,tax_amount,total,sent_at,approved_at,declined_at,customer_id,job_id,customers(id,first_name,last_name,company),jobs(id,title,status)')
+    .select('id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,issue_date,subtotal,tax_amount,total,sent_at,approved_at,declined_at,customer_id,job_id,customers!change_orders_customer_id_fkey(id,first_name,last_name,company),jobs!change_orders_job_id_fkey(id,title,status)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data
+  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers), jobs: asList(row.jobs) }))
 }
 
 export async function createChangeOrder(businessId: string, input: ChangeOrderInput) {

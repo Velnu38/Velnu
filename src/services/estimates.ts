@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { asList } from './relations'
 
 export interface EstimateLineInput {
   description: string
@@ -10,12 +11,12 @@ export interface EstimateLineInput {
 export async function listEstimates(businessId: string) {
   const { data, error } = await supabase
     .from('estimates')
-    .select('id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,notes,customer_message,customers(id,first_name,last_name,company,email,phone)')
+    .select('id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,notes,customer_message,customers!estimates_customer_id_fkey(id,first_name,last_name,company,email,phone)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data
+  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
 }
 
 export async function createEstimate(

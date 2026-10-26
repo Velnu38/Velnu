@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { asList } from './relations'
 
 export interface InvoiceLineInput {
   description: string
@@ -10,12 +11,12 @@ export interface InvoiceLineInput {
 export async function listInvoices(businessId: string) {
   const { data, error } = await supabase
     .from('invoices')
-    .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,customer_id,customers(id,first_name,last_name,company)')
+    .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,customer_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data
+  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
 }
 
 export async function createInvoice(

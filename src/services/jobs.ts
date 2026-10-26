@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { asList } from './relations'
 
 export interface JobInput {
   customer_id: string
@@ -12,13 +13,13 @@ export interface JobInput {
 export async function listJobs(businessId: string) {
   const { data, error } = await supabase
     .from('jobs')
-    .select('id, title, description, status, scheduled_start, scheduled_end, customer_id, customers(id,first_name,last_name,company)')
+    .select('id, title, description, status, scheduled_start, scheduled_end, customer_id, customers!jobs_customer_id_fkey(id,first_name,last_name,company)')
     .eq('business_id', businessId)
     .order('scheduled_start', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data
+  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
 }
 
 export async function createJob(businessId: string, input: JobInput) {
