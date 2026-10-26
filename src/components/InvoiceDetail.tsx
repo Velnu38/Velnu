@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { createInvoiceReminder, getInvoiceDetail } from '../services/invoiceDetail'
 import { recordPayment } from '../services/payments'
@@ -30,13 +30,14 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const [paymentNote,setPaymentNote]=useState('')
   const [reminderAt,setReminderAt]=useState('')
   const [reminderNote,setReminderNote]=useState('Follow up on unpaid invoice')
+  const paymentRetryRef=useRef<{signature:string; requestId:string}|null>(null)
 
   async function refresh(){setLoading(true);setError('');try{const next=await getInvoiceDetail(business.id,invoiceId) as Detail;setDetail(next);setAmount(String(next.invoice.balance_due))}catch(err){setError(err instanceof Error?err.message:'Unable to load invoice')}finally{setLoading(false)}}
   useEffect(()=>{setDetail(null);void refresh()},[business.id,invoiceId])
 
   async function savePayment(event:FormEvent){
     event.preventDefault();if(!detail||busy)return;setBusy(true);setError('')
-    try{const value=Number(amount);if(!Number.isFinite(value)||value<=0||value>Number(detail.invoice.balance_due))throw new Error('Enter a payment greater than zero and no more than the balance due.');await recordPayment(business.id,{invoice_id:detail.invoice.id,amount:value,method,notes:paymentNote});setShowPayment(false);setPaymentNote('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to record payment')}finally{setBusy(false)}
+    try{const value=Number(amount);if(!Number.isFinite(value)||value<=0||value>Number(detail.invoice.balance_due))throw new Error('Enter a payment greater than zero and no more than the balance due.');if(!window.confirm('Have you actually received this payment? Velnu will record it, not charge the customer.'))return;const signature=JSON.stringify({id:detail.invoice.id,value,method,paymentNote});if(paymentRetryRef.current?.signature!==signature)paymentRetryRef.current={signature,requestId:crypto.randomUUID()};await recordPayment(business.id,{invoice_id:detail.invoice.id,amount:value,method,notes:paymentNote,request_id:paymentRetryRef.current.requestId});paymentRetryRef.current=null;setShowPayment(false);setPaymentNote('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to record payment')}finally{setBusy(false)}
   }
 
   async function saveReminder(event:FormEvent){
@@ -45,6 +46,8 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   }
 
   async function markSent(){if(!detail||busy)return;if(!window.confirm('This only records that you sent the invoice outside Velnu. It does not email the customer. Continue?'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'sent');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to mark invoice sent')}finally{setBusy(false)}}
+
+  async function voidInvoice(){if(!detail||busy||detail.invoice.status==='void'||Number(detail.invoice.amount_paid)>0)return;if(!window.confirm('Void this invoice? This cannot be undone, and the invoice will remain in your records.'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'void');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to void invoice')}finally{setBusy(false)}}
 
   if(loading&&!detail)return <div className="detail-loading">Loading invoice…</div>
   if(!detail)return <div className="empty-state"><h2>Invoice unavailable</h2>{error&&<p role="alert">{error}</p>}<button className="secondary-button" onClick={onBack}>Back to invoices</button></div>
@@ -60,8 +63,9 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
     <div className="invoice-action-bar">
       {canWrite(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={refresh}/>}
       {canWrite(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
+      {canWrite(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
       {canWrite(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button className="secondary-button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
-      {canWrite(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
+      {canWrite(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
       <button className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
     </div>
     {error&&<p className="form-message error-text" role="alert">{error}</p>}

@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
-import { createInvoice, listInvoices, updateInvoiceStatus } from '../services/invoices'
+import { createInvoice, listInvoices } from '../services/invoices'
 import InvoiceDetail from '../components/InvoiceDetail'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
@@ -21,6 +21,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState<Line[]>([blankLine()])
+  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
     const [invoiceRows, customerRows] = await Promise.all([listInvoices(business.id), listCustomers(business.id)])
@@ -28,7 +29,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
     setCustomers(customerRows as Customer[])
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load invoices')) }, [business.id])
 
   const previewTotal = useMemo(() => lines.reduce((sum, line) => {
     const quantity = Number(line.quantity || 0)
@@ -44,13 +45,15 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   }
 
   function resetForm() {
-    setCustomerId(''); setDueDate(''); setNotes(''); setLines([blankLine()]); setError('')
+    setCustomerId(''); setDueDate(''); setNotes(''); setLines([blankLine()]); setError(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('')
     try {
-      const created = await createInvoice(business.id, {
+      const signature = JSON.stringify({ customerId, dueDate, notes, lines })
+      if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
+      const created = await createInvoice(business.id, { request_id: retryRef.current.requestId,
         customer_id: customerId,
         due_date: dueDate || undefined,
         notes,
@@ -67,10 +70,6 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
     } finally { setBusy(false) }
   }
 
-  async function changeStatus(id: string, status: Invoice['status']) {
-    await updateInvoiceStatus(id, status as 'draft' | 'sent' | 'viewed' | 'partial' | 'paid' | 'overdue' | 'void')
-    await refresh()
-  }
 
   if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null); refresh() }} />
 
@@ -80,9 +79,9 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Create your first invoice here or tell Velnu what to bill.</p></div> : invoices.map((invoice) => {
         const customer = invoice.customers?.[0]
         return <article className="document-row invoice-list-row" key={invoice.id}>
-          <button className="invoice-open" onClick={() => setSelectedInvoiceId(invoice.id)}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date).toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span></div></button>
+          <button className="invoice-open" onClick={() => setSelectedInvoiceId(invoice.id)}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span></div></button>
           <div className="invoice-money"><strong className="money">${Number(invoice.balance_due).toFixed(2)}</strong><span>of ${Number(invoice.total).toFixed(2)} due</span></div>
-          <select value={invoice.status} disabled={!canWrite(business.role) || ['partial','paid'].includes(invoice.status)} onChange={(e) => changeStatus(invoice.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="viewed">Viewed</option><option value="overdue">Overdue</option><option value="void">Void</option>{['partial','paid'].includes(invoice.status) && <option value={invoice.status}>{invoice.status === 'partial' ? 'Partial' : 'Paid'}</option>}</select>
+          <span className={`status-chip ${invoice.status === 'paid' ? 'paid' : ''}`}>{invoice.status.replaceAll('_', ' ')}</span>
         </article>
       })}
     </section>

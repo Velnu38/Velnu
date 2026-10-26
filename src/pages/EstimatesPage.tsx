@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
@@ -33,6 +33,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [expiresOn, setExpiresOn] = useState('')
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState<Line[]>([blankLine()])
+  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
     const [estimateRows, customerRows] = await Promise.all([listEstimates(business.id), listCustomers(business.id)])
@@ -40,7 +41,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     setCustomers(customerRows as Customer[])
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates')) }, [business.id])
 
   const previewTotal = useMemo(() => lines.reduce((sum, line) => {
     const quantity = Number(line.quantity || 0)
@@ -56,13 +57,15 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function resetForm() {
-    setCustomerId(''); setExpiresOn(''); setNotes(''); setLines([blankLine()]); setError(''); setNotice('')
+    setCustomerId(''); setExpiresOn(''); setNotes(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setNotice('')
     try {
-      await createEstimate(business.id, {
+      const signature = JSON.stringify({ customerId, expiresOn, notes, lines })
+      if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
+      await createEstimate(business.id, { request_id: retryRef.current.requestId,
         customer_id: customerId,
         expires_on: expiresOn || undefined,
         notes,
@@ -79,10 +82,22 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     } finally { setBusy(false) }
   }
 
-  async function changeStatus(id: string, status: Estimate['status']) {
-    setError(''); setNotice('')
-    await updateEstimateStatus(id, status as 'draft' | 'sent' | 'accepted' | 'declined' | 'expired' | 'converted')
-    await refresh()
+  async function changeStatus(id: string, status: 'sent' | 'accepted' | 'declined' | 'expired') {
+    const confirmations: Record<typeof status, string> = {
+      sent: 'Mark this estimate as delivered outside Velnu? This does not email the customer.',
+      accepted: 'Record that the customer accepted this estimate outside Velnu? Confirm you have their actual approval.',
+      declined: 'Record that the customer declined this estimate outside Velnu?',
+      expired: 'Mark this estimate as expired?',
+    }
+    if (!window.confirm(confirmations[status])) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await updateEstimateStatus(id, status)
+      await refresh()
+      setNotice(status === 'accepted' ? 'Customer acceptance recorded manually. You can now create a draft invoice.' : 'Estimate marked ' + status + '.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update estimate')
+    } finally { setBusy(false) }
   }
 
   async function shareForApproval(estimate: Estimate) {
@@ -141,13 +156,16 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     <section className="list-card">
       {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Create an estimate here or tell Velnu what you want to quote.</p></div> : estimates.map((estimate) => {
         const customer = estimate.customers?.[0]
-        const terminal = ['accepted', 'declined', 'converted'].includes(estimate.status)
         return <article className="document-row" key={estimate.id}>
-          <div className="row-main"><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date).toLocaleDateString()}</span></div>
+          <div className="row-main"><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span></div>
           <strong className="money">${Number(estimate.total).toFixed(2)}</strong>
           <div className="document-actions">
             <button className="secondary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Preview / Print</button>
-            {terminal ? <span className={`status-chip ${estimate.status === 'accepted' ? 'paid' : ''}`}>{estimate.status}</span> : <select value={estimate.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(estimate.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="expired">Expired</option></select>}
+            <span className={`status-chip ${estimate.status === 'accepted' ? 'paid' : ''}`}>{estimate.status}</span>
+            {canWrite(business.role) && estimate.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'sent')}>Mark sent manually</button>}
+            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'accepted')}>Record acceptance</button>}
+            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'declined')}>Record decline</button>
+            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'expired')}>Expire</button>
             {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(estimate)}>Email customer</button>}
             {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Copy approval link</button>}
             {canWrite(business.role) && estimate.status === 'accepted' && <button className="conversion-button" onClick={() => { setError(''); setNotice(''); setConvertTarget(estimate) }}>Create invoice</button>}

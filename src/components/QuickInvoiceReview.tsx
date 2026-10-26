@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { canWrite } from '../lib/business'
 import { parseQuickInvoice } from '../lib/quickInvoice'
@@ -30,6 +30,7 @@ export default function QuickInvoiceReview({ business, command, onCancel, onSave
   const [dueDate, setDueDate] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   useEffect(() => {
     let active = true
@@ -68,7 +69,9 @@ export default function QuickInvoiceReview({ business, command, onCancel, onSave
         chosenCustomerId = added.id
         setCreatedCustomerId(chosenCustomerId)
       }
-      const invoice = await createInvoice(business.id, {
+      const signature = JSON.stringify({ chosenCustomerId, description, cost, tax, dueDate })
+      if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
+      const invoice = await createInvoice(business.id, { request_id: retryRef.current.requestId,
         customer_id: chosenCustomerId,
         due_date: dueDate || undefined,
         items: [{ description: description.trim(), quantity: 1, unit_price: cost, tax_rate: tax }],
