@@ -57,7 +57,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small">V</div><span>Velnu</span></div>
         <nav>{nav.map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
-        <div className="sidebar-footer"><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+        <div className="sidebar-footer"><div className="sidebar-legal"><a href="/terms" target="_blank" rel="noopener noreferrer">User agreement</a><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy notice</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><div className="logo-mark small">V</div><strong>Velnu</strong></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
@@ -77,7 +77,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon">{item.icon}</span><strong>{item.label}</strong></button>
         })}</div>
-        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </section></div>}
       <VoiceAssistant business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />
     </div>

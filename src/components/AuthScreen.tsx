@@ -81,7 +81,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
 
   return <main className="auth-page">
     <section className="auth-hero">
-      <div className="logo-mark">V</div><div className="brand-word">Velnu</div>
+      <a href="/" className="auth-brand-link" title="Back to Velnu home"><div className="logo-mark">V</div><div className="brand-word">Velnu</div></a>
       <h1>Run your business by talking to it.</h1>
       <p>Your AI office manager for customers, jobs, estimates, invoices, payments and follow-up.</p>
       <div className="voice-example">“Create an invoice for Bob Smith for $1,450 due in 15 days.”</div>
@@ -99,6 +99,8 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       <button className="text-button" disabled={busy} onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
         {mode === 'signin' ? 'New to Velnu? Create an account' : 'Back to sign in'}
       </button>
+      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Velnu User Agreement</a>, <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Notice</a>, and AI disclosure before entering your workspace.</p>
+      <a className="text-button auth-home-link" href="/">Return to Velnu homepage</a>
     </section>
   </main>
 }

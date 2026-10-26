@@ -11,6 +11,7 @@ import './change-orders.css';
 import './customer-approval.css';
 import './office-dashboard.css';
 import './company-profile.css';
+import './marketing.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing root element');
