@@ -72,17 +72,18 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const [quickInvoiceRequest, setQuickInvoiceRequest] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
+  const [voiceStatus, setVoiceStatus] = useState('')
   const recorderRef = useRef<MediaRecorder | null>(null)
   const recognizerRef = useRef<BrowserRecognizer | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const recordingStartedAtRef = useRef<number | null>(null)
 
   function reset() {
-    setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setText('')
+    setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setVoiceStatus(''); setText('')
   }
 
   async function parseCommand(command: string, source: AiCommandSource) {
-    setError(''); setResult(null); setAction(null)
+    setError(''); setVoiceStatus(''); setResult(null); setAction(null)
     if (isQuickInvoiceCommand(command)) {
       // A single-line draft can be reviewed and saved even without a paid AI key.
       // Never save financial changes automatically.
@@ -121,7 +122,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       } else recorderRef.current?.stop()
       return
     }
-    setError(''); setAction(null); setQuickInvoiceRequest(null); setResult(null)
+    setError(''); setVoiceStatus(''); setAction(null); setQuickInvoiceRequest(null); setResult(null)
     // Prefer browser dictation where supported. It does not require our OpenAI API key.
     // Support differs by browser, so retain a typed/keyboard-dictation fallback.
     const speechWindow = window as typeof window & {
@@ -133,17 +134,29 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       const speech = new SpeechCtor()
       speech.lang = 'en-US'
       speech.continuous = false
-      speech.interimResults = false
+      speech.interimResults = true
       let spoken = ''
       let speechError = ''
       speech.onresult = (event) => {
+        // Show interim recognition immediately; iPhone Safari may not emit a separate
+        // final event before the recognizer ends. Never fabricate a transcript.
         spoken = Array.from(event.results, item => item[0]?.transcript || '').join(' ').trim()
-        setText(spoken)
+        if (spoken) {
+          setText(spoken)
+          setVoiceStatus('Speech captured. Finish speaking to review the command.')
+          setError('')
+        }
       }
       speech.onerror = (event) => {
-        speechError = event.error === 'not-allowed' || event.error === 'service-not-allowed'
-          ? 'Microphone access was denied. Allow the microphone in Safari or use your keyboard microphone below.'
-          : `Browser dictation did not finish (${event.error}). Use the keyboard microphone in the text box below.`
+        const cause = event.error
+        speechError = cause === 'not-allowed' || cause === 'service-not-allowed'
+          ? 'Safari blocked microphone recognition. Allow microphone access or use the microphone on your iPhone keyboard in the text box.'
+          : cause === 'no-speech'
+          ? 'No speech detected by Safari. Speak after the microphone activates, or tap inside the text box and use your iPhone keyboard microphone.'
+          : cause === 'network'
+          ? 'Safari speech recognition could not connect. Use your iPhone keyboard microphone or type the request.'
+          : 'Speech recognition stopped before capturing text. Use your iPhone keyboard microphone or type the request.'
+        setVoiceStatus('')
         setError(speechError)
       }
       speech.onend = () => {
@@ -151,15 +164,24 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         recognizerRef.current = null
         setRecording(false)
         setBusy(false)
-        if (!speechError && spoken) void parseCommand(spoken, 'voice')
-        else if (!speechError) setError('No speech was captured. Tap the microphone again, or use your phone keyboard microphone below.')
+        if (spoken) {
+          // Even after Safari reports an end-of-speech error, retain text already heard
+          // instead of discarding the user's words.
+          setText(spoken)
+          setVoiceStatus('Speech captured. Review the words above, then submit the command.')
+          setError('')
+        } else if (!speechError) {
+          setVoiceStatus('')
+          setError('No text detected by the browser. Tap the text box and use the iPhone keyboard microphone, then press Review invoice or Send command.')
+        }
       }
       recognizerRef.current = speech
-      try { speech.start(); setRecording(true) }
+      try { speech.start(); setRecording(true); setVoiceStatus('Listening… speak clearly after the microphone starts.') }
       catch (err) {
         recognizerRef.current = null
         setRecording(false)
         setBusy(false)
+        setVoiceStatus('')
         setError(err instanceof Error ? err.message : 'Could not start the microphone. Use keyboard dictation below.')
       }
       return
@@ -186,17 +208,20 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
           const audio = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
           const transcribed = await transcribeVoice(business.id, audio, durationSeconds)
           setText(transcribed.transcript)
-          await parseCommand(transcribed.transcript, 'voice')
+          setVoiceStatus('Speech captured. Review the words and submit your command.')
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Voice transcription failed')
           setBusy(false)
+          setVoiceStatus('')
         }
       }
       recorderRef.current = recorder
       recorder.start()
       setRecording(true)
+      setVoiceStatus('Recording audio… this mode needs cloud transcription, which is not configured yet. Use the keyboard microphone for now.')
     } catch (err) {
       recordingStartedAtRef.current = null
+      setVoiceStatus('')
       setError(err instanceof Error ? err.message : 'Microphone access is unavailable')
     }
   }
@@ -224,8 +249,9 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     {open && <div className="assistant-backdrop" onMouseDown={() => !recording && setOpen(false)}><section className="assistant-panel" onMouseDown={(e) => e.stopPropagation()}>
       <div className="assistant-head"><div><p className="eyebrow">Velnu Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)}>×</button></div>
       <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy}><span className="record-orb">●</span>{recording ? 'Tap to stop' : busy ? 'Working…' : 'Tap and speak'}</button>
+      {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
       <div className="assistant-divider"><span>or dictate / type it</span></div>
-      <p className="assistant-help">On iPhone, you can also tap the keyboard microphone, speak, tap Done, then tap Review invoice. Recording or typing never sends an invoice automatically.</p>
+      <p className="assistant-help">iPhone: tap in the text box, use the microphone on the iPhone keyboard, speak, and tap Done. Check that your words appear, then tap Review invoice or Send command. The large microphone can fail when Safari speech recognition is unavailable. No recording alone creates or sends an invoice.</p>
       <div className="command-box"><textarea aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isQuickInvoiceCommand(text) ? 'Review invoice' : 'Send command'}</button></div>
       {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(invoice) => { setQuickInvoiceRequest(null); setText(''); setResult({ invoice }); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button className="secondary-button" onClick={reject}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
