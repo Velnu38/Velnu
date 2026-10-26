@@ -17,9 +17,8 @@ const initialHash = new URLSearchParams(window.location.hash.slice(1))
 const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get('type') === 'recovery'
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
 const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
-const publicPath = window.location.pathname
-
 export default function App() {
+  const publicPath = window.location.pathname
   const approvalToken = initialQuery.get('approval')
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)

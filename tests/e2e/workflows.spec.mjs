@@ -150,6 +150,7 @@ test('payments exclude draft invoices and use retry-safe server recording', asyn
   await page.goto('/')
   await page.getByRole('button', { name: 'Payments', exact: true }).click()
   await page.getByRole('button', { name: '+ Record payment' }).click()
+  await expect(page.getByLabel('Invoice', { exact: true }).locator('option', { hasText: /INV-SENT/ })).toHaveCount(1)
   const options = await page.getByLabel('Invoice', { exact: true }).locator('option').allTextContents()
   expect(options.join(' ')).toContain('INV-SENT')
   expect(options.join(' ')).not.toContain('INV-DRAFT')
