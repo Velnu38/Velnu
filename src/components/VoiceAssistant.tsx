@@ -1,6 +1,20 @@
 import { useRef, useState } from 'react'
+import { isQuickInvoiceCommand } from '../lib/quickInvoice'
+import QuickInvoiceReview from './QuickInvoiceReview'
 import type { CurrentBusiness } from '../lib/business'
 import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, type AiCommandSource } from '../services/ai'
+
+type BrowserSpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
+type BrowserRecognizer = {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: BrowserSpeechResult) => void) | null
+  onerror: ((event: { error: string }) => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+}
 
 type ParsedAction = {
   action_id: string
@@ -55,18 +69,29 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const [busy, setBusy] = useState(false)
   const [recording, setRecording] = useState(false)
   const [action, setAction] = useState<ParsedAction | null>(null)
+  const [quickInvoiceRequest, setQuickInvoiceRequest] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
   const recorderRef = useRef<MediaRecorder | null>(null)
+  const recognizerRef = useRef<BrowserRecognizer | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const recordingStartedAtRef = useRef<number | null>(null)
 
   function reset() {
-    setAction(null); setResult(null); setError(''); setText('')
+    setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setText('')
   }
 
   async function parseCommand(command: string, source: AiCommandSource) {
-    setBusy(true); setError(''); setResult(null)
+    setError(''); setResult(null); setAction(null)
+    if (isQuickInvoiceCommand(command)) {
+      // A single-line draft can be reviewed and saved even without a paid AI key.
+      // Never save financial changes automatically.
+      setText(command)
+      setQuickInvoiceRequest(command)
+      return
+    }
+    setQuickInvoiceRequest(null)
+    setBusy(true)
     try {
       const parsed = await interpretCommand(business.id, command, source) as ParsedAction
       setAction(parsed)
@@ -90,12 +115,62 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
 
   async function toggleRecording() {
     if (recording) {
-      recorderRef.current?.stop()
+      if (recognizerRef.current) {
+        setBusy(true)
+        recognizerRef.current.stop()
+      } else recorderRef.current?.stop()
       return
     }
-    setError(''); setAction(null); setResult(null)
+    setError(''); setAction(null); setQuickInvoiceRequest(null); setResult(null)
+    // Prefer browser dictation where supported. It does not require our OpenAI API key.
+    // Support differs by browser, so retain a typed/keyboard-dictation fallback.
+    const speechWindow = window as typeof window & {
+      SpeechRecognition?: new () => BrowserRecognizer
+      webkitSpeechRecognition?: new () => BrowserRecognizer
+    }
+    const SpeechCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition
+    if (SpeechCtor) {
+      const speech = new SpeechCtor()
+      speech.lang = 'en-US'
+      speech.continuous = false
+      speech.interimResults = false
+      let spoken = ''
+      let speechError = ''
+      speech.onresult = (event) => {
+        spoken = Array.from(event.results, item => item[0]?.transcript || '').join(' ').trim()
+        setText(spoken)
+      }
+      speech.onerror = (event) => {
+        speechError = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+          ? 'Microphone access was denied. Allow the microphone in Safari or use your keyboard microphone below.'
+          : `Browser dictation did not finish (${event.error}). Use the keyboard microphone in the text box below.`
+        setError(speechError)
+      }
+      speech.onend = () => {
+        if (recognizerRef.current !== speech) return
+        recognizerRef.current = null
+        setRecording(false)
+        setBusy(false)
+        if (!speechError && spoken) void parseCommand(spoken, 'voice')
+        else if (!speechError) setError('No speech was captured. Tap the microphone again, or use your phone keyboard microphone below.')
+      }
+      recognizerRef.current = speech
+      try { speech.start(); setRecording(true) }
+      catch (err) {
+        recognizerRef.current = null
+        setRecording(false)
+        setBusy(false)
+        setError(err instanceof Error ? err.message : 'Could not start the microphone. Use keyboard dictation below.')
+      }
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (typeof MediaRecorder === 'undefined') {
+        stream.getTracks().forEach(track => track.stop())
+        setError('This browser does not support recording. Use the keyboard microphone in the text box below.')
+        return
+      }
       const recorder = new MediaRecorder(stream)
       chunksRef.current = []
       recordingStartedAtRef.current = Date.now()
@@ -107,6 +182,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         recordingStartedAtRef.current = null
         const durationSeconds = startedAt ? Math.max((Date.now() - startedAt) / 1000, 0.01) : undefined
         try {
+          if (!chunksRef.current.length) throw new Error('No audio was recorded. Use your phone keyboard microphone below.')
           const audio = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
           const transcribed = await transcribeVoice(business.id, audio, durationSeconds)
           setText(transcribed.transcript)
@@ -148,8 +224,10 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     {open && <div className="assistant-backdrop" onMouseDown={() => !recording && setOpen(false)}><section className="assistant-panel" onMouseDown={(e) => e.stopPropagation()}>
       <div className="assistant-head"><div><p className="eyebrow">Velnu Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)}>×</button></div>
       <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy}><span className="record-orb">●</span>{recording ? 'Tap to stop' : busy ? 'Working…' : 'Tap and speak'}</button>
-      <div className="assistant-divider"><span>or type it</span></div>
-      <div className="command-box"><textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Create an invoice for Bob Smith…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>Send</button></div>
+      <div className="assistant-divider"><span>or dictate / type it</span></div>
+      <p className="assistant-help">On iPhone, you can also tap the keyboard microphone, speak, tap Done, then tap Review invoice. Recording or typing never sends an invoice automatically.</p>
+      <div className="command-box"><textarea aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isQuickInvoiceCommand(text) ? 'Review invoice' : 'Send command'}</button></div>
+      {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(invoice) => { setQuickInvoiceRequest(null); setText(''); setResult({ invoice }); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button className="secondary-button" onClick={reject}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
       <ResultView result={result} />
       {error && <p className="form-message error-text">{error}</p>}
