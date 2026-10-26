@@ -12,13 +12,15 @@ import PaymentsPage from '../pages/PaymentsPage'
 import BookkeepingPage from '../pages/BookkeepingPage'
 import VoiceAssistant from './VoiceAssistant'
 import SettingsPage from '../pages/SettingsPage'
+import LocationsPage from '../pages/LocationsPage'
 
-type View = 'dashboard' | 'customers' | 'jobs' | 'change_orders' | 'estimates' | 'invoices' | 'schedule' | 'payments' | 'bookkeeping' | 'settings'
+type View = 'dashboard' | 'customers' | 'jobs' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'schedule' | 'payments' | 'bookkeeping' | 'settings'
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
   { id: 'customers', label: 'Customers', icon: 'C' },
   { id: 'jobs', label: 'Jobs', icon: 'J' },
+  { id: 'locations', label: 'Locations', icon: '⌖' },
   { id: 'change_orders', label: 'Change Orders', icon: 'CO' },
   { id: 'estimates', label: 'Estimates', icon: 'E' },
   { id: 'invoices', label: 'Invoices', icon: 'I' },
@@ -29,7 +31,7 @@ const nav: { id: View; label: string; icon: string }[] = [
 ]
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'jobs', 'schedule']
-const mobileMore: View[] = ['change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
+const mobileMore: View[] = ['locations', 'change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
 
 export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)
@@ -47,6 +49,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} />
     if (view === 'customers') return <CustomersPage business={company} />
     if (view === 'jobs') return <JobsPage business={company} />
+    if (view === 'locations') return <LocationsPage business={company} onCustomers={() => navigate('customers')} />
     if (view === 'change_orders') return <ChangeOrdersPage business={company} />
     if (view === 'estimates') return <EstimatesPage business={company} />
     if (view === 'invoices') return <InvoicesPage business={company} />

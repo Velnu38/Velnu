@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { asList } from './relations'
 
 export interface PropertyInput {
   customer_id: string
@@ -45,4 +46,15 @@ export async function createProperty(businessId: string, input: PropertyInput) {
 
   if (error) throw error
   return data
+}
+
+
+/** Every service address the signed-in member is allowed to see for this business. */
+export async function listBusinessProperties(businessId: string) {
+  const { data, error } = await supabase.from('properties')
+    .select('id,customer_id,label,address_line1,address_line2,city,state,postal_code,customers!properties_customer_id_fkey(id,first_name,last_name,company)')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
 }

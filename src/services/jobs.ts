@@ -3,6 +3,7 @@ import { asList } from './relations'
 
 export interface JobInput {
   customer_id: string
+  property_id?: string
   title: string
   description?: string
   status?: 'lead' | 'scheduled' | 'in_progress' | 'completed' | 'canceled'
@@ -13,24 +14,31 @@ export interface JobInput {
 export async function listJobs(businessId: string) {
   const { data, error } = await supabase
     .from('jobs')
-    .select('id, title, description, status, scheduled_start, scheduled_end, customer_id, customers!jobs_customer_id_fkey(id,first_name,last_name,company)')
+    .select('id, title, description, status, scheduled_start, scheduled_end, customer_id, property_id, customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)')
     .eq('business_id', businessId)
     .order('scheduled_start', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
+  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers), properties: asList(row.properties) }))
 }
 
 export async function createJob(businessId: string, input: JobInput) {
   if (!input.customer_id) throw new Error('Choose a customer')
   if (!input.title.trim()) throw new Error('Job title is required')
+  if (input.property_id) {
+    const { data: property, error: propertyError } = await supabase.from('properties')
+      .select('id').eq('business_id', businessId).eq('customer_id', input.customer_id).eq('id', input.property_id).maybeSingle()
+    if (propertyError) throw propertyError
+    if (!property) throw new Error('Choose a service location that belongs to this customer.')
+  }
 
   const { data: job, error } = await supabase
     .from('jobs')
     .insert({
       business_id: businessId,
       customer_id: input.customer_id,
+      property_id: input.property_id || null,
       title: input.title.trim(),
       description: input.description?.trim() || null,
       status: input.status ?? (input.scheduled_start ? 'scheduled' : 'lead'),
