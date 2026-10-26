@@ -168,8 +168,12 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
           // Even after Safari reports an end-of-speech error, retain text already heard
           // instead of discarding the user's words.
           setText(spoken)
-          setVoiceStatus('Speech captured. Review the words above, then submit the command.')
           setError('')
+          if (isQuickInvoiceCommand(spoken)) {
+            void parseCommand(spoken, 'voice') // Open the safe invoice review automatically.
+          } else {
+            setVoiceStatus('Speech captured. Review the words above, then press Send command.')
+          }
         } else if (!speechError) {
           setVoiceStatus('')
           setError('No text detected by the browser. Tap the text box and use the iPhone keyboard microphone, then press Review invoice or Send command.')
@@ -208,7 +212,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
           const audio = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
           const transcribed = await transcribeVoice(business.id, audio, durationSeconds)
           setText(transcribed.transcript)
-          setVoiceStatus('Speech captured. Review the words and submit your command.')
+          if (isQuickInvoiceCommand(transcribed.transcript)) void parseCommand(transcribed.transcript, 'voice')
+          else setVoiceStatus('Speech captured. Review the words and press Send command.')
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Voice transcription failed')
           setBusy(false)
