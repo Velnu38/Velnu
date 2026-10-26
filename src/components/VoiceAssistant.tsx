@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { isQuickInvoiceCommand } from '../lib/quickInvoice'
 import QuickInvoiceReview from './QuickInvoiceReview'
 import type { CurrentBusiness } from '../lib/business'
-import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, type AiCommandSource } from '../services/ai'
+import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, getTranscriptionStatus, type AiCommandSource } from '../services/ai'
 
 type BrowserSpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type BrowserRecognizer = {
@@ -78,6 +78,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const recognizerRef = useRef<BrowserRecognizer | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const recordingStartedAtRef = useRef<number | null>(null)
+  const recordingTimeoutRef = useRef<number | null>(null)
 
   function reset() {
     setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setVoiceStatus(''); setText('')
@@ -115,120 +116,165 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     if (text.trim()) await parseCommand(text.trim(), 'text')
   }
 
-  async function toggleRecording() {
-    if (recording) {
-      if (recognizerRef.current) {
-        setBusy(true)
-        recognizerRef.current.stop()
-      } else recorderRef.current?.stop()
-      return
-    }
-    setError(''); setVoiceStatus(''); setAction(null); setQuickInvoiceRequest(null); setResult(null)
-    // Prefer browser dictation where supported. It does not require our OpenAI API key.
-    // Support differs by browser, so retain a typed/keyboard-dictation fallback.
+  function startBrowserDictation(note = '') {
     const speechWindow = window as typeof window & {
       SpeechRecognition?: new () => BrowserRecognizer
       webkitSpeechRecognition?: new () => BrowserRecognizer
     }
     const SpeechCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition
-    if (SpeechCtor) {
-      const speech = new SpeechCtor()
-      speech.lang = 'en-US'
-      speech.continuous = false
-      speech.interimResults = true
-      let spoken = ''
-      let speechError = ''
-      speech.onresult = (event) => {
-        // Show interim recognition immediately; iPhone Safari may not emit a separate
-        // final event before the recognizer ends. Never fabricate a transcript.
-        spoken = Array.from(event.results, item => item[0]?.transcript || '').join(' ').trim()
-        if (spoken) {
-          setText(spoken)
-          setVoiceStatus('Speech captured. Finish speaking to review the command.')
-          setError('')
-        }
-      }
-      speech.onerror = (event) => {
-        const cause = event.error
-        speechError = cause === 'not-allowed' || cause === 'service-not-allowed'
-          ? 'Safari blocked microphone recognition. Allow microphone access or use the microphone on your iPhone keyboard in the text box.'
-          : cause === 'no-speech'
-          ? 'No speech detected by Safari. Speak after the microphone activates, or tap inside the text box and use your iPhone keyboard microphone.'
-          : cause === 'network'
-          ? 'Safari speech recognition could not connect. Use your iPhone keyboard microphone or type the request.'
-          : 'Speech recognition stopped before capturing text. Use your iPhone keyboard microphone or type the request.'
-        setVoiceStatus('')
-        setError(speechError)
-      }
-      speech.onend = () => {
-        if (recognizerRef.current !== speech) return
-        recognizerRef.current = null
-        setRecording(false)
-        setBusy(false)
-        if (spoken) {
-          // Even after Safari reports an end-of-speech error, retain text already heard
-          // instead of discarding the user's words.
-          setText(spoken)
-          setError('')
-          if (isQuickInvoiceCommand(spoken)) {
-            void parseCommand(spoken, 'voice') // Open the safe invoice review automatically.
-          } else {
-            setVoiceStatus('Speech captured. Review the words above, then press Send command.')
-          }
-        } else if (!speechError) {
-          setVoiceStatus('')
-          setError('No text detected by the browser. Tap the text box and use the iPhone keyboard microphone, then press Review invoice or Send command.')
-        }
-      }
-      recognizerRef.current = speech
-      try { speech.start(); setRecording(true); setVoiceStatus('Listening… speak clearly after the microphone starts.') }
-      catch (err) {
-        recognizerRef.current = null
-        setRecording(false)
-        setBusy(false)
-        setVoiceStatus('')
-        setError(err instanceof Error ? err.message : 'Could not start the microphone. Use keyboard dictation below.')
-      }
+    if (!SpeechCtor) {
+      setVoiceStatus('')
+      setError('Cloud transcription is not ready and Safari does not support browser dictation. Tap the text box and use the iPhone keyboard microphone instead.')
       return
     }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      if (typeof MediaRecorder === 'undefined') {
-        stream.getTracks().forEach(track => track.stop())
-        setError('This browser does not support recording. Use the keyboard microphone in the text box below.')
-        return
+    const speech = new SpeechCtor()
+    speech.lang = 'en-US'
+    speech.continuous = false
+    speech.interimResults = true
+    let spoken = ''
+    let speechError = ''
+    speech.onresult = event => {
+      spoken = Array.from(event.results, item => item[0]?.transcript || '').join(' ').trim()
+      if (spoken) {
+        setText(spoken)
+        setVoiceStatus('Speech captured. Review the words before saving or sending.')
+        setError('')
       }
-      const recorder = new MediaRecorder(stream)
+    }
+    speech.onerror = event => {
+      speechError = event.error === 'not-allowed' || event.error === 'service-not-allowed'
+        ? 'Microphone access was blocked. Allow it in Safari or use your iPhone keyboard microphone.'
+        : event.error === 'no-speech'
+        ? 'No speech detected by Safari. Speak after tapping the microphone, or try your iPhone keyboard microphone.'
+        : event.error === 'network'
+        ? 'Safari dictation could not connect. Use your iPhone keyboard microphone.'
+        : 'Browser dictation stopped before detecting speech. Use your iPhone keyboard microphone.'
+      setVoiceStatus('')
+      setError(speechError)
+    }
+    speech.onend = () => {
+      if (recognizerRef.current !== speech) return
+      recognizerRef.current = null
+      setRecording(false)
+      setBusy(false)
+      if (spoken) {
+        setText(spoken)
+        setError('')
+        if (isQuickInvoiceCommand(spoken)) void parseCommand(spoken, 'voice')
+        else setVoiceStatus('Words captured. Check the text and tap Send command when ready.')
+      } else if (!speechError) {
+        setVoiceStatus('')
+        setError('No text detected by the browser. Use the microphone on your iPhone keyboard in the text box.')
+      }
+    }
+    recognizerRef.current = speech
+    try {
+      speech.start()
+      setRecording(true)
+      setVoiceStatus(note || 'Listening in Safari. Speak clearly, then tap to stop.')
+    } catch (err) {
+      recognizerRef.current = null
+      setRecording(false)
+      setVoiceStatus('')
+      setError(err instanceof Error ? err.message : 'Could not start speech recognition. Use your keyboard microphone.')
+    }
+  }
+
+  async function startCloudRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      startBrowserDictation('Audio recording is unavailable in this browser. Using browser dictation instead.')
+      return
+    }
+    let stream: MediaStream | null = null
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      const preferredFormats = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
+      const preferredMime = typeof MediaRecorder.isTypeSupported === 'function'
+        ? preferredFormats.find(mime => MediaRecorder.isTypeSupported(mime))
+        : undefined
+      const recorder = preferredMime ? new MediaRecorder(stream, { mimeType: preferredMime }) : new MediaRecorder(stream)
+      const activeStream = stream
+      recorderRef.current = recorder
       chunksRef.current = []
       recordingStartedAtRef.current = Date.now()
-      recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data) }
+      recorder.ondataavailable = event => { if (event.data.size) chunksRef.current.push(event.data) }
+      recorder.onerror = () => {
+        setError('The microphone recording stopped unexpectedly. Try again or use keyboard dictation.')
+      }
       recorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop())
-        setRecording(false); setBusy(true)
+        if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current)
+        recordingTimeoutRef.current = null
+        activeStream.getTracks().forEach(track => track.stop())
+        recorderRef.current = null
+        setRecording(false)
+        setBusy(true)
+        setVoiceStatus('Converting your recording to text…')
         const startedAt = recordingStartedAtRef.current
         recordingStartedAtRef.current = null
         const durationSeconds = startedAt ? Math.max((Date.now() - startedAt) / 1000, 0.01) : undefined
         try {
-          if (!chunksRef.current.length) throw new Error('No audio was recorded. Use your phone keyboard microphone below.')
-          const audio = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
-          const transcribed = await transcribeVoice(business.id, audio, durationSeconds)
-          setText(transcribed.transcript)
-          if (isQuickInvoiceCommand(transcribed.transcript)) void parseCommand(transcribed.transcript, 'voice')
-          else setVoiceStatus('Speech captured. Review the words and press Send command.')
+          if (!chunksRef.current.length) throw new Error('The recording was empty. Try again, or use keyboard dictation.')
+          const mime = recorder.mimeType || chunksRef.current[0]?.type || 'audio/webm'
+          const audio = new Blob(chunksRef.current, { type: mime })
+          const transcript = await transcribeVoice(business.id, audio, durationSeconds)
+          if (!transcript.transcript?.trim()) throw new Error('No text detected. Try a clearer recording.')
+          const words = transcript.transcript.trim()
+          setText(words)
+          if (isQuickInvoiceCommand(words)) await parseCommand(words, 'voice')
+          else setVoiceStatus('Transcription complete. Review the words and tap Send command.')
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Voice transcription failed')
-          setBusy(false)
           setVoiceStatus('')
+          setError(err instanceof Error ? err.message : 'Could not transcribe the recording.')
+        } finally {
+          chunksRef.current = []
+          setBusy(false)
         }
       }
-      recorderRef.current = recorder
       recorder.start()
       setRecording(true)
-      setVoiceStatus('Recording audio… this mode needs cloud transcription, which is not configured yet. Use the keyboard microphone for now.')
+      setVoiceStatus('Recording securely. Speak your request, then tap to stop. Maximum 2 minutes.')
+      recordingTimeoutRef.current = window.setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop()
+      }, 110_000)
     } catch (err) {
+      stream?.getTracks().forEach(track => track.stop())
+      recorderRef.current = null
       recordingStartedAtRef.current = null
+      setRecording(false)
       setVoiceStatus('')
-      setError(err instanceof Error ? err.message : 'Microphone access is unavailable')
+      const message = err instanceof Error ? err.message : 'Microphone is unavailable.'
+      setError('Cloud transcription is ready, but the microphone could not start: ' + message)
+    }
+  }
+
+  async function toggleRecording() {
+    if (recording) {
+      if (recognizerRef.current) {
+        setBusy(true)
+        recognizerRef.current.stop()
+      } else if (recorderRef.current?.state === 'recording') {
+        recorderRef.current.stop()
+      }
+      return
+    }
+
+    setError('')
+    setVoiceStatus('Checking voice service…')
+    setAction(null)
+    setQuickInvoiceRequest(null)
+    setResult(null)
+    setBusy(true)
+    try {
+      const status = await getTranscriptionStatus(business.id)
+      setBusy(false)
+      if (status.configured) {
+        await startCloudRecording()
+      } else {
+        startBrowserDictation('Cloud transcription is waiting for OpenAI API setup. Using Safari dictation instead.')
+      }
+    } catch {
+      setBusy(false)
+      startBrowserDictation('Could not check the cloud transcription service. Trying browser dictation instead.')
     }
   }
 
@@ -258,7 +304,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
       <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your iPhone keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use iPhone keyboard microphone</button>
       <div className="assistant-divider"><span>or dictate / type it</span></div>
-      <p className="assistant-help">iPhone: tap in the text box, use the microphone on the iPhone keyboard, speak, and tap Done. Check that your words appear, then tap Review invoice or Send command. The large microphone can fail when Safari speech recognition is unavailable. No recording alone creates or sends an invoice.</p>
+      <p className="assistant-help">iPhone: tap in the text box, use the microphone on the iPhone keyboard, speak, and tap Done. Check that your words appear, then tap Review invoice or Send command. When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Velnu uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p>
       <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isQuickInvoiceCommand(text) ? 'Review invoice' : 'Send command'}</button></div>
       {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(invoice) => { setQuickInvoiceRequest(null); setText(''); setResult({ invoice }); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button className="secondary-button" onClick={reject}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
