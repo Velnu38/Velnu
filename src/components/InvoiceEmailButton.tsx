@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { customerActionsEnabled } from '../lib/releaseFlags'
 
 type Props = { businessId: string; invoiceId: string; recipient?: string | null; disabled?: boolean; onSent: () => Promise<void> }
 
@@ -21,7 +22,7 @@ export default function InvoiceEmailButton({ businessId, invoiceId, recipient, d
   }
 
   async function send() {
-    if (inFlight.current) return
+    if (inFlight.current || !customerActionsEnabled) return
     inFlight.current = true
     setBusy(true)
     setMessage('')
@@ -58,8 +59,9 @@ export default function InvoiceEmailButton({ businessId, invoiceId, recipient, d
   }
 
   return <div className="invoice-email-control">
-    <button className="primary-button" disabled={disabled || busy || !recipient} title={!recipient ? 'Add a customer email address first.' : undefined} onClick={() => { setConfirm(true); setMessage('') }}>Email customer</button>
+    <button className="primary-button" disabled={disabled || busy || !recipient || !customerActionsEnabled} title={!recipient ? 'Add a customer email address first.' : undefined} onClick={() => { setConfirm(true); setMessage('') }}>Email customer</button>
     {!recipient && <p className="quiet">Add a customer email address to send this invoice.</p>}
+    {!customerActionsEnabled && <p className="quiet">Customer emails are disabled in this private preview until the sender domain is verified. Use Print / Save PDF for testing.</p>}
     {!confirm && message && <p className="form-message" role="status">{message}</p>}
     {confirm && <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="email-invoice-title">
       <h2 id="email-invoice-title">Email this invoice?</h2>

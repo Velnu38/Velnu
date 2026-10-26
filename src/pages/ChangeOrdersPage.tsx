@@ -4,6 +4,7 @@ import { listJobs } from '../services/jobs'
 import { createChangeOrder, listChangeOrders, updateChangeOrderStatus } from '../services/changeOrders'
 import { createApprovalLink } from '../services/approvals'
 import { sendDocumentEmail } from '../services/communications'
+import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
@@ -92,6 +93,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   }
 
   async function shareForApproval(order: ChangeOrder) {
+    if (!customerActionsEnabled) return
     setBusy(true); setError(''); setNotice('')
     try {
       const link = await createApprovalLink(business.id, 'change_order', order.id)
@@ -102,6 +104,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   }
 
   async function emailForApproval(order: ChangeOrder) {
+    if (!customerActionsEnabled || !window.confirm('Send this change order to the customer for approval?')) return
     setBusy(true); setError(''); setNotice('')
     try {
       const sent = await sendDocumentEmail(business.id, 'change_order', order.id)
@@ -118,6 +121,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
       {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
     </div>
     <section className="change-order-intro"><strong>Accuracy first.</strong><span>Added work, price, tax and schedule impact stay separate until the customer approves the change.</span></section>
+    {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && <p className="form-message error-text">{error}</p>}
     <section className="list-card">
@@ -130,8 +134,8 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
           <div className="invoice-money"><strong className="money">${Number(order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
           <div className="document-actions">
             {terminal ? <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span> : <select value={order.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(order.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="void">Void</option></select>}
-            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="primary-button compact" disabled={busy} onClick={() => emailForApproval(order)}>Email customer</button>}
-            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="secondary-button compact" disabled={busy} onClick={() => shareForApproval(order)}>Copy approval link</button>}
+            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
+            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Copy approval link</button>}
           </div>
         </article>
       })}

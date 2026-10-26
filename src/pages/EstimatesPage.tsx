@@ -5,6 +5,7 @@ import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateIt
 import DocumentBrand from '../components/DocumentBrand'
 import { createApprovalLink } from '../services/approvals'
 import { sendDocumentEmail } from '../services/communications'
+import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
@@ -85,6 +86,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   async function shareForApproval(estimate: Estimate) {
+    if (!customerActionsEnabled) return
     setBusy(true); setError(''); setNotice('')
     try {
       const link = await createApprovalLink(business.id, 'estimate', estimate.id)
@@ -95,6 +97,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   async function emailForApproval(estimate: Estimate) {
+    if (!customerActionsEnabled || !window.confirm('Send this estimate to the customer for approval?')) return
     setBusy(true); setError(''); setNotice('')
     try {
       const sent = await sendDocumentEmail(business.id, 'estimate', estimate.id)
@@ -132,6 +135,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
 
   return <div className="page-stack">
     <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New estimate</button>}</div>
+    {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured. You can preview and print estimates now.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <section className="list-card">
@@ -144,8 +148,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <div className="document-actions">
             <button className="secondary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Preview / Print</button>
             {terminal ? <span className={`status-chip ${estimate.status === 'accepted' ? 'paid' : ''}`}>{estimate.status}</span> : <select value={estimate.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(estimate.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="expired">Expired</option></select>}
-            {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy} onClick={() => emailForApproval(estimate)}>Email customer</button>}
-            {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="secondary-button compact" disabled={busy} onClick={() => shareForApproval(estimate)}>Copy approval link</button>}
+            {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(estimate)}>Email customer</button>}
+            {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Copy approval link</button>}
             {canWrite(business.role) && estimate.status === 'accepted' && <button className="conversion-button" onClick={() => { setError(''); setNotice(''); setConvertTarget(estimate) }}>Create invoice</button>}
           </div>
         </article>
