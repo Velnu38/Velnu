@@ -8,7 +8,7 @@ import {
 } from '../services/bookkeeping'
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const getToday = () => new Date().toLocaleDateString('en-CA')
+const getToday = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-') }
 function money(amount: number, currency = 'USD') {
   try { return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount) }
   catch { return amount.toFixed(2) + ' ' + currency }
@@ -41,7 +41,7 @@ function exportCsv(rows: WorkbookLine[], source: WorkbookSource) {
 export default function BookkeepingPage({ business }: { business: CurrentBusiness }) {
   const canSee = permitted.includes(business.role)
   const canManageQuickBooks = managers.includes(business.role)
-  const [source, setSource] = useState<WorkbookSource>('velnu')
+  const [source, setSource] = useState<WorkbookSource>(new URLSearchParams(window.location.search).has('quickbooks') ? 'quickbooks' : 'velnu')
   const [range, setRange] = useState<RangeChoice>('90')
   const [velnuRows, setVelnuRows] = useState<WorkbookLine[]>([])
   const [qbRows, setQbRows] = useState<WorkbookLine[]>([])
@@ -87,7 +87,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     if (range === 'all') return allRows
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - Number(range))
-    const from = cutoff.toISOString().slice(0, 10)
+    const from = [cutoff.getFullYear(), String(cutoff.getMonth() + 1).padStart(2, '0'), String(cutoff.getDate()).padStart(2, '0')].join('-')
     return allRows.filter(row => row.entry_date >= from)
   }, [allRows, range])
 
