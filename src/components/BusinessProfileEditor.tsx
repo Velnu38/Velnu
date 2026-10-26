@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   createBusiness, draftFromBusiness, emptyBusinessProfile,
   updateBusinessProfile, uploadBusinessLogo, businessLogoUrl,
@@ -14,13 +14,21 @@ export default function BusinessProfileEditor({ business, onSaved }: {
   const [draft, setDraft] = useState<BusinessProfileDraft>(() => business ? draftFromBusiness(business) : { ...emptyBusinessProfile })
   const [step, setStep] = useState(0)
   const [logo, setLogo] = useState<File | null>(null)
+  const [localLogoUrl, setLocalLogoUrl] = useState<string | null>(null)
   const [removeLogo, setRemoveLogo] = useState(false)
   const [created, setCreated] = useState<CurrentBusiness | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const editing = !!business
-  const logoUrl = business && !removeLogo ? businessLogoUrl(business) : null
+  const logoUrl = localLogoUrl || (business && !removeLogo ? businessLogoUrl(business) : null)
+
+  useEffect(() => {
+    if (!logo) { setLocalLogoUrl(null); return }
+    const objectUrl = URL.createObjectURL(logo)
+    setLocalLogoUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [logo])
 
   function update(key: keyof BusinessProfileDraft, value: string) {
     setDraft(old => ({ ...old, [key]: value }))
@@ -118,7 +126,8 @@ export default function BusinessProfileEditor({ business, onSaved }: {
           <strong>{draft.name || 'Your company'}</strong>
           <span>{[draft.address_line1, draft.city, draft.state, draft.postal_code].filter(Boolean).join(' · ') || 'Company address (optional)'}</span>
           <span>{[draft.phone, draft.email].filter(Boolean).join(' · ') || 'Business phone and email (optional)'}</span>
-          {logo && <small>Selected logo will appear here after saving.</small>}
+          {logoUrl && <img className="profile-current-logo" src={logoUrl} alt="Company logo preview" />}
+          {logo && <small>Selected logo will be saved with your company profile.</small>}
           {draft.document_footer && <small>{draft.document_footer}</small>}
         </div>
       </>}
