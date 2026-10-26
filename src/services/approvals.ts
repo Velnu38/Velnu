@@ -27,9 +27,9 @@ export async function getCustomerApproval(token: string) {
   return data
 }
 
-export async function submitCustomerApproval(token: string, action: 'approved' | 'declined', typedName: string) {
+export async function submitCustomerApproval(token: string, action: 'approved' | 'declined', typedName: string, agreedToTerms = false) {
   const { data, error } = await supabase.functions.invoke('customer-approval', {
-    body: { token, mode: action, typed_name: typedName.trim() },
+    body: { token, mode: action, typed_name: typedName.trim(), terms_agreed: agreedToTerms },
   })
   if (error) throw error
   return data

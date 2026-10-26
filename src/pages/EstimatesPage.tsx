@@ -32,6 +32,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [customerId, setCustomerId] = useState('')
   const [expiresOn, setExpiresOn] = useState('')
   const [notes, setNotes] = useState('')
+  const [customerTerms, setCustomerTerms] = useState('')
   const [lines, setLines] = useState<Line[]>([blankLine()])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
@@ -57,18 +58,19 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function resetForm() {
-    setCustomerId(''); setExpiresOn(''); setNotes(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
+    setCustomerId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setNotice('')
     try {
-      const signature = JSON.stringify({ customerId, expiresOn, notes, lines })
+      const signature = JSON.stringify({ customerId, expiresOn, notes, customerTerms, lines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       await createEstimate(business.id, { request_id: retryRef.current.requestId,
         customer_id: customerId,
         expires_on: expiresOn || undefined,
         notes,
+        customer_message: customerTerms,
         items: lines.map((line) => ({
           description: line.description,
           quantity: Number(line.quantity),
@@ -167,7 +169,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
             {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'declined')}>Record decline</button>}
             {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'expired')}>Expire</button>}
             {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(estimate)}>Email customer</button>}
-            {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Copy approval link</button>}
+            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Get customer approval link</button>}
             {canWrite(business.role) && estimate.status === 'accepted' && <button className="conversion-button" onClick={() => { setError(''); setNotice(''); setConvertTarget(estimate) }}>Create invoice</button>}
           </div>
         </article>
@@ -176,7 +178,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
       <div className="modal-head"><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
-        <div className="form-grid"><label className="full">Customer<select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Expires on<input type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
+        <div className="form-grid"><label className="full">Customer<select value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Expires on<input type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 14 days. A deposit is due before work begins." /></label></div>
         <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
         <div className="estimate-total"><span>Preview total</span><strong>${previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
@@ -222,7 +225,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
             <div><span>Tax</span><strong>{'$' + Number(previewTarget.tax_amount).toFixed(2)}</strong></div>
             <div className="total"><span>Total</span><strong>{'$' + Number(previewTarget.total).toFixed(2)}</strong></div>
           </div>
-          {previewTarget.customer_message && <div className="document-customer-message">{previewTarget.customer_message}</div>}
+          {previewTarget.customer_message && <div className="document-customer-message"><strong>Estimate terms</strong><p>{previewTarget.customer_message}</p></div>}
           {business.document_footer && <div className="document-footer">{business.document_footer}</div>}
         </article>
       </section>

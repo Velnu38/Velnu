@@ -16,7 +16,7 @@ Deno.serve(async(req:Request)=>{
   const tokenHash=await hashToken(token);
   const {data:link,error:linkError}=await supabase.from("document_approval_links").select("id,business_id,document_type,estimate_id,change_order_id,expires_at,revoked_at").eq("token_hash",tokenHash).maybeSingle();
   if(linkError){console.error(linkError);return respond(500,{error:"Approval link lookup failed"});} if(!link)return respond(404,{error:"Approval link not found"});
-  const {data:existing}=await supabase.from("document_approvals").select("id,action,typed_name,amount_at_action,created_at").eq("approval_link_id",link.id).maybeSingle();
+  const {data:existing}=await supabase.from("document_approvals").select("id,action,typed_name,amount_at_action,created_at,document_snapshot").eq("approval_link_id",link.id).maybeSingle();
 
   if(mode==="view"){
    if(!existing){if(link.revoked_at)return respond(410,{error:"Approval link has been revoked"});if(new Date(link.expires_at).getTime()<=Date.now())return respond(410,{error:"Approval link has expired"});}
@@ -32,14 +32,16 @@ Deno.serve(async(req:Request)=>{
     const {data:c}=await supabase.from("customers").select("first_name,last_name,company").eq("id",doc.customer_id).eq("business_id",link.business_id).single();customer=c;
     const {data:j}=await supabase.from("jobs").select("title").eq("id",doc.job_id).eq("business_id",link.business_id).single();document.job_title=j?.title??null;
    }
-   return respond(200,{business_name:business?.name??"Business",business_profile:business??null,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at}:null});
+   return respond(200,{business_name:business?.name??"Business",business_profile:business??null,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at,terms_agreed:existing.document_snapshot?.terms_accepted===true}:null});
   }
 
   if(!['approved','declined'].includes(mode))return respond(400,{error:"Invalid approval action"});
   const typedName=String(body.typed_name??"").trim(); if(typedName.length<2||typedName.length>200)return respond(400,{error:"Enter your name to confirm your decision"});
+  const termsAgreed=body.terms_agreed===true;
+  if(link.document_type==="estimate"&&mode==="approved"&&!termsAgreed)return respond(400,{error:"You must agree to the estimate terms before accepting."});
   const userAgent=String(req.headers.get("user-agent")??"").slice(0,500);
-  const {data,error}=await supabase.rpc("consume_document_approval",{p_token_hash:tokenHash,p_action:mode,p_typed_name:typedName,p_user_agent:userAgent});
-  if(error){console.error(error);const m=String(error.message??"");if(m.includes("LINK_EXPIRED"))return respond(410,{error:"Approval link has expired"});if(m.includes("LINK_REVOKED"))return respond(410,{error:"Approval link has been revoked"});if(m.includes("LINK_NOT_FOUND"))return respond(404,{error:"Approval link not found"});if(m.includes("DOCUMENT_NOT_APPROVABLE"))return respond(409,{error:"This document can no longer be approved"});return respond(409,{error:"Approval could not be recorded"});}
+  const {data,error}=await supabase.rpc("consume_document_approval",{p_token_hash:tokenHash,p_action:mode,p_typed_name:typedName,p_user_agent:userAgent,p_terms_agreed:termsAgreed});
+  if(error){console.error(error);const m=String(error.message??"");if(m.includes("LINK_EXPIRED"))return respond(410,{error:"Approval link has expired"});if(m.includes("LINK_REVOKED"))return respond(410,{error:"Approval link has been revoked"});if(m.includes("LINK_NOT_FOUND"))return respond(404,{error:"Approval link not found"});if(m.includes("TERMS_NOT_ACCEPTED"))return respond(400,{error:"You must agree to the estimate terms before accepting."});if(m.includes("DOCUMENT_NOT_APPROVABLE"))return respond(409,{error:"This document can no longer be approved"});return respond(409,{error:"Approval could not be recorded"});}
   return respond(200,data);
  }catch(error){console.error(error);return respond(500,{error:"Unexpected server error"});}
 });
