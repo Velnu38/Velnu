@@ -25,7 +25,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     setCustomers((await listCustomers(business.id)) as Customer[])
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load customers')) }, [business.id])
 
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase()

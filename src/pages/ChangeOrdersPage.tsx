@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listJobs } from '../services/jobs'
 import { createChangeOrder, listChangeOrders, updateChangeOrderStatus } from '../services/changeOrders'
@@ -39,6 +39,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   const [scheduleImpactDays, setScheduleImpactDays] = useState('0')
   const [scheduleNote, setScheduleNote] = useState('')
   const [lines, setLines] = useState<Line[]>([blankLine()])
+  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
     const [orders, jobRows] = await Promise.all([listChangeOrders(business.id), listJobs(business.id)])
@@ -46,7 +47,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
     setJobs((jobRows as unknown as Job[]).filter((job) => job.status !== 'canceled'))
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load change orders')) }, [business.id])
 
   const preview = useMemo(() => lines.reduce((sum, line) => {
     const quantity = Number(line.quantity || 0)
@@ -57,7 +58,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   }, 0), [lines])
 
   function resetForm() {
-    setJobId(''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice('')
+    setJobId(''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
@@ -65,7 +66,10 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
     try {
       const job = jobs.find((row) => row.id === jobId)
       if (!job) throw new Error('Choose a job')
+      const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines})
+      if (retryRef.current?.signature !== signature) retryRef.current = {signature, requestId: crypto.randomUUID()}
       await createChangeOrder(business.id, {
+        request_id: retryRef.current.requestId,
         customer_id: job.customer_id,
         job_id: job.id,
         title,
@@ -88,8 +92,8 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
 
   async function changeStatus(id: string, status: ChangeOrder['status']) {
     setError(''); setNotice('')
-    await updateChangeOrderStatus(id, status as 'draft' | 'sent' | 'approved' | 'declined' | 'void')
-    await refresh()
+    try { await updateChangeOrderStatus(id, status as 'draft' | 'sent' | 'approved' | 'declined' | 'void'); await refresh() }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to update change order') }
   }
 
   async function shareForApproval(order: ChangeOrder) {

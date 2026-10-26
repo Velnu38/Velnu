@@ -20,7 +20,7 @@ export default function JobsPage({ business }: { business: CurrentBusiness }) {
     setCustomers(customerRows as Customer[])
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load jobs')) }, [business.id])
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -44,8 +44,8 @@ export default function JobsPage({ business }: { business: CurrentBusiness }) {
   }
 
   async function changeStatus(jobId: string, status: 'lead' | 'scheduled' | 'in_progress' | 'completed' | 'canceled') {
-    await updateJobStatus(jobId, status)
-    await refresh()
+    try { await updateJobStatus(jobId, status); await refresh() }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to update the job') }
   }
 
   return (
@@ -55,13 +55,13 @@ export default function JobsPage({ business }: { business: CurrentBusiness }) {
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New job</button>}
       </div>
       <section className="list-card">
-        {jobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h2>No jobs yet</h2><p>Create a job here or tell Owedly what work you need scheduled.</p></div> : jobs.map((job) => {
+        {jobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h2>No jobs yet</h2><p>Create a job here or tell Velnu what work you need scheduled.</p></div> : jobs.map((job) => {
           const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           return <article className="job-row" key={job.id}>
             <div className="row-main"><strong>{job.title}</strong><span>{customerName}{job.scheduled_start ? ` · ${new Date(job.scheduled_start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}` : ''}</span></div>
             <select value={job.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(job.id, e.target.value as any)}>
-              <option value="lead">Lead</option><option value="scheduled">Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option>
+              <option value="lead">Lead</option><option value="scheduled" disabled={!job.scheduled_start}>Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option>
             </select>
           </article>
         })}

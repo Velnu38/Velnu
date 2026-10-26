@@ -28,7 +28,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
     setCustomers(customerRows as Customer[])
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load schedule')) }, [business.id])
 
   const grouped = useMemo(() => {
     const groups = new Map<string, Appointment[]>()
@@ -64,14 +64,14 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   }
 
   async function changeStatus(id: string, status: Appointment['status']) {
-    await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show')
-    await refresh()
+    try { await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show'); await refresh() }
+    catch (err) { setError(err instanceof Error ? err.message : 'Unable to update schedule') }
   }
 
   return <div className="page-stack">
     <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><h1>Know where you need to be next.</h1></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Schedule work</button>}</div>
     <section className="schedule-card">
-      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Owedly when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{name(appointment.customers?.[0])}</span></div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
+      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Velnu when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{name(appointment.customers?.[0])}</span></div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
     </section>
     {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
       <div className="modal-head"><div><p className="eyebrow">Schedule work</p><h2>Add a job to the calendar</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
