@@ -66,7 +66,7 @@ export default function App() {
     void getCurrentBusiness().then(next => {
       if (active) setBusiness(next)
     }).catch(err => {
-      if (active) setError(err instanceof Error ? err.message : 'Unable to load your Owedly workspace')
+      if (active) setError(err instanceof Error ? err.message : 'Unable to load your Velnu workspace')
     }).finally(() => {
       if (active) setLoadedUserId(userId)
     })
@@ -79,11 +79,11 @@ export default function App() {
   }
 
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
-  if (!authReady) return <main className="loading-page"><div className="logo-mark">O</div><p>Opening Owedly…</p></main>
+  if (!authReady) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening Velnu…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
   if (!session) return <AuthScreen initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />
-  if (loadedUserId !== userId) return <main className="loading-page"><div className="logo-mark">O</div><p>Opening your workspace…</p></main>
-  if (error) return <main className="loading-page"><div className="logo-mark">O</div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button></main>
+  if (loadedUserId !== userId) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening your workspace…</p></main>
+  if (error) return <main className="loading-page"><div className="logo-mark">V</div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button></main>
   if (!business) return <BusinessOnboarding onCreated={setBusiness} />
   return <AppShell business={business} />
 }
