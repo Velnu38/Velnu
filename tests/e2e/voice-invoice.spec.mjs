@@ -133,3 +133,58 @@ test('Safari retains speech for other commands and makes the user submit deliber
   await expect(page.getByRole('button', { name: 'Send command' })).toBeEnabled()
   expect(invoked.filter(path => path.includes('/functions/v1/ai-command'))).toHaveLength(0)
 })
+
+
+test('cloud recording uses server transcription and opens draft review, without sending an invoice', async ({ page }) => {
+  await signedIn(page)
+  const calls = []
+  await page.route('https://example.supabase.co/**', async route => {
+    const request = route.request()
+    const path = new URL(request.url()).pathname
+    const method = request.method()
+    calls.push({ path, method, type: request.headers()['content-type'] || '' })
+    const json = (body, status = 200) => route.fulfill({
+      status, contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify(body),
+    })
+    if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Velnu Test Services' } })
+    if (path.endsWith('/functions/v1/transcribe-voice')) {
+      return request.headers()['content-type']?.includes('application/json')
+        ? json({ configured: true, model: 'gpt-transcribe' })
+        : json({ transcript: 'Create an invoice for Bob Smith for $150', transcription_id: '55555555-5555-4555-8555-555555555555' })
+    }
+    return json([])
+  })
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) },
+    })
+    window.MediaRecorder = class {
+      static isTypeSupported(mime) { return mime === 'audio/webm;codecs=opus' }
+      constructor(_stream, options) {
+        this.state = 'inactive'
+        this.mimeType = options?.mimeType || 'audio/webm'
+      }
+      start() { this.state = 'recording' }
+      stop() {
+        this.state = 'inactive'
+        this.ondataavailable?.({ data: new Blob([new Uint8Array(512)], { type: this.mimeType }) })
+        this.onstop?.()
+      }
+    }
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Talk to Velnu' }).click()
+  await page.getByRole('button', { name: 'Tap and speak' }).click()
+  await expect(page.getByRole('button', { name: 'Tap to stop' })).toBeVisible()
+  await page.getByRole('button', { name: 'Tap to stop' }).click()
+  await expect(page.getByRole('heading', { name: 'Review the invoice before saving' })).toBeVisible()
+  await expect(page.getByLabel('Amount ($)')).toHaveValue('150')
+  expect(calls.filter(x => x.path.endsWith('/functions/v1/transcribe-voice'))).toHaveLength(2)
+  expect(calls.filter(x => x.path.endsWith('/invoices') && x.method === 'POST')).toHaveLength(0)
+  expect(calls.filter(x => x.path.includes('/send-invoice-email'))).toHaveLength(0)
+})
