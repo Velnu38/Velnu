@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, development]
+    branches: [main, development, feature/velnu-stage1]
   pull_request:
     branches: [main]
 
