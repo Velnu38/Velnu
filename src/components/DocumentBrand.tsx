@@ -1,11 +1,13 @@
 import type { BusinessProfile } from '../lib/business'
+
+type PublicBrand = Pick<BusinessProfile, 'name'> & Partial<Omit<BusinessProfile, 'name'>>
 import { businessLogoUrl } from '../lib/business'
 
 export default function DocumentBrand({ business, kind }: {
-  business: BusinessProfile
+  business: PublicBrand
   kind: 'Invoice' | 'Estimate' | 'Preview'
 }) {
-  const logo = businessLogoUrl(business)
+  const logo = business.logo_path ? businessLogoUrl({ logo_path: business.logo_path }) : null
   const address = [
     business.address_line1, business.address_line2,
     [business.city, business.state, business.postal_code].filter(Boolean).join(' '),
