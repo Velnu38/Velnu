@@ -167,6 +167,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">Velnu will copy every line item and tax rate into a new draft invoice. The database recalculates the final invoice total.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Create invoice'}</button></div></form>
     </section></div>}
 
+
     {previewTarget && <div className="modal-backdrop estimate-preview-backdrop" onMouseDown={() => setPreviewTarget(null)}>
       <section className="estimate-preview-modal" role="dialog" aria-modal="true" aria-label="Estimate preview" onMouseDown={event => event.stopPropagation()}>
         <div className="modal-head">
@@ -191,28 +192,13 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <div className="document-line-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Total</span></div>
           {previewItems.map(item => <div className="document-line-row" key={item.id}>
             <span>{item.description}{Number(item.tax_rate) > 0 && <small>{Number(item.tax_rate)}% tax</small>}</span>
-            <span>{Number(item.quantity)}</span><span>{' url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
-  </div>
-}
- + Number(item.unit_price).toFixed(2)}</span>
-            <strong>{' url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
-  </div>
-}
- + Number(item.line_total).toFixed(2)}</strong>
+            <span>{Number(item.quantity)}</span><span>{'$' + Number(item.unit_price).toFixed(2)}</span>
+            <strong>{'$' + Number(item.line_total).toFixed(2)}</strong>
           </div>)}
           <div className="document-summary">
-            <div><span>Subtotal</span><strong>{' url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
-  </div>
-}
- + Number(previewTarget.subtotal).toFixed(2)}</strong></div>
-            <div><span>Tax</span><strong>{' url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
-  </div>
-}
- + Number(previewTarget.tax_amount).toFixed(2)}</strong></div>
-            <div className="total"><span>Total</span><strong>{' url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
-  </div>
-}
- + Number(previewTarget.total).toFixed(2)}</strong></div>
+            <div><span>Subtotal</span><strong>{'$' + Number(previewTarget.subtotal).toFixed(2)}</strong></div>
+            <div><span>Tax</span><strong>{'$' + Number(previewTarget.tax_amount).toFixed(2)}</strong></div>
+            <div className="total"><span>Total</span><strong>{'$' + Number(previewTarget.total).toFixed(2)}</strong></div>
           </div>
           {previewTarget.customer_message && <div className="document-customer-message">{previewTarget.customer_message}</div>}
           {business.document_footer && <div className="document-footer">{business.document_footer}</div>}
