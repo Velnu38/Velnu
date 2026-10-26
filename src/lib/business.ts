@@ -108,9 +108,11 @@ export async function getCurrentBusiness(): Promise<CurrentBusiness | null> {
     .eq('user_id', authData.user.id).limit(1).maybeSingle()
   if (membershipError) throw membershipError
   if (!membership) return null
-  const record = Array.isArray(membership.businesses) ? membership.businesses[0] : membership.businesses
+  // The dynamic PostgREST projection cannot be inferred by the Supabase generic parser.
+  const row = membership as unknown as { businesses: BusinessProfile | BusinessProfile[] | null; role: BusinessRole }
+  const record = Array.isArray(row.businesses) ? row.businesses[0] : row.businesses
   if (!record) return null
-  return { ...(record as BusinessProfile), role: membership.role as BusinessRole }
+  return { ...record, role: row.role }
 }
 
 export async function createBusiness(draft: BusinessProfileDraft): Promise<CurrentBusiness> {
