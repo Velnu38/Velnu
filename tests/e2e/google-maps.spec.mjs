@@ -36,8 +36,9 @@ async function mockBusinessData(page) {
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' })
     if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: company })
     if (path.endsWith('/properties')) {
-      if (request.url().includes('customer_id=eq.')) return json([property])
-      if (request.url().includes('id=eq.')) return json({ id: propertyId })
+      const filters = new URL(request.url()).searchParams
+      if (filters.has('id')) return json({ id: propertyId })
+      if (filters.has('customer_id')) return json([property])
       return json([{ ...property, customers: customer }])
     }
     if (path.endsWith('/customers')) return json([customer])
@@ -81,7 +82,7 @@ test('owner assigns a matching customer property when creating a job', async ({ 
   await page.goto('/')
   await page.getByRole('button', { name: 'Jobs', exact: true }).click()
   await page.getByRole('button', { name: '+ New job' }).click()
-  await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
+  await page.getByRole('combobox', { name: 'Customer', exact: true }).selectOption(customerId)
   await expect(page.getByLabel('Service location').locator('option[value="' + propertyId + '"]')).toHaveCount(1)
   await page.getByLabel('Service location').selectOption(propertyId)
   await page.getByRole('textbox', { name: 'Job title' }).fill('Replace faucet')
@@ -107,7 +108,7 @@ test('mobile More exposes Locations and route links without horizontal overflow'
   await mockBusinessData(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'More' }).click()
-  await page.getByRole('button', { name: 'Locations', exact: true }).last().click()
+  await page.getByRole('button', { name: /Locations/ }).last().click()
   await expect(page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
 })
