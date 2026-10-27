@@ -10,7 +10,7 @@ import InvoicesPage from '../pages/InvoicesPage'
 import SchedulePage from '../pages/SchedulePage'
 import PaymentsPage from '../pages/PaymentsPage'
 import BookkeepingPage from '../pages/BookkeepingPage'
-import VoiceAssistant from './VoiceAssistant'
+import AiAssistantAccess from './AiAssistantAccess'
 import SettingsPage from '../pages/SettingsPage'
 import LocationsPage from '../pages/LocationsPage'
 import WorkspaceServicesPage from '../pages/WorkspaceServicesPage'
@@ -89,7 +89,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         })}</div>
         <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/plans">Service tier</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </section></div>}
-      <VoiceAssistant business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />
+      <AiAssistantAccess business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />
     </div>
   )
 }
