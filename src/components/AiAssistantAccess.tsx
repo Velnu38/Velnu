@@ -13,7 +13,7 @@ export default function AiAssistantAccess({ business, onChanged }: {
   useEffect(() => {
     let active = true
     setAccess('checking')
-    void supabase.rpc('get_plan_usage', { target_business_id: business.id }).then(({ data, error }) => {
+    void Promise.resolve(supabase.rpc('get_plan_usage', { target_business_id: business.id })).then(({ data, error }) => {
       if (!active) return
       if (error || data?.plan !== 'pro' || Number(data?.ai_limit || 0) <= 0 || Number(data?.voice_limit || 0) <= 0) {
         setAccess('unavailable')

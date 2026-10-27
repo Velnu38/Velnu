@@ -46,7 +46,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
     let active = true
     setLogoAllowed(false)
     if (business) {
-      void supabase.rpc('get_plan_usage', { target_business_id: business.id }).then(({ data, error }) => {
+      void Promise.resolve(supabase.rpc('get_plan_usage', { target_business_id: business.id })).then(({ data, error }) => {
         if (active) setLogoAllowed(!error && data?.plan === 'pro' && Number(data?.logo_bytes_limit || 0) > 0)
       }).catch(() => { if (active) setLogoAllowed(false) })
     }
