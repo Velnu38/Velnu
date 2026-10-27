@@ -3,36 +3,41 @@ import { useState } from 'react'
 const offerCards = [
   { eyebrow: '01 · Start simple', title: 'Look professional from the first estimate.', copy: 'Set up your company details, colors and logo once. Carry your identity into invoices and estimates.', kind: 'Available in private beta', icon: '◫' },
   { eyebrow: '02 · Keep work organized', title: 'Customers, jobs and schedules together.', copy: 'Keep the people, work and follow-up connected so information does not get lost between calls.', kind: 'Available in private beta', icon: '◇' },
-  { eyebrow: '03 · Spend less time typing', title: 'Speak it. Review it. Save a draft.', copy: 'Turn a short spoken instruction into editable text and a document draft. Owner approval comes before saving or sending.', kind: 'AI rollout in progress', icon: '◎' },
+  { eyebrow: '03 · AI OFFICE ASSISTANT', title: 'Speak it. Review it. Save a draft.', copy: 'Paid AI assistant: transcribe voice, prepare invoice and estimate drafts, identify missing details, and let you approve every action.', kind: 'AI · Basic / Pro planned', icon: '◎' },
   { eyebrow: '04 · Keep financial records clear', title: 'Know what’s paid. Know what’s spent.', copy: 'Your Bookkeeping workbook pulls in recorded invoice payments and lets you track expenses. An optional QuickBooks Online import is being tested.', kind: 'Workbook in beta · Intuit setup pending', icon: '↗' },
   { eyebrow: '05 · Put the customer first', title: 'Professional estimate review and approval.', copy: 'Let customers examine scope, totals and terms before explicitly accepting a quote.', kind: 'Customer delivery coming soon', icon: '✓' },
-  { eyebrow: '06 · Grow into a smarter office', title: 'Business-aware assistance.', copy: 'Provide your services, service area and team context so future AI features can use your terminology rather than guess.', kind: 'Expanded AI planned', icon: '✳' },
+  { eyebrow: '06 · AI OFFICE ASSISTANT', title: 'An assistant that knows your business.', copy: 'Planned paid AI tools can use your services, territory, team roles and existing records to help find jobs, summarize unpaid invoices, and prepare follow-ups.', kind: 'AI · Basic / Pro planned', icon: '✳' },
 ]
 const plans = [
   { name: 'Free', kicker: 'Start with the essentials', price: 'Free', detail: 'Pricing and usage terms may change after the beta.', featured: false, features: [
     'Manual invoices and estimates',
     'Customer and job records',
-    'Company name, contact details and logo',
+    'Company name and contact details (no hosted logo)',
+    '0 online customer approvals / acceptances',
+    'No AI, cloud voice, SMS, automatic email, or paid integrations',
     'Printable branded document previews',
-    'No paid AI usage',
+    'No usage-metered third-party services',
   ] },
   { name: 'Basic', kicker: 'Make routine work easier', price: 'Coming soon', detail: 'Price and AI allowances to be announced.', featured: true, features: [
     'Everything in Free',
-    'Voice-assisted invoice and estimate drafts',
-    'AI interpretation of business requests',
-    'Business-context assistance',
-    'AI usage limits to be published',
+    'AI OFFICE ASSISTANT · voice-to-invoice and estimate drafts',
+    'AI customer and job lookup (planned)',
+    'AI unpaid invoice summaries and business context (planned)',
+    'Optional company logo with storage limits (planned)',
+    'AI usage limits to be announced; 0 online approvals',
   ] },
   { name: 'Pro', kicker: 'More capability for growing teams', price: 'Coming soon', detail: 'Features, price and limits to be announced.', featured: false, features: [
     'Everything in Basic',
-    'Expanded assistant and workflow features',
-    'Customer approval and delivery tools',
-    'Advanced reminders and automation',
-    'Additional team and messaging capabilities',
+    'AI OFFICE ASSISTANT · expanded business workflows (planned)',
+    'Customer estimate acceptance with terms (planned)',
+    'Verified customer email delivery (planned)',
+    'Automated reminders and messaging with usage limits (planned)',
+    'Additional team and workflow tools (planned)',
   ] },
 ]
 const questions = [
-  { q: 'Can I use Velnu without AI?', a: 'Yes. Manual invoicing, estimating and business records are part of the Free plan proposal. AI-assisted functions are designed as optional paid capabilities.' },
+  { q: 'Does Free include AI or online customer approvals?', a: 'No. Free offers manual business tools only: zero AI calls, zero cloud transcription, zero online customer estimate acceptances, and no metered email, SMS or paid integrations. You can print a document and deliver it yourself outside Velnu.' },
+  { q: 'What does the Velnu AI assistant do?', a: 'The paid AI assistant is planned to turn speech into reviewed invoice and estimate drafts, help find customers and jobs, summarize outstanding invoices, and use your business profile for context. It does not automatically send invoices or make financial decisions.' },
   { q: 'Will Velnu send an invoice without me approving it?', a: 'No. The workflow is designed around owner review. Voice and AI can prepare drafts, but customer-facing actions require your confirmation.' },
   { q: 'Is Velnu ready for my entire business?', a: 'Velnu is a private beta. Some features and integrations, including live customer email delivery, are still being tested. Keep independent copies of important records.' },
   { q: 'What will Basic and Pro cost?', a: 'Prices are not set yet. We will publish package details and usage allowances before requesting payment.' },
@@ -44,7 +49,7 @@ export default function LandingPage() {
     <header className="marketing-topbar">
       <div className="marketing-container marketing-nav">
         <a className="marketing-brand" href="/" aria-label="Velnu home"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a>
-        <nav aria-label="Main navigation" className="marketing-main-nav"><a href="#features">Features</a><a href="/services">À la carte</a><a href="#how-it-works">How it works</a><a href="#pricing">Pricing</a></nav>
+        <nav aria-label="Main navigation" className="marketing-main-nav"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="/services">À la carte</a><a href="#how-it-works">How it works</a><a href="#pricing">Pricing</a></nav>
         <div className="marketing-nav-actions"><a className="marketing-signin" href="/auth?mode=signin&next=plans">Sign in · Select tier</a><a className="marketing-btn marketing-btn-dark marketing-btn-small" href="/auth?mode=signup">Join private beta <span aria-hidden="true">↗</span></a></div>
       </div>
     </header>
@@ -84,9 +89,26 @@ export default function LandingPage() {
       </section>
       <section className="marketing-trust"><div className="marketing-container marketing-trust-inner"><p>Made for service businesses that need to keep moving.</p><div><span>Home services</span><span>Independent contractors</span><span>Field teams</span><span>Local businesses</span></div></div></section>
       <section id="features" className="marketing-features"><div className="marketing-container">
-        <div className="marketing-section-intro"><div><p className="marketing-section-kicker">THE TOOLS THAT MATTER</p><h2>Run the work.<br /><span>Not the paperwork.</span></h2></div><p>Velnu brings together the practical pieces of running a service business, with voice and AI features added carefully where they actually help.</p></div>
+        <div className="marketing-section-intro"><div><p className="marketing-section-kicker">THE TOOLS THAT MATTER</p><h2>Run the work.<br /><span>Not the paperwork.</span></h2></div><p>Free covers manual business tools. The paid AI office assistant is planned for Basic and Pro, with account-based usage limits and owner review.</p></div>
         <div className="marketing-features-grid">{offerCards.map(feature=><article key={feature.eyebrow} className="marketing-feature-card"><div className="marketing-feature-top"><span className="marketing-feature-icon">{feature.icon}</span><span>{feature.kind}</span></div><p className="marketing-section-kicker">{feature.eyebrow}</p><h3>{feature.title}</h3><p>{feature.copy}</p></article>)}</div>
       </div></section>
+
+      <section id="ai-assistant" className="marketing-assistant-spotlight">
+        <div className="marketing-container marketing-ai-grid">
+          <div>
+            <p className="marketing-section-kicker">MEET YOUR AI OFFICE ASSISTANT</p>
+            <h2>Another set of hands. <span>Not another employee.</span></h2>
+            <p className="marketing-ai-lead">In Basic and Pro, Velnu's planned AI assistant helps you do the paperwork after the actual work. It uses your instructions and permitted company data to prepare answers and drafts for you to review.</p>
+            <p className="marketing-ai-status"><strong>Paid capability · In testing.</strong> AI is not included in Free. Usage allowances will be set before paid plans launch.</p>
+          </div>
+          <div className="marketing-ai-examples">
+            <article><strong>01 / Dictate an invoice</strong><p>“Create an invoice for Taylor for $185 for faucet repair.”</p><small>AI transcribes the request, prepares a line item, then asks the owner to review the customer, price and tax.</small></article>
+            <article><strong>02 / Prepare an estimate</strong><p>“Draft an estimate for a water heater replacement.”</p><small>AI helps structure the quote and asks for missing quantities and prices instead of inventing them.</small></article>
+            <article><strong>03 / Find answers</strong><p>“Which customers have unpaid invoices?”</p><small>AI can look up authorized records and summarize what needs attention.</small></article>
+            <article><strong>04 / Know your business</strong><p>“Show my jobs scheduled this week.”</p><small>Future AI features can reference service areas, team responsibilities, and your approved business records.</small></article>
+          </div>
+        </div>
+      </section>
       <section id="how-it-works" className="marketing-steps"><div className="marketing-container marketing-steps-grid">
         <div><p className="marketing-section-kicker">A WORKFLOW THAT MAKES SENSE</p><h2>From the work you do to the document you send.</h2><p>Keep control at every step. Velnu organizes the details, and you make the final call.</p><a href="/auth?mode=signup" className="marketing-inline-link">Explore the private beta <span>↗</span></a></div>
         <div className="marketing-steps-list">
@@ -102,7 +124,7 @@ export default function LandingPage() {
           <ul>{plan.features.map(f=><li key={f}><span className="marketing-check">✓</span>{f}</li>)}</ul>
           <a className={'marketing-btn ' + (plan.featured?'marketing-btn-accent':'marketing-btn-outline')} href="/auth?mode=signup">{plan.name==='Free'?'Join free private beta':'Explore in private beta'} <span>↗</span></a>
         </article>)}</div>
-        <p className="marketing-pricing-note"><a href="/auth?mode=signin&next=plans">Already have an account? Sign in to choose Free, Basic, or Pro.</a> Plan features are proposed, not a guarantee of live access. No payment, subscription or automatic upgrade is activated by registering for the beta. Optional QuickBooks Online connectivity requires an eligible Intuit account; Intuit subscriptions, payment processing and other integration fees may apply separately.</p>
+        <p className="marketing-pricing-note"><a href="/auth?mode=signin&next=plans">Already have an account? Sign in to choose Free, Basic, or Pro.</a> Free: 0 online customer acceptances and 0 metered AI, email, SMS or payment-service actions. Basic/Pro features are proposed, not a guarantee of live access. No payment, subscription or automatic upgrade is activated by registering for the beta. Optional QuickBooks Online connectivity requires an eligible Intuit account; Intuit subscriptions, payment processing and other integration fees may apply separately.</p>
       </div></section>
       <section className="services-marketing-banner">
         <div className="marketing-container services-marketing-banner-inner">
@@ -113,6 +135,6 @@ export default function LandingPage() {
       <section className="marketing-faq"><div className="marketing-container marketing-faq-grid"><div><p className="marketing-section-kicker">GOOD QUESTIONS</p><h2>Before you jump in.</h2><p>Clear expectations matter. Here is what to know about Velnu’s private preview.</p></div><div>{questions.map((item,i)=><div key={item.q} className="marketing-faq-item"><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}><span>{item.q}</span><b>{openFaq===i?'−':'+'}</b></button>{openFaq===i&&<p>{item.a}</p>}</div>)}</div></div></section>
       <section className="marketing-last"><div className="marketing-container marketing-last-card"><div><p className="marketing-section-kicker">YOUR OFFICE, WITHOUT THE OVERHEAD</p><h2>Make more time for the work that matters.</h2><p>Build professional documents, stay organized, and discover a simpler workflow with Velnu.</p></div><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Join the private beta <span>↗</span></a></div></section>
     </main>
-    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Velnu. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="/services">À la carte</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
+    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Velnu. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="#pricing">Pricing</a><a href="/services">À la carte</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
   </div>
 }

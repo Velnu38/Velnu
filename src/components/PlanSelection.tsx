@@ -52,7 +52,7 @@ export default function PlanSelection({ userId, email, currentTier, onSelected, 
       {error && <p className="form-message error-text" role="alert">{error}</p>}
       <div className="plan-pick-notice">
         <strong>Your choice is a preference, not a purchase.</strong>
-        <p>Basic and Pro pricing, allowances, and availability are not yet finalized. Selecting either does not activate paid functionality, start a subscription, or authorize a charge. All private-beta capabilities remain subject to testing and release controls.</p>
+        <p>Free has 0 customer online acceptances and 0 metered AI, email, SMS or payment-service actions. Basic and Pro pricing, allowances, and availability are not yet finalized. Selecting either does not activate paid functionality, start a subscription, or authorize a charge. All private-beta capabilities remain subject to testing and release controls.</p>
         <p>Looking for extra services à la carte? You can explore optional services under <strong>My services</strong> after entering your workspace. Pricing for add-ons will be published later.</p>
       </div>
     </div>

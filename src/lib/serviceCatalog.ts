@@ -7,16 +7,16 @@ export type ServiceInterest = { plan: PlanInterest; services: ServiceId[] }
 export const serviceCatalog: Array<{
   id: ServiceId; name: string; description: string; stage: string; tag: string
 }> = [
-  { id: 'voice_drafts', name: 'Voice-to-document assistant', description: 'Dictate invoice and estimate drafts for review; full cloud speech and AI are still in testing.', stage: 'Testing', tag: 'AI' },
-  { id: 'estimate_approvals', name: 'Online estimate approvals', description: 'Let customers review scope, totals and terms, then record their acceptance. Customer delivery is not live yet.', stage: 'Testing', tag: 'Customers' },
+  { id: 'voice_drafts', name: 'AI office assistant · voice-to-document', description: 'Paid AI feature: record speech, draft invoices or estimates, and review before saving. No AI requests on Free.', stage: 'Basic / Pro · Testing', tag: 'AI' },
+  { id: 'estimate_approvals', name: 'Online estimate approvals', description: 'Paid Pro option: customers review terms and give recorded acceptance. Free includes 0 acceptances and 0 links.', stage: 'Pro · Testing', tag: 'Customers' },
   { id: 'payment_links', name: 'Payment links', description: 'Offer a secure way for customers to pay an invoice online. Provider integration and fees are not finalized.', stage: 'Planned', tag: 'Payments' },
-  { id: 'automated_reminders', name: 'Automated follow-ups', description: 'Prepare invoice reminders and customer follow-up workflows for owner review.', stage: 'Planned', tag: 'Automation' },
+  { id: 'automated_reminders', name: 'Automated follow-ups', description: 'Paid service: prepare follow-up drafts and deliver reminders, subject to verification and per-plan limits.', stage: 'Paid · Planned', tag: 'Automation' },
   { id: 'bookkeeping', name: 'Bookkeeping & integrations', description: 'Track recorded invoice payments and business expenses; QuickBooks Online connectivity is being evaluated.', stage: 'Workbook beta', tag: 'Finances' },
   { id: 'team_tools', name: 'Team collaboration', description: 'Help owners coordinate employees, roles and assignments with appropriate permissions.', stage: 'Planned', tag: 'Team' },
-  { id: 'sms_messages', name: 'Customer text messaging', description: 'Customer SMS updates and replies, subject to messaging consent and provider setup.', stage: 'Planned', tag: 'Messaging' },
+  { id: 'sms_messages', name: 'Customer text messaging', description: 'Paid service: outgoing SMS and replies; usage limits and customer messaging consent required.', stage: 'Paid · Planned', tag: 'Messaging' },
 ]
 export const plans: Array<{ id: PlanInterest; label: string; description: string }> = [
-  { id: 'free', label: 'Free', description: 'Manual core tools — planned free tier' },
+  { id: 'free', label: 'Free', description: 'Manual tools only · 0 AI, customer approvals, and metered services' },
   { id: 'basic', label: 'Basic', description: 'AI-assisted everyday work — pricing coming soon' },
   { id: 'pro', label: 'Pro', description: 'Expanded workflows — pricing coming soon' },
   { id: 'a_la_carte', label: 'À la carte', description: 'Pick services individually — pricing coming soon' },

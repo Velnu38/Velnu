@@ -14,7 +14,7 @@ export default function ServicesPage() {
       <p className="marketing-section-kicker">MAKE VELNU WORK FOR YOU</p>
       <h1>Choose what you need. <em>Leave out what you don't.</em></h1>
       <p className="services-public-lead">Velnu's core business app works right in your browser. Explore optional tools à la carte, or express interest in a future Basic or Pro plan.</p>
-      <p className="services-beta-notice">During the private beta, selections are non-billable feature interests, not subscriptions. Unfinished features will remain unavailable until they are tested and launched.</p>
+      <p className="services-beta-notice">Free provides no online customer acceptances, hosted logos, cloud AI, metered email, or SMS. During the private beta, selections are non-billable feature interests, not subscriptions. Unfinished features will remain unavailable until they are tested and launched.</p>
       <ServicePicker value={selected} onChange={change}/>
       <div className="service-public-actions">
         <button type="button" className="marketing-btn marketing-btn-accent" onClick={saveAndContinue}>Continue to account setup <span>↗</span></button>

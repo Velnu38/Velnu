@@ -24,7 +24,7 @@ export default function ServicePicker({ value, onChange, disabled = false, compa
     </fieldset>
     <fieldset className="service-addon-choices">
       <legend>Explore individual services</legend>
-      <p>Core invoicing and estimates are part of Velnu. Select optional capabilities you want us to prioritize. This does not activate or purchase them.</p>
+      <p>Free includes manual tools only, with 0 online customer approvals, AI requests, automatic email, SMS or paid integrations. Any checked item is an interest in a future paid add-on—not a service activation.</p>
       <div className="service-addon-grid">
         {serviceCatalog.map(service => <label className={'service-addon-card' + (value.services.includes(service.id) ? ' selected' : '')} key={service.id}>
           <input type="checkbox" checked={value.services.includes(service.id)} disabled={disabled}

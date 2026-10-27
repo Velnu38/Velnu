@@ -7,18 +7,18 @@ export const planOptions: Array<{
 }> = [
   {
     tier: 'free', name: 'Free', subtitle: 'A professional starting point',
-    price: '$0', status: 'Available for private beta',
-    features: ['Create manual estimates and invoices', 'Customer and job records', 'Company branding and printable documents', 'Basic workspace and payment records'],
+    price: '$0', status: 'Manual tools · No metered services',
+    features: ['Manual estimates and invoices; printable PDF', 'Customer and job records within storage limits', 'Company name, address, phone and text branding', '0 online customer acceptances', '0 AI calls, cloud voice, automated email, SMS and third-party paid services'],
   },
   {
     tier: 'basic', name: 'Basic', subtitle: 'AI-assisted everyday operations',
     price: 'Pricing coming soon', status: 'Join the Basic interest list',
-    features: ['Proposed Free plan features', 'Voice-assisted invoice and estimate drafts', 'AI command interpretation and business context', 'Future AI allowances to be announced'],
+    features: ['Proposed Free plan features', 'AI ASSISTANT · voice-to-invoice and estimate drafts', 'AI ASSISTANT · customer/job lookup and unpaid invoice summaries', 'AI ASSISTANT · business context and clarification questions', 'Planned hosted company logos and limited AI allowance', '0 online customer acceptances'],
   },
   {
     tier: 'pro', name: 'Pro', subtitle: 'Tools for growing teams',
     price: 'Pricing coming soon', status: 'Join the Pro interest list',
-    features: ['Proposed Basic plan features', 'Future customer approvals and delivery tools', 'Expanded workflow automation and reminders', 'More team and messaging options planned'],
+    features: ['Proposed Basic plan features', 'AI ASSISTANT · expanded office workflows', 'Online estimate acceptance with recorded agreement to terms', 'Customer email, reminders, messaging with usage limits', 'Team and automation options (planned)'],
   },
 ]
 
