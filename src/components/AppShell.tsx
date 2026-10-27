@@ -14,6 +14,7 @@ import VoiceAssistant from './VoiceAssistant'
 import SettingsPage from '../pages/SettingsPage'
 import LocationsPage from '../pages/LocationsPage'
 import WorkspaceServicesPage from '../pages/WorkspaceServicesPage'
+import { hasPendingServiceInterests } from '../lib/serviceCatalog'
 
 type View = 'dashboard' | 'customers' | 'jobs' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'schedule' | 'payments' | 'bookkeeping' | 'settings' | 'services'
 
@@ -37,7 +38,7 @@ const mobileMore: View[] = ['locations', 'change_orders', 'estimates', 'invoices
 
 export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)
-  const [view, setView] = useState<View>(new URLSearchParams(window.location.search).has('quickbooks') ? 'bookkeeping' : 'dashboard')
+  const [view, setView] = useState<View>(new URLSearchParams(window.location.search).has('quickbooks') ? 'bookkeeping' : hasPendingServiceInterests() ? 'services' : 'dashboard')
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [showMobileMore, setShowMobileMore] = useState(false)
 
