@@ -72,7 +72,7 @@ export async function listVelnuWorkbook(businessId: string): Promise<WorkbookLin
       amount: dollars(p.amount),
       currency: 'USD',
       source: 'invoice_payment' as const,
-      source_label: 'Velnu payment record',
+      source_label: 'Finviant Office payment record',
       removable: false,
     }
   })

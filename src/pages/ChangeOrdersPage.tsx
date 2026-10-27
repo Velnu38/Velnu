@@ -92,7 +92,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
 
   async function changeStatus(id: string, status: 'sent' | 'void') {
     if (!window.confirm(status === 'sent'
-      ? 'Mark this change order as sent outside Velnu? This does not email the customer.'
+      ? 'Mark this change order as sent outside Finviant Office? This does not email the customer.'
       : 'Void this change order? This removes it from the approval workflow but keeps a record of it.')) return
     setBusy(true); setError(''); setNotice('')
     try {
@@ -165,7 +165,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
           <label className="full">Schedule note<input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} placeholder="Adds one working day to completion." /></label>
         </div>
         <div className="line-items"><div className="line-items-head"><strong>Price change</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
-        <div className="estimate-total"><span>Proposed change</span><strong>${preview.toFixed(2)}</strong><small>Final totals are calculated by Owedly when saved. Customer approval is the next workflow step.</small></div>
+        <div className="estimate-total"><span>Proposed change</span><strong>${preview.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved. Customer approval is the next workflow step.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create change order'}</button></div>
       </form>

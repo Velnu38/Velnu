@@ -60,7 +60,7 @@ export default function JobsPage({ business }: { business: CurrentBusiness }) {
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New job</button>}
       </div>
       <section className="list-card">
-        {jobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h2>No jobs yet</h2><p>Create a job here or tell Velnu what work you need scheduled.</p></div> : jobs.map((job) => {
+        {jobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h2>No jobs yet</h2><p>Create a job here or tell Finviant Office what work you need scheduled.</p></div> : jobs.map((job) => {
           const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           return <article className="job-row" key={job.id}>
