@@ -3,6 +3,8 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { getCurrentBusiness, type CurrentBusiness } from './lib/business'
 import { hasAcceptedAgreement } from './lib/userAgreement'
+import { getPlanPreference, type PlanTier } from './lib/plans'
+import PlanSelection from './components/PlanSelection'
 import AuthScreen from './components/AuthScreen'
 import PasswordRecovery from './components/PasswordRecovery'
 import BusinessOnboarding from './components/BusinessOnboarding'
@@ -25,6 +27,9 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [recovery, setRecovery] = useState(initialRecovery)
+  const [planStatus, setPlanStatus] = useState<'checking' | 'needed' | 'selected'>('checking')
+  const [selectedTier, setSelectedTier] = useState<PlanTier | null>(null)
+  const [planRequested, setPlanRequested] = useState(publicPath === '/plans' || initialQuery.get('next') === 'plans')
   const [agreementStatus, setAgreementStatus] = useState<'checking' | 'needed' | 'accepted'>('checking')
   const [business, setBusiness] = useState<CurrentBusiness | null>(null)
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null)
@@ -33,7 +38,7 @@ export default function App() {
   const userId = session?.user.id ?? null
 
   useEffect(() => {
-    if (approvalToken || ['/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
+    if (approvalToken || ['/legal', '/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
     let active = true
     let eventReceived = false
     // Keep the auth callback synchronous to avoid holding the session lock.
@@ -64,24 +69,43 @@ export default function App() {
     return () => { active = false; data.subscription.unsubscribe() }
   }, [approvalToken])
 
+  // Step 1: fetch the user's plan preference. This is not a paid entitlement.
   useEffect(() => {
     let active = true
     setBusiness(null)
     setLoadedUserId(null)
     setError('')
+    setSelectedTier(null)
+    setPlanStatus('checking')
     setAgreementStatus('checking')
     if (!userId || recovery || approvalToken) return () => { active = false }
-    void hasAcceptedAgreement(userId).then(accepted => {
-      if (active) setAgreementStatus(accepted ? 'accepted' : 'needed')
+    void getPlanPreference(userId).then(tier => {
+      if (!active) return
+      setSelectedTier(tier)
+      setPlanStatus(tier ? 'selected' : 'needed')
     }).catch(err => {
-      if (active) setError(err instanceof Error ? err.message : 'Unable to verify the current user agreement.')
+      if (active) setError(err instanceof Error ? err.message : 'Unable to load your service tier.')
     })
     return () => { active = false }
   }, [userId, recovery, approvalToken])
 
+  // Step 2: check the current combined agreement after a tier exists.
   useEffect(() => {
     let active = true
-    if (!userId || recovery || agreementStatus !== 'accepted' || approvalToken) return () => { active = false }
+    setAgreementStatus('checking')
+    if (!userId || recovery || approvalToken || planStatus !== 'selected') return () => { active = false }
+    void hasAcceptedAgreement(userId).then(accepted => {
+      if (active) setAgreementStatus(accepted ? 'accepted' : 'needed')
+    }).catch(err => {
+      if (active) setError(err instanceof Error ? err.message : 'Unable to verify your user agreement.')
+    })
+    return () => { active = false }
+  }, [userId, recovery, approvalToken, planStatus])
+
+  // Step 3: only load the company workspace after terms have been accepted.
+  useEffect(() => {
+    let active = true
+    if (!userId || recovery || agreementStatus !== 'accepted' || planStatus !== 'selected' || approvalToken) return () => { active = false }
     void getCurrentBusiness().then(next => {
       if (active) setBusiness(next)
     }).catch(err => {
@@ -90,7 +114,16 @@ export default function App() {
       if (active) setLoadedUserId(userId)
     })
     return () => { active = false }
-  }, [userId, agreementStatus, recovery, approvalToken])
+  }, [userId, agreementStatus, planStatus, recovery, approvalToken])
+
+  function savePlanChoice(tier: PlanTier) {
+    setSelectedTier(tier)
+    setPlanStatus('selected')
+    setPlanRequested(false)
+    if (window.location.pathname === '/plans' || window.location.search.includes('next=plans')) {
+      window.history.replaceState({}, '', '/')
+    }
+  }
 
   function finishRecovery() {
     window.history.replaceState({}, '', '/auth?mode=signin')
@@ -98,22 +131,27 @@ export default function App() {
   }
 
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
-  if (publicPath === '/terms') return <LegalPage variant="terms" />
-  if (publicPath === '/privacy') return <LegalPage variant="privacy" />
+  if (['/legal', '/terms', '/privacy'].includes(publicPath)) return <LegalPage />
   if (publicPath === '/services') return <ServicesPage />
   if (publicPath === '/install') return <InstallPage />
   if (!authReady) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening Velnu…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
   if (!session) {
-    if (publicPath === '/auth' || invalidAuthLink) {
+    if (publicPath === '/auth' || publicPath === '/plans' || invalidAuthLink) {
       return <AuthScreen initialMode={initialAuthMode} initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />
     }
     return <LandingPage />
   }
   if (error) return <main className="loading-page"><div className="logo-mark">V</div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
-  if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark">V</div><p>Checking your account agreement…</p></main>
+  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark">V</div><p>Checking your service tier…</p></main>
+  if (planStatus === 'needed' || planRequested) return <PlanSelection
+    userId={session.user.id} email={session.user.email ?? 'your account'} currentTier={selectedTier}
+    onSelected={savePlanChoice} onSignOut={() => void supabase.auth.signOut()}
+  />
+  if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark">V</div><p>Checking your agreement…</p></main>
   if (agreementStatus === 'needed') return <AccountAgreement
-    userId={session.user.id} email={session.user.email ?? 'your account'}
+    userId={session.user.id} email={session.user.email ?? 'your account'} selectedTier={selectedTier!}
+    onChangeTier={() => setPlanRequested(true)}
     onAccepted={() => setAgreementStatus('accepted')}
     onSignOut={() => void supabase.auth.signOut()}
   />
