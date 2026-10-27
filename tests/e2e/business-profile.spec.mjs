@@ -26,6 +26,7 @@ async function mockBusiness(page, existing = false) {
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v1' })
     if (path.endsWith('/business_members')) return json(existing ? { role: 'owner', business_id: businessId, businesses: record } : null)
+    if (path.endsWith('/business_service_interests')) return json(method === 'POST' ? {} : null, method === 'POST' ? 201 : 200)
     if (path.endsWith('/businesses') && (method === 'POST' || method === 'PATCH')) {
       record = { ...record, ...(body || {}) }
       return json(record, method === 'POST' ? 201 : 200)
@@ -55,6 +56,10 @@ test('new owner can enter company branding and business context during onboardin
   await page.getByLabel('Services offered').fill('Repairs, wiring, inspections')
   await page.getByLabel('Number of people (including owner)').fill('4')
   await page.getByLabel('Team responsibilities (optional)').fill('Owner handles quotes; electricians do field work.')
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: 'Choose your optional Velnu services' })).toBeVisible()
+  await page.getByRole('radio', { name: /À la carte/ }).check()
+  await page.getByRole('checkbox', { name: /Voice-to-document assistant/ }).check()
   await page.getByRole('button', { name: 'Create my business' }).click()
   await expect(page.getByRole('button', { name: 'Company settings' })).toBeVisible()
   const save = writes.find(x => x.method === 'POST' && x.path.endsWith('/businesses'))
@@ -64,6 +69,9 @@ test('new owner can enter company branding and business context during onboardin
   expect(save.body.team_size).toBe(4)
   expect(save.body.services_offered).toContain('Repairs')
   expect(save.body.profile_completed_at).toBeTruthy()
+  const preferences = writes.find(x => x.method === 'POST' && x.path.endsWith('/business_service_interests'))
+  expect(preferences?.body.preferred_plan).toBe('a_la_carte')
+  expect(preferences?.body.selected_services).toContain('voice_drafts')
 })
 
 test('existing owner can update letterhead, upload a logo and retain business context', async ({ page }) => {
@@ -80,7 +88,9 @@ test('existing owner can update letterhead, upload a logo and retain business co
   })
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByLabel('Services offered').fill('Electrical inspections and repairs')
-  await page.getByRole('button', { name: 'Save company profile' }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByRole('heading', { name: 'Choose your optional Velnu services' })).toBeVisible()
+  await page.getByRole('button', { name: 'Save company profile & services' }).click()
   await expect(page.getByRole('heading', { name: 'Make Velnu yours.' })).toBeVisible()
   await expect(page.getByText('757-555-0199')).toBeVisible()
   const updates = writes.filter(x => x.method === 'PATCH' && x.path.endsWith('/businesses'))
