@@ -36,22 +36,12 @@ export async function interpretCommand(businessId: string, transcript: string, s
 }
 
 export async function confirmAiAction(actionId: string) {
-  const { error } = await supabase
-    .from('ai_actions')
-    .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
-    .eq('id', actionId)
-    .eq('status', 'proposed')
-
+  const { error } = await supabase.rpc('decide_ai_action', { p_action_id: actionId, p_decision: 'confirmed' })
   if (error) throw error
 }
 
 export async function rejectAiAction(actionId: string) {
-  const { error } = await supabase
-    .from('ai_actions')
-    .update({ status: 'rejected' })
-    .eq('id', actionId)
-    .eq('status', 'proposed')
-
+  const { error } = await supabase.rpc('decide_ai_action', { p_action_id: actionId, p_decision: 'rejected' })
   if (error) throw error
 }
 
