@@ -60,7 +60,25 @@ Deno.test('1800 generated inputs across schedules, invoice voice commands, maps,
   })
   batch('invoice_voice_same_price_twice', 100, i => {
     const value = i + 10
-    const parsed = parseQuickInvoice('Create invoice for Customer' + i + ' for labor 
+    const phrase = 'Create invoice for Customer' + i + ' for labor ' + String.fromCharCode(36) + value +
+      ' plus materials ' + String.fromCharCode(36) + value
+    const parsed = parseQuickInvoice(phrase)
+    equal(parsed.multipleAmounts, true, 'identical charges must still be treated as two amounts')
+    equal(parsed.amount, '', 'repeated charges must not create a one-line invoice')
+  })
+  batch('invoice_voice_overlapping_dollar_notations', 100, i => {
+    const value = i + 10
+    const phrase = 'Create invoice for Customer' + i + ' for work ' + String.fromCharCode(36) + value + ' dollars'
+    const parsed = parseQuickInvoice(phrase)
+    equal(parsed.multipleAmounts, false, 'one currency mention must not be double counted')
+    equal(parsed.amount, String(value), 'one currency mention retains the exact amount')
+  })
+  batch('invoice_voice_negative_amounts', 100, i => {
+    const phrase = 'Create invoice for Customer' + i + ' for a refund -' + String.fromCharCode(36) + (i + 10)
+    const parsed = parseQuickInvoice(phrase)
+    equal(parsed.amount, '', 'negative refund must not become a positive invoice')
+  })
+  batch('invoice_voice_no_price', 100, i => {
     const spoken = 'Create invoice for Customer' + i + ' for work without a quoted price'
     const parsed = parseQuickInvoice(spoken)
     equal(parsed.amount, '', 'do not invent prices')
