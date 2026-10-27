@@ -98,7 +98,7 @@ test('existing owner can update letterhead, upload a logo and retain business co
   const updates = writes.filter(x => x.method === 'PATCH' && x.path.endsWith('/businesses'))
   expect(updates.length).toBeGreaterThanOrEqual(2)
   expect(updates.at(-1).body.logo_path).toMatch(/^11111111-1111-4111-8111-111111111111\/logo-/)
-  expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  await expect.poll(() => writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
 })
 
 
@@ -131,5 +131,5 @@ test('activated Basic tier can upload company logo when backend grants storage q
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByRole('button', { name: 'Save company profile & services' }).click()
   await expect(page.getByRole('heading', { name: 'Make Velnu yours.' })).toBeVisible()
-  expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  await expect.poll(() => writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
 })
