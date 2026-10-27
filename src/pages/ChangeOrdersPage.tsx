@@ -90,10 +90,18 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
     } finally { setBusy(false) }
   }
 
-  async function changeStatus(id: string, status: ChangeOrder['status']) {
-    setError(''); setNotice('')
-    try { await updateChangeOrderStatus(id, status as 'draft' | 'sent' | 'approved' | 'declined' | 'void'); await refresh() }
-    catch (err) { setError(err instanceof Error ? err.message : 'Unable to update change order') }
+  async function changeStatus(id: string, status: 'sent' | 'void') {
+    if (!window.confirm(status === 'sent'
+      ? 'Mark this change order as sent outside Velnu? This does not email the customer.'
+      : 'Void this change order? This removes it from the approval workflow but keeps a record of it.')) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await updateChangeOrderStatus(id, status)
+      await refresh()
+      setNotice(status === 'sent' ? 'Marked as sent manually. No customer email was generated.' : 'Change order voided.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update change order')
+    } finally { setBusy(false) }
   }
 
   async function shareForApproval(order: ChangeOrder) {
@@ -132,14 +140,15 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
       {changeOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : changeOrders.map((order) => {
         const customer = order.customers?.[0]
         const job = order.jobs?.[0]
-        const terminal = ['approved', 'declined', 'void'].includes(order.status)
         return <article className="document-row change-order-row" key={order.id}>
           <div className="row-main"><strong>{order.change_order_number || 'Draft change order'} · {order.title}</strong><span>{customerName(customer)} · {job?.title || 'Job'}{order.schedule_impact_days ? ` · ${order.schedule_impact_days > 0 ? '+' : ''}${order.schedule_impact_days} day schedule impact` : ''}</span></div>
           <div className="invoice-money"><strong className="money">${Number(order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
           <div className="document-actions">
-            {terminal ? <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span> : <select value={order.status} disabled={!canManageFinances(business.role)} onChange={(e) => changeStatus(order.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="void">Void</option></select>}
-            {canManageFinances(business.role) && !['void','approved'].includes(order.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
-            {canManageFinances(business.role) && !['void','approved'].includes(order.status) && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Copy approval link</button>}
+            <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span>
+            {canManageFinances(business.role) && order.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'sent')}>Mark sent manually</button>}
+            {canManageFinances(business.role) && ['draft','sent'].includes(order.status) && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'void')}>Void</button>}
+            {canManageFinances(business.role) && order.status === 'draft' && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
+            {canManageFinances(business.role) && order.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Get customer approval link</button>}
           </div>
         </article>
       })}
