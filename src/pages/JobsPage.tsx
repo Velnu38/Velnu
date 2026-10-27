@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { createJob, listJobs, updateJobStatus } from '../services/jobs'
@@ -16,6 +16,8 @@ export default function JobsPage({ business }: { business: CurrentBusiness }) {
   const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const pendingSave = useRef<{ fingerprint: string; id: string } | null>(null)
+  const saving = useRef(false)
   const [form, setForm] = useState({ customer_id: '', property_id: '', title: '', description: '', scheduled_start: '' })
 
   async function refresh() {
@@ -28,22 +30,29 @@ export default function JobsPage({ business }: { business: CurrentBusiness }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (saving.current) return
+    saving.current = true
+    const fingerprint = JSON.stringify(form)
+    if (!pendingSave.current || pendingSave.current.fingerprint !== fingerprint) pendingSave.current = { fingerprint, id: crypto.randomUUID() }
     setBusy(true)
     setError('')
     try {
       await createJob(business.id, {
+        request_id: pendingSave.current.id,
         customer_id: form.customer_id,
         property_id: form.property_id || undefined,
         title: form.title,
         description: form.description,
         scheduled_start: form.scheduled_start ? new Date(form.scheduled_start).toISOString() : undefined,
       })
+      pendingSave.current = null
       setForm({ customer_id: '', property_id: '', title: '', description: '', scheduled_start: '' })
       setShowForm(false)
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create job')
     } finally {
+      saving.current = false
       setBusy(false)
     }
   }
@@ -59,6 +68,7 @@ export default function JobsPage({ business }: { business: CurrentBusiness }) {
         <div><p className="eyebrow">Jobs</p><h1>Keep every job moving.</h1></div>
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New job</button>}
       </div>
+      {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
       <section className="list-card">
         {jobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h2>No jobs yet</h2><p>Create a job here or tell Finviant Office what work you need scheduled.</p></div> : jobs.map((job) => {
           const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers

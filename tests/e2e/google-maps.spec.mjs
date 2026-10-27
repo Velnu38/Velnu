@@ -43,7 +43,7 @@ async function mockBusinessData(page) {
       return json([{ ...property, customers: customer }])
     }
     if (path.endsWith('/customers')) return json([customer])
-    if (path.endsWith('/jobs') && method === 'POST') return json({ id: '77777777-7777-4777-8777-777777777777', ...body }, 201)
+    if (path.endsWith('/rpc/create_job_atomic') && method === 'POST') return json({ id: '77777777-7777-4777-8777-777777777777', ...body.payload, status: 'lead' }, 200)
     if (path.endsWith('/jobs')) return json([])
     if (path.endsWith('/appointments')) {
       const start = new Date(Date.now() + 60 * 60 * 1000).toISOString()
@@ -88,11 +88,13 @@ test('owner assigns a matching customer property when creating a job', async ({ 
   await page.getByLabel('Service location').selectOption(propertyId)
   await page.getByRole('textbox', { name: 'Job title' }).fill('Replace faucet')
   await page.getByRole('button', { name: 'Save job' }).click()
-  await expect.poll(() => requests.filter(r => r.path.endsWith('/jobs') && r.method === 'POST').length).toBe(1)
-  const write = requests.find(r => r.path.endsWith('/jobs') && r.method === 'POST')
-  expect(write.body.business_id).toBe(businessId)
-  expect(write.body.customer_id).toBe(customerId)
-  expect(write.body.property_id).toBe(propertyId)
+  await expect.poll(() => requests.filter(r => r.path.endsWith('/rpc/create_job_atomic') && r.method === 'POST').length).toBe(1)
+  const write = requests.find(r => r.path.endsWith('/rpc/create_job_atomic') && r.method === 'POST')
+  expect(write.body.target_business_id).toBe(businessId)
+  expect(write.body.payload.customer_id).toBe(customerId)
+  expect(write.body.payload.property_id).toBe(propertyId)
+  expect(write.body.request_id).toMatch(/^[0-9a-f-]{36}$/i)
+  expect(requests.filter(r => r.path.endsWith('/jobs') && r.method === 'POST')).toHaveLength(0)
 })
 
 test('schedule shows driving directions from its associated job location', async ({ page }) => {

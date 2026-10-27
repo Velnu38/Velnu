@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { providerJson, ProviderRequestError } from "../_shared/providerRequest.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const jsonHeaders = {
   "Content-Type": "application/json",
@@ -94,15 +95,13 @@ Deno.serve(async (req: Request) => {
       return respond(400, { error: "Recordings must be 2 minutes or shorter." });
     }
 
-    // Basic per-user spending guard for initial testing. A stricter provider-side
-    // limit and concurrency-safe budget enforcement are required before public launch.
-    const { count, error: usageError } = await db.from("voice_transcriptions")
-      .select("id", { count: "exact", head: true })
-      .eq("business_id", businessId)
-      .eq("user_id", authData.user.id)
-      .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-    if (usageError) return respond(503, { error: "Unable to check transcription usage; try again." });
-    if ((count ?? 0) >= 120) return respond(429, { error: "Daily voice transcription limit reached." });
+    // Failed and uncertain provider attempts remain counted; row locking prevents overshoot.
+    const { error: budgetError } = await db.rpc("reserve_ai_provider_attempt", {
+      p_business_id: businessId, p_kind: "transcription",
+    });
+    if (budgetError) return respond(budgetError.code === "42501" ? 403 : budgetError.code === "P0001" ? 429 : 503, {
+      error: "Voice attempt allowance could not be reserved. No provider call was made.",
+    });
 
     const prompt = String(body.get("prompt") || "").slice(0, 300);
     const upload = new FormData();
@@ -111,31 +110,18 @@ Deno.serve(async (req: Request) => {
     upload.append("response_format", "json");
     if (prompt) upload.append("prompt", prompt);
 
-    let response: Response;
+    let result: Record<string, unknown>;
     try {
-      response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + apiKey },
-        body: upload,
-        signal: AbortSignal.timeout(60000),
-      });
-    } catch {
-      return respond(504, { error: "Transcription timed out. Try a shorter recording." });
+      result = await providerJson("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST", headers: { Authorization: "Bearer " + apiKey }, body: upload,
+      }, { timeoutMs: 60000, maxBytes: 262144 });
+    } catch (err) {
+      const status = err instanceof ProviderRequestError && err.code === "timeout" ? 504
+        : err instanceof ProviderRequestError && err.status === 429 ? 429 : 502;
+      return respond(status, { error: "Speech processing could not be confirmed. No business record was changed. You can use typed input instead.", code: "voice_provider_unavailable" });
     }
-    if (!response.ok) {
-      // Avoid logging the user's audio or transcription; only status and category.
-      console.error("Transcription provider request failed", response.status);
-      const error = response.status === 401
-        ? "The OpenAI API key was rejected. Check the key in Supabase Secrets."
-        : response.status === 429
-          ? "The transcription service is busy or out of credits. Check API billing and try again."
-          : "The transcription service could not process this recording. Try again.";
-      return respond(response.status === 429 ? 429 : 502, { error });
-    }
-
-    const result = await response.json();
-    const transcript = String(result?.text ?? "").trim();
-    if (!transcript) return respond(422, { error: "No speech detected. Speak clearly and try again." });
+    const transcript = typeof result.text === "string" ? result.text.trim() : "";
+    if (!transcript || transcript.length > 6000) return respond(422, { error: "No usable short command was detected. Please type or record a shorter request." });
 
     const { data: saved, error: saveError } = await db.from("voice_transcriptions").insert({
       business_id: businessId,

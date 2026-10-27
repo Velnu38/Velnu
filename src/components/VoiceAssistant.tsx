@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { isQuickInvoiceCommand } from '../lib/quickInvoice'
 import QuickInvoiceReview from './QuickInvoiceReview'
 import type { CurrentBusiness } from '../lib/business'
@@ -54,11 +54,11 @@ function ResultView({ result }: { result: any }) {
   if (payload.total_outstanding !== undefined) return <p className="assistant-result">{payload.count} unpaid invoice{payload.count === 1 ? '' : 's'} · ${Number(payload.total_outstanding).toFixed(2)} outstanding</p>
   if (payload.outstanding !== undefined) return <p className="assistant-result">{payload.customers} customers · {payload.active_jobs} active jobs · ${Number(payload.outstanding).toFixed(2)} outstanding</p>
   if (payload.change_order) return <p className="assistant-result">Change order {payload.change_order.change_order_number ?? ''} created for ${Number(payload.change_order.total ?? 0).toFixed(2)}. Customer approval is still required.</p>
+  if (payload.payment) return <p className="assistant-result">Payment of ${Number(payload.payment.amount).toFixed(2)} recorded.</p>
   if (payload.invoice) return <p className="assistant-result">Invoice {payload.invoice.invoice_number ?? ''} is ready. Balance: ${Number(payload.invoice.balance_due ?? payload.invoice.total ?? 0).toFixed(2)}</p>
   if (payload.estimate) return <p className="assistant-result">Estimate {payload.estimate.estimate_number ?? ''} created for ${Number(payload.estimate.total ?? 0).toFixed(2)}</p>
   if (payload.job) return <p className="assistant-result">Job “{payload.job.title}” created.</p>
   if (payload.customer) return <p className="assistant-result">Customer saved.</p>
-  if (payload.payment) return <p className="assistant-result">Payment of ${Number(payload.payment.amount).toFixed(2)} recorded.</p>
   if (Array.isArray(payload.jobs) || Array.isArray(payload.invoices)) return <p className="assistant-result">Found {payload.jobs?.length ?? 0} jobs and {payload.invoices?.length ?? 0} invoices in this customer’s history.</p>
   return <p className="assistant-result">Done.</p>
 }
@@ -73,6 +73,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
   const [voiceStatus, setVoiceStatus] = useState('')
+  const mutationInFlight = useRef(false)
+  const mounted = useRef(true)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
   const recognizerRef = useRef<BrowserRecognizer | null>(null)
@@ -80,6 +82,22 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const recordingStartedAtRef = useRef<number | null>(null)
   const recordingTimeoutRef = useRef<number | null>(null)
 
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current)
+      const recorder = recorderRef.current
+      if (recorder) {
+        recorder.onstop = null; recorder.ondataavailable = null; recorder.onerror = null
+        if (recorder.state === 'recording') { try { recorder.stop() } catch { /* Already stopped. */ } }
+        recorder.stream?.getTracks().forEach(track => track.stop())
+      }
+      const speech = recognizerRef.current
+      if (speech) { speech.onend = null; speech.onresult = null; speech.onerror = null; try { speech.stop() } catch { /* Already stopped. */ } }
+      chunksRef.current = []
+    }
+  }, [])
   function reset() {
     setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setVoiceStatus(''); setText('')
   }
@@ -188,6 +206,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     let stream: MediaStream | null = null
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      if (!mounted.current) { stream.getTracks().forEach(track => track.stop()); return }
       const preferredFormats = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
       const preferredMime = typeof MediaRecorder.isTypeSupported === 'function'
         ? preferredFormats.find(mime => MediaRecorder.isTypeSupported(mime))
@@ -234,7 +253,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       setRecording(true)
       setVoiceStatus('Recording securely. Speak your request, then tap to stop. Maximum 2 minutes.')
       recordingTimeoutRef.current = window.setTimeout(() => {
-        if (recorder.state === 'recording') recorder.stop()
+        if (recorder.state === 'recording') { try { recorder.stop() } catch { /* Already stopped. */ } }
       }, 110_000)
     } catch (err) {
       stream?.getTracks().forEach(track => track.stop())
@@ -279,7 +298,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   }
 
   async function confirm() {
-    if (!action?.action_id) return
+    if (!action?.action_id || mutationInFlight.current) return
+    mutationInFlight.current = true
     setBusy(true); setError('')
     try {
       await confirmAiAction(action.action_id)
@@ -288,12 +308,15 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Action failed')
-    } finally { setBusy(false) }
+    } finally { mutationInFlight.current = false; setBusy(false) }
   }
 
   async function reject() {
-    if (action?.action_id) await rejectAiAction(action.action_id)
-    reset()
+    if (mutationInFlight.current) return
+    mutationInFlight.current = true; setBusy(true); setError('')
+    try { if (action?.action_id) await rejectAiAction(action.action_id); reset() }
+    catch { setError('Cancellation could not be confirmed. Nothing will be automatically executed. Retry cancellation.') }
+    finally { mutationInFlight.current = false; setBusy(false) }
   }
 
   return <>
@@ -307,7 +330,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       <p className="assistant-help">iPhone: tap in the text box, use the microphone on the iPhone keyboard, speak, and tap Done. Check that your words appear, then tap Review invoice or Send command. When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p>
       <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isQuickInvoiceCommand(text) ? 'Review invoice' : 'Send command'}</button></div>
       {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(invoice) => { setQuickInvoiceRequest(null); setText(''); setResult({ invoice }); onChanged() }} />}
-      {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button className="secondary-button" onClick={reject}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
+      {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button className="secondary-button" onClick={reject} disabled={busy}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
       <ResultView result={result} />
       {error && <p className="form-message error-text">{error}</p>}
       <div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>
