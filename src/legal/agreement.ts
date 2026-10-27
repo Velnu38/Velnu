@@ -1,4 +1,4 @@
-export const AGREEMENT_VERSION = '2026-10-26-v1'
+export const AGREEMENT_VERSION = '2026-10-26-v2'
 export const AGREEMENT_EFFECTIVE_DATE = 'October 26, 2026'
 
 export const termsSections = [
@@ -41,7 +41,7 @@ export const termsSections = [
   {
     title: '6. Information and service providers',
     paragraphs: [
-      'Velnu uses providers for website hosting, authentication, data storage, and optional email and AI functions. Relevant information may be processed by those providers as needed for the requested service. See the Velnu Privacy Notice for information categories and preview limitations.',
+      'Velnu uses providers for website hosting, authentication, data storage, and optional email and AI functions. Relevant information may be processed by those providers as needed for the requested service. The Privacy and Data Handling sections below describe the information categories and preview limitations.',
       'Business profile details supply context to AI features and do not mean a model is permanently trained for your company. The provider’s applicable retention, training, and data-handling arrangements must be verified for the specific integration before general launch.'
     ]
   },
@@ -123,4 +123,14 @@ export const privacySections = [
       'This is a preliminary privacy notice, not a finished public privacy policy. The Velnu operator’s verified legal identity, contact, retention commitments, and jurisdiction-specific disclosures require completion and professional review before launch.'
     ]
   }
+]
+
+
+/** Single versioned document displayed before account activation. */
+export const agreementSections = [
+  ...termsSections,
+  ...privacySections.map((section, index) => ({
+    title: (13 + index) + '. Privacy & Data Handling — ' + section.title,
+    paragraphs: section.paragraphs,
+  })),
 ]

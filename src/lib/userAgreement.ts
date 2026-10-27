@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { AGREEMENT_VERSION } from '../legal/agreement'
+import type { PlanTier } from './plans'
 
 export async function hasAcceptedAgreement(userId: string): Promise<boolean> {
   const { data, error } = await supabase.from('user_agreement_acceptances')
@@ -9,10 +10,11 @@ export async function hasAcceptedAgreement(userId: string): Promise<boolean> {
   return Boolean(data?.id)
 }
 
-export async function acceptAgreement(userId: string): Promise<void> {
+export async function acceptAgreement(userId: string, tier: PlanTier): Promise<void> {
   const { error } = await supabase.from('user_agreement_acceptances').insert({
     user_id: userId,
     agreement_version: AGREEMENT_VERSION,
+    selected_tier_at_acceptance: tier,
     terms_accepted: true,
     ai_disclosure_acknowledged: true,
     electronic_records_consent: true,
