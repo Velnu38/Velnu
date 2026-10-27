@@ -25,6 +25,9 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   const [form, setForm] = useState({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' })
   const mounted = useRef(false)
   const currentRequest = useRef(0)
+  // State-based disabled buttons update after rendering. This ref guards
+  // against same-tick double clicks that would otherwise create two jobs.
+  const submitting = useRef(false)
 
   async function refresh() {
     if (!mounted.current) return
@@ -67,7 +70,10 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   }
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError('')
+    event.preventDefault()
+    if (submitting.current) return
+    submitting.current = true
+    setBusy(true); setError('')
     try {
       const start = new Date(form.starts_at)
       const end = form.ends_at ? new Date(form.ends_at) : null
@@ -84,7 +90,10 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
       resetForm(); setShowForm(false); await refresh()
     } catch (err) {
       if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to schedule work')
-    } finally { if (mounted.current) setBusy(false) }
+    } finally {
+      submitting.current = false
+      if (mounted.current) setBusy(false)
+    }
   }
 
   async function changeStatus(id: string, status: Appointment['status']) {
