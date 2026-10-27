@@ -1,11 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import ServicePicker from './ServicePicker'
+import { getPendingServiceInterests, clearPendingServiceInterests, hasPendingServiceInterests, type ServiceInterest } from '../lib/serviceCatalog'
+import { loadBusinessServiceInterests, saveBusinessServiceInterests } from '../lib/businessServices'
 import {
   createBusiness, draftFromBusiness, emptyBusinessProfile,
   updateBusinessProfile, uploadBusinessLogo, businessLogoUrl,
   type BusinessProfileDraft, type CurrentBusiness,
 } from '../lib/business'
 
-const stages = ['Company details', 'Document appearance', 'Your business']
+const stages = ['Company details', 'Document appearance', 'Your business', 'My services']
 
 export default function BusinessProfileEditor({ business, onSaved }: {
   business?: CurrentBusiness
@@ -20,8 +23,22 @@ export default function BusinessProfileEditor({ business, onSaved }: {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [interests, setInterests] = useState<ServiceInterest>(getPendingServiceInterests)
+  const [servicesLoading, setServicesLoading] = useState(Boolean(business))
   const editing = !!business
   const logoUrl = localLogoUrl || (business && !removeLogo ? businessLogoUrl(business) : null)
+
+  useEffect(() => {
+    let active = true
+    if (!business) return () => { active = false }
+    setServicesLoading(true)
+    void loadBusinessServiceInterests(business.id).then(saved => {
+      if (active && saved && !hasPendingServiceInterests()) setInterests(saved)
+    }).catch(err => {
+      if (active) setError(err instanceof Error ? err.message : 'Could not load saved service choices.')
+    }).finally(() => { if (active) setServicesLoading(false) })
+    return () => { active = false }
+  }, [business?.id])
 
   useEffect(() => {
     if (!logo) { setLocalLogoUrl(null); return }
@@ -53,7 +70,8 @@ export default function BusinessProfileEditor({ business, onSaved }: {
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (busy) return
-    if (step < 2) { setStep(step + 1); setError(''); return }
+    if (step < 3) { setStep(step + 1); setError(''); return }
+    if (servicesLoading) { setError('Service preferences are still loading. Please try again.'); return }
     setBusy(true); setError(''); setNotice('')
     try {
       let saved: CurrentBusiness
@@ -65,8 +83,11 @@ export default function BusinessProfileEditor({ business, onSaved }: {
       if (logo) {
         const path = await uploadBusinessLogo(saved, logo)
         saved = await updateBusinessProfile(saved, draft, path)
+        setCreated(saved)
+        setLogo(null)
       }
-      setLogo(null)
+      await saveBusinessServiceInterests(saved.id, interests)
+      clearPendingServiceInterests()
       setCreated(null)
       onSaved(saved)
       if (editing) setNotice('Company profile saved. Future invoice and estimate previews will use these details.')
@@ -152,11 +173,18 @@ export default function BusinessProfileEditor({ business, onSaved }: {
         </label>
         <p className="profile-safety">Avoid entering employee Social Security numbers, payroll information, personal addresses, or other sensitive employee records.</p>
       </>}
+      {step === 3 && <>
+        <h2>Choose your optional Velnu services</h2>
+        <p className="quiet">Pick the tools that interest your company. The core web app works independently of these choices. Pricing is not set and selecting a feature does not charge you or activate an unfinished service.</p>
+        {servicesLoading
+          ? <p className="form-message">Loading your saved choices…</p>
+          : <ServicePicker compact value={interests} onChange={setInterests}/>}
+      </>}
       {error && <p role="alert" className="form-message error-text">{error}</p>}
       {notice && <p role="status" className="form-message">{notice}</p>}
       <div className="profile-actions">
         {step > 0 && <button className="secondary-button" type="button" disabled={busy} onClick={() => { setStep(step - 1); setError('') }}>Back</button>}
-        <button className="primary-button" disabled={busy}>{busy ? 'Saving…' : step < 2 ? 'Continue' : editing ? 'Save company profile' : 'Create my business'}</button>
+        <button className="primary-button" disabled={busy || servicesLoading}>{busy ? 'Saving…' : step < 3 ? 'Continue' : editing ? 'Save company profile & services' : 'Create my business'}</button>
       </div>
     </form>
   </section>
