@@ -45,7 +45,7 @@ async function mockWorkspace(page, seed = {}) {
     if (path.endsWith('/user')) return fulfill(user)
     if (path.endsWith('/user_plan_preferences')) return fulfill({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return fulfill({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v2' })
-    if (path.endsWith('/business_members')) return fulfill({ role: 'owner', business_id: businessId, businesses: company })
+    if (path.endsWith('/business_members')) return fulfill({ role: seed.role || 'owner', business_id: businessId, businesses: company })
     if (path.endsWith('/rpc/create_document')) {
       const isInvoice = body.document_kind === 'invoice'
       const items = body.payload.items
@@ -219,4 +219,18 @@ test('issued estimate preview shows original issuer and saved footer, not curren
   await expect(document).toContainText('75 Old Street')
   await expect(document).toContainText('Original estimate terms')
   await expect(document).not.toContainText('100 Main Street')
+})
+
+
+test('technician keeps field navigation but cannot edit invoices, estimates or payments', async ({ page }) => {
+  await mockWorkspace(page, { role: 'technician' })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await expect(page.getByRole('button', { name: '+ New job' })).toBeVisible()
+  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await expect(page.getByRole('button', { name: '+ New invoice' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await expect(page.getByRole('button', { name: '+ New estimate' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Payments', exact: true }).click()
+  await expect(page.getByRole('button', { name: '+ Record payment' })).toHaveCount(0)
 })

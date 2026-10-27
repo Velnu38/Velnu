@@ -27,7 +27,7 @@ async function mockBusiness(page, existing = false, paid = existing) {
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v2' })
     if (path.endsWith('/business_members')) return json(existing ? { role: 'owner', business_id: businessId, businesses: record } : null)
-    if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: paid ? 'pro' : 'free', ai_limit: paid ? 50 : 0, voice_limit: paid ? 50 : 0, logo_bytes_limit: paid ? 131072 : 0 })
+    if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: paid === 'basic' ? 'basic' : paid ? 'pro' : 'free', ai_limit: paid ? 50 : 0, voice_limit: paid ? 50 : 0, logo_bytes_limit: paid ? 131072 : 0 })
     if (path.endsWith('/business_service_interests')) return json(method === 'POST' ? {} : null, method === 'POST' ? 201 : 200)
     if (path.endsWith('/businesses') && (method === 'POST' || method === 'PATCH')) {
       record = { ...record, ...(body || {}) }
@@ -113,4 +113,23 @@ test('free owner has manual branding but no hosted logo uploads or paid AI assis
   await expect(page.getByText(/Logo uploads are unavailable on Free/)).toBeVisible()
   await expect(page.getByLabel('Company logo (optional, up to 2 MB)')).toHaveCount(0)
   await expect(page.getByLabel('Document accent color')).toBeVisible()
+})
+
+
+test('activated Basic tier can upload company logo when backend grants storage quota', async ({ page }) => {
+  await signedIn(page)
+  const writes = await mockBusiness(page, true, 'basic')
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Company settings' }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByLabel('Company logo (optional, up to 2 MB)')).toBeVisible()
+  await page.getByLabel('Company logo (optional, up to 2 MB)').setInputFiles({
+    name: 'basic-logo.png', mimeType: 'image/png',
+    buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
+  })
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByRole('button', { name: 'Save company profile & services' }).click()
+  await expect(page.getByRole('heading', { name: 'Make Velnu yours.' })).toBeVisible()
+  expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
 })
