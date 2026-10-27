@@ -172,3 +172,51 @@ test('mobile More menu exposes invoices and editable company settings', async ({
   await page.getByRole('button', { name: 'Company settings' }).last().click()
   await expect(page.getByRole('heading', { name: 'Make Velnu yours.' })).toBeVisible()
 })
+
+
+test('issued invoice preserves original company letterhead after profile changes', async ({ page }) => {
+  const issued = {
+    id: invoiceId, invoice_number: 'INV-HISTORIC', status: 'sent',
+    issue_date: '2026-10-26', due_date: null, subtotal: 150, tax_amount: 0, total: 150,
+    amount_paid: 0, balance_due: 150, notes: 'Private note', customer_message: null,
+    customer_id: customerId, sent_at: '2026-10-26T12:00:00Z', paid_at: null,
+    customers: customer,
+    issuer_snapshot: {
+      name: 'Original Plumbing Co', address_line1: '55 Historic Road',
+      city: 'Chesapeake', state: 'VA', postal_code: '23320',
+      phone: '757-555-1111', document_accent: '#335577',
+      document_footer: 'Original invoice terms',
+    },
+  }
+  await mockWorkspace(page, { invoices: [issued] })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await page.getByRole('button', { name: /INV-HISTORIC/ }).click()
+  await expect(page.locator('.invoice-document .letterhead-company')).toHaveText('Original Plumbing Co')
+  await expect(page.locator('.invoice-document')).toContainText('55 Historic Road')
+  await expect(page.locator('.invoice-document')).toContainText('Original invoice terms')
+  await expect(page.locator('.invoice-document')).not.toContainText('100 Main Street')
+})
+
+test('issued estimate preview shows original issuer and saved footer, not current company profile', async ({ page }) => {
+  const issued = {
+    id: estimateId, estimate_number: 'EST-HISTORIC', status: 'sent',
+    issue_date: '2026-10-26', expires_on: '2026-11-15',
+    subtotal: 150, tax_amount: 0, total: 150, customer_id: customerId,
+    customers: customer, customer_message: '30-day validity',
+    issuer_snapshot: {
+      name: 'Original Estimate Co', address_line1: '75 Old Street',
+      city: 'Chesapeake', state: 'VA', postal_code: '23320',
+      document_accent: '#113355', document_footer: 'Original estimate terms',
+    },
+  }
+  await mockWorkspace(page, { estimates: [issued] })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await page.getByRole('button', { name: 'Preview / Print' }).click()
+  const document = page.locator('.estimate-preview-document')
+  await expect(document.locator('.letterhead-company')).toHaveText('Original Estimate Co')
+  await expect(document).toContainText('75 Old Street')
+  await expect(document).toContainText('Original estimate terms')
+  await expect(document).not.toContainText('100 Main Street')
+})
