@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
-import { providerJson, ProviderRequestError } from './providerRequest.ts'
+import { dispatchQueuedEmail } from './emailDispatch.ts'
 import { readLimitedRequest } from './signedEvents.ts'
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const origins=new Set(['https://finviant.com','https://www.finviant.com','https://app.finviant.com','https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app','http://localhost:5173'])
@@ -27,25 +27,10 @@ export function documentEmailHandler(invoiceOnly:boolean){
    const kind=invoiceOnly?'invoice':String(input.document_type||'')
    if(![business,document,operation].every(v=>UUID.test(v))||(!invoiceOnly&&!['estimate','change_order'].includes(kind)))return respond(400,{error:'A valid business, document and persistent send identifier are required.'})
    const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
-   const {data:prepared,error:prepError}=await admin.rpc('prepare_document_email',{p_actor:identity.user.id,p_business:business,p_kind:kind,p_document:document,p_request:operation,p_origin:Deno.env.get('FINVIANT_APP_BASE_URL')||'https://finviant.com'})
-   if(prepError)return respond(prepError.code==='42501'?403:409,{error:'Unable to queue the document. Check account permissions, plan, recipient and document status.'})
-   const {data:claim,error:claimError}=await admin.rpc('claim_document_email',{p_request:prepared.id})
-   if(claimError)return respond(503,{error:'The saved send could not be claimed. Retry the same send, not a new message.'})
-   if(['accepted','delivered'].includes(claim.status))return respond(200,{status:claim.status,email_id:claim.provider_id,recipient:claim.recipient||'the saved customer address',already_sent:true,send_id:claim.id})
-   if(claim.status!=='claimed')return respond(409,{error:claim.status==='busy'?'This send is already processing or waiting for its retry interval.':'This send needs support review before another attempt.',code:claim.status,send_id:claim.id})
-   let sent:Record<string,unknown>
-   try{
-    sent=await providerJson('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+resend,'Content-Type':'application/json','Idempotency-Key':'finviant-outbox-'+claim.id},body:JSON.stringify(claim.payload)},{timeoutMs:20000,maxBytes:65536})
-    if(typeof sent.id!=='string'||sent.id.length>200)throw new Error('INVALID_RECEIPT')
-   }catch(err){
-    const definitive=err instanceof ProviderRequestError&&err.code==='http'&&[400,401,403,404,422].includes(err.status||0)
-    const code=err instanceof ProviderRequestError?err.code:'invalid_receipt'
-    await admin.rpc('finish_document_email',{p_request:claim.id,p_lease:claim.lease,p_result:definitive?'failed':'uncertain',p_provider_id:null,p_code:code})
-    console.warn(JSON.stringify({service:'document-email',request_id:trace,code}))
-    return respond(502,{error:'Delivery was not confirmed. The original request is saved; retry that same send after its waiting period. Do not start a new send.',code:'delivery_unconfirmed',send_id:claim.id})
-   }
-   const {error:saveError}=await admin.rpc('finish_document_email',{p_request:claim.id,p_lease:claim.lease,p_result:'accepted',p_provider_id:sent.id,p_code:null})
-   return respond(200,{status:'accepted',email_id:sent.id,recipient:claim.payload.to[0],send_id:claim.id,warning:saveError?'Provider accepted the email but local reconciliation is pending. Do not create a new send.':null})
+   const {data:prepared,error:prepError}=await admin.rpc('prepare_document_email',{p_actor:identity.user.id,p_business:business,p_kind:kind,p_document:document,p_request:operation,p_origin:Deno.env.get('FINVIANT_APP_BASE_URL')||'https://finviant.com'}).abortSignal(AbortSignal.timeout(5000))
+   if(prepError||!prepared)return respond(prepError?.code==='42501'?403:409,{error:'Unable to queue the document. Check account permissions, plan, recipient and document status.'})
+   const result=await dispatchQueuedEmail(admin,resend,prepared.id,trace)
+   return respond(result.status,result.body)
   }catch{console.error(JSON.stringify({service:'document-email',request_id:trace,code:'unexpected'}));return respond(500,{error:'The send outcome is not confirmed. Keep the same send identifier when retrying.'})}
  }
 }

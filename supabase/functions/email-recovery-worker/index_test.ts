@@ -1,0 +1,9 @@
+import {operatorTask} from '../_shared/operatorTasks.ts'
+const token='testing-only-operator-token-at-least-thirty-two-characters'
+function assert(x:unknown){if(!x)throw new Error('Operator-task assertion failed')}
+for(const kind of ['worker','health'] as const){
+ const key=kind==='worker'?'FINVIANT_EMAIL_WORKER_TOKEN':'FINVIANT_MONITOR_TOKEN'
+ Deno.test(kind+' fails closed without operator configuration',async()=>{const old=Deno.env.get(key);Deno.env.delete(key);try{assert((await operatorTask(kind)(new Request('https://test.invalid',{method:'POST'}))).status===503)}finally{if(old)Deno.env.set(key,old)}})
+ Deno.test(kind+' rejects caller token without contacting data services',async()=>{const old=Deno.env.get(key),fetch=globalThis.fetch;Deno.env.set(key,token);let calls=0;globalThis.fetch=()=>{calls++;throw new Error('NETWORK_FORBIDDEN')};try{const r=await operatorTask(kind)(new Request('https://test.invalid',{method:'POST',headers:{authorization:'Bearer not-authorized'}}));assert(r.status===401);assert(calls===0)}finally{globalThis.fetch=fetch;old===undefined?Deno.env.delete(key):Deno.env.set(key,old)}})
+}
+Deno.test('worker release gate stays closed with valid operator token',async()=>{const vars={FINVIANT_EMAIL_WORKER_TOKEN:token,FINVIANT_CUSTOMER_EMAIL_ENABLED:'false',SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'test-only'};const old=new Map(Object.keys(vars).map(k=>[k,Deno.env.get(k)]));for(const[k,v]of Object.entries(vars))Deno.env.set(k,v);const fetch=globalThis.fetch;let calls=0;globalThis.fetch=()=>{calls++;throw new Error('NETWORK_FORBIDDEN')};try{const r=await operatorTask('worker')(new Request('https://test.invalid',{method:'POST',headers:{authorization:'Bearer '+token}}));assert(r.status===503);assert(calls===0)}finally{globalThis.fetch=fetch;for(const[k,v]of old)v===undefined?Deno.env.delete(k):Deno.env.set(k,v)}})
