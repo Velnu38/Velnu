@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-// Customer approval pages require no Velnu account. All functions are mocked:
+// Customer approval pages require no Finviant Office account. All functions are mocked:
 // these tests never send email, accept real work, or change business data.
 const token = 'velnu-test-token-'.padEnd(48, 'a')
 const estimate = {

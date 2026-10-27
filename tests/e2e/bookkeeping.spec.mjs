@@ -27,7 +27,7 @@ async function mockFinance(page, opts={}) {
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
-    if (path.endsWith('/user_agreement_acceptances')) return json({ id: '77777777-7777-4777-8777-777777777777', agreement_version: '2026-10-26-v2' })
+    if (path.endsWith('/user_agreement_acceptances')) return json({ id: '77777777-7777-4777-8777-777777777777', agreement_version: '2026-10-27-v3' })
     if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: company })
     if (path.endsWith('/functions/v1/quickbooks')) {
       if (body.action === 'status') return json({ configured: state.configured, connected: state.connected, environment: 'sandbox', company_id: state.connected ? '123456' : null, last_sync_at: null, last_sync_count: 0, callback_url: 'https://example.supabase.co/functions/v1/quickbooks' })
@@ -47,7 +47,7 @@ async function mockFinance(page, opts={}) {
   return state
 }
 
-test('paid invoices and manual expenses appear in Velnu workbook, not as double-counted QuickBooks income', async ({page}) => {
+test('paid invoices and manual expenses appear in Finviant Office workbook, not as double-counted QuickBooks income', async ({page}) => {
   await mockFinance(page,{configured:false})
   await page.goto('/')
   await page.getByRole('button',{name:'Bookkeeping',exact:true}).click()
@@ -102,6 +102,6 @@ test('mobile navigation reaches workbook and separates source tabs',async ({page
   await page.goto('/')
   await page.getByRole('button',{name:'More'}).click()
   await page.locator('.mobile-more-grid').getByRole('button',{name:'Bookkeeping'}).click()
-  await expect(page.getByRole('button',{name:'Velnu workbook'})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Finviant Office workbook'})).toBeVisible()
   await expect(page.getByRole('button',{name:'QuickBooks Online'})).toBeVisible()
 })

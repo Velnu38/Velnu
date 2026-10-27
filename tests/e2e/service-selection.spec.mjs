@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test'
 const businessId = '11111111-1111-4111-8111-111111111111'
 const userId = '33333333-3333-4333-8333-333333333333'
 const user = { id: userId, email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
-const company = { id: businessId, name: 'Velnu Test Services', role: 'owner', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z', logo_path: null }
-const agreement = { id:'88888888-8888-4888-8888-888888888888', agreement_version:'2026-10-26-v2' }
+const company = { id: businessId, name: 'Finviant Test Services', role: 'owner', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z', logo_path: null }
+const agreement = { id:'88888888-8888-4888-8888-888888888888', agreement_version:'2026-10-27-v3' }
 
 async function signedIn(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -38,11 +38,11 @@ test('website shows non-billable à la carte chooser and carries selected intere
 
 test('web app installation page explains browser access with no store download', async ({ page }) => {
   await page.goto('/install')
-  await expect(page.getByRole('heading', { name: /One Velnu account/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /One Finviant Office account/ })).toBeVisible()
   await expect(page.getByText(/There's nothing to download/)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'iPhone / iPad' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Android' })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Open Velnu web app/ })).toHaveAttribute('href','/auth?mode=signin')
+  await expect(page.getByRole('link', { name: /Open Finviant Office web app/ })).toHaveAttribute('href','/auth?mode=signin')
   const manifest = await page.request.get('/manifest.webmanifest')
   expect(manifest.ok()).toBe(true)
   const parsed = await manifest.json()
@@ -75,7 +75,7 @@ test('signed-in owner saves account service interests without purchase or billin
   await page.goto('/auth?mode=signin')
   await expect(page.getByRole('button', { name: 'My services' })).toBeVisible()
   await page.getByRole('button', { name: 'My services' }).click()
-  await expect(page.getByRole('heading', { name: 'Build your Velnu workspace.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Build your Finviant Office workspace.' })).toBeVisible()
   await page.getByRole('radio', { name: /À la carte/ }).check()
   await page.getByRole('checkbox', { name: /Online estimate approvals/ }).check()
   await page.getByRole('button', { name: 'Save my service preferences' }).click()

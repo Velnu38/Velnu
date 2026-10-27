@@ -5,7 +5,7 @@ const user = {
   id: userId, email: 'owner@example.test', aud: 'authenticated',
   role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z',
 }
-const acceptedRecord = { id: '88888888-8888-4888-8888-888888888888', user_id: userId, agreement_version: '2026-10-26-v2' }
+const acceptedRecord = { id: '88888888-8888-4888-8888-888888888888', user_id: userId, agreement_version: '2026-10-27-v3' }
 
 async function signedIn(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -39,14 +39,14 @@ test('public homepage explains Free 10-doc cap, Basic and Pro prices, and links 
 
 test('public privacy and terms pages can be read without logging in', async ({ page }) => {
   await page.goto('/legal')
-  await expect(page.getByRole('heading', { name: 'Velnu User Agreement, AI Disclosure & Privacy Notice' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Finviant Office User Agreement, AI Disclosure & Privacy Notice' })).toBeVisible()
   await expect(page.getByRole('heading', { name: /AI features, voice recordings/i })).toBeVisible()
   await expect(page.getByRole('heading', { name: /Employees, workers/i })).toBeVisible()
   await expect(page.locator('.legal-paper').getByText(/Supabase/).first()).toBeVisible()
   await page.goto('/terms')
-  await expect(page.getByRole('heading', { name: /Velnu User Agreement, AI Disclosure/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Finviant Office User Agreement, AI Disclosure/i })).toBeVisible()
   await page.goto('/privacy')
-  await expect(page.getByRole('heading', { name: /Velnu User Agreement, AI Disclosure/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Finviant Office User Agreement, AI Disclosure/i })).toBeVisible()
 })
 
 test('mobile landing page has accessible signup and no horizontal overflow', async ({ page }) => {
@@ -93,12 +93,12 @@ test('authenticated user is blocked from workspace until AI, terms and e-record 
     return json([])
   })
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Choose how you want to use Velnu.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose how you want to use Finviant Office.' })).toBeVisible()
   await page.getByRole('button', { name: /Select Free/ }).click()
   await expect(page.getByRole('heading', { name: 'Review your User Agreement, AI Disclosure & Privacy Notice' })).toBeVisible()
-  await expect(page.getByText(/Velnu uses artificial intelligence/)).toBeVisible()
+  await expect(page.getByText(/Finviant Office uses artificial intelligence/)).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Set up your business' })).toHaveCount(0)
-  const continueButton = page.getByRole('button', { name: 'I agree · Continue to Velnu' })
+  const continueButton = page.getByRole('button', { name: 'I agree · Continue to Finviant Office' })
   await expect(continueButton).toBeDisabled()
   const consent = page.getByRole('checkbox')
   await consent.nth(0).check()
@@ -110,7 +110,7 @@ test('authenticated user is blocked from workspace until AI, terms and e-record 
   expect(writes).toHaveLength(1)
   expect(writes[0]).toMatchObject({
     user_id: user.id,
-    agreement_version: '2026-10-26-v2',
+    agreement_version: '2026-10-27-v3',
     terms_accepted: true,
     ai_disclosure_acknowledged: true,
     electronic_records_consent: true,

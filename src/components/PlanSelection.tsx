@@ -30,7 +30,7 @@ export default function PlanSelection({ userId, email, currentTier, onSelected, 
     </header>
     <div className="plan-pick-content">
       <div className="plan-pick-intro">
-        <p className="marketing-section-kicker">STEP 1 OF 2 · YOUR VELNU ACCOUNT</p>
+        <p className="marketing-section-kicker">STEP 1 OF 2 · YOUR FINVIANT OFFICE ACCOUNT</p>
         <h1>Choose how you want to use Finviant Office.</h1>
         <p>Signed in as <strong>{email}</strong>. Choose Free, Basic, or Pro. You'll review one combined user agreement, AI disclosure, and privacy notice immediately afterward.</p>
       </div>
