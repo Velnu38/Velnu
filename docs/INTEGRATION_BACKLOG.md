@@ -2,6 +2,18 @@
 
 Last reviewed: 2026-10-26. This is a **roadmap, not a claim of implemented or operational integrations**. All provider-connected features require a configured credential, tenant isolation, consent, staging tests, and release review. Do not switch on paid or customer-facing actions automatically.
 
+## Separate development workstream: Finviant Platform Administration (planned)
+
+**Roadmap only: no operator login or administrator dashboard is enabled.** See [the dedicated security-first plan](FINVIANT_PLATFORM_ADMIN_PLAN.md) for scoped roles, phases, acceptance gates and release dependencies.
+
+- [ ] **User management:** minimal account/company status directory, masked identities, no private customer/financial records or impersonation.
+- [ ] **Subscription monitoring:** actual verified Stripe subscription and entitlement state when available; selected plan preferences are not paid entitlements.
+- [ ] **System health:** redacted deployment, Supabase, Edge Function and provider connectivity/error summaries with timestamps.
+- [ ] **Security:** server-side platform roles separate from business membership, mandatory MFA, restricted endpoints, revocation, immutable-enough audit trail and alerts.
+- [ ] **Sequence:** platform backend protections and role bootstrap first; read-only dashboard next; at least 1,000 staging permission/negative tests; controlled production approval only afterward.
+- [ ] **Hard boundaries:** no default access to client invoices, charges, payments, customer contacts, employee data, uploaded files, recordings, AI prompts, credentials or unrestricted SQL.
+
+Proposed future hostname: admin.finviant.com, conditional on domain clearance and architecture review. All provider secrets stay on the backend.
 ## Priority 0: Establish a complete web app and hosting model
 
 - [ ] **Public custom domain**: decide and validate the Velnu business/domain name; add DNS, HTTPS, canonical host, legal sender/support address, SEO, and clear marketing-to-signup flow.
