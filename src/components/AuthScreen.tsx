@@ -99,7 +99,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       <button className="text-button" disabled={busy} onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
         {mode === 'signin' ? 'New to Velnu? Create an account' : 'Back to sign in'}
       </button>
-      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Velnu User Agreement</a>, <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Notice</a>, and AI disclosure before entering your workspace.</p>
+      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the one <a href="/legal" target="_blank" rel="noopener noreferrer">Velnu User Agreement (including AI disclosure and privacy)</a> after selecting your Free, Basic, or Pro tier.</p>
       <a className="text-button auth-home-link" href="/">Return to Velnu homepage</a>
     </section>
   </main>

@@ -17,6 +17,12 @@ export default function SettingsPage({ business, onSaved }: {
       <BusinessProfileEditor key={business.id} business={business} onSaved={onSaved} /> :
       <p className="form-message">Only the business owner or administrator can edit company settings.</p>}
     <section className="settings-document-preview">
+      <p className="eyebrow">Your service tier</p>
+      <p className="quiet">Choose Free, Basic, or Pro. Basic and Pro are preferences only until pricing and subscriptions are launched.</p>
+      <a className="secondary-button" href="/plans">Review or change service tier</a>
+      <p className="quiet"><a href="/legal" target="_blank" rel="noopener noreferrer">Read the complete user agreement, AI disclosure and privacy notice</a></p>
+    </section>
+    <section className="settings-document-preview">
       <p className="eyebrow">Current invoice / estimate letterhead</p>
       <DocumentBrand business={business} kind="Preview" />
       <p className="quiet">Company details shown above appear on newly viewed invoices and estimates. Logos are public company images, not private attachments.</p>

@@ -45,7 +45,7 @@ export default function LandingPage() {
       <div className="marketing-container marketing-nav">
         <a className="marketing-brand" href="/" aria-label="Velnu home"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a>
         <nav aria-label="Main navigation" className="marketing-main-nav"><a href="#features">Features</a><a href="/services">À la carte</a><a href="#how-it-works">How it works</a><a href="#pricing">Pricing</a></nav>
-        <div className="marketing-nav-actions"><a className="marketing-signin" href="/auth?mode=signin">Open web app</a><a className="marketing-btn marketing-btn-dark marketing-btn-small" href="/auth?mode=signup">Join private beta <span aria-hidden="true">↗</span></a></div>
+        <div className="marketing-nav-actions"><a className="marketing-signin" href="/auth?mode=signin&next=plans">Sign in · Select tier</a><a className="marketing-btn marketing-btn-dark marketing-btn-small" href="/auth?mode=signup">Join private beta <span aria-hidden="true">↗</span></a></div>
       </div>
     </header>
     <main>
@@ -55,7 +55,7 @@ export default function LandingPage() {
             <div className="marketing-beta"><span className="marketing-live-dot" /> Built for the owner who does it all · Private beta</div>
             <h1>Your work. <em>Less paperwork.</em></h1>
             <p className="marketing-hero-lead">Meet Velnu, the business workspace that helps you turn everyday work into professional estimates and invoices—without a complicated back office.</p>
-            <div className="marketing-hero-actions"><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Get started with Velnu <span>↗</span></a><a href="/auth?mode=signin" className="marketing-watch">Open the web app <span aria-hidden="true">↗</span></a></div>
+            <div className="marketing-hero-actions"><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Get started with Velnu <span>↗</span></a><a href="/auth?mode=signin&next=plans" className="marketing-watch">Sign in and choose your plan <span aria-hidden="true">↗</span></a></div>
             <p className="marketing-hero-fine">No download required. Use Velnu on your phone or computer, or <a href="/install">add it to your Home Screen</a>. No pricing commitment during the private beta.</p>
             <div className="marketing-hero-statline"><span><strong>One place</strong> for customers and jobs</span><span><strong>Your brand</strong> on every document</span><span><strong>Your review</strong> before anything goes out</span></div>
           </div>
@@ -102,7 +102,7 @@ export default function LandingPage() {
           <ul>{plan.features.map(f=><li key={f}><span className="marketing-check">✓</span>{f}</li>)}</ul>
           <a className={'marketing-btn ' + (plan.featured?'marketing-btn-accent':'marketing-btn-outline')} href="/auth?mode=signup">{plan.name==='Free'?'Join free private beta':'Explore in private beta'} <span>↗</span></a>
         </article>)}</div>
-        <p className="marketing-pricing-note">Plan features are proposed, not a guarantee of live access. No payment, subscription or automatic upgrade is activated by registering for the beta. Optional QuickBooks Online connectivity requires an eligible Intuit account; Intuit subscriptions, payment processing and other integration fees may apply separately.</p>
+        <p className="marketing-pricing-note"><a href="/auth?mode=signin&next=plans">Already have an account? Sign in to choose Free, Basic, or Pro.</a> Plan features are proposed, not a guarantee of live access. No payment, subscription or automatic upgrade is activated by registering for the beta. Optional QuickBooks Online connectivity requires an eligible Intuit account; Intuit subscriptions, payment processing and other integration fees may apply separately.</p>
       </div></section>
       <section className="services-marketing-banner">
         <div className="marketing-container services-marketing-banner-inner">
@@ -113,6 +113,6 @@ export default function LandingPage() {
       <section className="marketing-faq"><div className="marketing-container marketing-faq-grid"><div><p className="marketing-section-kicker">GOOD QUESTIONS</p><h2>Before you jump in.</h2><p>Clear expectations matter. Here is what to know about Velnu’s private preview.</p></div><div>{questions.map((item,i)=><div key={item.q} className="marketing-faq-item"><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}><span>{item.q}</span><b>{openFaq===i?'−':'+'}</b></button>{openFaq===i&&<p>{item.a}</p>}</div>)}</div></div></section>
       <section className="marketing-last"><div className="marketing-container marketing-last-card"><div><p className="marketing-section-kicker">YOUR OFFICE, WITHOUT THE OVERHEAD</p><h2>Make more time for the work that matters.</h2><p>Build professional documents, stay organized, and discover a simpler workflow with Velnu.</p></div><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Join the private beta <span>↗</span></a></div></section>
     </main>
-    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Velnu. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="/services">À la carte</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/terms">User agreement</a><a href="/privacy">Privacy notice</a></nav></div></footer>
+    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Velnu. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="/services">À la carte</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
   </div>
 }

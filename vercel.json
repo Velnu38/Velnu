@@ -19,6 +19,14 @@
     {
       "source": "/install",
       "destination": "/index.html"
+    },
+    {
+      "source": "/legal",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/plans",
+      "destination": "/index.html"
     }
   ]
 }
