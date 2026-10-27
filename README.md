@@ -1,4 +1,9 @@
-# Velnu (working name)
+# Finviant Office (brand transition in development)
+
+**Brand decision:** Finviant is the intended parent brand; Finviant Office is the customer-facing web app. Existing repository, Velnu identifiers, domains, Supabase projects and provider credentials remain unchanged until a separately approved migration. Domain and trademark clearance have not been established by this decision.
+
+**Separate operator console:** [Finviant Platform Administration development plan](docs/FINVIANT_PLATFORM_ADMIN_PLAN.md). User management, subscription monitoring, system health and security will be planned as a read-only and securely audited module. No platform-admin login or customer-data permissions have been introduced.
+
 
 Voice-first business assistant for very small service businesses. This is the **development preview**, based on the existing Owedly codebase. "Velnu" is a provisional public-facing name pending domain and trademark clearance. Keep all external infrastructure, existing domains, database table names and secret names unchanged until a controlled migration is approved.
 
