@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
       .eq("user_id", userData.user.id)
       .maybeSingle();
     if (!membership) return respond(req, 403, { error: "Forbidden" });
-    if (membership.role === "viewer") return respond(req, 403, { error: "Viewer role is read-only" });
+    if (!["owner", "admin", "office"].includes(membership.role)) return respond(req, 403, { error: "Only finance staff can email customer documents." });
     // Customer messaging is metered: never run a provider call for Free.
     const { data: usage, error: planError } = await supabase.rpc("get_plan_usage", { target_business_id: businessId });
     if (planError || !usage) return respond(req, 503, { error: "Unable to verify messaging entitlement" });
