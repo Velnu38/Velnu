@@ -323,7 +323,11 @@ test('20 valid schedule submits local date values as UTC and does not duplicate 
   const start = localDatetime(1, 10)
   const end = localDatetime(1, 11)
   await completeForm(page, start, end)
-  await page.getByRole('button', { name: 'Schedule job' }).dblclick()
+  // Force both DOM events before React can paint the disabled state.
+  await page.getByRole('button', { name: 'Schedule job' }).evaluate(button => {
+    button.click()
+    button.click()
+  })
   await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toHaveCount(0)
   expect(count(state, '/jobs', 'POST')).toBe(1)
   const request = state.requests.find(r => r.path.endsWith('/jobs') && r.method === 'POST')
