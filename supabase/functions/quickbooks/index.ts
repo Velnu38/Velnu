@@ -241,6 +241,24 @@ Deno.serve(async (req: Request) => {
     const businessId = String(input?.business_id || "");
     const userId = await checkUser(req, businessId);
     if (!userId) return result(403, { error: "Only a business owner or administrator can manage QuickBooks." });
+    // Never call Intuit for an account without an activated paid entitlement.
+    // Plan preferences and add-on interests alone never grant access.
+    const scopedClient = createClient(PROJECT_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: usage, error: usageError } = await scopedClient.rpc("get_plan_usage", { target_business_id: businessId });
+    if (usageError || !usage) return result(503, { error: "Unable to verify integration entitlement." });
+    if (usage.plan !== "pro") {
+      if (action === "status") return result(200, {
+        configured: false, connected: false, environment: INTUIT_ENVIRONMENT,
+        company_id: null, connection_environment: null, last_sync_at: null, last_sync_count: 0,
+        callback_url: CALLBACK, plan_restricted: true,
+      });
+      if (action === "connect" || action === "sync")
+        return result(403, { error: "QuickBooks import is a paid integration and is not available on Free." });
+      // Allow disconnect to remove previously linked data even after a plan downgrade.
+    }
     const { data: connection, error: connectionError } = await admin.from("quickbooks_connections")
       .select("business_id,realm_id,environment,access_token_encrypted,refresh_token_encrypted,access_expires_at,last_sync_at,last_sync_count")
       .eq("business_id", businessId).maybeSingle();

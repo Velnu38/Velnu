@@ -159,6 +159,7 @@ async function invokeQB<T>(businessId: string, body: Record<string, unknown>): P
 }
 export interface QBStatus {
   configured: boolean
+  plan_restricted?: boolean
   connected: boolean
   environment: 'sandbox' | 'production'
   company_id: string | null
