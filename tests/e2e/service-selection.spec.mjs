@@ -77,7 +77,7 @@ test('signed-in owner saves account service interests without purchase or billin
   await page.getByRole('radio', { name: /À la carte/ }).check()
   await page.getByRole('checkbox', { name: /Online estimate approvals/ }).check()
   await page.getByRole('button', { name: 'Save my service preferences' }).click()
-  await expect(page.getByRole('status')).toContainText(/No services were purchased or activated/)
+  await expect(page.locator('.workspace-services .form-message.success-text')).toContainText(/No services were purchased or activated/)
   const writes = requests.filter(x=>x.path.endsWith('/business_service_interests') && x.method==='POST')
   expect(writes).toHaveLength(1)
   expect(writes[0].body).toMatchObject({
