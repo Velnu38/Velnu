@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { createJob } from '../services/jobs'
@@ -23,16 +23,35 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' })
+  const mounted = useRef(false)
+  const currentRequest = useRef(0)
 
   async function refresh() {
+    if (!mounted.current) return
+    const request = ++currentRequest.current
     const from = new Date(); from.setHours(0, 0, 0, 0)
     const to = new Date(from); to.setDate(to.getDate() + 45)
-    const [rows, customerRows] = await Promise.all([listAppointments(business.id, from.toISOString(), to.toISOString()), listCustomers(business.id)])
-    setAppointments(rows as Appointment[])
-    setCustomers(customerRows as Customer[])
+    try {
+      const [rows, customerRows] = await Promise.all([
+        listAppointments(business.id, from.toISOString(), to.toISOString()),
+        listCustomers(business.id),
+      ])
+      if (!mounted.current || request !== currentRequest.current) return
+      setAppointments(rows as Appointment[])
+      setCustomers(customerRows as Customer[])
+      setError('')
+    } catch (err) {
+      if (mounted.current && request === currentRequest.current) setError(err instanceof Error ? err.message : 'Unable to load schedule')
+    }
   }
 
-  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load schedule')) }, [business.id])
+  useEffect(() => {
+    mounted.current = true
+    setAppointments([])
+    setCustomers([])
+    void refresh()
+    return () => { mounted.current = false; currentRequest.current++ }
+  }, [business.id])
 
   const grouped = useMemo(() => {
     const groups = new Map<string, Appointment[]>()
@@ -64,13 +83,13 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
       })
       resetForm(); setShowForm(false); await refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to schedule work')
-    } finally { setBusy(false) }
+      if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to schedule work')
+    } finally { if (mounted.current) setBusy(false) }
   }
 
   async function changeStatus(id: string, status: Appointment['status']) {
     try { await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show'); await refresh() }
-    catch (err) { setError(err instanceof Error ? err.message : 'Unable to update schedule') }
+    catch (err) { if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to update schedule') }
   }
 
   return <div className="page-stack">
