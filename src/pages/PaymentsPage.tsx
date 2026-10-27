@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
+import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listOpenInvoices, listPayments, recordPayment } from '../services/payments'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
@@ -52,7 +52,7 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
   }
 
   return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View bookkeeping</button>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View bookkeeping</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
     <section className="list-card">
       {payments.length === 0 ? <div className="empty-state"><div className="empty-icon">$</div><h2>No payments yet</h2><p>Record a payment here when you have actually received the funds.</p></div> : payments.map((payment) => {
         const invoice = payment.invoices?.[0]

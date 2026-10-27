@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness, type BusinessProfile } from '../lib/business'
+import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
 import DocumentBrand from '../components/DocumentBrand'
@@ -151,7 +151,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New estimate</button>}</div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New estimate</button>}</div>
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured. You can preview and print estimates now.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
@@ -164,13 +164,13 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <div className="document-actions">
             <button className="secondary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Preview / Print</button>
             <span className={`status-chip ${estimate.status === 'accepted' ? 'paid' : ''}`}>{estimate.status}</span>
-            {canWrite(business.role) && estimate.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'sent')}>Mark sent manually</button>}
-            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'accepted')}>Record acceptance</button>}
-            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'declined')}>Record decline</button>}
-            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'expired')}>Expire</button>}
-            {canWrite(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(estimate)}>Email customer</button>}
-            {canWrite(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Get customer approval link</button>}
-            {canWrite(business.role) && estimate.status === 'accepted' && <button className="conversion-button" onClick={() => { setError(''); setNotice(''); setConvertTarget(estimate) }}>Create invoice</button>}
+            {canManageFinances(business.role) && estimate.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'sent')}>Mark sent manually</button>}
+            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'accepted')}>Record acceptance</button>}
+            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'declined')}>Record decline</button>}
+            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'expired')}>Expire</button>}
+            {canManageFinances(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(estimate)}>Email customer</button>}
+            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Get customer approval link</button>}
+            {canManageFinances(business.role) && estimate.status === 'accepted' && <button className="conversion-button" onClick={() => { setError(''); setNotice(''); setConvertTarget(estimate) }}>Create invoice</button>}
           </div>
         </article>
       })}

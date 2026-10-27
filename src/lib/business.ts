@@ -154,3 +154,8 @@ export function businessLogoUrl(profile: Pick<BusinessProfile, 'logo_path'>): st
 }
 
 export function canWrite(role: BusinessRole) { return role !== 'viewer' }
+
+/** Financial records are managed by owners, admins and office staff, not field technicians. */
+export function canManageFinances(role: BusinessRole): boolean {
+  return role === 'owner' || role === 'admin' || role === 'office'
+}

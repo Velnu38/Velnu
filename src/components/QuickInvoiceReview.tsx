@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { CurrentBusiness } from '../lib/business'
-import { canWrite } from '../lib/business'
+import { canManageFinances } from '../lib/business'
 import { parseQuickInvoice } from '../lib/quickInvoice'
 import { createCustomer, listCustomers } from '../services/customers'
 import { createInvoice } from '../services/invoices'
@@ -48,7 +48,7 @@ export default function QuickInvoiceReview({ business, command, onCancel, onSave
 
   async function saveDraft(event: FormEvent) {
     event.preventDefault()
-    if (busy || loading || !canWrite(business.role) || seed.multipleAmounts) return
+    if (busy || loading || !canManageFinances(business.role) || seed.multipleAmounts) return
     const cost = Number(amount)
     const tax = Number(taxRate)
     if (!Number.isFinite(cost) || cost <= 0 || !Number.isFinite(tax) || tax < 0 || tax > 100) {
@@ -117,7 +117,7 @@ export default function QuickInvoiceReview({ business, command, onCancel, onSave
       {error && <p role="alert" className="form-message error-text">{error}</p>}
       <div className="preview-actions">
         <button type="button" className="secondary-button" onClick={onCancel} disabled={busy}>Back</button>
-        <button type="submit" className="primary-button" disabled={busy || loading || !canWrite(business.role) || seed.multipleAmounts}>{busy ? 'Saving draft…' : 'Save draft invoice'}</button>
+        <button type="submit" className="primary-button" disabled={busy || loading || !canManageFinances(business.role) || seed.multipleAmounts}>{busy ? 'Saving draft…' : 'Save draft invoice'}</button>
       </div>
     </form>
   </section>

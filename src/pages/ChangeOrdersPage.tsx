@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
+import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listJobs } from '../services/jobs'
 import { createChangeOrder, listChangeOrders, updateChangeOrderStatus } from '../services/changeOrders'
 import { createApprovalLink } from '../services/approvals'
@@ -122,7 +122,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   return <div className="page-stack">
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Change orders</p><h1>Capture scope changes before they become lost revenue.</h1></div>
-      {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
+      {canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
     </div>
     <section className="change-order-intro"><strong>Accuracy first.</strong><span>Added work, price, tax and schedule impact stay separate until the customer approves the change.</span></section>
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured.</p>}
@@ -137,9 +137,9 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
           <div className="row-main"><strong>{order.change_order_number || 'Draft change order'} · {order.title}</strong><span>{customerName(customer)} · {job?.title || 'Job'}{order.schedule_impact_days ? ` · ${order.schedule_impact_days > 0 ? '+' : ''}${order.schedule_impact_days} day schedule impact` : ''}</span></div>
           <div className="invoice-money"><strong className="money">${Number(order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
           <div className="document-actions">
-            {terminal ? <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span> : <select value={order.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(order.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="void">Void</option></select>}
-            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
-            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Copy approval link</button>}
+            {terminal ? <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span> : <select value={order.status} disabled={!canManageFinances(business.role)} onChange={(e) => changeStatus(order.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="void">Void</option></select>}
+            {canManageFinances(business.role) && !['void','approved'].includes(order.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
+            {canManageFinances(business.role) && !['void','approved'].includes(order.status) && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Copy approval link</button>}
           </div>
         </article>
       })}

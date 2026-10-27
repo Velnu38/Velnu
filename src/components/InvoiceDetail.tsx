@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness, type BusinessProfile } from '../lib/business'
+import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { createInvoiceReminder, getInvoiceDetail } from '../services/invoiceDetail'
 import { recordPayment } from '../services/payments'
 import { updateInvoiceStatus } from '../services/invoices'
@@ -62,11 +62,11 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
     <div className="invoice-action-bar">
-      {canWrite(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={refresh}/>}
-      {canWrite(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
-      {canWrite(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
-      {canWrite(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button className="secondary-button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
-      {canWrite(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
+      {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={refresh}/>}
+      {canManageFinances(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
+      {canManageFinances(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
+      {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button className="secondary-button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
+      {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
       <button className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
     </div>
     {error&&<p className="form-message error-text" role="alert">{error}</p>}

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
+import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { createInvoice, listInvoices } from '../services/invoices'
 import InvoiceDetail from '../components/InvoiceDetail'
@@ -74,7 +74,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null); refresh() }} />
 
   return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New invoice</button>}</div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New invoice</button>}</div>
     <section className="list-card">
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Create your first invoice here or tell Velnu what to bill.</p></div> : invoices.map((invoice) => {
         const customer = invoice.customers?.[0]
