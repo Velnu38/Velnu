@@ -28,7 +28,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Exercise 1,500 real-code input cases without external network calls
-        run: deno test tests/stress/velnu-1500-inputs_test.ts
+        run: deno test --unstable-sloppy-imports tests/stress/velnu-1500-inputs_test.ts
       - name: Edge-case scheduling logic regression
         run: deno test tests/unit/scheduleTime_test.ts
 
