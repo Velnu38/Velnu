@@ -25,7 +25,7 @@ test('public homepage explains Free 10-doc cap, Basic and Pro prices, and links 
   const cards = page.locator('.marketing-price-card')
   await expect(cards).toHaveCount(3)
   await expect(cards.nth(0).getByText('Free', { exact: true }).first()).toBeVisible()
-  await expect(cards.nth(0).getByText('10 invoices and estimates combined each month')).toBeVisible()
+  await expect(cards.nth(0).locator('li').filter({ hasText: '10 invoices and estimates combined each month' })).toBeVisible()
   await expect(cards.nth(1).getByText('$9.99')).toBeVisible()
   await expect(cards.nth(2).getByText('$24.99')).toBeVisible()
   await expect(page.locator('.marketing-topup-card')).toHaveCount(4)
