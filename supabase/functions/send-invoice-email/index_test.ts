@@ -14,7 +14,7 @@ const userId = '33333333-3333-4333-8333-333333333333'
 const customerId = '44444444-4444-4444-8444-444444444444'
 const requestId = '55555555-5555-4555-8555-555555555555'
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message) }
-function request(overrides: Record<string, unknown> = {}, auth = true, origin = 'https://app.owedlyworks.com') {
+function request(overrides: Record<string, unknown> = {}, auth = true, origin = 'https://finviant.com') {
   return new Request('https://example.supabase.co/functions/v1/send-invoice-email', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, ...(auth ? { Authorization: 'Bearer test-session' } : {}) }, body: JSON.stringify({ business_id: businessId, invoice_id: invoiceId, request_id: requestId, ...overrides }) })
 }
 
