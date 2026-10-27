@@ -1,0 +1,30 @@
+name: Finviant recovery checks
+on:
+  push:
+    branches: [feature/velnu-stage1]
+  pull_request:
+    branches: [main, feature/velnu-stage1]
+permissions:
+  contents: read
+concurrency:
+  group: recovery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  provider-failure-injection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - name: Compile the actual bounded provider helper
+        run: npx tsc supabase/functions/_shared/providerRequest.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build
+      - name: Inject provider failures without network access or API keys
+        run: node --test tests/recovery/providerRequest.test.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Typecheck the changed AI command backend
+        run: deno check --node-modules-dir=auto supabase/functions/ai-command/index.ts
