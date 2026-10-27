@@ -43,6 +43,10 @@ export function setPendingServiceInterests(interest: ServiceInterest): void {
   try { localStorage.setItem(key, JSON.stringify(normalizeInterests(interest))) }
   catch { /* Preview selection remains usable without local storage. */ }
 }
+export function hasPendingServiceInterests(): boolean {
+  try { return localStorage.getItem(key) !== null }
+  catch { return false }
+}
 export function clearPendingServiceInterests(): void {
   try { localStorage.removeItem(key) }
   catch { /* Optional cache only. */ }
