@@ -1,5 +1,5 @@
 /**
- * Velnu opt-in product analytics.
+ * Finviant Office opt-in product analytics.
  *
  * No SDK network activity before an explicit analytics opt-in. Only predefined,
  * content-free events are allowed. Never include customer, employee or business

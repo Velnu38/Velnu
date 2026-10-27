@@ -31,7 +31,7 @@ function exportCsv(rows: WorkbookLine[], source: WorkbookSource) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = 'velnu-' + source + '-workbook-' + getToday() + '.csv'
+  anchor.download = 'finviant-' + source + '-workbook-' + getToday() + '.csv'
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
@@ -69,7 +69,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     ])
     const errors: string[] = []
     if (results[0].status === 'fulfilled') setVelnuRows(results[0].value)
-    else errors.push('Velnu entries: ' + String(results[0].reason?.message || results[0].reason))
+    else errors.push('Finviant Office entries: ' + String(results[0].reason?.message || results[0].reason))
     if (results[1].status === 'fulfilled') setQbRows(results[1].value)
     else errors.push('QuickBooks entries: ' + String(results[1].reason?.message || results[1].reason))
     if (results[2].status === 'fulfilled') setQbStatus(results[2].value)
@@ -93,7 +93,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
 
   const totals = useMemo(() => {
     // Currency and data-source isolation: QuickBooks items are *never* combined
-    // with Velnu income. Non-USD rows are displayed but not put into USD totals.
+    // with Finviant Office income. Non-USD rows are displayed but not put into USD totals.
     return visible.reduce((totals, row) => {
       if (row.currency !== 'USD') return totals
       if (row.direction === 'income') totals.income += row.amount
@@ -116,7 +116,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       setNewEntry(false)
       setAmount(''); setDescription(''); setNotes('')
       await refresh()
-      setNotice('Manual ' + direction + ' saved to your Velnu workbook.')
+      setNotice('Manual ' + direction + ' saved to your Finviant Office workbook.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save this entry.')
     } finally { setBusy(false) }
@@ -161,14 +161,14 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
 
   async function disconnect() {
     if (!canManageQuickBooks || busy) return
-    if (!window.confirm('Disconnect QuickBooks and permanently remove its imported transactions from Velnu? Your records inside QuickBooks will not change.')) return
+    if (!window.confirm('Disconnect QuickBooks and permanently remove its imported transactions from Finviant Office? Your records inside QuickBooks will not change.')) return
     setBusy(true); setError(''); setNotice('')
     try {
       await disconnectQuickBooks(business.id)
       setQbRows([])
       setCostsAcknowledged(false)
       await refresh()
-      setNotice('QuickBooks disconnected. Imported transactions were removed from Velnu, not from QuickBooks.')
+      setNotice('QuickBooks disconnected. Imported transactions were removed from Finviant Office, not from QuickBooks.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to disconnect QuickBooks.')
     } finally { setBusy(false) }
@@ -182,11 +182,11 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
   return <div className="page-stack bookkeeping-page">
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Bookkeeping · Money in and out</p><h1>Know what you earned. Know what you spent.</h1>
-        <p className="quiet">Payments on Velnu invoices appear automatically. Add other expenses or income manually, or optionally connect QuickBooks Online.</p></div>
+        <p className="quiet">Payments on Finviant Office invoices appear automatically. Add other expenses or income manually, or optionally connect QuickBooks Online.</p></div>
       <button className="primary-button compact" onClick={() => { retryId.current = null; setNewEntry(true); setSource('velnu') }}>+ Add expense or income</button>
     </div>
     <section className="bookkeeping-tabs" role="group" aria-label="Workbook source">
-      <button type="button" className={source === 'velnu' ? 'active' : ''} aria-pressed={source === 'velnu'} onClick={() => setSource('velnu')}>Velnu workbook</button>
+      <button type="button" className={source === 'velnu' ? 'active' : ''} aria-pressed={source === 'velnu'} onClick={() => setSource('velnu')}>Finviant Office workbook</button>
       <button type="button" className={source === 'quickbooks' ? 'active' : ''} aria-pressed={source === 'quickbooks'} onClick={() => setSource('quickbooks')}>QuickBooks Online</button>
     </section>
     <div className="bookkeeping-toolbar">
@@ -201,19 +201,19 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
         <h2>QuickBooks Online <span className="bookkeeping-readonly">Read-only</span></h2>
         <p>Optional connection · Existing Intuit subscription required</p></div></div>
       {new URLSearchParams(window.location.search).get('quickbooks') === 'connected' && <p role="status" className="form-message">QuickBooks authorization finished. Choose Sync transactions to import your recent records.</p>}
-      {new URLSearchParams(window.location.search).get('quickbooks') === 'error' && <p role="alert" className="form-message error-text">QuickBooks connection did not finish. Check your Intuit account or ask the Velnu administrator to review setup.</p>}
+      {new URLSearchParams(window.location.search).get('quickbooks') === 'error' && <p role="alert" className="form-message error-text">QuickBooks connection did not finish. Check your Intuit account or ask the Finviant Office administrator to review setup.</p>}
       {new URLSearchParams(window.location.search).get('quickbooks') === 'cancelled' && <p role="status" className="form-message">QuickBooks connection was canceled. Nothing was imported.</p>}
-      <p className="bookkeeping-explainer">QuickBooks income and purchases are shown in a <strong>separate workbook</strong>, rather than mixed with Velnu payments. This avoids counting the same customer payment twice. Imported records are not editable here.</p>
+      <p className="bookkeeping-explainer">QuickBooks income and purchases are shown in a <strong>separate workbook</strong>, rather than mixed with Finviant Office payments. This avoids counting the same customer payment twice. Imported records are not editable here.</p>
       {canManageQuickBooks ? <>
         {qbStatus?.connected ? <div className="bookkeeping-connect-actions">
           <div><strong>Connected {qbStatus.environment === 'sandbox' ? 'to a sandbox company' : 'to a QuickBooks company'}</strong><small>Company ID: {qbStatus.company_id} · Last sync: {qbStatus.last_sync_at ? new Date(qbStatus.last_sync_at).toLocaleString() : 'Not yet synced'}</small></div>
           <button className="primary-button compact" disabled={busy} onClick={synchronize}>{busy ? 'Working…' : 'Sync transactions'}</button>
           <button className="secondary-button compact" disabled={busy} onClick={disconnect}>Disconnect</button>
         </div> : <>
-          {qbStatus?.plan_restricted ? <p className="form-message">QuickBooks integration is a paid service. The Free plan has no third-party imports or metered integration calls. Choosing Basic or Pro interest does not activate it until billing and limits are available.</p> : !qbStatus?.configured ? <p className="form-message">The QuickBooks integration is prepared but cannot connect yet. Velnu's administrator must configure Intuit developer credentials and the secure OAuth callback.</p> :
+          {qbStatus?.plan_restricted ? <p className="form-message">QuickBooks integration is a paid service. The Free plan has no third-party imports or metered integration calls. Choosing Basic or Pro interest does not activate it until billing and limits are available.</p> : !qbStatus?.configured ? <p className="form-message">The QuickBooks integration is prepared but cannot connect yet. Finviant Office's administrator must configure Intuit developer credentials and the secure OAuth callback.</p> :
             <p className="form-message">This preview currently uses <strong>{qbStatus.environment === 'sandbox' ? 'Intuit sandbox testing' : 'the live Intuit production service'}</strong>. Only connect a test account unless the integration has been approved for production.</p>}
           <label className="bookkeeping-consent"><input type="checkbox" checked={costsAcknowledged} onChange={e => setCostsAcknowledged(e.target.checked)} />
-            <span>I understand QuickBooks Online requires an eligible Intuit subscription. Separate fees may apply for the selected Intuit plan, payments, add-ons, third-party services or integrations. Charges and eligibility are determined by Intuit and the relevant providers, not included automatically in Velnu. I authorize a read-only import of selected QuickBooks transactions.</span></label>
+            <span>I understand QuickBooks Online requires an eligible Intuit subscription. Separate fees may apply for the selected Intuit plan, payments, add-ons, third-party services or integrations. Charges and eligibility are determined by Intuit and the relevant providers, not included automatically in Finviant Office. I authorize a read-only import of selected QuickBooks transactions.</span></label>
           <button className="primary-button compact" disabled={busy || !qbStatus?.configured || !!qbStatus.connected || !costsAcknowledged} onClick={connect}>Connect QuickBooks Online</button>
         </>}
       </> : <p className="form-message">Only a business owner or administrator may connect, sync or disconnect QuickBooks.</p>}
@@ -225,12 +225,12 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       <article><small>Recorded expenses · USD</small><strong>{usd.format(totals.expenses)}</strong><span>{source === 'velnu' ? 'Manually entered expenses' : 'Imported QBO purchases'}</span></article>
       <article><small>Difference · USD</small><strong>{usd.format(totals.income - totals.expenses)}</strong><span>Not an accounting profit-and-loss or tax report</span></article>
     </section>
-    {source === 'velnu' && <p className="bookkeeping-caution">Income from Velnu invoices is included <strong>only when a payment is recorded</strong>, not when an invoice is issued. Do not add a second manual income entry for the same payment. Recording income here does not process a payment.</p>}
-    {source === 'quickbooks' && <p className="bookkeeping-caution">QuickBooks figures are independent from Velnu figures. Do not add the two summaries together. Non-USD amounts are shown below but excluded from USD totals. These are selected transaction types, not a complete accounting report.</p>}
+    {source === 'velnu' && <p className="bookkeeping-caution">Income from Finviant Office invoices is included <strong>only when a payment is recorded</strong>, not when an invoice is issued. Do not add a second manual income entry for the same payment. Recording income here does not process a payment.</p>}
+    {source === 'quickbooks' && <p className="bookkeeping-caution">QuickBooks figures are independent from Finviant Office figures. Do not add the two summaries together. Non-USD amounts are shown below but excluded from USD totals. These are selected transaction types, not a complete accounting report.</p>}
     {notice && <p className="form-message success-text" role="status">{notice}</p>}
     {error && <p className="form-message error-text" role="alert">{error}</p>}
     <section className="bookkeeping-list">
-      <div className="bookkeeping-list-title"><h2>{source === 'velnu' ? 'Velnu income & expenses' : 'Imported QuickBooks transactions'}</h2><span>{visible.length} records</span></div>
+      <div className="bookkeeping-list-title"><h2>{source === 'velnu' ? 'Finviant Office income & expenses' : 'Imported QuickBooks transactions'}</h2><span>{visible.length} records</span></div>
       {loading ? <div className="empty-state">Loading your workbook…</div> : !visible.length ?
         <div className="empty-state"><div className="empty-icon">$</div><h2>{source === 'velnu' ? 'Your workbook is ready' : 'No QuickBooks transactions yet'}</h2>
           <p>{source === 'velnu' ? 'Record a payment on an issued invoice, or add an expense to begin.' : 'Connect QuickBooks Online and run a manual sync after Intuit setup is complete.'}</p></div> :
@@ -247,7 +247,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       <section className="modal bookkeeping-modal" role="dialog" aria-modal="true" aria-label="Add workbook entry" onMouseDown={e => e.stopPropagation()}>
         <div className="modal-head"><div><p className="eyebrow">Manual bookkeeping</p><h2>Add income or expense</h2></div>
           <button type="button" className="icon-button" disabled={busy} onClick={() => setNewEntry(false)} aria-label="Close form">×</button></div>
-        <p className="quiet">Use manual income only for money that isn't already recorded against a Velnu invoice.</p>
+        <p className="quiet">Use manual income only for money that isn't already recorded against a Finviant Office invoice.</p>
         <form className="bookkeeping-entry-form" onSubmit={saveManual}>
           <label>Entry type <select value={direction} onChange={e => { setDirection(e.target.value as EntryDirection); setCategory(e.target.value === 'income' ? 'Other received income' : 'Materials & supplies') }}>
             <option value="expense">Expense / money spent</option><option value="income">Other income / money received</option></select></label>

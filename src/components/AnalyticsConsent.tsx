@@ -24,8 +24,8 @@ export default function AnalyticsConsent() {
 
   return <section role="region" aria-label="Optional analytics preferences" className="analytics-consent ph-no-capture">
     <div>
-      <strong>{settingsOpen ? 'Analytics preferences' : 'Help improve Velnu?'}</strong>
-      <p>With your permission, we use PostHog to count visits and understand which Velnu features are used. We do not use session replay or automatic click tracking, and do not send invoice details, customer names, or voice recordings. Analytics are optional.</p>
+      <strong>{settingsOpen ? 'Analytics preferences' : 'Help improve Finviant Office?'}</strong>
+      <p>With your permission, we use PostHog to count visits and understand which Finviant Office features are used. We do not use session replay or automatic click tracking, and do not send invoice details, customer names, or voice recordings. Analytics are optional.</p>
       <a href="/privacy" target="_blank" rel="noopener noreferrer">Read our privacy notice</a>
     </div>
     <div className="analytics-consent-actions">

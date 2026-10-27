@@ -86,9 +86,9 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
 
   async function changeStatus(id: string, status: 'sent' | 'accepted' | 'declined' | 'expired') {
     const confirmations: Record<typeof status, string> = {
-      sent: 'Mark this estimate as delivered outside Velnu? This does not email the customer.',
-      accepted: 'Record that the customer accepted this estimate outside Velnu? Confirm you have their actual approval.',
-      declined: 'Record that the customer declined this estimate outside Velnu?',
+      sent: 'Mark this estimate as delivered outside Finviant Office? This does not email the customer.',
+      accepted: 'Record that the customer accepted this estimate outside Finviant Office? Confirm you have their actual approval.',
+      declined: 'Record that the customer declined this estimate outside Finviant Office?',
       expired: 'Mark this estimate as expired?',
     }
     if (!window.confirm(confirmations[status])) return
@@ -156,7 +156,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <section className="list-card">
-      {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Create an estimate here or tell Velnu what you want to quote.</p></div> : estimates.map((estimate) => {
+      {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Create an estimate here or tell Finviant Office what you want to quote.</p></div> : estimates.map((estimate) => {
         const customer = estimate.customers?.[0]
         return <article className="document-row" key={estimate.id}>
           <div className="row-main"><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span></div>
@@ -189,7 +189,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {convertTarget && <div className="modal-backdrop" onMouseDown={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}><section className="modal conversion-modal" onMouseDown={(e) => e.stopPropagation()}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>×</button></div>
       <div className="conversion-summary"><span>{convertTarget.estimate_number || 'Estimate'}</span><strong>${Number(convertTarget.total).toFixed(2)}</strong><p>{customerName(convertTarget.customers?.[0])}</p></div>
-      <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">Velnu will copy every line item and tax rate into a new draft invoice. The database recalculates the final invoice total.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Create invoice'}</button></div></form>
+      <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">Finviant Office will copy every line item and tax rate into a new draft invoice. The database recalculates the final invoice total.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Create invoice'}</button></div></form>
     </section></div>}
 
 

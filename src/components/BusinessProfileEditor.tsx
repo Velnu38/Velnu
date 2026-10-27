@@ -169,8 +169,8 @@ export default function BusinessProfileEditor({ business, onSaved }: {
         </div>
       </>}
       {step === 2 && <>
-        <h2>Help Velnu understand your business</h2>
-        <p className="quiet">This optional context is saved to your business profile. If advanced AI is enabled later, relevant details may be sent to the configured AI provider to interpret your requests; Velnu does not fine-tune a model on this profile. The assistant must still ask before deciding prices, dates, or staffing.</p>
+        <h2>Help Finviant Office understand your business</h2>
+        <p className="quiet">This optional context is saved to your business profile. If advanced AI is enabled later, relevant details may be sent to the configured AI provider to interpret your requests; Finviant Office does not fine-tune a model on this profile. The assistant must still ask before deciding prices, dates, or staffing.</p>
         <label>What does your business do?
           <textarea value={draft.business_description} onChange={e => update('business_description', e.target.value)}
             placeholder="We are a residential plumbing company specializing in service calls…" maxLength={1500} rows={3} disabled={busy} />
@@ -190,7 +190,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
         <p className="profile-safety">Avoid entering employee Social Security numbers, payroll information, personal addresses, or other sensitive employee records.</p>
       </>}
       {step === 3 && <>
-        <h2>Choose your optional Velnu services</h2>
+        <h2>Choose your optional Finviant Office services</h2>
         <p className="quiet">Pick the tools that interest your company. The core web app works independently of these choices. Pricing is not set and selecting a feature does not charge you or activate an unfinished service.</p>
         {servicesLoading
           ? <p className="form-message">Loading your saved choices…</p>

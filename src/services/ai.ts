@@ -18,7 +18,7 @@ async function explainFunctionError(error: unknown, type: 'transcription' | 'com
       ? 'Could not transcribe the recording (server ' + context.status + '). Use the keyboard microphone in the text box.'
       : 'Could not interpret the command (server ' + context.status + '). Please try again.')
   }
-  return error instanceof Error ? error : new Error('Unable to contact Velnu. Please try again.')
+  return error instanceof Error ? error : new Error('Unable to contact Finviant Office. Please try again.')
 }
 
 export type AiCommandSource = 'text' | 'voice'
@@ -76,7 +76,7 @@ export async function transcribeVoice(businessId: string, audio: Blob, durationS
   const form = new FormData()
   const mime = (audio.type || '').toLowerCase()
   const extension = mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : mime.includes('mpeg') ? 'mp3' : mime.includes('flac') ? 'flac' : 'webm'
-  form.append('audio', audio, 'velnu-command.' + extension)
+  form.append('audio', audio, 'finviant-command.' + extension)
   form.append('business_id', businessId)
   if (durationSeconds && Number.isFinite(durationSeconds)) form.append('duration_seconds', durationSeconds.toFixed(2))
   if (prompt) form.append('prompt', prompt)

@@ -81,7 +81,7 @@ export default function DashboardPage({ business, onSetup }: { business: Current
 
   return <div className="page-stack">
     <div className="page-heading split-heading">
-      <div><p className="eyebrow">Velnu Office · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
+      <div><p className="eyebrow">Finviant Office · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
       <button className="secondary-button compact" onClick={() => void refresh(true)} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
@@ -119,7 +119,7 @@ export default function DashboardPage({ business, onSetup }: { business: Current
     </section>
 
     <section className="attention-card">
-      <div><p className="eyebrow">AI-assisted office manager</p><h2>Tell Velnu what needs to get done.</h2><p>Create customers, jobs, estimates, change orders, invoices, payments and schedule changes by voice. Anything involving money, scope or schedule is shown for confirmation first.</p></div>
+      <div><p className="eyebrow">AI-assisted office manager</p><h2>Tell Finviant Office what needs to get done.</h2><p>Create customers, jobs, estimates, change orders, invoices, payments and schedule changes by voice. Anything involving money, scope or schedule is shown for confirmation first.</p></div>
       <div className="command-examples"><span>“Who hasn’t paid me?”</span><span>“Schedule Williams Tuesday at 10.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>
     </section>
   </div>
