@@ -11,7 +11,7 @@ async function signedIn(page) {
   await page.addInitScript(value => localStorage.setItem('sb-example-auth-token', JSON.stringify(value)), session)
 }
 
-async function mockBusiness(page, existing = false) {
+async function mockBusiness(page, existing = false, paid = existing) {
   let record = { ...company }
   const writes = []
   await page.route('https://example.supabase.co/**', async route => {
@@ -27,7 +27,7 @@ async function mockBusiness(page, existing = false) {
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v2' })
     if (path.endsWith('/business_members')) return json(existing ? { role: 'owner', business_id: businessId, businesses: record } : null)
-    if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: existing ? 'pro' : 'free', ai_limit: existing ? 50 : 0, voice_limit: existing ? 50 : 0, logo_bytes_limit: existing ? 131072 : 0 })
+    if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: paid ? 'pro' : 'free', ai_limit: paid ? 50 : 0, voice_limit: paid ? 50 : 0, logo_bytes_limit: paid ? 131072 : 0 })
     if (path.endsWith('/business_service_interests')) return json(method === 'POST' ? {} : null, method === 'POST' ? 201 : 200)
     if (path.endsWith('/businesses') && (method === 'POST' || method === 'PATCH')) {
       record = { ...record, ...(body || {}) }
@@ -99,4 +99,18 @@ test('existing owner can update letterhead, upload a logo and retain business co
   expect(updates.length).toBeGreaterThanOrEqual(2)
   expect(updates.at(-1).body.logo_path).toMatch(/^11111111-1111-4111-8111-111111111111\/logo-/)
   expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+})
+
+
+test('free owner has manual branding but no hosted logo uploads or paid AI assistant', async ({ page }) => {
+  await signedIn(page)
+  await mockBusiness(page, true, false)
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Talk to Velnu' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Company settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Make Velnu yours.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await expect(page.getByText(/Logo uploads are unavailable on Free/)).toBeVisible()
+  await expect(page.getByLabel('Company logo (optional, up to 2 MB)')).toHaveCount(0)
+  await expect(page.getByLabel('Document accent color')).toBeVisible()
 })
