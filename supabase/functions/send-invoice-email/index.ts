@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
     const requestId = String(input.request_id || '')
     if (![businessId, invoiceId, requestId].every(value => uuid.test(value))) return respond(400, { error: 'Valid business, invoice and request IDs are required.' })
     const { data: membership, error: memberError } = await db.from('business_members').select('role').eq('business_id', businessId).eq('user_id', auth.user.id).maybeSingle()
-    if (memberError || !membership || !['owner', 'admin', 'office', 'technician'].includes(membership.role)) return respond(403, { error: 'You do not have permission to email this invoice.' })
+    if (memberError || !membership || !['owner', 'admin', 'office'].includes(membership.role)) return respond(403, { error: 'You do not have permission to email this invoice.' })
     const { data: invoice, error: invoiceError } = await db.from('invoices').select('id,customer_id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,customer_message').eq('business_id', businessId).eq('id', invoiceId).maybeSingle()
     if (invoiceError) return respond(500, { error: 'Unable to load invoice.' })
     if (!invoice) return respond(404, { error: 'Invoice not found.' })
