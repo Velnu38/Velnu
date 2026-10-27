@@ -90,3 +90,27 @@ Deno.test('retry of accepted request does not send a second email', async () => 
     assert(state.emails.length === 1, 'Provider is called only once')
   })
 })
+
+Deno.test('technicians cannot send financial documents directly through the Edge Function', async () => {
+  await withMock({ role: 'technician' }, async state => {
+    const response = await handle(request())
+    assert(response.status === 403, 'Technician must not send invoices')
+    assert(state.emails.length === 0, 'No provider request must be made')
+  })
+})
+
+Deno.test('100 input send-and-retry attempts produce 50 unique mocked provider messages', async () => {
+  await withMock({}, async state => {
+    for (let i = 0; i < 50; i++) {
+      const id = '66666666-6666-4666-8666-' + String(i).padStart(12, '0')
+      const first = await handle(request({ request_id: id, to: 'attacker@example.invalid' }))
+      assert(first.status === 200, 'Case ' + i + ': initial send must succeed')
+      const repeated = await handle(request({ request_id: id, to: 'other@example.invalid' }))
+      assert(repeated.status === 200 && (await repeated.json()).already_sent === true, 'Case ' + i + ': must deduplicate')
+    }
+    assert(state.emails.length === 50, '100 input attempts should cause only 50 mock provider calls')
+    for (const mail of state.emails) {
+      assert(JSON.stringify(mail.to) === JSON.stringify(['customer@example.test']), 'Server must not trust recipient supplied by the request')
+    }
+  })
+})
