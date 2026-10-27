@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: trial-checks-${{ github.ref }}
+  group: trial-checks-stable-browser-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   trial-checks:
