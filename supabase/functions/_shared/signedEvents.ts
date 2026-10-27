@@ -1,6 +1,7 @@
 /** Validate raw-body provider signatures. Never log payloads, signatures or keys. */
 const enc = new TextEncoder()
 const bytes = (value: string) => Uint8Array.from(atob(value), c => c.charCodeAt(0))
+const owned = (value: Uint8Array): ArrayBuffer => { const copy = new Uint8Array(value.length); copy.set(value); return copy.buffer }
 export async function verifySignedEvent(provider: 'resend' | 'stripe', raw: string, headers: Headers, secret: string, now = Date.now()): Promise<boolean> {
  if (enc.encode(raw).length > 262144) return false
  let stamp = '', message = '', signatures: Uint8Array[] = [], keyBytes: Uint8Array
@@ -19,8 +20,8 @@ export async function verifySignedEvent(provider: 'resend' | 'stripe', raw: stri
    message = stamp + '.' + raw
   }
   if (!/^\d{1,13}$/.test(stamp) || !Number.isFinite(now) || Math.abs(now/1000 - Number(stamp)) > 300 || keyBytes.length < 16) return false
-  const key = await crypto.subtle.importKey('raw', keyBytes, {name:'HMAC',hash:'SHA-256'}, false, ['verify'])
-  for (const signature of signatures) if (signature.length === 32 && await crypto.subtle.verify('HMAC', key, signature, enc.encode(message))) return true
+  const key = await crypto.subtle.importKey('raw', owned(keyBytes), {name:'HMAC',hash:'SHA-256'}, false, ['verify'])
+  for (const signature of signatures) if (signature.length === 32 && await crypto.subtle.verify('HMAC', key, owned(signature), owned(enc.encode(message)))) return true
   return false
  } catch { return false }
 }

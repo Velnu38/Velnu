@@ -12,10 +12,11 @@ Deno.serve(async(req:Request)=>{
   if(!await verifySignedEvent('resend',raw,req.headers,secret))return reply(401,{error:'Invalid signature'})
   const event=JSON.parse(raw)
   if(!types.has(event.type))return reply(200,{ignored:true})
-  const id=req.headers.get('svix-id')!,provider=event.data?.email_id,when=event.created_at
+  const id=req.headers.get('svix-id')!,provider=event.data?.email_id,when=event.created_at,tag=event.data?.tags?.finviant_request_id
   if(typeof provider!=='string'||provider.length>200||typeof when!=='string'||!Number.isFinite(Date.parse(when)))return reply(400,{error:'Invalid event'})
+  const request=typeof tag==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tag)?tag:null
   const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}})
-  const {data,error}=await db.rpc('record_delivery_event',{p_event_id:id,p_provider_id:provider,p_type:event.type,p_occurred:when})
+  const {data,error}=await db.rpc('record_tagged_delivery_event',{p_event_id:id,p_provider_id:provider,p_type:event.type,p_occurred:when,p_request:request})
   if(error)return reply(503,{error:'Receipt not stored; retry delivery'})
   return reply(200,data)
  }catch{return reply(400,{error:'Invalid event payload'})}
