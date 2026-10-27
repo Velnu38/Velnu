@@ -17,7 +17,7 @@ Deno.serve(async(req:Request)=>{
   let expiresDays=Number(body.expires_days??14); if(!Number.isInteger(expiresDays)||expiresDays<1||expiresDays>30)expiresDays=14;
   if(!businessId||!documentId||!['estimate','change_order'].includes(documentType))return respond(400,{error:"business_id, document_type and document_id are required"});
   const {data:membership}=await supabase.from("business_members").select("role").eq("business_id",businessId).eq("user_id",userData.user.id).maybeSingle();
-  if(!membership)return respond(403,{error:"Forbidden"}); if(membership.role==="viewer")return respond(403,{error:"Viewer role is read-only"});
+  if(!membership)return respond(403,{error:"Forbidden"}); if(!["owner","admin","office"].includes(membership.role))return respond(403,{error:"Only finance staff can issue customer approval links"});
   // Free includes zero customer approval links; paid tier interest is not access.
   const{data:usage,error:planError}=await supabase.rpc("get_plan_usage",{target_business_id:businessId});
   if(planError||!usage)return respond(503,{error:"Unable to verify approval entitlement"});
