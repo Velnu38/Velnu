@@ -14,17 +14,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - run: npm install
-      - name: Compile the actual bounded provider helper
-        run: npx tsc supabase/functions/_shared/providerRequest.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build
-      - name: Inject provider failures without network access or API keys
-        run: node --test tests/recovery/providerRequest.test.mjs
+      - run: npm install --ignore-scripts
+      - run: npm run build
+      - name: Compile actual provider and signature helpers
+        run: npx tsc supabase/functions/_shared/providerRequest.ts supabase/functions/_shared/signedEvents.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build
+      - name: Inject provider and signature failures without external requests
+        run: node --test tests/recovery/*.test.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Typecheck the changed AI command backend
-        run: deno check --node-modules-dir=auto supabase/functions/ai-command/index.ts
+      - name: Typecheck changed backend functions
+        run: deno check --node-modules-dir=auto supabase/functions/ai-command/index.ts supabase/functions/transcribe-voice/index.ts supabase/functions/send-invoice-email/index.ts supabase/functions/send-document-email/index.ts supabase/functions/resend-events/index.ts supabase/functions/stripe-events/index.ts
+      - name: Test frozen email dispatch with mocked provider only
+        run: deno test --node-modules-dir=auto --allow-env supabase/functions/send-invoice-email/index_test.ts

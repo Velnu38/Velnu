@@ -1,116 +1,69 @@
-type Handler = (request: Request) => Promise<Response>
-let handle: Handler
-const originalServe = Deno.serve
-Deno.serve = ((handler: Handler) => { handle = handler; return {} }) as typeof Deno.serve
-Deno.env.set('SUPABASE_URL', 'https://example.supabase.co')
-Deno.env.set('SUPABASE_ANON_KEY', 'test-key')
-Deno.env.set('RESEND_API_KEY', 'test-resend-key')
-await import('./index.ts')
-Deno.serve = originalServe
-
-const businessId = '11111111-1111-4111-8111-111111111111'
-const invoiceId = '22222222-2222-4222-8222-222222222222'
-const userId = '33333333-3333-4333-8333-333333333333'
-const customerId = '44444444-4444-4444-8444-444444444444'
-const requestId = '55555555-5555-4555-8555-555555555555'
-function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message) }
-function request(overrides: Record<string, unknown> = {}, auth = true, origin = 'https://finviant.com') {
-  return new Request('https://example.supabase.co/functions/v1/send-invoice-email', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, ...(auth ? { Authorization: 'Bearer test-session' } : {}) }, body: JSON.stringify({ business_id: businessId, invoice_id: invoiceId, request_id: requestId, ...overrides }) })
+import { documentEmailHandler } from '../_shared/documentEmail.ts'
+const handle=documentEmailHandler(true),docHandle=documentEmailHandler(false)
+const biz='11111111-1111-4111-8111-111111111111',invoice='22222222-2222-4222-8222-222222222222',user='33333333-3333-4333-8333-333333333333',id='55555555-5555-4555-8555-555555555555'
+function assert(value:unknown,message='Assertion failed'):asserts value{if(!value)throw new Error(message)}
+function req(extra:Record<string,unknown>={},auth=true,origin='https://finviant.com'){
+ return new Request('https://example.supabase.co/functions/v1/send-invoice-email',{method:'POST',headers:{'content-type':'application/json',Origin:origin,...(auth?{Authorization:'Bearer test-session'}:{})},body:JSON.stringify({business_id:biz,invoice_id:invoice,request_id:id,...extra})})
 }
-
-type Options = { role?: string; missingInvoice?: boolean; missingEmail?: boolean }
-async function withMock(options: Options, run: (state: { emails: Record<string, unknown>[]; requests: URL[] }) => Promise<void>) {
-  const originalFetch = globalThis.fetch
-  const emails: Record<string, unknown>[] = []
-  const requests: URL[] = []
-  const messages = new Map<string, Record<string, unknown>>()
-  const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } })
-  globalThis.fetch = async (input, init) => {
-    const req = new Request(input, init)
-    const url = new URL(req.url)
-    requests.push(url)
-    if (url.hostname === 'api.resend.com') { emails.push(await req.json()); return json({ id: 'test-provider-id' }) }
-    if (url.hostname !== 'example.supabase.co') throw new Error('Unexpected external network request')
-    if (url.pathname === '/auth/v1/user') return json({ id: userId, email: 'owner@example.test', app_metadata: {}, user_metadata: {} })
-    const table = url.pathname.split('/').pop()
-    if (table === 'business_members') return json({ role: options.role || 'owner' })
-    if (table === 'businesses') return json({ name: 'Trial Business', email: 'owner@example.test', phone: '', currency: 'USD' })
-    if (table === 'customers') return json({ id: customerId, first_name: 'Trial', last_name: 'Customer', email: options.missingEmail ? null : 'customer@example.test' })
-    if (table === 'invoice_items') return json([{ description: '<script>alert(1)</script>', quantity: 1, unit_price: 100, tax_rate: 0, line_total: 100 }])
-    if (table === 'invoices') {
-      if (req.method === 'PATCH') return new Response(null, { status: 204 })
-      return json(options.missingInvoice ? [] : { id: invoiceId, customer_id: customerId, invoice_number: 'INV-1001', status: 'draft', issue_date: '2026-09-14', due_date: '2026-10-01', subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100, customer_message: 'Thank you', notes: 'CONFIDENTIAL_INTERNAL_NOTES' })
-    }
-    if (table === 'messages') {
-      if (req.method === 'HEAD') return new Response(null, { status: 200, headers: { 'Content-Range': '0-0/0' } })
-      if (req.method === 'POST') { const row = await req.json(); messages.set(row.id, { ...row, created_at: new Date().toISOString() }); return new Response(null, { status: 201 }) }
-      const id = url.searchParams.get('id')?.replace('eq.', '') || ''
-      if (req.method === 'PATCH') { messages.set(id, { ...messages.get(id), ...await req.json() }); return new Response(null, { status: 204 }) }
-      return json(messages.has(id) ? messages.get(id) : [])
-    }
-    throw new Error(`Unexpected request: ${req.method} ${url}`)
+type Opt={role?:string;unavailable?:boolean;missingEmail?:boolean;providerStatus?:number;network?:boolean;invalidJSON?:boolean;badReceipt?:boolean;disabled?:boolean;ackFail?:boolean;claim?:string}
+async function mock(opt:Opt,run:(state:{emails:Record<string,unknown>[];keys:string[];preparations:Record<string,unknown>[];finishes:Record<string,unknown>[]})=>Promise<void>){
+ const original=globalThis.fetch,emails:Record<string,unknown>[]=[],keys:string[]=[],preparations:Record<string,unknown>[]=[],finishes:Record<string,unknown>[]=[]
+ const rows=new Map<string,{document:string;status:string;provider_id?:string}>()
+ const vars={SUPABASE_URL:'https://example.supabase.co',SUPABASE_ANON_KEY:'test-key',SUPABASE_SERVICE_ROLE_KEY:'fake-server-key',RESEND_API_KEY:'fake-resend-key',RESEND_WEBHOOK_SECRET:'fake-signing-key',FINVIANT_CUSTOMER_EMAIL_ENABLED:opt.disabled?'false':'true'}
+ const previous=new Map(Object.keys(vars).map(k=>[k,Deno.env.get(k)]));for(const[k,v]of Object.entries(vars))Deno.env.set(k,v)
+ const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}})
+ globalThis.fetch=async(input,init)=>{
+  const r=new Request(input,init),u=new URL(r.url)
+  if(u.hostname==='api.resend.com'){
+   emails.push(await r.json());keys.push(r.headers.get('idempotency-key')||'')
+   if(opt.network)throw new TypeError('simulated network interruption; not a real API call')
+   if(opt.invalidJSON)return new Response('not json',{status:200})
+   if(opt.providerStatus)return json({error:'simulated'},opt.providerStatus)
+   return json(opt.badReceipt?{}:{id:'provider-test-'+keys.at(-1)})
   }
-  try { await run({ emails, requests }) } finally { globalThis.fetch = originalFetch }
+  if(u.hostname!=='example.supabase.co')throw new Error('External network forbidden')
+  if(u.pathname==='/auth/v1/user')return json({id:user,email:'owner@example.invalid',app_metadata:{},user_metadata:{}})
+  const body=await r.json()
+  if(u.pathname.endsWith('/prepare_document_email')){
+   preparations.push(body);assert(body.p_actor===user,'Actor must come from verified session');assert(body.p_business===biz,'Tenant must be explicit')
+   if(['viewer','technician'].includes(opt.role||''))return json({code:'42501',message:'Finance permission required'},403)
+   if(opt.unavailable||opt.missingEmail)return json({code:'23514',message:'Invalid canonical document or recipient'},400)
+   const prior=rows.get(body.p_request)
+   if(prior&&prior.document!==body.p_document)return json({code:'23505',message:'Request collision'},409)
+   if(!prior)rows.set(body.p_request,{document:body.p_document,status:'queued'})
+   return json({id:body.p_request,status:prior?.status||'queued'})
+  }
+  if(u.pathname.endsWith('/claim_document_email')){
+   const row=rows.get(body.p_request)!
+   if(row.status==='accepted')return json({id:body.p_request,status:'accepted',provider_id:row.provider_id,recipient:'customer@example.invalid'})
+   if(opt.claim)return json({id:body.p_request,status:opt.claim})
+   return json({id:body.p_request,status:'claimed',lease:'66666666-6666-4666-8666-666666666666',payload:{from:'Finviant Office <adminsupport@finviant.com>',to:['customer@example.invalid'],subject:'Invoice TEST',text:'Canonical invoice: <script>text only</script>. Total USD 100.'}})
+  }
+  if(u.pathname.endsWith('/finish_document_email')){
+   finishes.push(body)
+   if(opt.ackFail)return json({code:'XX000',message:'Simulated local acknowledgement failure'},500)
+   const row=rows.get(body.p_request)!;row.status=body.p_result;row.provider_id=body.p_provider_id
+   return json(null)
+  }
+  throw new Error('Unexpected database route: '+u.pathname)
+ }
+ try{await run({emails,keys,preparations,finishes})}finally{globalThis.fetch=original;for(const[k,v]of previous)v===undefined?Deno.env.delete(k):Deno.env.set(k,v)}
 }
-
-Deno.test('unauthenticated requests cannot send email', async () => {
-  await withMock({}, async state => { const response = await handle(request({}, false)); assert(response.status === 401, 'Expected 401'); assert(state.emails.length === 0, 'No email should be sent') })
-})
-Deno.test('unapproved browser origins cannot send email', async () => {
-  await withMock({}, async state => { const response = await handle(request({}, true, 'https://unrelated.example')); assert(response.status === 403, 'Expected 403'); assert(state.emails.length === 0, 'No email should be sent') })
-})
-Deno.test('viewer cannot email invoices', async () => {
-  await withMock({ role: 'viewer' }, async state => { const response = await handle(request()); assert(response.status === 403, 'Expected viewer denial'); assert(state.emails.length === 0, 'No email should be sent') })
-})
-Deno.test('unavailable invoice is not emailed', async () => {
-  await withMock({ missingInvoice: true }, async state => { const response = await handle(request()); assert(response.status === 404, 'Expected unavailable invoice'); assert(state.emails.length === 0, 'No email should be sent') })
-})
-Deno.test('customer must have a valid email', async () => {
-  await withMock({ missingEmail: true }, async state => { const response = await handle(request()); assert(response.status === 409, 'Expected missing-email error'); assert(state.emails.length === 0, 'No email should be sent') })
-})
-Deno.test('invoice send excludes internal notes, escapes HTML and scopes database requests', async () => {
-  await withMock({}, async state => {
-    const response = await handle(request())
-    assert(response.status === 200, `Expected success, got ${response.status}: ${await response.clone().text()}`)
-    assert(state.emails.length === 1, 'Exactly one provider call')
-    const email = state.emails[0]
-    assert(!String(email.text).includes('CONFIDENTIAL_INTERNAL_NOTES'), 'Internal notes must stay private')
-    assert(!String(email.html).includes('<script>'), 'HTML must be escaped')
-    assert(String(email.html).includes('&lt;script&gt;'), 'Escaped item description is included')
-    for (const url of state.requests.filter(url => ['/rest/v1/invoices', '/rest/v1/customers', '/rest/v1/invoice_items', '/rest/v1/business_members', '/rest/v1/messages'].includes(url.pathname))) assert(url.searchParams.get('business_id') === `eq.${businessId}` || url.pathname === '/rest/v1/messages' && !url.searchParams.has('select') && !url.searchParams.has('id'), `Missing tenant filter: ${url}`)
-  })
-})
-Deno.test('retry of accepted request does not send a second email', async () => {
-  await withMock({}, async state => {
-    const first = await handle(request())
-    assert(first.status === 200, 'First send succeeds')
-    const second = await handle(request())
-    assert(second.status === 200, 'Retry succeeds')
-    assert((await second.json()).already_sent === true, 'Retry is identified')
-    assert(state.emails.length === 1, 'Provider is called only once')
-  })
-})
-
-Deno.test('technicians cannot send financial documents directly through the Edge Function', async () => {
-  await withMock({ role: 'technician' }, async state => {
-    const response = await handle(request())
-    assert(response.status === 403, 'Technician must not send invoices')
-    assert(state.emails.length === 0, 'No provider request must be made')
-  })
-})
-
-Deno.test('100 input send-and-retry attempts produce 50 unique mocked provider messages', async () => {
-  await withMock({}, async state => {
-    for (let i = 0; i < 50; i++) {
-      const id = '66666666-6666-4666-8666-' + String(i).padStart(12, '0')
-      const first = await handle(request({ request_id: id, to: 'attacker@example.invalid' }))
-      assert(first.status === 200, 'Case ' + i + ': initial send must succeed')
-      const repeated = await handle(request({ request_id: id, to: 'other@example.invalid' }))
-      assert(repeated.status === 200 && (await repeated.json()).already_sent === true, 'Case ' + i + ': must deduplicate')
-    }
-    assert(state.emails.length === 50, '100 input attempts should cause only 50 mock provider calls')
-    for (const mail of state.emails) {
-      assert(JSON.stringify(mail.to) === JSON.stringify(['customer@example.test']), 'Server must not trust recipient supplied by the request')
-    }
-  })
-})
+Deno.test('unauthenticated requests cannot send email',()=>mock({},async s=>{assert((await handle(req({},false))).status===401);assert(s.emails.length===0)}))
+Deno.test('unapproved browser origins cannot send email',()=>mock({},async s=>{assert((await handle(req({},true,'https://unrelated.example'))).status===403);assert(s.emails.length===0)}))
+Deno.test('viewer cannot email invoices',()=>mock({role:'viewer'},async s=>{assert((await handle(req())).status===403);assert(s.emails.length===0)}))
+Deno.test('technicians cannot email financial documents',()=>mock({role:'technician'},async s=>{assert((await handle(req())).status===403);assert(s.emails.length===0)}))
+Deno.test('unavailable invoice is not emailed',()=>mock({unavailable:true},async s=>{assert((await handle(req())).status===409);assert(s.emails.length===0)}))
+Deno.test('customer must have a valid canonical email',()=>mock({missingEmail:true},async s=>{assert((await handle(req())).status===409);assert(s.emails.length===0)}))
+Deno.test('server release gate prevents direct API bypass',()=>mock({disabled:true},async s=>{assert((await handle(req())).status===503);assert(s.preparations.length===0);assert(s.emails.length===0)}))
+Deno.test('immutable payload ignores attacker recipient and internal notes',()=>mock({},async s=>{const r=await handle(req({to:'attacker@example.invalid',notes:'CONFIDENTIAL_INTERNAL_NOTES'}));assert(r.status===200);assert(s.emails.length===1);assert(JSON.stringify(s.emails[0].to)==='["customer@example.invalid"]');assert(!JSON.stringify(s.emails[0]).includes('CONFIDENTIAL_INTERNAL_NOTES'));assert(s.emails[0].html===undefined,'Plain text is not interpreted as HTML');assert(String(s.emails[0].from).includes('adminsupport@finviant.com'))}))
+Deno.test('retry of accepted request does not send a second email',()=>mock({},async s=>{assert((await handle(req())).status===200);const r=await handle(req());assert(r.status===200);assert((await r.json()).already_sent===true);assert(s.emails.length===1)}))
+Deno.test('network interruption is uncertain, not sent or silently retried',()=>mock({network:true},async s=>{assert((await handle(req())).status===502);assert(s.emails.length===1);assert(s.finishes[0].p_result==='uncertain')}))
+Deno.test('malformed provider success remains uncertain',()=>mock({invalidJSON:true},async s=>{assert((await handle(req())).status===502);assert(s.finishes[0].p_result==='uncertain')}))
+Deno.test('success without receipt remains uncertain',()=>mock({badReceipt:true},async s=>{assert((await handle(req())).status===502);assert(s.finishes[0].p_result==='uncertain')}))
+Deno.test('provider rate limit does not cause a retry storm',()=>mock({providerStatus:429},async s=>{assert((await handle(req())).status===502);assert(s.emails.length===1);assert(s.finishes[0].p_result==='uncertain')}))
+Deno.test('definitive provider rejection is recorded failed',()=>mock({providerStatus:422},async s=>{assert((await handle(req())).status===502);assert(s.finishes[0].p_result==='failed')}))
+Deno.test('database ack failure warns without asking for another send',()=>mock({ackFail:true},async s=>{const r=await handle(req());assert(r.status===200);assert((await r.json()).warning);assert(s.emails.length===1)}))
+for(const state of ['busy','reconciliation_required','failed'])Deno.test('queue '+state+' is never re-sent',()=>mock({claim:state},async s=>{assert((await handle(req())).status===409);assert(s.emails.length===0)}))
+Deno.test('100 attempts retain 50 original provider keys',()=>mock({},async s=>{for(let n=0;n<50;n++){const request_id='77777777-7777-4777-8777-'+String(n).padStart(12,'0');assert((await handle(req({request_id}))).status===200);assert((await handle(req({request_id}))).status===200)}assert(s.emails.length===50);assert(new Set(s.keys).size===50)}))
+Deno.test('estimate path passes a persistent ID to the same queue',()=>mock({},async s=>{const r=await docHandle(req({document_type:'estimate',document_id:invoice}));assert(r.status===200);assert(s.preparations[0].p_kind==='estimate');assert(s.preparations[0].p_request===id)}))
