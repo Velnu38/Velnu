@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { supabase } from '../lib/supabase'
 import ServicePicker from './ServicePicker'
 import { getPendingServiceInterests, clearPendingServiceInterests, hasPendingServiceInterests, type ServiceInterest } from '../lib/serviceCatalog'
 import { loadBusinessServiceInterests, saveBusinessServiceInterests } from '../lib/businessServices'
@@ -17,6 +18,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
   const [draft, setDraft] = useState<BusinessProfileDraft>(() => business ? draftFromBusiness(business) : { ...emptyBusinessProfile })
   const [step, setStep] = useState(0)
   const [logo, setLogo] = useState<File | null>(null)
+  const [logoAllowed, setLogoAllowed] = useState(false)
   const [localLogoUrl, setLocalLogoUrl] = useState<string | null>(null)
   const [removeLogo, setRemoveLogo] = useState(false)
   const [created, setCreated] = useState<CurrentBusiness | null>(null)
@@ -41,6 +43,18 @@ export default function BusinessProfileEditor({ business, onSaved }: {
   }, [business?.id])
 
   useEffect(() => {
+    let active = true
+    setLogoAllowed(false)
+    if (business) {
+      void supabase.rpc('get_plan_usage', { target_business_id: business.id }).then(({ data, error }) => {
+        if (active) setLogoAllowed(!error && data?.plan === 'pro' && Number(data?.logo_bytes_limit || 0) > 0)
+      }).catch(() => { if (active) setLogoAllowed(false) })
+    }
+    // Newly created businesses have no paid entitlements during initial signup.
+    return () => { active = false }
+  }, [business?.id])
+
+  useEffect(() => {
     if (!logo) { setLocalLogoUrl(null); return }
     const objectUrl = URL.createObjectURL(logo)
     setLocalLogoUrl(objectUrl)
@@ -54,6 +68,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
 
   function chooseLogo(file: File | null) {
     if (!file) return
+    if (!logoAllowed) { setError('Hosted logos require an activated paid plan. You can still use company-name branding for free.'); return }
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       setError('Logo must be PNG, JPG or WebP. SVG files are not accepted.')
       return
@@ -72,6 +87,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
     if (busy) return
     if (step < 3) { setStep(step + 1); setError(''); return }
     if (servicesLoading) { setError('Service preferences are still loading. Please try again.'); return }
+    if (logo && !logoAllowed) { setError('Hosted logo upload requires an activated paid plan. Remove the selected file to continue.'); return }
     setBusy(true); setError(''); setNotice('')
     try {
       let saved: CurrentBusiness
@@ -125,12 +141,12 @@ export default function BusinessProfileEditor({ business, onSaved }: {
       </>}
       {step === 1 && <>
         <h2>Personalize invoices and estimates</h2>
-        <p className="quiet">Use your company logo and choose an accent color. The preview shows the company details customers will see.</p>
+        <p className="quiet">Your company name, address, phone, accent color and document footer work on Free. Hosted logo uploads require an activated paid plan because they use paid storage and bandwidth.</p>
         <div className="profile-logo-row">
           {logoUrl && <img src={logoUrl} className="profile-current-logo" alt="Current company logo" />}
-          <label>Company logo (optional, up to 2 MB)
+          {logoAllowed ? <label>Company logo (optional, up to 2 MB)
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => chooseLogo(e.target.files?.[0] || null)} disabled={busy} />
-          </label>
+          </label> : <p className="form-message">Logo uploads are unavailable on Free. Basic/Pro logo limits and pricing will be published before activation.</p>}
         </div>
         {logo && <p className="quiet">Selected logo: {logo.name}</p>}
         {logoUrl && !logo && <button className="text-button" type="button" disabled={busy} onClick={() => { setRemoveLogo(true); setLogo(null) }}>Remove current logo from documents</button>}
