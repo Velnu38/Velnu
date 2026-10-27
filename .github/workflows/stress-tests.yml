@@ -1,0 +1,53 @@
+name: Velnu controlled stress QA
+
+on:
+  push:
+    branches: [feature/velnu-stage1]
+    paths:
+      - 'src/**'
+      - 'supabase/functions/**'
+      - 'tests/**'
+      - '.github/workflows/stress-tests.yml'
+      - 'playwright.mobile.config.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: velnu-stress-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated-inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Exercise 1,500 real-code input cases without external network calls
+        run: deno test tests/stress/velnu-1500-inputs_test.ts
+      - name: Edge-case scheduling logic regression
+        run: deno test tests/unit/scheduleTime_test.ts
+
+  mobile-safari-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm install --no-save @playwright/test@1.63.0
+      - run: npx playwright install --with-deps webkit
+      - name: iPhone-size WebKit browser flow and failure-path tests
+        run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --config=playwright.mobile.config.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-webkit-qa-results
+          path: test-results/
+          retention-days: 7
