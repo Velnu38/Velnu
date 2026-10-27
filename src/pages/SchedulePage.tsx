@@ -6,6 +6,7 @@ import { listAppointments, updateAppointmentStatus } from '../services/schedule'
 import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
+import { validateScheduleWindow } from '../lib/scheduleTime'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
@@ -75,17 +76,14 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
     submitting.current = true
     setBusy(true); setError('')
     try {
-      const start = new Date(form.starts_at)
-      const end = form.ends_at ? new Date(form.ends_at) : null
-      if (Number.isNaN(start.getTime())) throw new Error('Choose a valid start time')
-      if (end && (Number.isNaN(end.getTime()) || end <= start)) throw new Error('End time must be after the start time')
+      const { startsAt, endsAt } = validateScheduleWindow(form.starts_at, form.ends_at)
       await createJob(business.id, {
         customer_id: form.customer_id,
         property_id: form.property_id || undefined,
         title: form.title,
         description: form.description,
-        scheduled_start: start.toISOString(),
-        scheduled_end: end?.toISOString(),
+        scheduled_start: startsAt,
+        scheduled_end: endsAt ?? undefined,
       })
       resetForm(); setShowForm(false); await refresh()
     } catch (err) {
