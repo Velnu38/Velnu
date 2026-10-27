@@ -1,20 +1,34 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { supabase } from '../lib/supabase'
-import DashboardPage from '../pages/DashboardPage'
-import CustomersPage from '../pages/CustomersPage'
-import JobsPage from '../pages/JobsPage'
-import ChangeOrdersPage from '../pages/ChangeOrdersPage'
-import EstimatesPage from '../pages/EstimatesPage'
-import InvoicesPage from '../pages/InvoicesPage'
-import SchedulePage from '../pages/SchedulePage'
-import PaymentsPage from '../pages/PaymentsPage'
-import BookkeepingPage from '../pages/BookkeepingPage'
+
+
+
+
+
+
+
+
+
 import AiAssistantAccess from './AiAssistantAccess'
-import SettingsPage from '../pages/SettingsPage'
-import LocationsPage from '../pages/LocationsPage'
-import WorkspaceServicesPage from '../pages/WorkspaceServicesPage'
+
+
+
 import { hasPendingServiceInterests } from '../lib/serviceCatalog'
+
+// Load each workspace module only when navigated to; preserve page state boundaries.
+const DashboardPage = lazy(() => import('../pages/DashboardPage'))
+const CustomersPage = lazy(() => import('../pages/CustomersPage'))
+const JobsPage = lazy(() => import('../pages/JobsPage'))
+const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
+const EstimatesPage = lazy(() => import('../pages/EstimatesPage'))
+const InvoicesPage = lazy(() => import('../pages/InvoicesPage'))
+const SchedulePage = lazy(() => import('../pages/SchedulePage'))
+const PaymentsPage = lazy(() => import('../pages/PaymentsPage'))
+const BookkeepingPage = lazy(() => import('../pages/BookkeepingPage'))
+const SettingsPage = lazy(() => import('../pages/SettingsPage'))
+const LocationsPage = lazy(() => import('../pages/LocationsPage'))
+const WorkspaceServicesPage = lazy(() => import('../pages/WorkspaceServicesPage'))
 
 type View = 'dashboard' | 'customers' | 'jobs' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'schedule' | 'payments' | 'bookkeeping' | 'settings' | 'services'
 
@@ -71,7 +85,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><div className="logo-mark small">V</div><strong>Velnu</strong></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
-        <div className="workspace-inner" key={`${view}-${refreshVersion}`}>{page()}</div>
+        <div className="workspace-inner" key={`${view}-${refreshVersion}`}><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></div>
       </main>
       <nav className="mobile-nav">
         {mobilePrimary.map((id) => {
