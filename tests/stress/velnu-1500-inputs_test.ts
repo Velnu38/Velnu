@@ -6,7 +6,7 @@ import { formatServiceAddress, googleMapsDirectionsUrl, googleMapsSearchUrl, goo
 import { normalizeInterests } from '../../src/lib/serviceCatalog.ts'
 import { formatMoney, formatStorage, assistantMonthlyTotal, assistantPriceForTier, monthlyPlans } from '../../src/lib/pricing.ts'
 
-const assert = (condition: unknown, message: string): asserts condition => { if (!condition) throw new Error(message) }
+function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message) }
 const equal = (actual: unknown, expected: unknown, message: string) =>
   assert(actual === expected, message + ' expected=' + JSON.stringify(expected) + ' got=' + JSON.stringify(actual))
 const pad = (value: number) => String(value).padStart(2, '0')
