@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { completeReminder, getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 
@@ -22,27 +22,39 @@ export default function DashboardPage({ business, onSetup }: { business: Current
   const [snapshot, setSnapshot] = useState(empty)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // A route change or newer refresh invalidates an older response. This also
+  // avoids setState on an unmounted workspace after a slow network request.
+  const currentRequest = useRef(0)
+  const mounted = useRef(false)
 
   async function refresh() {
+    if (!mounted.current) return
+    const request = ++currentRequest.current
     setLoading(true)
     setError('')
     try {
-      setSnapshot(await getDashboardSnapshot(business.id))
+      const next = await getDashboardSnapshot(business.id)
+      if (mounted.current && request === currentRequest.current) setSnapshot(next)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load dashboard')
+      if (mounted.current && request === currentRequest.current) setError(err instanceof Error ? err.message : 'Unable to load dashboard')
     } finally {
-      setLoading(false)
+      if (mounted.current && request === currentRequest.current) setLoading(false)
     }
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => {
+    mounted.current = true
+    setSnapshot(empty)
+    void refresh()
+    return () => { mounted.current = false; currentRequest.current++ }
+  }, [business.id])
 
   async function finishReminder(reminderId: string) {
     try {
       await completeReminder(reminderId)
-      await refresh()
+      if (mounted.current) await refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to complete reminder')
+      if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to complete reminder')
     }
   }
 
