@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
       - name: Apply exact reviewed changes (fail on source drift)
@@ -27,6 +27,8 @@ jobs:
           p=Path('src/services/jobs.ts');s=p.read_text();s=s.replace("supabase.rpc('create_job_atomic',", "supabase.rpc(input.scheduled_start ? 'create_scheduled_job' : 'create_job_atomic',");p.write_text(s)
           p=Path('supabase/functions/ai-command/index.ts');s=p.read_text();s=s.replace('const body=await req.json();const businessId=', 'const body=await req.json();if(!body||typeof body!=="object"||Array.isArray(body))return respond(400,{error:"Invalid request"});const businessId=');p.write_text(s)
           p=Path('src/components/VoiceAssistant.tsx');s=p.read_text();s=s.replace("if (recorder.state === 'recording') recorder.stop()", "if (recorder.state === 'recording') { try { recorder.stop() } catch { /* Already stopped. */ } }");s=s.replace('speech.onerror = null; speech.stop()', 'speech.onerror = null; try { speech.stop() } catch { /* Already stopped. */ }');p.write_text(s)
+          p=Path('tests/e2e/recovery.spec.mjs');s=p.read_text();s=s.replace("page.getByLabel('Customer',{exact:true})", "page.getByRole('combobox',{name:'Customer',exact:true})");p.write_text(s)
+          p=Path('tests/e2e/google-maps.spec.mjs');s=p.read_text();s=s.replace("path.endsWith('/jobs') && method === 'POST'", "path.endsWith('/rpc/create_job_atomic') && method === 'POST'");s=s.replace("...body }, 201)", "...body.payload, status: 'lead' }, 200)");s=s.replace("r.path.endsWith('/jobs') && r.method === 'POST'", "r.path.endsWith('/rpc/create_job_atomic') && r.method === 'POST'");s=s.replace('write.body.business_id','write.body.target_business_id').replace('write.body.customer_id','write.body.payload.customer_id').replace('write.body.property_id','write.body.payload.property_id');s=s.replace('  expect(write.body.payload.property_id).toBe(propertyId)', "  expect(write.body.payload.property_id).toBe(propertyId)\n  expect(write.body.request_id).toMatch(/^[0-9a-f-]{36}$/i)\n  expect(requests.filter(r => r.path.endsWith('/jobs') && r.method === 'POST')).toHaveLength(0)");p.write_text(s)
           PY
       - run: npm install --ignore-scripts
       - run: npm run build
@@ -36,17 +38,24 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Full browser regression, including recovery tests
         run: npx playwright test
-      - name: Commit only reviewed application files to the same development branch
+      - name: Commit only reviewed files to the same development branch
         run: |
           git diff --check
           git config user.name 'Finviant Recovery Checks'
           git config user.email 'recovery-checks@users.noreply.github.com'
-          git add src/services/jobs.ts src/components/VoiceAssistant.tsx src/pages/JobsPage.tsx supabase/functions/ai-command/index.ts supabase/functions/transcribe-voice/index.ts vercel.json
+          git add src/services/jobs.ts src/components/VoiceAssistant.tsx src/pages/JobsPage.tsx supabase/functions/ai-command/index.ts supabase/functions/transcribe-voice/index.ts vercel.json tests/e2e/recovery.spec.mjs tests/e2e/google-maps.spec.mjs
           git commit -m 'Apply verified bounded AI calls, atomic job workflows and recoverable browser actions'
           git push origin HEAD:refs/heads/feature/velnu-stage1
-      - uses: actions/upload-artifact@v4
+          git archive --format=zip HEAD -o finviant-verified-recovery-source.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: reviewed-recovery-browser-results
           path: test-results/
           retention-days: 3
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success()
+        with:
+          name: finviant-verified-recovery-source
+          path: finviant-verified-recovery-source.zip
+          retention-days: 1
