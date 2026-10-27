@@ -4,7 +4,7 @@ const businessId = '11111111-1111-4111-8111-111111111111'
 const userId = '33333333-3333-4333-8333-333333333333'
 const user = { id: userId, email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
 const company = { id: businessId, name: 'Velnu Test Services', role: 'owner', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z', logo_path: null }
-const agreement = { id:'88888888-8888-4888-8888-888888888888', agreement_version:'2026-10-26-v1' }
+const agreement = { id:'88888888-8888-4888-8888-888888888888', agreement_version:'2026-10-26-v2' }
 
 async function signedIn(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -65,6 +65,7 @@ test('signed-in owner saves account service interests without purchase or billin
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: {'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'' })
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json(agreement)
     if (path.endsWith('/business_members')) return json({business_id:businessId,role:'owner',businesses:company})
     if (path.endsWith('/business_service_interests')) return method === 'POST' ? json({},201) : json(null)
