@@ -59,6 +59,54 @@ Google Calendar sharing supports dedicated team calendars with access-control ro
 - Pro / a la carte add-on: company shared calendar, employee invitations/assignments, per-employee sync, team dispatch and eventual two-way sync.
 - Publish fixed prices, seats and usage limits only after expected provider, authentication, message, and ongoing maintenance costs are modeled.
 
+## Google API integration decisions and costs (checked October 26, 2026)
+
+**Status: roadmap only.** Google Maps URLs already used in Velnu need **no API key**; a Google Map embedded in the app needs a Google Cloud project with billing, restricted Maps Embed API key, and the \`VITE_GOOGLE_MAPS_EMBED_KEY\` preview environment variable. Google Calendar, Google Sign-In and other Google account-linked features are **not yet connected to Velnu customer accounts**.
+
+**There is no single "Google API subscription."** You can create a Google Cloud project at no upfront cost and enable only the services you need. Some APIs are no-charge or have monthly free usage caps; others bill per request or minute. Enabling Maps Platform billing requires a payment method, but does **not** require a $100+/month Maps subscription; choose pay-as-you-go for the MVP. Eligible new Google Cloud customers may receive $300 in credit over 90 days, subject to product eligibility and account rules.
+
+| Integration | Business benefit | Current provider cost / cap (USD) | Velnu priority |
+|---|---|---|---|
+| Google Maps URLs | Open directions to jobs or properties in Google Maps | **$0 Google API charge; no API key** | **Already present** |
+| Google Maps Embed API | Show a map for a customer or job address within Velnu | **$0 for unlimited Embed SKU usage**; Google Cloud billing + a restricted browser key still required | Optional now |
+| Google Sign-In / OAuth | Sign up or sign in with a Google account | **No Google per-login API charge expected**; Supabase auth-plan limits and OAuth review/configuration still apply | After basic auth works |
+| Google Calendar API | Sync Velnu appointments with a connected Google calendar | **$0 for standard API use within limits**; Oct 2026 published threshold is 1,000,000 requests/day/project, after which Google may charge later in 2026 (prices not yet published) | Basic/Pro future optional |
+| Google Maps Dynamic Maps | Fully interactive maps, layers, markers, dispatch view | First **10,000 loads/month free**, then **$7 per 1,000** at the initial paid tier | Only after need is established |
+| Google Places Autocomplete (New) | Suggest verified service addresses when typing | First **10,000 billable requests/month free**, then **$2.83 per 1,000**; session and details SKUs may differ | Optional later |
+| Google Geocoding | Turn addresses into coordinates for maps/distance | First **10,000 requests/month free**, then **$5 per 1,000** | Optional later |
+| Google Business Profile APIs | Let owners manage business listing information, posts/reviews when approved | **No Google API usage fee**, but developer approval is required and use is subject to eligibility/quotas | Optional add-on after launch |
+| Gmail API | Allow users to connect their own mailbox, read mail or send as themselves | Standard API use presently **$0 within quotas**, with potential above-threshold billing later in 2026; restricted scopes can require security assessment and recurring external assessor fees | **Not needed for invoice sending**; keep Resend |
+| Google Speech-to-Text v2 | Alternate speech transcription provider | Standard synchronous recognition **$0.016 per audio minute** in initial tier (about $16 per 1,000 minutes), plus storage/network where applicable | Do **not** add now; OpenAI already chosen |
+
+### Lowest-cost launch choice
+
+1. Keep **Google Maps URLs for navigation at no API cost** and the optional **Maps Embed** experience at no Embed usage charge. Enable the Embed key only if embedded maps are an important test feature.
+2. Add **Google Calendar OAuth** after the internal appointment and employee-permission workflows work; start with one-way sync, then optional paid two-way sync.
+3. Offer **Sign in with Google** for convenient signup only after current Supabase authentication and required user-agreement flow are stable.
+4. Use **Resend**, not Gmail API, for Velnu's own branded invoice/estimate emails after domain verification.
+5. Don't add Google Speech-to-Text on top of OpenAI unless testing demonstrates an accuracy or reliability improvement worth the extra integration.
+6. Set **Google Cloud budget alerts and per-API quota restrictions**; budget alerts are notifications, not guaranteed hard spending caps. Avoid loading maps or invoking Places on every page render when not needed. Store OAuth refresh tokens only server-side. Do not submit sensitive customer or employee details to Google APIs without necessary consent.
+
+### Google project setup checklist (when ready)
+
+- [ ] Create Google Cloud project **Velnu-Staging** at https://console.cloud.google.com/ and enable billing only as required.
+- [ ] Enable only the specific Google API(s) listed above.
+- [ ] For maps, make a **website-referrer and API-restricted browser key** and set \`VITE_GOOGLE_MAPS_EMBED_KEY\` for **Vercel Preview** (not a secret; restriction makes exposure acceptable).
+- [ ] For sign-in/calendar, configure a separate **Google OAuth consent screen**, authorized redirect URI, and least-privilege scopes. Store OAuth client secret and users' refresh tokens securely on the backend, never in browser variables.
+- [ ] Set pricing alerts, API quotas, and staging tests before opening any paid Google API to users.
+- [ ] Validate owner/customer data isolation, consent revocation, quota failures, retries, timezone handling, and disconnected Google accounts.
+
+**Official sources (recheck before activation):**
+
+- Maps pricing and free SKU caps: https://developers.google.com/maps/billing-and-pricing/pricing
+- Maps billing, pay-as-you-go vs fixed subscriptions: https://developers.google.com/maps/billing-and-pricing/overview
+- Calendar API pricing and limits: https://developers.google.com/workspace/calendar/api/guides/quota
+- Gmail API usage and pricing: https://developers.google.com/workspace/gmail/api/reference/quota
+- Google Business Profile API pricing/access: https://developers.google.com/my-business/content/pricing
+- Speech-to-Text pricing: https://cloud.google.com/speech-to-text/pricing
+- Google Cloud trial: https://docs.cloud.google.com/free/docs/free-cloud-features
+- Restricted OAuth scope security assessment: https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification
+
 ## Release dependencies and acceptance gates
 
 The current Velnu Schedule page supports internal appointment/job scheduling, status changes, and a list view. **It does not yet connect Google Calendar, Microsoft Calendar, or employee accounts.** Keep calendar connection controls hidden or explicitly "Coming soon" until OAuth and synchronization are working.
