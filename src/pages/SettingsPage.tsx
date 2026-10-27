@@ -18,7 +18,7 @@ export default function SettingsPage({ business, onSaved }: {
       <p className="form-message">Only the business owner or administrator can edit company settings.</p>}
     <section className="settings-document-preview">
       <p className="eyebrow">Your service tier</p>
-      <p className="quiet">Choose Free, Basic, or Pro. Basic and Pro are preferences only until pricing and subscriptions are launched.</p>
+      <p className="quiet">Free (10 invoices/estimates combined monthly), proposed Basic ($9.99/month), or proposed Pro ($24.99/month). Paid tiers, AI credit packs and storage top-ups are not activated by selecting them.</p>
       <a className="secondary-button" href="/plans">Review or change service tier</a>
       <p className="quiet"><a href="/legal" target="_blank" rel="noopener noreferrer">Read the complete user agreement, AI disclosure and privacy notice</a></p>
     </section>

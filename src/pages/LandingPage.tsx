@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { monthlyPlans, addOnCatalog, formatMonthlyPrice, formatMoney } from '../lib/pricing'
 
 const offerCards = [
   { eyebrow: '01 · Start simple', title: 'Look professional from the first estimate.', copy: 'Set up your company details, colors and logo once. Carry your identity into invoices and estimates.', kind: 'Available in private beta', icon: '◫' },
@@ -9,38 +10,17 @@ const offerCards = [
   { eyebrow: '06 · AI OFFICE ASSISTANT', title: 'An assistant that knows your business.', copy: 'Planned paid AI tools can use your services, territory, team roles and existing records to help find jobs, summarize unpaid invoices, and prepare follow-ups.', kind: 'AI · Basic / Pro planned', icon: '✳' },
 ]
 const plans = [
-  { name: 'Free', kicker: 'Start with the essentials', price: 'Free', detail: 'Pricing and usage terms may change after the beta.', featured: false, features: [
-    'Manual invoices and estimates',
-    'Customer and job records',
-    'Company name and contact details (no hosted logo)',
-    '0 online customer approvals / acceptances',
-    'No AI, cloud voice, SMS, automatic email, or paid integrations',
-    'Printable branded document previews',
-    'No usage-metered third-party services',
-  ] },
-  { name: 'Basic', kicker: 'Make routine work easier', price: 'Coming soon', detail: 'Price and AI allowances to be announced.', featured: true, features: [
-    'Everything in Free',
-    'AI OFFICE ASSISTANT · voice-to-invoice and estimate drafts',
-    'AI customer and job lookup (planned)',
-    'AI unpaid invoice summaries and business context (planned)',
-    'Optional company logo with storage limits (planned)',
-    'AI usage limits to be announced; 0 online approvals',
-  ] },
-  { name: 'Pro', kicker: 'More capability for growing teams', price: 'Coming soon', detail: 'Features, price and limits to be announced.', featured: false, features: [
-    'Everything in Basic',
-    'AI OFFICE ASSISTANT · expanded business workflows (planned)',
-    'Customer estimate acceptance with terms (planned)',
-    'Verified customer email delivery (planned)',
-    'Automated reminders and messaging with usage limits (planned)',
-    'Additional team and workflow tools (planned)',
-  ] },
+  { name: 'Free', kicker: 'Start with the essentials', price: 'Free', detail: '10 invoices and estimates combined each month.', featured: false, features: monthlyPlans.free.features },
+  { name: 'Basic', kicker: 'Affordable AI-assisted everyday work', price: formatMonthlyPrice('basic'), detail: 'Per month · Proposed pricing, not available for checkout.', featured: true, features: monthlyPlans.basic.features },
+  { name: 'Pro', kicker: 'Expanded assistance for growing teams', price: formatMonthlyPrice('pro'), detail: 'Per month · Proposed pricing, not available for checkout.', featured: false, features: monthlyPlans.pro.features },
 ]
+
 const questions = [
   { q: 'Does Free include AI or online customer approvals?', a: 'No. Free offers manual business tools only: zero AI calls, zero cloud transcription, zero online customer estimate acceptances, and no metered email, SMS or paid integrations. You can print a document and deliver it yourself outside Velnu.' },
   { q: 'What does the Velnu AI assistant do?', a: 'The paid AI assistant is planned to turn speech into reviewed invoice and estimate drafts, help find customers and jobs, summarize outstanding invoices, and use your business profile for context. It does not automatically send invoices or make financial decisions.' },
   { q: 'Will Velnu send an invoice without me approving it?', a: 'No. The workflow is designed around owner review. Voice and AI can prepare drafts, but customer-facing actions require your confirmation.' },
   { q: 'Is Velnu ready for my entire business?', a: 'Velnu is a private beta. Some features and integrations, including live customer email delivery, are still being tested. Keep independent copies of important records.' },
-  { q: 'What will Basic and Pro cost?', a: 'Prices are not set yet. We will publish package details and usage allowances before requesting payment.' },
+  { q: 'What do Basic, Pro and extra AI credits cost?', a: 'Proposed monthly prices: Free $0, Basic $9.99, and Pro $24.99. You can request extra Velnu AI credits or file storage. Checkout and add-ons are not active during the private beta.' },
 ]
 
 export default function LandingPage() {
@@ -118,13 +98,23 @@ export default function LandingPage() {
         </div>
       </div></section>
       <section id="pricing" className="marketing-pricing"><div className="marketing-container">
-        <div className="marketing-centered-intro"><p className="marketing-section-kicker">SIMPLE PLANS. CLEAR OPTIONS.</p><h2>A plan for where you are today.</h2><p>Start with the essentials. Unlock AI capabilities as Velnu grows. Basic and Pro pricing will be announced before paid plans launch.</p></div>
+        <div className="marketing-centered-intro"><p className="marketing-section-kicker">SIMPLE PLANS. CLEAR OPTIONS.</p><h2>A plan for where you are today.</h2><p>Start with the essentials. Unlock AI capabilities as Velnu grows. Proposed monthly plans: Free $0, Basic $9.99 and Pro $24.99. Paid plans and add-ons are not available for purchase during the private beta.</p></div>
         <div className="marketing-price-grid">{plans.map(plan=><article className={'marketing-price-card' + (plan.featured?' featured':'')} key={plan.name}>
           <div className="marketing-price-top">{plan.featured&&<div className="marketing-plan-pill">AI-assisted · Planned</div>}<h3>{plan.name}</h3><p>{plan.kicker}</p><div className="marketing-price-value">{plan.price}</div><span className="marketing-price-detail">{plan.detail}</span></div>
           <ul>{plan.features.map(f=><li key={f}><span className="marketing-check">✓</span>{f}</li>)}</ul>
           <a className={'marketing-btn ' + (plan.featured?'marketing-btn-accent':'marketing-btn-outline')} href="/auth?mode=signup">{plan.name==='Free'?'Join free private beta':'Explore in private beta'} <span>↗</span></a>
         </article>)}</div>
-        <p className="marketing-pricing-note"><a href="/auth?mode=signin&next=plans">Already have an account? Sign in to choose Free, Basic, or Pro.</a> Free: 0 online customer acceptances and 0 metered AI, email, SMS or payment-service actions. Basic/Pro features are proposed, not a guarantee of live access. No payment, subscription or automatic upgrade is activated by registering for the beta. Optional QuickBooks Online connectivity requires an eligible Intuit account; Intuit subscriptions, payment processing and other integration fees may apply separately.</p>
+        <section className="marketing-topups" aria-label="Optional AI credit and storage packs">
+          <div className="marketing-topups-header"><h3>Need a little more? Add usage when you need it.</h3><p>Instead of paying for a higher plan every month, choose extra Velnu AI credits or storage. Add-on billing is planned, not active.</p></div>
+          <div className="marketing-topups-grid">{addOnCatalog.map(addon =>
+            <article key={addon.id} className="marketing-topup-card">
+              <strong>{addon.quantityLabel}</strong><span>{formatMoney(addon.priceUsd)} / {addon.billing === 'one-time' ? 'pack' : 'month'}</span>
+              <p>{addon.description}</p>
+            </article>
+          )}</div>
+          <a href="/services" className="marketing-inline-link">Explore à-la-carte options <span>↗</span></a>
+        </section>
+        <p className="marketing-pricing-note"><a href="/auth?mode=signin&next=plans">Already have an account? Sign in to choose Free, Basic, or Pro.</a> Free: 0 online customer acceptances and 0 metered AI, email, SMS or payment-service actions. Basic/Pro features and add-on allowances are proposed, not a guarantee of live access. No payment, subscription or automatic upgrade is activated by registering for the beta. Optional QuickBooks Online connectivity requires an eligible Intuit account; Intuit subscriptions, payment processing and other integration fees may apply separately.</p>
       </div></section>
       <section className="services-marketing-banner">
         <div className="marketing-container services-marketing-banner-inner">

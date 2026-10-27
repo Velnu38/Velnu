@@ -38,7 +38,7 @@ export default function WorkspaceServicesPage({ business }: { business: CurrentB
   }
   return <div className="page-stack workspace-services">
     <div className="page-heading"><p className="eyebrow">My services · Beta preferences</p><h1>Build your Velnu workspace.</h1>
-      <p className="quiet">Use Velnu's existing tools now. Select the optional services you'd like, and we'll use these preferences to plan future packages. No prices or service activations are applied yet.</p></div>
+      <p className="quiet">Velnu plans: Free $0, Basic $9.99/month and Pro $24.99/month (proposed). Select extra AI credits or storage as needed. No checkout, subscription, credits or storage are activated in private beta.</p></div>
     {loading ? <p className="form-message">Loading service preferences…</p> : <>
       <ServicePicker value={interest} onChange={change} disabled={!editable}/>
       {error && <p className="form-message error-text" role="alert">{error}</p>}

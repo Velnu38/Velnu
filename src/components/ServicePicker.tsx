@@ -1,4 +1,4 @@
-import { serviceCatalog, plans, type ServiceId, type ServiceInterest, type PlanInterest } from '../lib/serviceCatalog'
+import { serviceCatalog, optionalTopUps, plans, type ServiceId, type ServiceInterest, type PlanInterest } from '../lib/serviceCatalog'
 
 export default function ServicePicker({ value, onChange, disabled = false, compact = false }: {
   value: ServiceInterest
@@ -36,9 +36,23 @@ export default function ServicePicker({ value, onChange, disabled = false, compa
         </label>)}
       </div>
     </fieldset>
+    <fieldset className="service-addon-choices">
+      <legend>Extra AI credits and file storage</legend>
+      <p>Choose any add-ons you may want after your included allowance runs out. Prices are proposals; selecting an option only records interest. No credits, storage or paid access are activated during the beta.</p>
+      <div className="service-addon-grid">
+        {optionalTopUps.map(addon => <label className={'service-addon-card' + (value.services.includes(addon.id) ? ' selected' : '')} key={addon.id}>
+          <input type="checkbox" checked={value.services.includes(addon.id)} disabled={disabled}
+            onChange={event => toggleService(addon.id, event.target.checked)} />
+          <span className="service-addon-card-content">
+            <span className="service-addon-top"><strong>{addon.quantityLabel}</strong><span className="service-addon-status">{addon.priceLabel} / {addon.billing === 'one-time' ? 'pack' : 'month'}</span></span>
+            <small>{addon.description} Billing and fulfillment are not live.</small>
+          </span>
+        </label>)}
+      </div>
+    </fieldset>
     <div className="service-picker-summary" role="status" aria-live="polite">
       <strong>{value.services.length} optional {value.services.length === 1 ? 'service' : 'services'} selected</strong>
-      <span>{plans.find(x => x.id === value.plan)?.label ?? 'Free'} interest · No charges · Prices to be announced</span>
+      <span>{plans.find(x => x.id === value.plan)?.label ?? 'Free'} interest · No charges during private beta · Add-on prices proposed</span>
     </div>
   </div>
 }

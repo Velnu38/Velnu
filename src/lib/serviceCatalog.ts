@@ -1,6 +1,8 @@
+import { addOnCatalog, formatMoney, type AddOnId } from './pricing'
+
 export type ServiceId =
   | 'voice_drafts' | 'estimate_approvals' | 'payment_links' | 'automated_reminders'
-  | 'bookkeeping' | 'team_tools' | 'sms_messages'
+  | 'bookkeeping' | 'team_tools' | 'sms_messages' | AddOnId
 export type PlanInterest = 'free' | 'basic' | 'pro' | 'a_la_carte'
 export type ServiceInterest = { plan: PlanInterest; services: ServiceId[] }
 
@@ -17,13 +19,14 @@ export const serviceCatalog: Array<{
 ]
 export const plans: Array<{ id: PlanInterest; label: string; description: string }> = [
   { id: 'free', label: 'Free', description: 'Manual tools only · 0 AI, customer approvals, and metered services' },
-  { id: 'basic', label: 'Basic', description: 'AI-assisted everyday work — pricing coming soon' },
-  { id: 'pro', label: 'Pro', description: 'Expanded workflows — pricing coming soon' },
-  { id: 'a_la_carte', label: 'À la carte', description: 'Pick services individually — pricing coming soon' },
+  { id: 'basic', label: 'Basic', description: '$9.99/month proposed · 200 AI credits per month' },
+  { id: 'pro', label: 'Pro', description: '$24.99/month proposed · 1,000 AI credits per month' },
+  { id: 'a_la_carte', label: 'À la carte', description: 'Choose add-ons individually · No charges during beta' },
 ]
 export const defaultServiceInterest: ServiceInterest = { plan: 'free', services: [] }
 const key = 'velnu.beta.service-interests.v1'
-const knownIds = new Set<ServiceId>(serviceCatalog.map(x => x.id))
+export const optionalTopUps = addOnCatalog.map(item => ({ ...item, priceLabel: formatMoney(item.priceUsd) }))
+const knownIds = new Set<ServiceId>([...serviceCatalog.map(x => x.id), ...addOnCatalog.map(x => x.id)])
 const knownPlans = new Set<PlanInterest>(plans.map(x => x.id))
 
 export function normalizeInterests(value: unknown): ServiceInterest {

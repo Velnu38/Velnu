@@ -1,26 +1,19 @@
 import { supabase } from './supabase'
+import { monthlyPlans, formatMonthlyPrice } from './pricing'
 
 export type PlanTier = 'free' | 'basic' | 'pro'
 
 export const planOptions: Array<{
   tier: PlanTier; name: string; subtitle: string; price: string; status: string; features: string[]
-}> = [
-  {
-    tier: 'free', name: 'Free', subtitle: 'A professional starting point',
-    price: '$0', status: 'Manual tools · No metered services',
-    features: ['Manual estimates and invoices; printable PDF', 'Customer and job records within storage limits', 'Company name, address, phone and text branding', '0 online customer acceptances', '0 AI calls, cloud voice, automated email, SMS and third-party paid services'],
-  },
-  {
-    tier: 'basic', name: 'Basic', subtitle: 'AI-assisted everyday operations',
-    price: 'Pricing coming soon', status: 'Join the Basic interest list',
-    features: ['Proposed Free plan features', 'AI ASSISTANT · voice-to-invoice and estimate drafts', 'AI ASSISTANT · customer/job lookup and unpaid invoice summaries', 'AI ASSISTANT · business context and clarification questions', 'Planned hosted company logos and limited AI allowance', '0 online customer acceptances'],
-  },
-  {
-    tier: 'pro', name: 'Pro', subtitle: 'Tools for growing teams',
-    price: 'Pricing coming soon', status: 'Join the Pro interest list',
-    features: ['Proposed Basic plan features', 'AI ASSISTANT · expanded office workflows', 'Online estimate acceptance with recorded agreement to terms', 'Customer email, reminders, messaging with usage limits', 'Team and automation options (planned)'],
-  },
-]
+}> = (['free', 'basic', 'pro'] as const).map(tier => ({
+  tier,
+  name: monthlyPlans[tier].name,
+  subtitle: tier === 'free' ? 'A professional starting point' :
+    tier === 'basic' ? 'Affordable AI-assisted essentials' : 'Expanded tools for growing teams',
+  price: tier === 'free' ? 'Free' : formatMonthlyPrice(tier) + ' / month',
+  status: monthlyPlans[tier].status,
+  features: monthlyPlans[tier].features,
+}))
 
 export async function getPlanPreference(userId: string): Promise<PlanTier | null> {
   const { data, error } = await supabase.from('user_plan_preferences')

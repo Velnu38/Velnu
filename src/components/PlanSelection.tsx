@@ -52,8 +52,8 @@ export default function PlanSelection({ userId, email, currentTier, onSelected, 
       {error && <p className="form-message error-text" role="alert">{error}</p>}
       <div className="plan-pick-notice">
         <strong>Your choice is a preference, not a purchase.</strong>
-        <p>Free has 0 customer online acceptances and 0 metered AI, email, SMS or payment-service actions. Basic and Pro pricing, allowances, and availability are not yet finalized. Selecting either does not activate paid functionality, start a subscription, or authorize a charge. All private-beta capabilities remain subject to testing and release controls.</p>
-        <p>Looking for extra services à la carte? You can explore optional services under <strong>My services</strong> after entering your workspace. Pricing for add-ons will be published later.</p>
+        <p>Free has 0 customer online acceptances and 0 metered AI, email, SMS or payment-service actions. Basic ($9.99/month) and Pro ($24.99/month) pricing and allowances are proposed, not available for purchase yet. Selecting either does not activate paid functionality, start a subscription, or authorize a charge. All private-beta capabilities remain subject to testing and release controls.</p>
+        <p>Looking for extra services à la carte? You can explore optional services under <strong>My services</strong> after entering your workspace. Proposed extras include 100 AI credits for $4.99, 500 AI credits for $17.99, 1 GB storage for $1.99/month, or 5 GB for $4.99/month. Purchases are not active.</p>
       </div>
     </div>
   </main>
