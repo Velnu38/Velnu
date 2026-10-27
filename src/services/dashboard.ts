@@ -71,6 +71,14 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
     if (result.error) throw result.error
   }
 
+  // This is a database table-returning RPC. Keep the response contract explicit:
+  // the project does not yet generate typed Supabase Database definitions.
+  const invoiceTotals = invoices.data as {
+    open_invoices: number | string
+    outstanding_balance: number | string
+  } | null
+  if (!invoiceTotals) throw new Error('Unable to calculate dashboard invoice totals')
+
   const pendingApprovals: DashboardSnapshot['pendingApprovals'] = [
     ...(estimatesAwaiting.data ?? []).map((row: any) => ({
       id: row.id,
@@ -94,8 +102,8 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
 
   return {
     customers: customers.count ?? 0,
-    openInvoices: Number(invoices.data?.open_invoices ?? 0),
-    outstandingBalance: Number(invoices.data?.outstanding_balance ?? 0),
+    openInvoices: Number(invoiceTotals.open_invoices),
+    outstandingBalance: Number(invoiceTotals.outstanding_balance),
     jobsThisWeek: jobs.count ?? 0,
     overdueInvoices: (overdueInvoices.data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) })) as DashboardSnapshot['overdueInvoices'],
     dueReminders: (dueReminders.data ?? []) as DashboardSnapshot['dueReminders'],
