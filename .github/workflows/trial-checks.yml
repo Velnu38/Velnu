@@ -32,6 +32,8 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Scheduling unit tests (edge cases)
+        run: deno test tests/unit/scheduleTime_test.ts
       - name: Check invoice email backend
         run: deno check --node-modules-dir=auto supabase/functions/send-invoice-email/index.ts
       - name: Backend regression checks (mock services only)
