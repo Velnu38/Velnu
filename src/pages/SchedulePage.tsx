@@ -7,6 +7,7 @@ import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import { validateScheduleWindow } from '../lib/scheduleTime'
+import { readableError } from '../lib/errors'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
@@ -46,7 +47,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
       setCustomers(customerRows as Customer[])
       setError('')
     } catch (err) {
-      if (mounted.current && request === currentRequest.current) setError(err instanceof Error ? err.message : 'Unable to load schedule')
+      if (mounted.current && request === currentRequest.current) setError(readableError(err, 'Unable to load schedule'))
     }
   }
 
@@ -95,7 +96,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
       })
       resetForm(); setShowForm(false); await refresh()
     } catch (err) {
-      if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to schedule work')
+      if (mounted.current) setError(readableError(err, 'Unable to schedule work'))
     } finally {
       submitting.current = false
       if (mounted.current) setBusy(false)
@@ -104,7 +105,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
 
   async function changeStatus(id: string, status: Appointment['status']) {
     try { await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show'); await refresh() }
-    catch (err) { if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to update schedule') }
+    catch (err) { if (mounted.current) setError(readableError(err, 'Unable to update schedule')) }
   }
 
   return <div className="page-stack">
