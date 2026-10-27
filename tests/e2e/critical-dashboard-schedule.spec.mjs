@@ -45,6 +45,7 @@ async function mockWorkspace(page, options = {}) {
     estimates: [...(options.estimates || [])],
     changeOrders: [...(options.changeOrders || [])],
     requests: [],
+    savedJobs: new Map(),
     aggregate: options.aggregate ?? { open_invoices: 0, outstanding_balance: 0 },
     aggregateFailures: options.aggregateFailures || 0,
     aggregateDelay: options.aggregateDelay || 0,
@@ -75,6 +76,26 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/user_agreement_acceptances')) return reply({ id: id(91), agreement_version: '2026-10-26-v2' })
     if (path.endsWith('/business_members')) return reply({ role: state.role, business_id: BID, businesses: business })
     if (path.endsWith('/rpc/get_plan_usage')) return reply({ plan: 'free', ai_limit: 0, voice_limit: 0, logo_bytes_limit: 0 })
+    if (path.endsWith('/rpc/create_scheduled_job')) {
+      if (state.jobError) return fail('Unable to create job')
+      if (state.appointmentError) return fail('Unable to create appointment')
+      const previous = state.savedJobs.get(body.request_id)
+      if (previous) return reply(previous)
+      const row = {
+        id: id(80), appointment_id: id(81), business_id: body.target_business_id,
+        customer_id: body.payload.customer_id, property_id: body.payload.property_id,
+        title: body.payload.title, status: 'scheduled',
+        scheduled_start: body.payload.scheduled_start, scheduled_end: body.payload.scheduled_end,
+      }
+      state.savedJobs.set(body.request_id, row)
+      state.appointments.push({
+        id: row.appointment_id, job_id: row.id, business_id: row.business_id,
+        customer_id: row.customer_id, title: row.title, status: 'scheduled',
+        starts_at: row.scheduled_start, ends_at: row.scheduled_end,
+        customers: customer, jobs: null,
+      })
+      return reply(row)
+    }
     if (path.endsWith('/rpc/get_dashboard_invoice_totals')) {
       if (state.aggregateDelay) await new Promise(resolve => setTimeout(resolve, state.aggregateDelay))
       if (state.aggregateFailures-- > 0) return fail('Dashboard summary temporarily unavailable')
@@ -185,8 +206,15 @@ test('04 large financial summary stays server-side without an unbounded invoice 
 })
 
 test('05 failed invoice-summary RPC displays recoverable error instead of crashing', async ({ page }) => {
-  await openDashboard(page, { aggregateFailures: 20 })
-  await expect(page.getByText('Dashboard summary temporarily unavailable')).toBeVisible()
+  const state = await openDashboard(page, { aggregateFailures: 20 })
+  await expect(page.getByText('Dashboard summary temporarily unavailable')).toBeVisible().catch(async err => {
+    console.log('Dashboard error diagnostic', JSON.stringify({
+      requests: state?.requests?.filter?.(r => r.path.includes('dashboard_invoice_totals')),
+      alerts: await page.locator('.form-message').allTextContents(),
+      text: (await page.locator('.page-stack').first().innerText()).slice(0, 700),
+    }))
+    throw err
+  })
   await expect(page.getByRole('button', { name: 'Refresh' })).toBeEnabled()
 })
 
@@ -330,11 +358,13 @@ test('20 valid schedule submits local date values as UTC and does not duplicate 
     button.click()
   })
   await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toHaveCount(0)
-  expect(count(state, '/jobs', 'POST')).toBe(1)
-  const request = state.requests.find(r => r.path.endsWith('/jobs') && r.method === 'POST')
-  expect(request.body.scheduled_start).toBe(new Date(start).toISOString())
-  expect(request.body.scheduled_end).toBe(new Date(end).toISOString())
-  expect(count(state, '/appointments', 'POST')).toBe(1)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')).toBe(1)
+  const request = state.requests.find(r => r.path.endsWith('/rpc/create_scheduled_job'))
+  expect(request.body.payload.scheduled_start).toBe(new Date(start).toISOString())
+  expect(request.body.payload.scheduled_end).toBe(new Date(end).toISOString())
+  expect(state.savedJobs.size).toBe(1)
+  expect(state.appointments).toHaveLength(1)
+  expect(count(state, '/appointments', 'POST')).toBe(0)
 })
 
 test('21 optional end date produces a null scheduled end', async ({ page }) => {
@@ -342,7 +372,7 @@ test('21 optional end date produces a null scheduled end', async ({ page }) => {
   await completeForm(page, localDatetime(), null)
   await page.getByRole('button', { name: 'Schedule job' }).click()
   await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toHaveCount(0)
-  expect(state.requests.find(r => r.path.endsWith('/jobs') && r.method === 'POST').body.scheduled_end).toBeNull()
+  expect(state.requests.find(r => r.path.endsWith('/rpc/create_scheduled_job')).body.payload.scheduled_end).toBeNull()
 })
 
 test('22 failed job insert preserves the form and displays a recoverable error', async ({ page }) => {
@@ -351,16 +381,20 @@ test('22 failed job insert preserves the form and displays a recoverable error',
   await page.getByRole('button', { name: 'Schedule job' }).click()
   await expect(page.getByText('Unable to create job')).toBeVisible()
   await expect(page.getByLabel('Job title', { exact: true })).toHaveValue('Replace faucet')
-  expect(count(state, '/appointments', 'POST')).toBe(0)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')).toBe(1)
+  expect(state.savedJobs.size).toBe(0)
+  expect(state.appointments).toHaveLength(0)
 })
 
-test('23 failed appointment insert triggers compensating job deletion', async ({ page }) => {
+test('23 failed appointment insert rolls back the whole scheduled-job transaction', async ({ page }) => {
   const state = await openSchedule(page, { appointmentError: true })
   await completeForm(page)
   await page.getByRole('button', { name: 'Schedule job' }).click()
   await expect(page.getByText('Unable to create appointment')).toBeVisible()
-  await expect.poll(() => count(state, '/jobs', 'DELETE')).toBe(1)
-  expect(count(state, '/jobs', 'POST')).toBe(1)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')).toBe(1)
+  expect(state.savedJobs.size).toBe(0)
+  expect(state.appointments).toHaveLength(0)
+  expect(count(state, '/jobs', 'DELETE')).toBe(0)
 })
 
 test('24 successful status change updates the appointment exactly once', async ({ page }) => {
