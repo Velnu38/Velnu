@@ -25,6 +25,18 @@ An official embedded map needs the Google Maps **Embed API**, a Google Cloud pro
 
 Official docs: [Embed API quickstart](https://developers.google.com/maps/documentation/embed/quickstart), [API key restrictions](https://developers.google.com/maps/documentation/javascript/get-api-key), [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started).
 
+## Costs (Google-published US/global list, October 26, 2026)
+
+- **View on Google Maps / Get directions via Maps URLs**: no Google API key or billable Maps API call required.
+- **Maps Embed API** (an iframe inside Velnu): Google lists the **Embed SKU as unlimited no-charge usage**. You still need a Google Cloud project, billing account and correctly restricted API key to enable this version.
+- **Dynamic Maps** (more complex interactive maps): first **10,000 monthly map loads free**, then **$7/1,000** loads at the first paid tier.
+- **Places Autocomplete (New)** for service address suggestions: first **10,000 billable requests/month free**, then **$2.83/1,000** (other Places SKUs may add charges).
+- **Geocoding**: first **10,000 requests/month free**, then **$5/1,000**.
+
+Google's $100/month Starter, $275/month Essentials, and $1,200/month Pro **subscriptions are optional alternatives** to pay-as-you-go, **not required** for Velnu. Set usage budgets, cost alerts and quotas before enabling billable APIs.
+
+Official price list: https://developers.google.com/maps/billing-and-pricing/pricing ; Overview: https://developers.google.com/maps/billing-and-pricing/overview
+
 ## Limitations / future extensions
 
 - Map search uses the address text and may land on an ambiguous result if the address is incomplete; users should verify the Google Maps pin.
