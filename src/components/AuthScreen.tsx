@@ -81,13 +81,13 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
 
   return <main className="auth-page">
     <section className="auth-hero">
-      <a href="/" className="auth-brand-link" title="Back to Velnu home"><div className="logo-mark">V</div><div className="brand-word">Velnu</div></a>
+      <a href="/" className="auth-brand-link" title="Back to Finviant Office home"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><div className="brand-word">Finviant Office</div></a>
       <h1>Run your business by talking to it.</h1>
       <p>Your AI office manager for customers, jobs, estimates, invoices, payments and follow-up.</p>
       <div className="voice-example">“Create an invoice for Bob Smith for $1,450 due in 15 days.”</div>
     </section>
     <section className="auth-card">
-      <div><p className="eyebrow">Welcome to Velnu</p><h2>{mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create your account' : 'Reset your password'}</h2></div>
+      <div><p className="eyebrow">Welcome to Finviant Office</p><h2>{mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create your account' : 'Reset your password'}</h2></div>
       <form onSubmit={submit}>
         <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" disabled={busy} required /></label>
         {mode !== 'reset' && <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} minLength={mode === 'signup' ? 8 : undefined} disabled={busy} required /></label>}
@@ -97,10 +97,10 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       {(mode === 'signin' || awaitingConfirmation) && <button type="button" className="text-button" disabled={busy} onClick={resendConfirmation}>Resend confirmation email</button>}
       {mode === 'signin' && <button className="text-button" disabled={busy} onClick={() => switchMode('reset')}>Forgot password?</button>}
       <button className="text-button" disabled={busy} onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
-        {mode === 'signin' ? 'New to Velnu? Create an account' : 'Back to sign in'}
+        {mode === 'signin' ? 'New to Finviant Office? Create an account' : 'Back to sign in'}
       </button>
-      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the one <a href="/legal" target="_blank" rel="noopener noreferrer">Velnu User Agreement (including AI disclosure and privacy)</a> after selecting your Free, Basic, or Pro tier.</p>
-      <a className="text-button auth-home-link" href="/">Return to Velnu homepage</a>
+      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the one <a href="/legal" target="_blank" rel="noopener noreferrer">Finviant Office User Agreement (including AI disclosure and privacy)</a> after selecting your Free, Basic, or Pro tier.</p>
+      <a className="text-button auth-home-link" href="/">Return to Finviant Office homepage</a>
     </section>
   </main>
 }

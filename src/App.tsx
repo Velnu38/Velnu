@@ -109,7 +109,7 @@ export default function App() {
     void getCurrentBusiness().then(next => {
       if (active) setBusiness(next)
     }).catch(err => {
-      if (active) setError(err instanceof Error ? err.message : 'Unable to load your Velnu workspace')
+      if (active) setError(err instanceof Error ? err.message : 'Unable to load your Finviant Office workspace')
     }).finally(() => {
       if (active) setLoadedUserId(userId)
     })
@@ -134,7 +134,7 @@ export default function App() {
   if (['/legal', '/terms', '/privacy'].includes(publicPath)) return <LegalPage />
   if (publicPath === '/services') return <ServicesPage />
   if (publicPath === '/install') return <InstallPage />
-  if (!authReady) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening Velnu…</p></main>
+  if (!authReady) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening Finviant Office…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
   if (!session) {
     if (publicPath === '/auth' || publicPath === '/plans' || invalidAuthLink) {
@@ -142,20 +142,20 @@ export default function App() {
     }
     return <LandingPage />
   }
-  if (error) return <main className="loading-page"><div className="logo-mark">V</div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
-  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark">V</div><p>Checking your service tier…</p></main>
+  if (error) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
+  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your service tier…</p></main>
   if (planStatus === 'needed' || planRequested) return <PlanSelection
     userId={session.user.id} email={session.user.email ?? 'your account'} currentTier={selectedTier}
     onSelected={savePlanChoice} onSignOut={() => void supabase.auth.signOut()}
   />
-  if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark">V</div><p>Checking your agreement…</p></main>
+  if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your agreement…</p></main>
   if (agreementStatus === 'needed') return <AccountAgreement
     userId={session.user.id} email={session.user.email ?? 'your account'} selectedTier={selectedTier!}
     onChangeTier={() => setPlanRequested(true)}
     onAccepted={() => setAgreementStatus('accepted')}
     onSignOut={() => void supabase.auth.signOut()}
   />
-  if (loadedUserId !== userId) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening your workspace…</p></main>
+  if (loadedUserId !== userId) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening your workspace…</p></main>
   if (!business) return <BusinessOnboarding onCreated={setBusiness} />
   return <AppShell business={business} />
 }

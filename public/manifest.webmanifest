@@ -1,15 +1,15 @@
 {
-  "name": "Velnu — Business Assistant",
-  "short_name": "Velnu",
-  "description": "Velnu web app for customers, jobs, estimates, invoices, and business tools.",
+  "name": "Finviant Office — Business Assistant",
+  "short_name": "Finviant",
+  "description": "Finviant Office web app for customers, jobs, estimates, invoices, and business tools.",
   "start_url": "/auth?mode=signin",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#0f2747",
   "icons": [
     {
-      "src": "/velnu-icon.svg",
+      "src": "/finviant-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

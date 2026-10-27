@@ -2,12 +2,12 @@ import { AGREEMENT_EFFECTIVE_DATE, AGREEMENT_VERSION, agreementSections } from '
 
 export default function LegalPage() {
   return <main className="legal-public-page">
-    <nav className="legal-nav"><a className="marketing-brand" href="/"><span className="marketing-logo">V</span><strong>Velnu</strong></a><a href="/">Back to home</a></nav>
+    <nav className="legal-nav"><a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant</strong></a><a href="/">Back to home</a></nav>
     <article className="legal-paper">
       <p className="eyebrow">Private preview · Legal review pending</p>
-      <h1>Velnu User Agreement, AI Disclosure & Privacy Notice</h1>
+      <h1>Finviant Office User Agreement, AI Disclosure & Privacy Notice</h1>
       <p className="legal-meta">Single combined agreement · Version {AGREEMENT_VERSION} · Effective {AGREEMENT_EFFECTIVE_DATE}</p>
-      <p className="legal-disclaimer">This is a preliminary business-facing agreement for private testing. Its liability provisions do not guarantee protection against lawsuits. Before public launch, Velnu’s verified legal operator, contact details, privacy disclosures and jurisdiction-specific terms must be finalized and reviewed by qualified legal counsel.</p>
+      <p className="legal-disclaimer">This is a preliminary business-facing agreement for private testing. Its liability provisions do not guarantee protection against lawsuits. Before public launch, Finviant Office’s verified legal operator, contact details, privacy disclosures and jurisdiction-specific terms must be finalized and reviewed by qualified legal counsel.</p>
       <nav aria-label="Sections of agreement" className="legal-section-links"><a href="#legal-terms">Business user terms</a><a href="#legal-privacy">Privacy and data handling</a></nav>
       <section id="legal-terms" className="legal-chapter"><h2>Part I · Business user terms and AI disclosure</h2></section>
       {agreementSections.map((section, i) => <section key={section.title} id={i === 12 ? 'legal-privacy' : undefined} className="legal-section">

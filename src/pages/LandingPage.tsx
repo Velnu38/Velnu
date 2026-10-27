@@ -16,10 +16,10 @@ const plans = [
 ]
 
 const questions = [
-  { q: 'Does Free include AI or online customer approvals?', a: 'No. Free offers manual business tools only: zero AI calls, zero cloud transcription, zero online customer estimate acceptances, and no metered email, SMS or paid integrations. You can print a document and deliver it yourself outside Velnu.' },
-  { q: 'What does the Velnu AI assistant do?', a: 'The paid AI assistant is planned to turn speech into reviewed invoice and estimate drafts, help find customers and jobs, summarize outstanding invoices, and use your business profile for context. It does not automatically send invoices or make financial decisions.' },
-  { q: 'Will Velnu send an invoice without me approving it?', a: 'No. The workflow is designed around owner review. Voice and AI can prepare drafts, but customer-facing actions require your confirmation.' },
-  { q: 'Is Velnu ready for my entire business?', a: 'Velnu is a private beta. Some features and integrations, including live customer email delivery, are still being tested. Keep independent copies of important records.' },
+  { q: 'Does Free include AI or online customer approvals?', a: 'No. Free offers manual business tools only: zero AI calls, zero cloud transcription, zero online customer estimate acceptances, and no metered email, SMS or paid integrations. You can print a document and deliver it yourself outside Finviant Office.' },
+  { q: 'What does the Finviant Office AI assistant do?', a: 'The paid AI assistant is planned to turn speech into reviewed invoice and estimate drafts, help find customers and jobs, summarize outstanding invoices, and use your business profile for context. It does not automatically send invoices or make financial decisions.' },
+  { q: 'Will Finviant Office send an invoice without me approving it?', a: 'No. The workflow is designed around owner review. Voice and AI can prepare drafts, but customer-facing actions require your confirmation.' },
+  { q: 'Is Finviant Office ready for my entire business?', a: 'Finviant Office is a private beta. Some features and integrations, including live customer email delivery, are still being tested. Keep independent copies of important records.' },
   { q: 'What do Basic, Pro and extra AI credits cost?', a: 'Proposed monthly prices: Free $0, Basic $9.99, and Pro $24.99. Extra AI credits and storage are optional. Scheduling Assistant and Bookkeeping Assistant have separate proposed monthly rates on Basic and Pro. Nothing is billed in the private beta.' },
 ]
 
@@ -28,7 +28,7 @@ export default function LandingPage() {
   return <div className="marketing-page">
     <header className="marketing-topbar">
       <div className="marketing-container marketing-nav">
-        <a className="marketing-brand" href="/" aria-label="Velnu home"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a>
+        <a className="marketing-brand" href="/" aria-label="Finviant Office home"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a>
         <nav aria-label="Main navigation" className="marketing-main-nav"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="/services">À la carte</a><a href="#how-it-works">How it works</a><a href="#pricing">Pricing</a></nav>
         <div className="marketing-nav-actions"><a className="marketing-signin" href="/auth?mode=signin&next=plans">Sign in · Select tier</a><a className="marketing-btn marketing-btn-dark marketing-btn-small" href="/auth?mode=signup">Join private beta <span aria-hidden="true">↗</span></a></div>
       </div>
@@ -39,16 +39,16 @@ export default function LandingPage() {
           <div className="marketing-hero-copy">
             <div className="marketing-beta"><span className="marketing-live-dot" /> Built for the owner who does it all · Private beta</div>
             <h1>Your work. <em>Less paperwork.</em></h1>
-            <p className="marketing-hero-lead">Meet Velnu, the business workspace that helps you turn everyday work into professional estimates and invoices—without a complicated back office.</p>
-            <div className="marketing-hero-actions"><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Get started with Velnu <span>↗</span></a><a href="/auth?mode=signin&next=plans" className="marketing-watch">Sign in and choose your plan <span aria-hidden="true">↗</span></a></div>
-            <p className="marketing-hero-fine">No download required. Use Velnu on your phone or computer, or <a href="/install">add it to your Home Screen</a>. No pricing commitment during the private beta.</p>
+            <p className="marketing-hero-lead">Meet Finviant Office, the business workspace that helps you turn everyday work into professional estimates and invoices—without a complicated back office.</p>
+            <div className="marketing-hero-actions"><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Get started with Finviant Office <span>↗</span></a><a href="/auth?mode=signin&next=plans" className="marketing-watch">Sign in and choose your plan <span aria-hidden="true">↗</span></a></div>
+            <p className="marketing-hero-fine">No download required. Use Finviant Office on your phone or computer, or <a href="/install">add it to your Home Screen</a>. No pricing commitment during the private beta.</p>
             <div className="marketing-hero-statline"><span><strong>One place</strong> for customers and jobs</span><span><strong>Your brand</strong> on every document</span><span><strong>Your review</strong> before anything goes out</span></div>
           </div>
-          <div className="marketing-scene" role="img" aria-label="Illustrative Velnu interface showing a spoken request, an invoice draft, and company branding">
+          <div className="marketing-scene" role="img" aria-label="Illustrative Finviant Office interface showing a spoken request, an invoice draft, and company branding">
             <div className="marketing-orbit marketing-orbit-one" /><div className="marketing-orbit marketing-orbit-two" />
             <div className="marketing-float-label">A clearer way to work.</div>
             <div className="marketing-demo-window">
-              <div className="marketing-demo-header"><div className="marketing-demo-brand"><span className="marketing-logo">V</span><strong>Velnu</strong><span>Workspace</span></div><div className="marketing-demo-dots"><i /><i /><i /></div></div>
+              <div className="marketing-demo-header"><div className="marketing-demo-brand"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant</strong><span>Office</span></div><div className="marketing-demo-dots"><i /><i /><i /></div></div>
               <div className="marketing-demo-body">
                 <div className="marketing-demo-sidebar"><span>Overview</span><span>Customers</span><span>Estimates</span><span className="on">Invoices</span><span>Schedule</span></div>
                 <div className="marketing-demo-main">
@@ -78,7 +78,7 @@ export default function LandingPage() {
           <div>
             <p className="marketing-section-kicker">MEET YOUR AI OFFICE ASSISTANT</p>
             <h2>Another set of hands. <span>Not another employee.</span></h2>
-            <p className="marketing-ai-lead">In Basic and Pro, Velnu's planned AI assistant helps you do the paperwork after the actual work. It uses your instructions and permitted company data to prepare answers and drafts for you to review.</p>
+            <p className="marketing-ai-lead">In Basic and Pro, Finviant Office's planned AI assistant helps you do the paperwork after the actual work. It uses your instructions and permitted company data to prepare answers and drafts for you to review.</p>
             <p className="marketing-ai-status"><strong>Paid capability · In testing.</strong> AI is not included in Free. Usage allowances will be set before paid plans launch.</p>
           </div>
           <div className="marketing-ai-examples">
@@ -90,7 +90,7 @@ export default function LandingPage() {
         </div>
       </section>
       <section id="how-it-works" className="marketing-steps"><div className="marketing-container marketing-steps-grid">
-        <div><p className="marketing-section-kicker">A WORKFLOW THAT MAKES SENSE</p><h2>From the work you do to the document you send.</h2><p>Keep control at every step. Velnu organizes the details, and you make the final call.</p><a href="/auth?mode=signup" className="marketing-inline-link">Explore the private beta <span>↗</span></a></div>
+        <div><p className="marketing-section-kicker">A WORKFLOW THAT MAKES SENSE</p><h2>From the work you do to the document you send.</h2><p>Keep control at every step. Finviant Office organizes the details, and you make the final call.</p><a href="/auth?mode=signup" className="marketing-inline-link">Explore the private beta <span>↗</span></a></div>
         <div className="marketing-steps-list">
           <article><span>01</span><div><h3>Set up your company once</h3><p>Add your business name, contact details, logo, and optional services and team context.</p></div></article>
           <article><span>02</span><div><h3>Capture the job</h3><p>Choose a customer, enter line items, or dictate a draft request when voice tools are available.</p></div></article>
@@ -98,7 +98,7 @@ export default function LandingPage() {
         </div>
       </div></section>
       <section id="pricing" className="marketing-pricing"><div className="marketing-container">
-        <div className="marketing-centered-intro"><p className="marketing-section-kicker">SIMPLE PLANS. CLEAR OPTIONS.</p><h2>A plan for where you are today.</h2><p>Start with the essentials. Unlock AI capabilities as Velnu grows. Proposed monthly plans: Free $0, Basic $9.99 and Pro $24.99. Paid plans and add-ons are not available for purchase during the private beta.</p></div>
+        <div className="marketing-centered-intro"><p className="marketing-section-kicker">SIMPLE PLANS. CLEAR OPTIONS.</p><h2>A plan for where you are today.</h2><p>Start with the essentials. Unlock AI capabilities as Finviant Office grows. Proposed monthly plans: Free $0, Basic $9.99 and Pro $24.99. Paid plans and add-ons are not available for purchase during the private beta.</p></div>
         <div className="marketing-price-grid">{plans.map(plan=><article className={'marketing-price-card' + (plan.featured?' featured':'')} key={plan.name}>
           <div className="marketing-price-top">{plan.featured&&<div className="marketing-plan-pill">AI-assisted · Planned</div>}<h3>{plan.name}</h3><p>{plan.kicker}</p><div className="marketing-price-value">{plan.price}</div><span className="marketing-price-detail">{plan.detail}</span></div>
           <ul>{plan.features.map(f=><li key={f}><span className="marketing-check">✓</span>{f}</li>)}</ul>
@@ -108,7 +108,7 @@ export default function LandingPage() {
           <div className="marketing-topups-header">
             <p className="marketing-section-kicker">CHOOSE YOUR ASSISTANTS</p>
             <h3>Only pay for the extra help you need.</h3>
-            <p>Every Velnu workspace includes its core calendar and manual bookkeeping workbook. Add AI-powered assistance to Basic or Pro when those capabilities launch. No automatic scheduling, tax filing, payroll or full-service accounting is included.</p>
+            <p>Every Finviant Office workspace includes its core calendar and manual bookkeeping workbook. Add AI-powered assistance to Basic or Pro when those capabilities launch. No automatic scheduling, tax filing, payroll or full-service accounting is included.</p>
           </div>
           <div className="marketing-assistant-price-table-wrap">
             <table className="marketing-assistant-price-table">
@@ -123,11 +123,11 @@ export default function LandingPage() {
               </tbody>
             </table>
           </div>
-          <p className="marketing-pricing-note">All assistant upgrades are proposed and not available for activation or checkout. A separate subscription to QuickBooks Online may be required for Intuit-connected functionality; Velnu is not a replacement for a licensed bookkeeper or accountant.</p>
+          <p className="marketing-pricing-note">All assistant upgrades are proposed and not available for activation or checkout. A separate subscription to QuickBooks Online may be required for Intuit-connected functionality; Finviant Office is not a replacement for a licensed bookkeeper or accountant.</p>
           <a href="/services" className="marketing-inline-link">Choose optional services <span>↗</span></a>
         </section>
         <section className="marketing-topups" aria-label="Optional AI credit and storage packs">
-          <div className="marketing-topups-header"><h3>Need a little more? Add usage when you need it.</h3><p>Instead of paying for a higher plan every month, choose extra Velnu AI credits or storage. Add-on billing is planned, not active.</p></div>
+          <div className="marketing-topups-header"><h3>Need a little more? Add usage when you need it.</h3><p>Instead of paying for a higher plan every month, choose extra Finviant Office AI credits or storage. Add-on billing is planned, not active.</p></div>
           <div className="marketing-topups-grid">{addOnCatalog.map(addon =>
             <article key={addon.id} className="marketing-topup-card">
               <strong>{addon.quantityLabel}</strong><span>{formatMoney(addon.priceUsd)} / {addon.billing === 'one-time' ? 'pack' : 'month'}</span>
@@ -144,9 +144,9 @@ export default function LandingPage() {
           <a className="marketing-btn marketing-btn-dark" href="/services">Explore à la carte services <span>↗</span></a>
         </div>
       </section>
-      <section className="marketing-faq"><div className="marketing-container marketing-faq-grid"><div><p className="marketing-section-kicker">GOOD QUESTIONS</p><h2>Before you jump in.</h2><p>Clear expectations matter. Here is what to know about Velnu’s private preview.</p></div><div>{questions.map((item,i)=><div key={item.q} className="marketing-faq-item"><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}><span>{item.q}</span><b>{openFaq===i?'−':'+'}</b></button>{openFaq===i&&<p>{item.a}</p>}</div>)}</div></div></section>
-      <section className="marketing-last"><div className="marketing-container marketing-last-card"><div><p className="marketing-section-kicker">YOUR OFFICE, WITHOUT THE OVERHEAD</p><h2>Make more time for the work that matters.</h2><p>Build professional documents, stay organized, and discover a simpler workflow with Velnu.</p></div><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Join the private beta <span>↗</span></a></div></section>
+      <section className="marketing-faq"><div className="marketing-container marketing-faq-grid"><div><p className="marketing-section-kicker">GOOD QUESTIONS</p><h2>Before you jump in.</h2><p>Clear expectations matter. Here is what to know about Finviant Office’s private preview.</p></div><div>{questions.map((item,i)=><div key={item.q} className="marketing-faq-item"><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}><span>{item.q}</span><b>{openFaq===i?'−':'+'}</b></button>{openFaq===i&&<p>{item.a}</p>}</div>)}</div></div></section>
+      <section className="marketing-last"><div className="marketing-container marketing-last-card"><div><p className="marketing-section-kicker">YOUR OFFICE, WITHOUT THE OVERHEAD</p><h2>Make more time for the work that matters.</h2><p>Build professional documents, stay organized, and discover a simpler workflow with Finviant Office.</p></div><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Join the private beta <span>↗</span></a></div></section>
     </main>
-    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Velnu. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="#pricing">Pricing</a><a href="/services">À la carte</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
+    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Finviant Office. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="#pricing">Pricing</a><a href="/services">À la carte</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
   </div>
 }

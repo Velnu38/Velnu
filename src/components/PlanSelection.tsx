@@ -25,13 +25,13 @@ export default function PlanSelection({ userId, email, currentTier, onSelected, 
 
   return <main className="plan-pick-page">
     <header className="plan-pick-header">
-      <a className="marketing-brand" href="/"><span className="marketing-logo">V</span><strong>velnu<span className="brand-dot">.</span></strong></a>
+      <a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a>
       <button type="button" className="text-button" onClick={onSignOut}>Sign out</button>
     </header>
     <div className="plan-pick-content">
       <div className="plan-pick-intro">
         <p className="marketing-section-kicker">STEP 1 OF 2 · YOUR VELNU ACCOUNT</p>
-        <h1>Choose how you want to use Velnu.</h1>
+        <h1>Choose how you want to use Finviant Office.</h1>
         <p>Signed in as <strong>{email}</strong>. Choose Free, Basic, or Pro. You'll review one combined user agreement, AI disclosure, and privacy notice immediately afterward.</p>
       </div>
       <section className="plan-pick-grid" aria-label="Choose your service tier">

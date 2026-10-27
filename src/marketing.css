@@ -331,3 +331,8 @@
 .service-addon-unavailable{opacity:.65}
 .service-assistant-subtotal{padding:13px 14px;background:#f1f8f4;border:1px solid #d6eadd;border-radius:11px;font-size:12px;line-height:1.6;margin-top:14px;color:#254a3e}
 @media(max-width:620px){.marketing-assistant-pricing{padding:17px}.marketing-assistant-price-table th,.marketing-assistant-price-table td{padding:14px 13px}}
+
+/* Finviant replaces the former single-letter marketing mark. */
+.marketing-logo{background:#fff;box-shadow:0 3px 12px rgba(15,39,71,.12);overflow:hidden;letter-spacing:normal;padding:0;border-radius:9px}
+.marketing-logo img{display:block;width:100%;height:100%;object-fit:contain}
+.brand-dot{color:#14b8a6}
