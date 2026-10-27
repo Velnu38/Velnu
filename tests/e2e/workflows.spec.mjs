@@ -47,6 +47,13 @@ async function mockWorkspace(page, seed = {}) {
     if (path.endsWith('/user_plan_preferences')) return fulfill({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return fulfill({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v2' })
     if (path.endsWith('/business_members')) return fulfill({ role: seed.role || 'owner', business_id: businessId, businesses: company })
+    if (path.endsWith('/rpc/get_dashboard_invoice_totals')) {
+      const open = state.invoices.filter(i => Number(i.balance_due || 0) > 0 && !['draft', 'void'].includes(i.status))
+      return fulfill({
+        open_invoices: open.length,
+        outstanding_balance: open.reduce((sum, i) => sum + Number(i.balance_due || 0), 0),
+      })
+    }
     if (path.endsWith('/rpc/create_document')) {
       const isInvoice = body.document_kind === 'invoice'
       const items = body.payload.items
@@ -267,4 +274,22 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   const changed = state.requests.filter(x => x.path.endsWith('/change_orders') && x.method === 'PATCH')
   expect(changed).toHaveLength(1)
   expect(changed[0].body.status).toBe('void')
+})
+
+
+test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invoice balances', async ({ page }) => {
+  const state = await mockWorkspace(page, {
+    invoices: [
+      { id: invoiceId, status: 'sent', balance_due: 125, due_date: '2026-10-31' },
+      { id: '77777777-7777-4777-8777-777777777777', status: 'draft', balance_due: 900 },
+    ],
+  })
+  await page.goto('/')
+  await expect(page.locator('.metric-grid')).toContainText('$125')
+  const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
+  expect(aggregates).toHaveLength(1)
+  expect(aggregates[0].body.target_business_id).toBe(businessId)
+  const unbounded = state.requests.filter(r => r.path.endsWith('/invoices') &&
+    new URL(r.url).searchParams.get('select') === 'balance_due')
+  expect(unbounded).toHaveLength(0)
 })
