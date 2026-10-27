@@ -6,9 +6,10 @@ export default function ServicePicker({ value, onChange, disabled = false, compa
   disabled?: boolean
   compact?: boolean
 }) {
-  function selectPlan(plan: PlanInterest) { onChange({ ...value, plan }) }
+  function selectPlan(plan: PlanInterest) { onChange(plan === 'free' ? { plan, services: [] } : { ...value, plan }) }
   function toggleService(id: ServiceId, enabled: boolean) {
-    onChange({ ...value, services: enabled ? [...new Set([...value.services, id])] : value.services.filter(x => x !== id) })
+    onChange({ ...value, plan: enabled && value.plan === 'free' ? 'a_la_carte' : value.plan,
+      services: enabled ? [...new Set([...value.services, id])] : value.services.filter(x => x !== id) })
   }
   return <div className={'service-picker' + (compact ? ' service-picker-compact' : '')}>
     <fieldset className="service-plan-choices">
