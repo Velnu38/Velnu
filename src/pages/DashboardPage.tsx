@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { completeReminder, getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
+import { readableError } from '../lib/errors'
 
 const empty: DashboardSnapshot = {
   openInvoices: 0,
@@ -53,7 +54,7 @@ export default function DashboardPage({ business, onSetup }: { business: Current
       const next = await load
       if (mounted.current && request === currentRequest.current) setSnapshot(next)
     } catch (err) {
-      if (mounted.current && request === currentRequest.current) setError(err instanceof Error ? err.message : 'Unable to load dashboard')
+      if (mounted.current && request === currentRequest.current) setError(readableError(err, 'Unable to load dashboard'))
     } finally {
       if (mounted.current && request === currentRequest.current) setLoading(false)
     }
@@ -71,7 +72,7 @@ export default function DashboardPage({ business, onSetup }: { business: Current
       await completeReminder(reminderId)
       if (mounted.current) await refresh(true)
     } catch (err) {
-      if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to complete reminder')
+      if (mounted.current) setError(readableError(err, 'Unable to complete reminder'))
     }
   }
 
@@ -91,7 +92,7 @@ export default function DashboardPage({ business, onSetup }: { business: Current
       <article className="metric-card"><span>Waiting on customers</span><strong>{loading ? '—' : snapshot.pendingApprovals.length}</strong><small>Sent estimates and change orders</small></article>
     </section>
 
-    {error && <p className="form-message error-text">{error}</p>}
+    {error && <p role="alert" className="form-message error-text">{error}</p>}
 
     <section className="office-day-grid">
       <article className="office-panel">
