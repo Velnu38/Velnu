@@ -25,14 +25,32 @@ export default function DashboardPage({ business, onSetup }: { business: Current
   // avoids setState on an unmounted workspace after a slow network request.
   const currentRequest = useRef(0)
   const mounted = useRef(false)
+  // Share concurrent first loads (including React Strict Mode's effect replay)
+  // without caching financial data across users, sessions, or businesses.
+  const pendingLoad = useRef<{ businessId: string; promise: Promise<DashboardSnapshot> } | null>(null)
 
-  async function refresh() {
+  async function refresh(force = false) {
     if (!mounted.current) return
     const request = ++currentRequest.current
     setLoading(true)
     setError('')
+
+    let load = !force && pendingLoad.current?.businessId === business.id
+      ? pendingLoad.current.promise
+      : null
+    if (!load) {
+      load = getDashboardSnapshot(business.id)
+      pendingLoad.current = { businessId: business.id, promise: load }
+      const currentLoad = load
+      const clearPending = () => {
+        if (pendingLoad.current?.promise === currentLoad) pendingLoad.current = null
+      }
+      // Both resolve and reject paths clear the slot without leaking an
+      // unhandled rejection from a detached finally() promise.
+      void currentLoad.then(clearPending, clearPending)
+    }
     try {
-      const next = await getDashboardSnapshot(business.id)
+      const next = await load
       if (mounted.current && request === currentRequest.current) setSnapshot(next)
     } catch (err) {
       if (mounted.current && request === currentRequest.current) setError(err instanceof Error ? err.message : 'Unable to load dashboard')
@@ -51,7 +69,7 @@ export default function DashboardPage({ business, onSetup }: { business: Current
   async function finishReminder(reminderId: string) {
     try {
       await completeReminder(reminderId)
-      if (mounted.current) await refresh()
+      if (mounted.current) await refresh(true)
     } catch (err) {
       if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to complete reminder')
     }
@@ -63,7 +81,7 @@ export default function DashboardPage({ business, onSetup }: { business: Current
   return <div className="page-stack">
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Velnu Office · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
-      <button className="secondary-button compact" onClick={refresh} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
+      <button className="secondary-button compact" onClick={() => void refresh(true)} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
