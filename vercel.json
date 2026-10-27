@@ -11,6 +11,14 @@
     {
       "source": "/privacy",
       "destination": "/index.html"
+    },
+    {
+      "source": "/services",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/install",
+      "destination": "/index.html"
     }
   ]
 }

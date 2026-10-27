@@ -13,8 +13,9 @@ import BookkeepingPage from '../pages/BookkeepingPage'
 import VoiceAssistant from './VoiceAssistant'
 import SettingsPage from '../pages/SettingsPage'
 import LocationsPage from '../pages/LocationsPage'
+import WorkspaceServicesPage from '../pages/WorkspaceServicesPage'
 
-type View = 'dashboard' | 'customers' | 'jobs' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'schedule' | 'payments' | 'bookkeeping' | 'settings'
+type View = 'dashboard' | 'customers' | 'jobs' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'schedule' | 'payments' | 'bookkeeping' | 'settings' | 'services'
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
@@ -27,11 +28,12 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'schedule', label: 'Schedule', icon: 'S' },
   { id: 'payments', label: 'Payments', icon: '$' },
   { id: 'bookkeeping', label: 'Bookkeeping', icon: '↗' },
+  { id: 'services', label: 'My services', icon: '◈' },
   { id: 'settings', label: 'Company settings', icon: '⚙' },
 ]
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'jobs', 'schedule']
-const mobileMore: View[] = ['locations', 'change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
+const mobileMore: View[] = ['locations', 'change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'services', 'settings']
 
 export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)
@@ -45,6 +47,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   function page() {
+    if (view === 'services') return <WorkspaceServicesPage business={company} />
     if (view === 'settings') return <SettingsPage business={company} onSaved={(next) => { setCompany(next); setRefreshVersion(v => v + 1) }} />
     if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} />
     if (view === 'customers') return <CustomersPage business={company} />
@@ -63,7 +66,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small">V</div><span>Velnu</span></div>
         <nav>{nav.map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
-        <div className="sidebar-footer"><div className="sidebar-legal"><a href="/terms" target="_blank" rel="noopener noreferrer">User agreement</a><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy notice</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+        <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/terms" target="_blank" rel="noopener noreferrer">User agreement</a><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy notice</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><div className="logo-mark small">V</div><strong>Velnu</strong></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
@@ -83,7 +86,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon">{item.icon}</span><strong>{item.label}</strong></button>
         })}</div>
-        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </section></div>}
       <VoiceAssistant business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />
     </div>

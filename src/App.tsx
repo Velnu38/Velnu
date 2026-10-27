@@ -10,6 +10,8 @@ import AppShell from './components/AppShell'
 import AccountAgreement from './components/AccountAgreement'
 import CustomerApprovalPage from './pages/CustomerApprovalPage'
 import LandingPage from './pages/LandingPage'
+import ServicesPage from './pages/ServicesPage'
+import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
 
 const initialQuery = new URLSearchParams(window.location.search)
@@ -31,7 +33,7 @@ export default function App() {
   const userId = session?.user.id ?? null
 
   useEffect(() => {
-    if (approvalToken || publicPath === '/terms' || publicPath === '/privacy') return
+    if (approvalToken || ['/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
     let active = true
     let eventReceived = false
     // Keep the auth callback synchronous to avoid holding the session lock.
@@ -98,6 +100,8 @@ export default function App() {
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
   if (publicPath === '/terms') return <LegalPage variant="terms" />
   if (publicPath === '/privacy') return <LegalPage variant="privacy" />
+  if (publicPath === '/services') return <ServicesPage />
+  if (publicPath === '/install') return <InstallPage />
   if (!authReady) return <main className="loading-page"><div className="logo-mark">V</div><p>Opening Velnu…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
   if (!session) {

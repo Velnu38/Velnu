@@ -1,8 +1,8 @@
 {
   "name": "Velnu — Business Assistant",
   "short_name": "Velnu",
-  "description": "Voice-powered business assistant for jobs, estimates, invoices and follow-ups.",
-  "start_url": "/",
+  "description": "Velnu web app for customers, jobs, estimates, invoices, and business tools.",
+  "start_url": "/auth?mode=signin",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
