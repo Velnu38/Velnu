@@ -47,7 +47,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
     setLogoAllowed(false)
     if (business) {
       void Promise.resolve(supabase.rpc('get_plan_usage', { target_business_id: business.id })).then(({ data, error }) => {
-        if (active) setLogoAllowed(!error && data?.plan === 'pro' && Number(data?.logo_bytes_limit || 0) > 0)
+        if (active) setLogoAllowed(!error && (data?.plan === 'basic' || data?.plan === 'pro') && Number(data?.logo_bytes_limit || 0) > 0)
       }).catch(() => { if (active) setLogoAllowed(false) })
     }
     // Newly created businesses have no paid entitlements during initial signup.

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
+import { canWrite, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
 import DocumentBrand from '../components/DocumentBrand'
@@ -9,7 +9,7 @@ import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
-type Estimate = { id: string; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
+type Estimate = { issuer_snapshot?: Partial<BusinessProfile> | null; id: string; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type PreviewItem = { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
@@ -204,7 +204,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <button type="button" className="secondary-button" onClick={() => setPreviewTarget(null)}>Close</button>
         </div>
         <article className="estimate-preview-document print-document">
-          <DocumentBrand business={business} kind="Estimate" />
+          <DocumentBrand business={previewTarget.issuer_snapshot?.name ? { ...business, ...previewTarget.issuer_snapshot, name: previewTarget.issuer_snapshot.name } : business} kind="Estimate" />
           <div className="document-bill-to"><small>Prepared for</small><strong>{customerName(previewTarget.customers?.[0])}</strong>
             {previewTarget.customers?.[0]?.email && <span>{previewTarget.customers[0].email}</span>}
             {previewTarget.customers?.[0]?.phone && <span>{previewTarget.customers[0].phone}</span>}
@@ -226,7 +226,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
             <div className="total"><span>Total</span><strong>{'$' + Number(previewTarget.total).toFixed(2)}</strong></div>
           </div>
           {previewTarget.customer_message && <div className="document-customer-message"><strong>Estimate terms</strong><p>{previewTarget.customer_message}</p></div>}
-          {business.document_footer && <div className="document-footer">{business.document_footer}</div>}
+          {(previewTarget.issuer_snapshot?.name ? previewTarget.issuer_snapshot.document_footer : business.document_footer) && <div className="document-footer">{previewTarget.issuer_snapshot?.name ? previewTarget.issuer_snapshot.document_footer : business.document_footer}</div>}
         </article>
       </section>
     </div>}

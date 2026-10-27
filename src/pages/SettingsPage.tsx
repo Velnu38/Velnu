@@ -25,7 +25,7 @@ export default function SettingsPage({ business, onSaved }: {
     <section className="settings-document-preview">
       <p className="eyebrow">Current invoice / estimate letterhead</p>
       <DocumentBrand business={business} kind="Preview" />
-      <p className="quiet">Company details shown above appear on newly viewed invoices and estimates. Logos are public company images, not private attachments.</p>
+      <p className="quiet">This is your current branding. Newly issued invoices and estimates preserve these company details even if you update the profile later. Documents issued before this protection was added may still show current company information. Logos are public images, not private attachments.</p>
     </section>
   </div>
 }

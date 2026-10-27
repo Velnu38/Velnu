@@ -23,16 +23,17 @@ Deno.serve(async(req:Request)=>{
    const {data:business}=await supabase.from("businesses").select("name,legal_name,email,phone,website,address_line1,address_line2,city,state,postal_code,logo_path,document_accent,document_footer").eq("id",link.business_id).single();
    let document:any=null; let items:any[]=[]; let customer:any=null;
    if(link.document_type==="estimate"){
-    const {data:doc,error}=await supabase.from("estimates").select("id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_message,customer_id").eq("id",link.estimate_id).eq("business_id",link.business_id).single(); if(error)return respond(404,{error:"Estimate not found"}); document=doc;
+    const {data:doc,error}=await supabase.from("estimates").select("id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_message,customer_id,issuer_snapshot").eq("id",link.estimate_id).eq("business_id",link.business_id).single(); if(error)return respond(404,{error:"Estimate not found"}); document=doc;
     const {data:itemRows}=await supabase.from("estimate_items").select("description,quantity,unit_price,tax_rate,line_total,sort_order").eq("estimate_id",doc.id).order("sort_order",{ascending:true});items=itemRows??[];
     const {data:c}=await supabase.from("customers").select("first_name,last_name,company").eq("id",doc.customer_id).eq("business_id",link.business_id).single();customer=c;
    }else{
-    const {data:doc,error}=await supabase.from("change_orders").select("id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,issue_date,subtotal,tax_amount,total,customer_message,customer_id,job_id").eq("id",link.change_order_id).eq("business_id",link.business_id).single(); if(error)return respond(404,{error:"Change order not found"}); document=doc;
+    const {data:doc,error}=await supabase.from("change_orders").select("id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,issue_date,subtotal,tax_amount,total,customer_message,customer_id,job_id,issuer_snapshot").eq("id",link.change_order_id).eq("business_id",link.business_id).single(); if(error)return respond(404,{error:"Change order not found"}); document=doc;
     const {data:itemRows}=await supabase.from("change_order_items").select("description,quantity,unit_price,tax_rate,line_total,sort_order").eq("change_order_id",doc.id).order("sort_order",{ascending:true});items=itemRows??[];
     const {data:c}=await supabase.from("customers").select("first_name,last_name,company").eq("id",doc.customer_id).eq("business_id",link.business_id).single();customer=c;
     const {data:j}=await supabase.from("jobs").select("title").eq("id",doc.job_id).eq("business_id",link.business_id).single();document.job_title=j?.title??null;
    }
-   return respond(200,{business_name:business?.name??"Business",business_profile:business??null,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at,terms_agreed:existing.document_snapshot?.terms_accepted===true}:null});
+   const issuedBrand=document?.issuer_snapshot?.name ? document.issuer_snapshot : business;
+   return respond(200,{business_name:issuedBrand?.name??"Business",business_profile:issuedBrand??null,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at,terms_agreed:existing.document_snapshot?.terms_accepted===true}:null});
   }
 
   if(!['approved','declined'].includes(mode))return respond(400,{error:"Invalid approval action"});
