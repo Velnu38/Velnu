@@ -72,7 +72,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
       const start = new Date(form.starts_at)
       const end = form.ends_at ? new Date(form.ends_at) : null
       if (Number.isNaN(start.getTime())) throw new Error('Choose a valid start time')
-      if (end && (Number.isNaN(end.getTime()) || end < start)) throw new Error('End time must be after the start time')
+      if (end && (Number.isNaN(end.getTime()) || end <= start)) throw new Error('End time must be after the start time')
       await createJob(business.id, {
         customer_id: form.customer_id,
         property_id: form.property_id || undefined,
