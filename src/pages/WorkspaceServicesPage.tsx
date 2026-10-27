@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import ServicePicker from '../components/ServicePicker'
-import { clearPendingServiceInterests, getPendingServiceInterests, setPendingServiceInterests, type ServiceInterest } from '../lib/serviceCatalog'
+import { clearPendingServiceInterests, getPendingServiceInterests, hasPendingServiceInterests, setPendingServiceInterests, type ServiceInterest } from '../lib/serviceCatalog'
 import { loadBusinessServiceInterests, saveBusinessServiceInterests } from '../lib/businessServices'
 
 export default function WorkspaceServicesPage({ business }: { business: CurrentBusiness }) {
@@ -15,7 +15,7 @@ export default function WorkspaceServicesPage({ business }: { business: CurrentB
     let active = true
     setLoading(true)
     void loadBusinessServiceInterests(business.id).then(saved => {
-      if (active && saved) setInterest(saved)
+      if (active && saved && !hasPendingServiceInterests()) setInterest(saved)
     }).catch(err => {
       if (active) setError(err instanceof Error ? err.message : 'Could not load your service choices.')
     }).finally(() => { if (active) setLoading(false) })
