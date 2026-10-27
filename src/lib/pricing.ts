@@ -22,11 +22,11 @@ export type TierAllowance = {
 export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
   free: {
     tier: 'free', name: 'Free', priceMonthlyUsd: 0,
-    documentsPerMonth: 100, customerLimit: 250, aiCreditsPerMonth: 0,
+    documentsPerMonth: 10, customerLimit: 250, aiCreditsPerMonth: 0,
     fileStorageMb: 0, onlineApprovalsPerMonth: 0, hostedLogo: false,
     status: 'Manual tools · No metered AI',
     features: [
-      '100 invoices / estimates / change orders monthly',
+      '10 invoices and estimates combined each month',
       'Up to 250 customers',
       'Company contact details and text branding',
       'Printable invoices and estimates',
