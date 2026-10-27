@@ -3,7 +3,6 @@ import { canWrite, type CurrentBusiness } from '../lib/business'
 import { completeReminder, getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 
 const empty: DashboardSnapshot = {
-  customers: 0,
   openInvoices: 0,
   outstandingBalance: 0,
   jobsThisWeek: 0,
