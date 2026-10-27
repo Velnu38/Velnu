@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
     if (audio.size < 128) return respond(422, { error: "The recording is empty. Speak after tapping the microphone." });
     if (audio.size > 10 * 1024 * 1024) return respond(413, { error: "Recording is too large. Try a shorter voice command." });
 
-    const audioName = String(audio.name || "velnu.webm");
+    const audioName = String(audio.name || "finviant.webm");
     const audioMime = String(audio.type || "").toLowerCase();
     if (!allowedExtensions.test(audioName) || (audioMime && !allowedMime.test(audioMime))) {
       return respond(415, { error: "Unsupported audio format. Try recording again." });

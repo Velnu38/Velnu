@@ -2,14 +2,14 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const emailPattern = /^[^\s@<>\r\n]+@[^\s@<>\r\n]+\.[^\s@<>\r\n]+$/
-const origins = new Set(['https://app.owedlyworks.com', 'https://owedlyworks.com', 'http://localhost:5173'])
-const configuredOrigin = Deno.env.get('APP_BASE_URL')
+const origins = new Set(['https://finviant.com', 'https://www.finviant.com', 'https://app.finviant.com', 'https://velnu-git-feature-velnu-stage1-mbarone5-1747.vercel.app', 'http://localhost:5173'])
+const configuredOrigin = Deno.env.get('FINVIANT_APP_BASE_URL')
 if (configuredOrigin) origins.add(new URL(configuredOrigin).origin)
 const esc = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;')
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('Origin') || ''
-  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origins.has(origin) ? origin : 'https://app.owedlyworks.com', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Vary': 'Origin', 'Cache-Control': 'no-store' }
+  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origins.has(origin) ? origin : 'https://finviant.com', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Vary': 'Origin', 'Cache-Control': 'no-store' }
   const respond = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers })
   if (origin && !origins.has(origin)) return respond(403, { error: 'This app address is not authorized.' })
   if (req.method === 'OPTIONS') return new Response('ok', { headers })
@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
     // generate a new key automatically following an uncertain network outcome.
     const sendText = existing?.body ?? text
     const sendTo = existing?.recipient ?? recipient
-    const payload = { from: 'Owedly Office <notifications@owedlyworks.com>', to: [sendTo], subject: existing?.subject ?? subject, text: sendText, html: `<!doctype html><html><head><meta charset="utf-8"></head><body><div style="max-width:640px;margin:auto;padding:24px;font-family:Arial,Helvetica,sans-serif"><pre style="font:inherit;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere">${esc(sendText)}</pre></div></body></html>` }
+    const payload = { from: 'Finviant Office <notifications@finviant.com>', to: [sendTo], subject: existing?.subject ?? subject, text: sendText, html: `<!doctype html><html><head><meta charset="utf-8"></head><body><div style="max-width:640px;margin:auto;padding:24px;font-family:Arial,Helvetica,sans-serif"><pre style="font:inherit;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere">${esc(sendText)}</pre></div></body></html>` }
     let response: Response
     try {
       response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `owedly-invoice-${businessId}-${requestId}` }, body: JSON.stringify(payload), signal: AbortSignal.timeout(20000) })

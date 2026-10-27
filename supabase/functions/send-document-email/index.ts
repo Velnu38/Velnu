@@ -2,8 +2,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const allowedOrigins = new Set([
-  "https://app.owedlyworks.com",
-  "https://owedlyworks.com",
+  "https://finviant.com",
+  "https://www.finviant.com",
+  "https://app.finviant.com",
+  "https://velnu-git-feature-velnu-stage1-mbarone5-1747.vercel.app",
   "http://localhost:5173",
   "http://localhost",
   "capacitor://localhost",
@@ -11,7 +13,7 @@ const allowedOrigins = new Set([
 
 function cors(req: Request) {
   const origin = req.headers.get("Origin") ?? "";
-  const allow = allowedOrigins.has(origin) ? origin : "https://app.owedlyworks.com";
+  const allow = allowedOrigins.has(origin) ? origin : "https://finviant.com";
   return {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": allow,
@@ -176,13 +178,13 @@ Deno.serve(async (req: Request) => {
       .single();
     if (linkError || !link) return respond(req, 500, { error: "Failed to create approval link" });
 
-    const appBase = (Deno.env.get("APP_BASE_URL") || "https://app.owedlyworks.com").replace(/\/$/, "");
+    const appBase = (Deno.env.get("FINVIANT_APP_BASE_URL") || "https://finviant.com").replace(/\/$/, "");
     const approvalUrl = `${appBase}/?approval=${encodeURIComponent(token)}`;
     const subject = `${business.name}: ${label} ${number || "ready for review"}`;
     const plain = `Hi ${customerName(customer)},\n\n${business.name} sent you a ${label.toLowerCase()} to review.\n${number ? `${label} ${number}\n` : ""}${title ? `${title}\n` : ""}Total: ${money(doc.total)}${scheduleImpactDays ? `\nSchedule impact: ${scheduleImpactDays > 0 ? "+" : ""}${scheduleImpactDays} day${Math.abs(scheduleImpactDays) === 1 ? "" : "s"}` : ""}\n\nReview and respond: ${approvalUrl}\n\nThis secure link expires in 14 days.`;
 
     const payload: any = {
-      from: "Owedly Office <notifications@owedlyworks.com>",
+      from: "Finviant Office <notifications@finviant.com>",
       to: [recipient],
       subject,
       html: emailHtml({ businessName: business.name, recipientName: customerName(customer), documentLabel: label, documentNumber: number, title, total: Number(doc.total ?? 0), approvalUrl, customerMessage: message, scheduleImpactDays }),
