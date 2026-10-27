@@ -7,7 +7,7 @@ export type ServiceInterest = { plan: PlanInterest; services: ServiceId[] }
 export const serviceCatalog: Array<{
   id: ServiceId; name: string; description: string; stage: string; tag: string
 }> = [
-  { id: 'voice_drafts', name: 'AI office assistant · voice-to-document', description: 'Paid AI feature: record speech, draft invoices or estimates, and review before saving. No AI requests on Free.', stage: 'Basic / Pro · Testing', tag: 'AI' },
+  { id: 'voice_drafts', name: 'Voice-to-document assistant (AI Office Assistant)', description: 'Paid AI feature: record speech, draft invoices or estimates, and review before saving. No AI requests on Free.', stage: 'Basic / Pro · Testing', tag: 'AI' },
   { id: 'estimate_approvals', name: 'Online estimate approvals', description: 'Paid Pro option: customers review terms and give recorded acceptance. Free includes 0 acceptances and 0 links.', stage: 'Pro · Testing', tag: 'Customers' },
   { id: 'payment_links', name: 'Payment links', description: 'Offer a secure way for customers to pay an invoice online. Provider integration and fees are not finalized.', stage: 'Planned', tag: 'Payments' },
   { id: 'automated_reminders', name: 'Automated follow-ups', description: 'Paid service: prepare follow-up drafts and deliver reminders, subject to verification and per-plan limits.', stage: 'Paid · Planned', tag: 'Automation' },
