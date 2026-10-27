@@ -25,8 +25,14 @@ try {
         snippet: document.body.innerText.trim().slice(0, 140),
         scripts: [...document.querySelectorAll('script[src]')].map(s => s.getAttribute('src'))
       }))
-      console.log('LIVE CHECK', JSON.stringify({ url, status: resp?.status(), finalUrl: page.url(), ...info, jsErrors, requestFailures: requestFailures.slice(0, 6) }))
-      if (!resp || resp.status() >= 400 || info.visibleTextLength < 30 || jsErrors.length) failures++
+      const expectedHost = new URL(url).hostname
+      const actualHost = new URL(page.url()).hostname
+      const correctSite = actualHost === expectedHost && /Finviant/i.test(info.title) && info.visibleTextLength >= 60
+      console.log('LIVE CHECK', JSON.stringify({ url, status: resp?.status(), finalUrl: page.url(),
+        title: info.title, headline: info.headline, textLength: info.visibleTextLength,
+        snippet: info.snippet, scriptCount: info.scripts.length, jsErrors,
+        requestFailures: requestFailures.slice(0, 6), correctSite }))
+      if (!resp || resp.status() >= 400 || !correctSite || jsErrors.length) failures++
     } catch (err) {
       console.error('LIVE CHECK FAILED', url, String(err))
       failures++
