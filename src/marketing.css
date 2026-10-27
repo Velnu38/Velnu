@@ -311,3 +311,23 @@
 .marketing-ai-examples small{font-size:12px;color:#b6cad2;line-height:1.65}
 @media(max-width:900px){.marketing-ai-grid{grid-template-columns:1fr;gap:35px}.marketing-assistant-spotlight{padding:75px 0}}
 @media(max-width:620px){.marketing-ai-examples{grid-template-columns:1fr}.marketing-ai-examples article{padding:22px}}
+
+/* Future optional assistant add-on comparison — accessible and mobile scrollable. */
+.marketing-assistant-pricing{margin-top:38px;padding:30px;background:#f5f8f6;border-radius:20px;border:1px solid #dfe9e5}
+.marketing-assistant-pricing .marketing-topups-header{margin:0 0 20px}
+.marketing-assistant-pricing .marketing-topups-header h3{font-size:24px;letter-spacing:-.04em;margin:0 0 10px}
+.marketing-assistant-pricing .marketing-topups-header p:not(.marketing-section-kicker){font-size:13px;line-height:1.65;color:#617781}
+.marketing-assistant-price-table-wrap{overflow-x:auto;border:1px solid #dce5e5;border-radius:13px;background:#fff}
+.marketing-assistant-price-table{border-collapse:collapse;width:100%;min-width:470px}
+.marketing-assistant-price-table th,.marketing-assistant-price-table td{padding:17px 18px;text-align:left;vertical-align:top;border-bottom:1px solid #edf1f0}
+.marketing-assistant-price-table thead th{font-size:12px;font-weight:850;background:#e9f1ef;color:#274638}
+.marketing-assistant-price-table tbody th{width:56%;font-size:13px;color:#223947}
+.marketing-assistant-price-table tbody td{font-weight:900;color:#173b33;font-size:15px;white-space:nowrap}
+.marketing-assistant-price-table small{display:block;font-size:11px;font-weight:450;color:#7c8c93;line-height:1.5;margin-top:5px}
+.marketing-assistant-price-table tr:last-child th,.marketing-assistant-price-table tr:last-child td{border-bottom:none}
+.marketing-assistant-total{background:#f5f8f6}
+.marketing-assistant-pricing>.marketing-inline-link{margin-top:15px}
+.service-assistant-options{border-top:1px solid #e7eeee;padding-top:19px}
+.service-addon-unavailable{opacity:.65}
+.service-assistant-subtotal{padding:13px 14px;background:#f1f8f4;border:1px solid #d6eadd;border-radius:11px;font-size:12px;line-height:1.6;margin-top:14px;color:#254a3e}
+@media(max-width:620px){.marketing-assistant-pricing{padding:17px}.marketing-assistant-price-table th,.marketing-assistant-price-table td{padding:14px 13px}}

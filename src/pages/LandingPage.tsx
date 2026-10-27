@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { monthlyPlans, addOnCatalog, formatMonthlyPrice, formatMoney } from '../lib/pricing'
+import { monthlyPlans, addOnCatalog, assistantAddOns, assistantMonthlyTotal, formatMonthlyPrice, formatMoney } from '../lib/pricing'
 
 const offerCards = [
   { eyebrow: '01 · Start simple', title: 'Look professional from the first estimate.', copy: 'Set up your company details, colors and logo once. Carry your identity into invoices and estimates.', kind: 'Available in private beta', icon: '◫' },
@@ -20,7 +20,7 @@ const questions = [
   { q: 'What does the Velnu AI assistant do?', a: 'The paid AI assistant is planned to turn speech into reviewed invoice and estimate drafts, help find customers and jobs, summarize outstanding invoices, and use your business profile for context. It does not automatically send invoices or make financial decisions.' },
   { q: 'Will Velnu send an invoice without me approving it?', a: 'No. The workflow is designed around owner review. Voice and AI can prepare drafts, but customer-facing actions require your confirmation.' },
   { q: 'Is Velnu ready for my entire business?', a: 'Velnu is a private beta. Some features and integrations, including live customer email delivery, are still being tested. Keep independent copies of important records.' },
-  { q: 'What do Basic, Pro and extra AI credits cost?', a: 'Proposed monthly prices: Free $0, Basic $9.99, and Pro $24.99. You can request extra Velnu AI credits or file storage. Checkout and add-ons are not active during the private beta.' },
+  { q: 'What do Basic, Pro and extra AI credits cost?', a: 'Proposed monthly prices: Free $0, Basic $9.99, and Pro $24.99. Extra AI credits and storage are optional. Scheduling Assistant and Bookkeeping Assistant have separate proposed monthly rates on Basic and Pro. Nothing is billed in the private beta.' },
 ]
 
 export default function LandingPage() {
@@ -104,6 +104,28 @@ export default function LandingPage() {
           <ul>{plan.features.map(f=><li key={f}><span className="marketing-check">✓</span>{f}</li>)}</ul>
           <a className={'marketing-btn ' + (plan.featured?'marketing-btn-accent':'marketing-btn-outline')} href="/auth?mode=signup">{plan.name==='Free'?'Join free private beta':'Explore in private beta'} <span>↗</span></a>
         </article>)}</div>
+        <section className="marketing-assistant-pricing" aria-label="Optional Scheduling and Bookkeeping Assistant monthly prices">
+          <div className="marketing-topups-header">
+            <p className="marketing-section-kicker">CHOOSE YOUR ASSISTANTS</p>
+            <h3>Only pay for the extra help you need.</h3>
+            <p>Every Velnu workspace includes its core calendar and manual bookkeeping workbook. Add AI-powered assistance to Basic or Pro when those capabilities launch. No automatic scheduling, tax filing, payroll or full-service accounting is included.</p>
+          </div>
+          <div className="marketing-assistant-price-table-wrap">
+            <table className="marketing-assistant-price-table">
+              <thead><tr><th scope="col">Optional add-on</th><th scope="col">Basic / month</th><th scope="col">Pro / month</th></tr></thead>
+              <tbody>
+                {assistantAddOns.map(item => <tr key={item.id}>
+                  <th scope="row"><strong>{item.name}</strong><small>{item.summary}</small></th>
+                  <td>{formatMoney(item.priceMonthlyByTier.basic)}</td>
+                  <td>{formatMoney(item.priceMonthlyByTier.pro)}</td>
+                </tr>)}
+                <tr className="marketing-assistant-total"><th scope="row">Both assistants <small>Add-on subtotal, excluding base plan</small></th><td>{formatMoney(assistantMonthlyTotal('basic', assistantAddOns.map(item => item.id)))}</td><td>{formatMoney(assistantMonthlyTotal('pro', assistantAddOns.map(item => item.id)))}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="marketing-pricing-note">All assistant upgrades are proposed and not available for activation or checkout. A separate subscription to QuickBooks Online may be required for Intuit-connected functionality; Velnu is not a replacement for a licensed bookkeeper or accountant.</p>
+          <a href="/services" className="marketing-inline-link">Choose optional services <span>↗</span></a>
+        </section>
         <section className="marketing-topups" aria-label="Optional AI credit and storage packs">
           <div className="marketing-topups-header"><h3>Need a little more? Add usage when you need it.</h3><p>Instead of paying for a higher plan every month, choose extra Velnu AI credits or storage. Add-on billing is planned, not active.</p></div>
           <div className="marketing-topups-grid">{addOnCatalog.map(addon =>

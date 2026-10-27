@@ -53,7 +53,7 @@ export default function PlanSelection({ userId, email, currentTier, onSelected, 
       <div className="plan-pick-notice">
         <strong>Your choice is a preference, not a purchase.</strong>
         <p>Free has 0 customer online acceptances and 0 metered AI, email, SMS or payment-service actions. Basic ($9.99/month) and Pro ($24.99/month) pricing and allowances are proposed, not available for purchase yet. Selecting either does not activate paid functionality, start a subscription, or authorize a charge. All private-beta capabilities remain subject to testing and release controls.</p>
-        <p>Looking for extra services à la carte? You can explore optional services under <strong>My services</strong> after entering your workspace. Proposed extras include 100 AI credits for $4.99, 500 AI credits for $17.99, 1 GB storage for $1.99/month, or 5 GB for $4.99/month. Purchases are not active.</p>
+        <p>Looking for extra services à la carte? In <strong>My services</strong>, Basic users may request Scheduling Assistant ($9.99/month) or Bookkeeping Assistant ($14.99/month). Pro users may request those add-ons for $7.99 and $11.99/month. These are proposed prices for future AI helpers; the core manual calendar and bookkeeping workbook are not separately charged. AI credit and storage packs are also proposed. Purchases are not active.</p>
       </div>
     </div>
   </main>

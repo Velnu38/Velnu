@@ -1,8 +1,8 @@
-import { addOnCatalog, formatMoney, type AddOnId } from './pricing'
+import { addOnCatalog, formatMoney, assistantAddOns, type AddOnId, type AssistantAddOnId } from './pricing'
 
 export type ServiceId =
   | 'voice_drafts' | 'estimate_approvals' | 'payment_links' | 'automated_reminders'
-  | 'bookkeeping' | 'team_tools' | 'sms_messages' | AddOnId
+  | 'bookkeeping' | 'team_tools' | 'sms_messages' | AddOnId | AssistantAddOnId
 export type PlanInterest = 'free' | 'basic' | 'pro' | 'a_la_carte'
 export type ServiceInterest = { plan: PlanInterest; services: ServiceId[] }
 
@@ -13,7 +13,7 @@ export const serviceCatalog: Array<{
   { id: 'estimate_approvals', name: 'Online estimate approvals', description: 'Paid Pro option: customers review terms and give recorded acceptance. Free includes 0 acceptances and 0 links.', stage: 'Pro · Testing', tag: 'Customers' },
   { id: 'payment_links', name: 'Payment links', description: 'Offer a secure way for customers to pay an invoice online. Provider integration and fees are not finalized.', stage: 'Planned', tag: 'Payments' },
   { id: 'automated_reminders', name: 'Automated follow-ups', description: 'Paid service: prepare follow-up drafts and deliver reminders, subject to verification and per-plan limits.', stage: 'Paid · Planned', tag: 'Automation' },
-  { id: 'bookkeeping', name: 'Bookkeeping & integrations', description: 'Track recorded invoice payments and business expenses; QuickBooks Online connectivity is being evaluated.', stage: 'Workbook beta', tag: 'Finances' },
+  { id: 'bookkeeping', name: 'Manual bookkeeping workbook', description: 'Record income and expenses, export a CSV, and view separate QuickBooks imports when configured. This is the basic workbook, not the optional AI Bookkeeping Assistant.', stage: 'Core workbook · Beta', tag: 'Finances' },
   { id: 'team_tools', name: 'Team collaboration', description: 'Help owners coordinate employees, roles and assignments with appropriate permissions.', stage: 'Planned', tag: 'Team' },
   { id: 'sms_messages', name: 'Customer text messaging', description: 'Paid service: outgoing SMS and replies; usage limits and customer messaging consent required.', stage: 'Paid · Planned', tag: 'Messaging' },
 ]
@@ -26,7 +26,7 @@ export const plans: Array<{ id: PlanInterest; label: string; description: string
 export const defaultServiceInterest: ServiceInterest = { plan: 'free', services: [] }
 const key = 'velnu.beta.service-interests.v1'
 export const optionalTopUps = addOnCatalog.map(item => ({ ...item, priceLabel: formatMoney(item.priceUsd) }))
-const knownIds = new Set<ServiceId>([...serviceCatalog.map(x => x.id), ...addOnCatalog.map(x => x.id)])
+const knownIds = new Set<ServiceId>([...serviceCatalog.map(x => x.id), ...addOnCatalog.map(x => x.id), ...assistantAddOns.map(x => x.id)])
 const knownPlans = new Set<PlanInterest>(plans.map(x => x.id))
 
 export function normalizeInterests(value: unknown): ServiceInterest {
@@ -36,7 +36,8 @@ export function normalizeInterests(value: unknown): ServiceInterest {
   const services: ServiceId[] = Array.isArray(data.services)
     ? [...new Set(data.services.filter((id): id is ServiceId => typeof id === 'string' && knownIds.has(id as ServiceId)))]
     : []
-  return { plan, services }
+  // Assistants are available only for Basic/Pro interest, not Free or stand-alone A la carte.
+  return { plan, services: plan === 'basic' || plan === 'pro' ? services : services.filter(id => !assistantAddOns.some(item => item.id === id)) }
 }
 export function getPendingServiceInterests(): ServiceInterest {
   try { return normalizeInterests(JSON.parse(localStorage.getItem(key) || 'null')) }

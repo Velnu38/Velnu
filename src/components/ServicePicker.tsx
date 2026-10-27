@@ -1,4 +1,5 @@
 import { serviceCatalog, optionalTopUps, plans, type ServiceId, type ServiceInterest, type PlanInterest } from '../lib/serviceCatalog'
+import { assistantAddOns, assistantMonthlyTotal, formatMoney, monthlyPlans } from '../lib/pricing'
 
 export default function ServicePicker({ value, onChange, disabled = false, compact = false }: {
   value: ServiceInterest
@@ -6,11 +7,18 @@ export default function ServicePicker({ value, onChange, disabled = false, compa
   disabled?: boolean
   compact?: boolean
 }) {
-  function selectPlan(plan: PlanInterest) { onChange(plan === 'free' ? { plan, services: [] } : { ...value, plan }) }
+  function selectPlan(plan: PlanInterest) {
+    const next = plan === 'free' ? [] : plan === 'basic' || plan === 'pro'
+      ? value.services : value.services.filter(id => !assistantAddOns.some(a => a.id === id))
+    onChange({ plan, services: next })
+  }
   function toggleService(id: ServiceId, enabled: boolean) {
     onChange({ ...value, plan: enabled && value.plan === 'free' ? 'a_la_carte' : value.plan,
       services: enabled ? [...new Set([...value.services, id])] : value.services.filter(x => x !== id) })
   }
+  const paidTier = value.plan === 'basic' || value.plan === 'pro' ? value.plan : null
+  const assistantsTotal = paidTier ? assistantMonthlyTotal(paidTier, value.services) : 0
+  const estimatedTotal = paidTier ? monthlyPlans[paidTier].priceMonthlyUsd + assistantsTotal : 0
   return <div className={'service-picker' + (compact ? ' service-picker-compact' : '')}>
     <fieldset className="service-plan-choices">
       <legend>Which plan are you interested in?</legend>
@@ -35,6 +43,25 @@ export default function ServicePicker({ value, onChange, disabled = false, compa
           </span>
         </label>)}
       </div>
+    </fieldset>
+    <fieldset className="service-addon-choices service-assistant-options">
+      <legend>Optional AI Assistants — Basic and Pro</legend>
+      <p>Your existing calendar and manual bookkeeping workbook do not require these upgrades. These add-ons would provide more AI-assisted suggestions and analysis, not full-service accounting or automatic dispatch. A user must approve suggested changes. Pricing is proposed; no purchase or activation occurs now.</p>
+      <div className="service-addon-grid">
+        {assistantAddOns.map(assistant => <label key={assistant.id} className={'service-addon-card' + (value.services.includes(assistant.id) ? ' selected' : '') + (!paidTier ? ' service-addon-unavailable' : '')}>
+          <input type="checkbox" checked={value.services.includes(assistant.id)} disabled={disabled || !paidTier}
+            onChange={event => toggleService(assistant.id, event.target.checked)} />
+          <span className="service-addon-card-content">
+            <span className="service-addon-top">
+              <strong>{assistant.name}</strong>
+              <span className="service-addon-status">{paidTier ? formatMoney(assistant.priceMonthlyByTier[paidTier]) + ' / mo' : 'Select Basic or Pro'}</span>
+            </span>
+            <small>{assistant.summary}</small>
+            <small>{assistant.status}</small>
+          </span>
+        </label>)}
+      </div>
+      {paidTier && <p className="service-assistant-subtotal">Proposed monthly estimate: {formatMoney(monthlyPlans[paidTier].priceMonthlyUsd)} base + {formatMoney(assistantsTotal)} assistants = <strong>{formatMoney(estimatedTotal)} / month</strong>. One-time credit packs or extra storage are separate.</p>}
     </fieldset>
     <fieldset className="service-addon-choices">
       <legend>Extra AI credits and file storage</legend>

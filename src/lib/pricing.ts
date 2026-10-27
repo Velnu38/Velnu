@@ -46,6 +46,7 @@ export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
       'Business-aware AI assistant (in testing)',
       'Custom logo and up to 500 MB file storage',
       'No online estimate acceptances',
+      'Optional Scheduling and Bookkeeping AI Assistants priced separately',
     ],
   },
   pro: {
@@ -61,6 +62,7 @@ export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
       'Company logo and up to 5 GB file storage',
       '50 online estimate acceptances monthly (not live yet)',
       'Customer email, reminders and team tools (planned)',
+      'Discounted Scheduling and Bookkeeping AI Assistant add-ons',
     ],
   },
 }
@@ -113,3 +115,47 @@ export const creditRules = {
   voiceCreditsPerStartedMinute: 2,
   maxVoiceMinutesPerRecording: 2,
 } as const
+
+
+/** Planned OPTIONAL assistive modules. The core Schedule and Bookkeeping
+ * workbook remain accessible without these purchases. No actual paid
+ * entitlements, AI task quotas or autopilot functions are enabled in beta.
+ */
+export type AssistantAddOnId = 'scheduling_assistant' | 'bookkeeping_assistant'
+export type PaidAssistantTier = 'basic' | 'pro'
+export type AssistantAddOn = {
+  id: AssistantAddOnId
+  name: string
+  summary: string
+  functions: string[]
+  priceMonthlyByTier: Record<PaidAssistantTier, number>
+  status: 'Planned — not active'
+}
+export const assistantAddOns: AssistantAddOn[] = [
+  {
+    id: 'scheduling_assistant',
+    name: 'Scheduling Assistant',
+    summary: 'Help suggest available appointment slots, flag potential conflicts, and prepare follow-up reminders for owner review.',
+    functions: ['Suggested appointment times', 'Possible scheduling conflicts', 'Draft reminders for review'],
+    priceMonthlyByTier: { basic: 9.99, pro: 7.99 },
+    status: 'Planned — not active',
+  },
+  {
+    id: 'bookkeeping_assistant',
+    name: 'Bookkeeping Assistant',
+    summary: 'Help organize expenses, propose categories and summarize recorded income and spending for owner review.',
+    functions: ['Suggested expense categories', 'Income and expense summaries', 'Potential missing or duplicate entries'],
+    priceMonthlyByTier: { basic: 14.99, pro: 11.99 },
+    status: 'Planned — not active',
+  },
+]
+export function assistantPriceForTier(addOnId: AssistantAddOnId, tier: VelnuTier): number | null {
+  if (tier !== 'basic' && tier !== 'pro') return null
+  return assistantAddOns.find(a => a.id === addOnId)?.priceMonthlyByTier[tier] ?? null
+}
+export function assistantMonthlyTotal(tier: VelnuTier, choices: readonly string[]): number {
+  if (tier === 'free') return 0
+  const ids = new Set(choices)
+  return assistantAddOns.reduce((sum, item) =>
+    sum + (ids.has(item.id) ? item.priceMonthlyByTier[tier] : 0), 0)
+}
