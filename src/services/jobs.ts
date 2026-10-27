@@ -9,6 +9,8 @@ export interface JobInput {
   status?: 'lead' | 'scheduled' | 'in_progress' | 'completed' | 'canceled'
   scheduled_start?: string
   scheduled_end?: string
+  /** Reuse for the same submission after a network timeout; changes require a new ID. */
+  request_id?: string
 }
 
 export async function listJobs(businessId: string) {
@@ -26,6 +28,26 @@ export async function listJobs(businessId: string) {
 export async function createJob(businessId: string, input: JobInput) {
   if (!input.customer_id) throw new Error('Choose a customer')
   if (!input.title.trim()) throw new Error('Job title is required')
+  // One Postgres transaction creates the scheduled job and its appointment.
+  // The RPC checks tenant and property ownership and serializes retries by request ID.
+  if (input.scheduled_start) {
+    const { data, error } = await supabase.rpc('create_scheduled_job', {
+      target_business_id: businessId,
+      request_id: input.request_id ?? crypto.randomUUID(),
+      payload: {
+        customer_id: input.customer_id,
+        property_id: input.property_id || null,
+        title: input.title.trim(),
+        description: input.description?.trim() || null,
+        scheduled_start: input.scheduled_start,
+        scheduled_end: input.scheduled_end || null,
+      },
+    })
+    if (error) throw error
+    if (!data?.id || !data?.appointment_id) throw new Error('Scheduling result was incomplete. Check the calendar before retrying.')
+    return data
+  }
+
   if (input.property_id) {
     const { data: property, error: propertyError } = await supabase.from('properties')
       .select('id').eq('business_id', businessId).eq('customer_id', input.customer_id).eq('id', input.property_id).maybeSingle()
@@ -49,23 +71,6 @@ export async function createJob(businessId: string, input: JobInput) {
     .single()
 
   if (error) throw error
-
-  if (input.scheduled_start) {
-    const { error: appointmentError } = await supabase.from('appointments').insert({
-      business_id: businessId,
-      customer_id: input.customer_id,
-      job_id: job.id,
-      title: job.title,
-      starts_at: input.scheduled_start,
-      ends_at: input.scheduled_end || null,
-      status: 'scheduled',
-    })
-
-    if (appointmentError) {
-      await supabase.from('jobs').delete().eq('id', job.id)
-      throw appointmentError
-    }
-  }
 
   return job
 }
