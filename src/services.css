@@ -1,0 +1,76 @@
+/* Public Velnu service catalogue, app install guide, and private-beta preferences */
+.services-public-page,.install-public-page{min-height:100vh;background:#f7f8f5;color:#213647;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.services-public-nav{max-width:1180px;margin:auto;min-height:91px;display:flex;align-items:center;justify-content:space-between;gap:25px;padding:0 26px;border-bottom:1px solid #e5ebec}
+.services-public-nav nav{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+.services-public-nav nav a{color:#536877;font-size:13px;font-weight:750;text-decoration:none}
+.services-public-nav nav a:hover{color:#e26c3e}
+.services-public-body,.install-hero{max-width:1130px;margin:0 auto;padding:80px 26px 100px}
+.services-public-body>h1,.install-hero>h1{font-size:clamp(43px,6vw,72px);line-height:1.03;letter-spacing:-.068em;margin:0 0 23px;color:#1a3544;max-width:860px}
+.services-public-body>h1 em,.install-hero>h1 em{color:#ed7546;font-style:normal}
+.services-public-lead,.install-hero>p:not(.marketing-section-kicker){font-size:16px;line-height:1.73;color:#70818a;max-width:720px}
+.services-beta-notice{font-size:12px;line-height:1.65;color:#546d65;padding:16px 19px;background:#eaf3ef;border:1px solid #d6e9de;border-radius:12px;max-width:890px;margin:32px 0}
+.service-picker{display:grid;gap:23px;color:#273b48}
+.service-picker fieldset{border:0;margin:0;padding:0;min-width:0}
+.service-picker legend{font-size:19px;font-weight:850;letter-spacing:-.035em;padding:0;margin-bottom:17px}
+.service-plan-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.service-plan-option{display:flex;position:relative;flex-direction:column;gap:8px;min-height:126px;border-radius:14px;border:1px solid #dfe6e9;padding:18px;background:white;cursor:pointer;transition:border-color .16s,background .16s}
+.service-plan-option.selected{background:#eaf5f2;border-color:#3d9781;box-shadow:0 0 0 1px #3d9781}
+.service-plan-option input{align-self:flex-end;accent-color:#277d63;width:17px;height:17px;min-height:17px}
+.service-plan-option strong{font-size:17px}
+.service-plan-option span{font-size:12px;line-height:1.5;color:#788790}
+.service-addon-choices>p{color:#819098;font-size:13px;line-height:1.6;margin:-6px 0 20px;max-width:800px}
+.service-addon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.service-addon-card{display:flex;gap:13px;cursor:pointer;border:1px solid #e1e6e8;background:#fff;padding:18px;border-radius:15px;min-height:123px;transition:border-color .16s,background .16s}
+.service-addon-card:hover,.service-plan-option:hover{border-color:#b0d2c7}
+.service-addon-card.selected{background:#f0f7f4;border-color:#58a58d}
+.service-addon-card>input{accent-color:#277d63;width:19px;height:19px;min-height:19px;flex:none;margin-top:1px}
+.service-addon-card-content{min-width:0;display:grid;gap:9px;align-content:start;flex:1}
+.service-addon-top{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.service-addon-top strong{font-size:14px;line-height:1.4;color:#243947}
+.service-addon-status{font-size:10px;line-height:1.4;color:#995c3b;background:#fff0df;border-radius:8px;padding:4px 7px;flex:none}
+.service-addon-card-content>small{font-size:12px;line-height:1.57;color:#798894}
+.service-picker-summary{border-radius:13px;border:1px dashed #bacacb;background:#fff;padding:16px 21px;display:flex;justify-content:space-between;align-items:center;gap:15px}
+.service-picker-summary strong{font-size:14px}
+.service-picker-summary span{font-size:12px;color:#778894}
+.service-public-actions{display:flex;align-items:center;flex-wrap:wrap;gap:26px;margin-top:32px}
+.service-existing-login{color:#366c68;font-weight:750;font-size:13px;text-decoration:underline}
+.services-public-fine{color:#84939b;font-size:12px;line-height:1.65;margin-top:23px}
+.service-workspace-actions{display:flex;justify-content:flex-end;gap:14px}
+.workspace-services .service-picker{max-width:1100px}
+.service-picker-compact .service-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.service-picker-compact .service-addon-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.service-picker-compact .service-plan-option{min-height:108px}
+.services-marketing-banner{background:#e7f0eb;border-top:1px solid #dbe8df;border-bottom:1px solid #dbe8df;padding:53px 0}
+.services-marketing-banner-inner{display:flex;justify-content:space-between;align-items:center;gap:50px}
+.services-marketing-banner h2{font-size:clamp(26px,3.7vw,44px);letter-spacing:-.06em;line-height:1.15;color:#24483c;margin:0 0 12px}
+.services-marketing-banner p:not(.marketing-section-kicker){color:#698278;font-size:14px;line-height:1.7;margin:0;max-width:660px}
+.services-marketing-banner .marketing-btn{flex:none}
+.marketing-hero-fine a{color:#d46137;text-decoration:underline}
+.install-hero>p{max-width:800px}
+.install-actions{display:flex;gap:15px;flex-wrap:wrap;margin:32px 0 50px}
+.install-guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+.install-guide-grid article{border:1px solid #dde7e4;background:white;padding:27px 24px;border-radius:17px}
+.install-device-icon{font-size:27px;color:#e57c54}
+.install-guide-grid h2{font-size:21px;letter-spacing:-.035em;margin:15px 0 10px}
+.install-guide-grid p{color:#748691;font-size:13px;line-height:1.72;margin:0}
+.install-help{margin-top:25px;color:#83929a;font-size:12px!important;line-height:1.65}
+@media(max-width:900px){.service-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.services-marketing-banner-inner{align-items:flex-start;flex-direction:column;gap:21px}.install-guide-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){
+ .services-public-nav{padding:0 16px;min-height:70px;gap:12px}
+ .services-public-nav nav{gap:12px}.services-public-nav nav a{font-size:11px}
+ .services-public-body,.install-hero{padding:43px 17px 68px}
+ .services-public-body>h1,.install-hero>h1{font-size:clamp(41px,10vw,56px)}
+ .services-public-lead,.install-hero>p{font-size:14px}
+ .service-plan-grid,.service-addon-grid,.service-picker-compact .service-addon-grid{grid-template-columns:1fr}
+ .service-plan-option{min-height:95px}
+ .service-addon-card{min-height:108px}
+ .service-addon-top{flex-wrap:wrap}
+ .service-picker-summary{align-items:flex-start;flex-direction:column}
+ .service-public-actions{align-items:stretch;flex-direction:column;gap:16px}
+ .service-public-actions .marketing-btn{justify-content:space-between}
+ .install-guide-grid{grid-template-columns:1fr}
+ .install-actions{align-items:stretch;flex-direction:column}
+ .install-actions .marketing-btn{justify-content:space-between}
+ .services-marketing-banner{padding:42px 0}
+}
+@media print{.service-picker,.service-workspace-actions{display:none!important}}

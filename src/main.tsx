@@ -11,7 +11,8 @@ import './change-orders.css';
 import './customer-approval.css';
 import './office-dashboard.css';
 import './company-profile.css';
-import './marketing.css';
+import './marketing.css'
+import './services.css';
 import './bookkeeping.css';
 import './google-maps.css';
 
