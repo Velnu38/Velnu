@@ -1,0 +1,35 @@
+name: Finviant public-domain smoke check
+
+on:
+  push:
+    branches: [feature/velnu-stage1]
+    paths:
+      - '.github/workflows/finviant-live-smoke.yml'
+      - 'tests/live-domain-smoke.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-site-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Inspect public HTTP response
+        shell: bash
+        run: |
+          for site in https://finviant.com/ https://www.finviant.com/; do
+            echo "=== Checking ${site} ==="
+            curl -sSL --max-time 30 -D /tmp/finviant-headers -o /tmp/finviant-body -w 'HTTP=%{http_code} final=%{url_effective} bytes=%{size_download}\n' "$site" || true
+            grep -iE '^(HTTP/|server:|location:|content-type:|x-vercel-error:)' /tmp/finviant-headers || true
+            grep -oE '<title>[^<]{0,130}</title>' /tmp/finviant-body | head -n 1 || true
+          done
+      - run: npm install --no-save @playwright/test@1.63.0
+      - run: npx playwright install --with-deps chromium
+      - name: Check actual browser rendering and JS errors
+        run: node tests/live-domain-smoke.mjs
