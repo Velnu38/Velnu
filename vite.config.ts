@@ -8,8 +8,8 @@ export default defineConfig({
       output: {
         // Stable vendor caches; analytics remains a consent-gated dynamic import.
         manualChunks(id) {
-          if (id.includes('/node_modules/posthog-js/')) return 'analytics'
-          if (id.includes('/node_modules/@supabase/')) return 'supabase'
+          if (id.indexOf('/node_modules/posthog-js/') !== -1) return 'analytics'
+          if (id.indexOf('/node_modules/@supabase/') !== -1) return 'supabase'
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react'
         },
       },
