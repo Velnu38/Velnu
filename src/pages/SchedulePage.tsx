@@ -29,6 +29,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   // State-based disabled buttons update after rendering. This ref guards
   // against same-tick double clicks that would otherwise create two jobs.
   const submitting = useRef(false)
+  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
     if (!mounted.current) return
@@ -67,7 +68,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   }, [appointments])
 
   function resetForm() {
-    setForm({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' }); setError('')
+    setForm({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' }); setError(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
@@ -77,7 +78,14 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
     setBusy(true); setError('')
     try {
       const { startsAt, endsAt } = validateScheduleWindow(form.starts_at, form.ends_at)
+      const signature = JSON.stringify({
+        businessId: business.id, ...form, startsAt, endsAt,
+      })
+      if (retryRef.current?.signature !== signature) {
+        retryRef.current = { signature, requestId: crypto.randomUUID() }
+      }
       await createJob(business.id, {
+        request_id: retryRef.current.requestId,
         customer_id: form.customer_id,
         property_id: form.property_id || undefined,
         title: form.title,
