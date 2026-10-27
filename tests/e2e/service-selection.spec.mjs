@@ -18,11 +18,12 @@ async function signedIn(page) {
 test('website shows non-billable à la carte chooser and carries selected interests into signup', async ({ page }) => {
   await page.goto('/services')
   await expect(page.getByRole('heading', { name: /Choose what you need/ })).toBeVisible()
-  await expect(page.getByText(/non-billable feature interests/)).toBeVisible()
+  await expect(page.getByText(/subscriptions and add-ons are not available for purchase/)).toBeVisible()
   await expect(page.getByRole('radio')).toHaveCount(4)
   await page.getByRole('radio', { name: /À la carte/ }).check()
   await page.getByRole('checkbox', { name: /Voice-to-document assistant/ }).check()
   await page.getByRole('checkbox', { name: /Bookkeeping & integrations/ }).check()
+  await expect(page.getByText(/\+100 AI credits/)).toBeVisible()
   await expect(page.getByText('2 optional services selected')).toBeVisible()
   const pending = await page.evaluate(() => localStorage.getItem('velnu.beta.service-interests.v1'))
   expect(JSON.parse(pending)).toMatchObject({
