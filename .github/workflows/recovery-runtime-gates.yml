@@ -1,0 +1,30 @@
+name: Finviant deployed recovery gates
+on:
+  push:
+    branches: [feature/velnu-stage1]
+    paths: ['.github/workflows/recovery-runtime-gates.yml']
+  workflow_dispatch:
+permissions: {}
+jobs:
+  fail-closed-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Probe only unauthenticated staging requests; no secrets or business inputs
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const base='https://xvybcmyoblfgzokaifsx.supabase.co/functions/v1/';
+          const checks=[['ai-command',[401]],['transcribe-voice',[401]],['execute-ai-action',[401]],['send-invoice-email',[401]],['send-document-email',[401]],['resend-events',[401,503]],['stripe-events',[401,503]],['email-recovery-worker',[401,503]],['reliability-health',[401,503]]];
+          let failures=0;
+          for(const [name,allowed] of checks){
+            try {
+              const response=await fetch(base+name,{method:'POST',headers:{'content-type':'application/json'},body:'{}',redirect:'error',signal:AbortSignal.timeout(15000)});
+              const pass=allowed.includes(response.status);
+              console.log(JSON.stringify({endpoint:name,status:response.status,pass,authenticated:false}));
+              await response.body?.cancel();
+              if(!pass)failures++;
+            } catch { console.log(JSON.stringify({endpoint:name,pass:false,error:'request_unavailable'}));failures++; }
+          }
+          if(failures)process.exit(1);
+          JS
