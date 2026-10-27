@@ -57,7 +57,8 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
 
   const [customers, invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting] = await Promise.all([
     supabase.from('customers').select('id', { count: 'exact', head: true }).eq('business_id', businessId).eq('archived', false),
-    supabase.from('invoices').select('balance_due').eq('business_id', businessId).gt('balance_due', 0).not('status','in', '(draft,void)'),
+    // SECURITY INVOKER RPC calculates exact totals under the caller's existing invoice RLS.
+    supabase.rpc('get_dashboard_invoice_totals', { target_business_id: businessId }).single(),
     supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('business_id', businessId).gte('scheduled_start', now.toISOString()).lt('scheduled_start', weekEnd.toISOString()).neq('status', 'canceled'),
     supabase.from('invoices').select('id,invoice_number,due_date,balance_due,customers!invoices_customer_id_fkey(first_name,last_name,company)').eq('business_id', businessId).lt('due_date', todayDate).gt('balance_due', 0).neq('status', 'void').order('due_date', { ascending: true }).limit(10),
     supabase.from('reminders').select('id,kind,due_at,note,invoice_id,estimate_id,job_id,customer_id').eq('business_id', businessId).eq('status', 'pending').lte('due_at', now.toISOString()).order('due_at', { ascending: true }).limit(10),
@@ -93,8 +94,8 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
 
   return {
     customers: customers.count ?? 0,
-    openInvoices: invoices.data?.length ?? 0,
-    outstandingBalance: (invoices.data ?? []).reduce((sum, row) => sum + Number(row.balance_due ?? 0), 0),
+    openInvoices: Number(invoices.data?.open_invoices ?? 0),
+    outstandingBalance: Number(invoices.data?.outstanding_balance ?? 0),
     jobsThisWeek: jobs.count ?? 0,
     overdueInvoices: (overdueInvoices.data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) })) as DashboardSnapshot['overdueInvoices'],
     dueReminders: (dueReminders.data ?? []) as DashboardSnapshot['dueReminders'],
