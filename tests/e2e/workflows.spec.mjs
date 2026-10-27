@@ -25,6 +25,7 @@ async function mockWorkspace(page, seed = {}) {
     invoices: [...(seed.invoices || [])],
     estimates: [...(seed.estimates || [])],
     payments: [],
+    changeOrders: [...(seed.changeOrders || [])],
     requests: [],
   }
   await installSession(page)
@@ -90,7 +91,15 @@ async function mockWorkspace(page, seed = {}) {
     if (path.endsWith('/payments')) return fulfill(state.payments)
     if (path.endsWith('/invoice_items')) return fulfill(state.invoices.length ? [{ id: 'a', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }] : [])
     if (path.endsWith('/estimate_items')) return fulfill([{ id: 'b', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }])
-    if (path.endsWith('/messages') || path.endsWith('/jobs') || path.endsWith('/appointments') || path.endsWith('/reminders') || path.endsWith('/change_orders')) return fulfill([])
+    if (path.endsWith('/change_orders')) {
+      if (method === 'PATCH') {
+        const row = state.changeOrders.find(o => o.id === url.searchParams.get('id')?.replace(/^eq\./, ''))
+        if (row) row.status = body.status
+        return fulfill(row || null)
+      }
+      return fulfill(state.changeOrders)
+    }
+    if (path.endsWith('/messages') || path.endsWith('/jobs') || path.endsWith('/appointments') || path.endsWith('/reminders')) return fulfill([])
     return fulfill([])
   })
   return state
@@ -233,4 +242,29 @@ test('technician keeps field navigation but cannot edit invoices, estimates or p
   await expect(page.getByRole('button', { name: '+ New estimate' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Payments', exact: true }).click()
   await expect(page.getByRole('button', { name: '+ Record payment' })).toHaveCount(0)
+})
+
+
+test('issued change order cannot be reverted to draft and voiding requires confirmation', async ({ page }) => {
+  const changeOrderId = '99999999-9999-4999-8999-999999999999'
+  const order = {
+    id: changeOrderId, change_order_number: 'CO-TEST', status: 'sent',
+    title: 'Extra plumbing work', description: 'Install valve', reason: 'Customer request',
+    issue_date: '2026-10-26', subtotal: 80, tax_amount: 0, total: 80,
+    customer_id: customerId, job_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    customers: customer, jobs: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Kitchen repair' },
+    schedule_impact_days: 0, schedule_note: null, sent_at: '2026-10-26T12:00:00Z',
+  }
+  const state = await mockWorkspace(page, { changeOrders: [order] })
+  page.on('dialog', async dialog => { await dialog.accept() })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Change Orders' }).click()
+  await expect(page.getByText('CO-TEST')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
+  await expect(page.locator('.change-order-row select')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Void', exact: true }).click()
+  await expect(page.locator('.change-order-row .status-chip')).toHaveText('void')
+  const changed = state.requests.filter(x => x.path.endsWith('/change_orders') && x.method === 'PATCH')
+  expect(changed).toHaveLength(1)
+  expect(changed[0].body.status).toBe('void')
 })
