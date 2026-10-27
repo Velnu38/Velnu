@@ -18,6 +18,10 @@ Deno.serve(async(req:Request)=>{
   if(!businessId||!documentId||!['estimate','change_order'].includes(documentType))return respond(400,{error:"business_id, document_type and document_id are required"});
   const {data:membership}=await supabase.from("business_members").select("role").eq("business_id",businessId).eq("user_id",userData.user.id).maybeSingle();
   if(!membership)return respond(403,{error:"Forbidden"}); if(membership.role==="viewer")return respond(403,{error:"Viewer role is read-only"});
+  // Free includes zero customer approval links; paid tier interest is not access.
+  const{data:usage,error:planError}=await supabase.rpc("get_plan_usage",{target_business_id:businessId});
+  if(planError||!usage)return respond(503,{error:"Unable to verify approval entitlement"});
+  if(usage.plan!=="pro")return respond(403,{error:"Online customer acceptance is not available on Free or Basic. Pro activation is required."});
 
   if(documentType==="estimate"){
    const {data:doc,error}=await supabase.from("estimates").select("id,status").eq("id",documentId).eq("business_id",businessId).maybeSingle();

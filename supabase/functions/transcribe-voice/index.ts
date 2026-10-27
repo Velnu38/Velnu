@@ -52,6 +52,18 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (memberError || !membership) return respond(403, { error: "No access to this business." });
 
+    // Plan selection and add-on interests are NOT paid entitlements. Verify backend
+    // entitlements before exposing a billable transcription endpoint or key status.
+    const { data: usage, error: usagePlanError } = await db.rpc("get_plan_usage", { target_business_id: businessId });
+    if (usagePlanError || !usage) return respond(503, { error: "Could not verify voice service permissions." });
+    if (usage.plan !== "pro" || Number(usage.voice_limit ?? 0) <= 0) {
+      if (isJson && body?.action === "status") return respond(200, {
+        configured: false, model: null, plan_restricted: true,
+      });
+      return respond(403, { code: "paid_plan_required",
+        error: "Cloud AI transcription is not included in Free. It requires an activated paid plan." });
+    }
+
     const apiKey = Deno.env.get("OPENAI_API_KEY")?.trim() || "";
     if (isJson) {
       if (body?.action !== "status") return respond(400, { error: "Unknown action." });
