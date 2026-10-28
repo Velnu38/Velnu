@@ -10,7 +10,7 @@
 :is(.invoice-shortcut-copy, .estimate-shortcut-copy) { display: grid; flex: 1; min-width: 0; gap: 5px; }
 :is(.invoice-shortcut-title, .estimate-shortcut-title) { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .invoice-overdue-badge { display: inline-flex; padding: 4px 7px; border-radius: 20px; background: #fff0ed; color: #a62e23; font-size: 10px; font-weight: 800; white-space: nowrap; }
-.estimate-approval-badge { display: inline-flex; padding: 4px 7px; border-radius: 20px; background: #fff5df; color: #805a13; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.estimate-approval-badge { display: inline-flex; max-width: 100%; padding: 4px 7px; border-radius: 20px; background: #fff5df; color: #805a13; font-size: 10px; font-weight: 800; }
 :is(.invoice-tile-status, .estimate-tile-status) { margin: 0; padding: 0 18px 16px; font-size: 11px; line-height: 1.5; color: #71818a; }
 :is(.invoice-tile-overdue, .estimate-tile-approvals) { border-top: 1px solid #edf0f2; padding: 0 18px; }
 :is(.invoice-overdue-list, .estimate-approval-list) { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
@@ -21,3 +21,13 @@
 :is(.invoice-overdue-row, .estimate-approval-row) .row-main span { font-size: 10px; }
 .invoice-overdue-row .overdue-money, .estimate-approval-row .approval-money { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
 :is(.invoice-tile-limit, .estimate-tile-limit) { margin: 0; border-top: 1px solid #edf0f2; padding: 10px 0; color: #71818a; font-size: 10px; line-height: 1.5; }
+.dashboard-shortcuts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.financial-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.financial-actions .secondary-button { font-size: 11px; }
+.estimate-document-open { border: 0; padding: 0; background: transparent; text-align: left; color: inherit; }
+.estimate-document-open:hover strong { text-decoration: underline; }
+.document-change-context { display: grid; gap: 6px; padding: 16px 18px; border: 1px solid #dce8e4; border-radius: 12px; background: #f3f8f6; }
+.document-change-context p { margin: 0; color: #627770; font-size: 12px; line-height: 1.5; }
+@media(max-width:1200px){.dashboard-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.dashboard-shortcuts{grid-template-columns:1fr}}
+@media(max-width:600px){.financial-actions{align-items:flex-start}}

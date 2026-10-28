@@ -6,10 +6,11 @@ import { createApprovalLink } from '../services/approvals'
 import { sendDocumentEmail } from '../services/communications'
 import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
+import { matchesChangeOrderContext, type DocumentChangeOrderContext } from '../lib/documentChangeOrders'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
 type Job = { id: string; title: string; status: string; customer_id: string; customers: Customer[] | Customer | null }
-type ChangeOrder = { id: string; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
+type ChangeOrder = { id: string; customer_id: string; job_id: string; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
 
@@ -24,7 +25,7 @@ function jobCustomer(job: Job) {
   return Array.isArray(job.customers) ? job.customers[0] : job.customers
 }
 
-export default function ChangeOrdersPage({ business }: { business: CurrentBusiness }) {
+export default function ChangeOrdersPage({ business, context, onBack }: { business: CurrentBusiness; context?: DocumentChangeOrderContext; onBack?: () => void }) {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -32,7 +33,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [jobId, setJobId] = useState('')
+  const [jobId, setJobId] = useState(context?.jobId || '')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [reason, setReason] = useState('')
@@ -49,6 +50,9 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
 
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load change orders')) }, [business.id])
 
+  const availableJobs = jobs.filter(job => matchesChangeOrderContext({ customer_id: job.customer_id, job_id: job.id }, context))
+  const visibleOrders = changeOrders.filter(order => matchesChangeOrderContext(order, context))
+
   const preview = useMemo(() => lines.reduce((sum, line) => {
     const quantity = Number(line.quantity || 0)
     const price = Number(line.unit_price || 0)
@@ -58,20 +62,23 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   }, 0), [lines])
 
   function resetForm() {
-    setJobId(''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
+    setJobId(context?.jobId || ''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError(''); setNotice('')
+    event.preventDefault(); if (!canManageFinances(business.role) || busy) return; setBusy(true); setError(''); setNotice('')
     try {
-      const job = jobs.find((row) => row.id === jobId)
+      const job = availableJobs.find((row) => row.id === jobId)
       if (!job) throw new Error('Choose a job')
-      const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines})
+      const sourceNote = context ? `Requested from ${context.documentType} ${context.documentNumber} (${context.documentId}).` : undefined
+      const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines,estimateId:context?.estimateId,sourceNote})
       if (retryRef.current?.signature !== signature) retryRef.current = {signature, requestId: crypto.randomUUID()}
       await createChangeOrder(business.id, {
         request_id: retryRef.current.requestId,
         customer_id: job.customer_id,
         job_id: job.id,
+        estimate_id: context?.estimateId || undefined,
+        notes: sourceNote,
         title,
         description,
         reason,
@@ -128,16 +135,18 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   }
 
   return <div className="page-stack">
+    {onBack && <div className="detail-top"><button type="button" className="back-button" onClick={onBack}>← Back to {context?.documentType || 'document'}</button></div>}
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Change orders</p><h1>Capture scope changes before they become lost revenue.</h1></div>
       {canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
     </div>
+    {context && <section className="document-change-context"><strong>From {context.documentNumber}</strong><p>{context.jobId ? 'Change orders for this document’s customer and linked job.' : 'Change orders for this document’s customer. Choose the relevant job when creating a change order.'}</p></section>}
     <section className="change-order-intro"><strong>Accuracy first.</strong><span>Added work, price, tax and schedule impact stay separate until the customer approves the change.</span></section>
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && <p className="form-message error-text">{error}</p>}
     <section className="list-card">
-      {changeOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : changeOrders.map((order) => {
+      {visibleOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : visibleOrders.map((order) => {
         const customer = order.customers?.[0]
         const job = order.jobs?.[0]
         return <article className="document-row change-order-row" key={order.id}>
@@ -157,7 +166,8 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
       <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid">
-          <label className="full">Job<select value={jobId} onChange={(e) => setJobId(e.target.value)} required><option value="">Choose job…</option>{jobs.map((job) => <option value={job.id} key={job.id}>{customerName(jobCustomer(job))} — {job.title}</option>)}</select></label>
+          <label className="full">Job<select value={jobId} onChange={(e) => setJobId(e.target.value)} required><option value="">Choose job…</option>{availableJobs.map((job) => <option value={job.id} key={job.id}>{customerName(jobCustomer(job))} — {job.title}</option>)}</select></label>
+          {context && availableJobs.length === 0 && <p className="form-message full">{context.jobId ? 'The linked job is unavailable. Review its status in Jobs before adding a change order.' : 'No available job matches this customer. Create a job for this customer in Jobs before adding a change order.'}</p>}
           <label className="full">Change order title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add two recessed lights" required /></label>
           <label className="full">Scope change<textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe exactly what is being added, removed, or changed." /></label>
           <label>Reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Customer requested" /></label>

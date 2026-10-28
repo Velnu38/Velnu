@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
@@ -7,9 +7,12 @@ import { createApprovalLink } from '../services/approvals'
 import { sendDocumentEmail } from '../services/communications'
 import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
+import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
+
+const ChangeOrdersPage = lazy(() => import('./ChangeOrdersPage'))
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
-type Estimate = { issuer_snapshot?: Partial<BusinessProfile> | null; id: string; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
+type Estimate = { issuer_snapshot?: Partial<BusinessProfile> | null; id: string; customer_id: string; job_id?: string | null; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type PreviewItem = { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
@@ -22,6 +25,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [showForm, setShowForm] = useState(false)
   const [convertTarget, setConvertTarget] = useState<Estimate | null>(null)
   const [previewTarget, setPreviewTarget] = useState<Estimate | null>(null)
+  const [showChangeOrders, setShowChangeOrders] = useState(false)
   const [previewItems, setPreviewItems] = useState<PreviewItem[]>([])
   const [previewBusy, setPreviewBusy] = useState(false)
   const [convertDueDate, setConvertDueDate] = useState('')
@@ -150,6 +154,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     } finally { setPreviewBusy(false) }
   }
 
+  if (showChangeOrders && previewTarget && offersDocumentChangeOrders('estimate', previewTarget.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType: 'estimate', documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id }} onBack={() => setShowChangeOrders(false)} /></Suspense>
+
   return <div className="page-stack">
     <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New estimate</button>}</div>
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured. You can preview and print estimates now.</p>}
@@ -159,7 +165,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Create an estimate here or tell Finviant Office what you want to quote.</p></div> : estimates.map((estimate) => {
         const customer = estimate.customers?.[0]
         return <article className="document-row" key={estimate.id}>
-          <div className="row-main"><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span></div>
+          <button type="button" className="row-main estimate-document-open" disabled={previewBusy} onClick={() => openPreview(estimate)}><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span></button>
           <strong className="money">${Number(estimate.total).toFixed(2)}</strong>
           <div className="document-actions">
             <button className="secondary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Preview / Print</button>
@@ -200,6 +206,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <button className="icon-button" onClick={() => setPreviewTarget(null)} aria-label="Close preview">×</button>
         </div>
         <div className="modal-actions">
+          {offersDocumentChangeOrders('estimate', previewTarget.status) && <button type="button" className="secondary-button" onClick={() => setShowChangeOrders(true)}>Change orders</button>}
           <button type="button" className="secondary-button" onClick={() => window.print()}>Print / Save PDF</button>
           <button type="button" className="secondary-button" onClick={() => setPreviewTarget(null)}>Close</button>
         </div>

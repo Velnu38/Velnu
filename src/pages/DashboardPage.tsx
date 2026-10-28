@@ -16,7 +16,7 @@ function recentMonths() {
   })
 }
 
-function FinancialPerformance({ business }: { business: CurrentBusiness }) {
+function FinancialPerformance({ business, onOpenWorkbook }: { business: CurrentBusiness; onOpenWorkbook?: () => void }) {
   const canSee = financeRoles.includes(business.role)
   const [rows, setRows] = useState<WorkbookLine[]>([])
   const [loading, setLoading] = useState(canSee)
@@ -64,7 +64,7 @@ function FinancialPerformance({ business }: { business: CurrentBusiness }) {
   return <section className="financial-performance" aria-labelledby="financial-performance-title">
     <div className="financial-head">
       <div><p className="eyebrow">Financial overview</p><h2 id="financial-performance-title">Financial performance</h2><p>Compare income received with expenses recorded. Select a month to review each posting.</p></div>
-      <span className="financial-period">Last 12 months</span>
+      <div className="financial-actions"><span className="financial-period">Last 12 months</span>{canSee && onOpenWorkbook && <button type="button" className="secondary-button compact" onClick={onOpenWorkbook}>Open financial workbook</button>}</div>
     </div>
     {!canSee ? <p className="quiet financial-message">Financial performance is available to owners, administrators, and office staff. Ask your business owner to update your access role.</p> : <>
       {error && <p role="alert" className="form-message error-text">{error}</p>}
@@ -199,7 +199,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
             <div className="row-main"><strong>{item.number || item.title} · {personName(item.customers?.[0])}</strong><span>{item.document_type === 'estimate' ? 'Estimate' : `Change order · ${item.title}`} · sent {new Date(item.issue_date + 'T00:00:00').toLocaleDateString()}</span></div>
             <strong className="approval-money">{usd.format(Number(item.total))}</strong>
           </li>)}</ul>
-          {snapshot.pendingApprovalCount > snapshot.pendingApprovals.length && <p className="estimate-tile-limit">Showing {snapshot.pendingApprovals.length} pending approvals. Open Estimates or Change Orders to see all.</p>}
+          {snapshot.pendingApprovalCount > snapshot.pendingApprovals.length && <p className="estimate-tile-limit">Showing {snapshot.pendingApprovals.length} pending approvals. Open Estimates to review requests, or open a sent document for its change orders.</p>}
         </div>}
       </article>
       <article className="dashboard-shortcut invoice-shortcut" aria-label="Invoices overview">
@@ -216,19 +216,15 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
           {snapshot.overdueInvoiceCount > snapshot.overdueInvoices.length && <p className="invoice-tile-limit">Showing the {snapshot.overdueInvoices.length} oldest. Open Invoices to see all.</p>}
         </div>}
       </article>
-      <div className="dashboard-shortcut combined-shortcut"><span className="shortcut-icon">S</span><span><strong>Schedule & jobs</strong><small>Plan work and keep jobs moving</small></span><span className="shortcut-actions"><button onClick={() => onNavigate?.('schedule')}>Schedule</button><button onClick={() => onNavigate?.('jobs')}>Jobs</button></span></div>
+      <button type="button" className="dashboard-shortcut" aria-label="Jobs" onClick={() => onNavigate?.('jobs')}><span className="shortcut-icon">J</span><span><strong>Jobs</strong><small>{loading ? 'Loading jobs…' : error ? 'Manage your jobs' : `${snapshot.jobsThisWeek} in the next 7 days`}</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
+      <button type="button" className="dashboard-shortcut" aria-label="Schedule" onClick={() => onNavigate?.('schedule')}><span className="shortcut-icon">S</span><span><strong>Schedule</strong><small>{loading ? 'Loading schedule…' : error ? 'Open your calendar' : `${snapshot.todayAppointments.length} scheduled today`}</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
     </section>
 
     {error && <p role="alert" className="form-message error-text">{error}</p>}
 
-    <FinancialPerformance key={`${business.id}:${business.role}`} business={business} />
+    <FinancialPerformance key={`${business.id}:${business.role}`} business={business} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />
 
-    <section className="office-day-grid">
-      <article className="office-panel">
-        <div className="office-panel-head"><div><p className="eyebrow">Today’s work</p><h2>Schedule</h2></div><span className="count-badge">{snapshot.todayAppointments.length}</span></div>
-        {snapshot.todayAppointments.length === 0 ? <p className="quiet">Nothing is scheduled for today.</p> : <div className="office-list">{snapshot.todayAppointments.map((appointment) => <div className="office-list-row" key={appointment.id}><div className="time-box"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{personName(appointment.customers?.[0])} · {appointment.status.replaceAll('_', ' ')}</span></div></div>)}</div>}
-      </article>
-
+    <section>
       <article className="office-panel">
         <div className="office-panel-head"><div><p className="eyebrow">Follow-up</p><h2>Reminders due</h2></div><span className="count-badge">{snapshot.dueReminders.length}</span></div>
         {snapshot.dueReminders.length === 0 ? <p className="quiet">You’re caught up on reminders.</p> : <div className="office-list">{snapshot.dueReminders.map((reminder) => <div className="office-list-row" key={reminder.id}><div className="reminder-check">!</div><div className="row-main"><strong>{reminder.note || reminder.kind.replaceAll('_', ' ')}</strong><span>Due {new Date(reminder.due_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span></div>{canWrite(business.role) && <button className="secondary-button small-button" onClick={() => finishReminder(reminder.id)}>Done</button>}</div>)}</div>}
