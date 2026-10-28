@@ -14,7 +14,7 @@ async function signedIn(page) {
   await page.addInitScript(value => localStorage.setItem('sb-example-auth-token', JSON.stringify(value)), session)
 }
 async function mockFinance(page, opts={}) {
-  const state = { requests: [], manualRows: opts.manualRows || [manual], connected: Boolean(opts.connected), configured: Boolean(opts.configured) }
+  const state = { requests: [], manualRows: opts.manualRows || [manual], connected: Boolean(opts.connected), configured: Boolean(opts.configured), failManualRead: Boolean(opts.failManualRead) }
   await signedIn(page)
   await page.route('https://example.supabase.co/**', async route => {
     const request = route.request()
@@ -38,6 +38,7 @@ async function mockFinance(page, opts={}) {
     if (path.endsWith('/bookkeeping_entries')) {
       if (method === 'POST') { state.manualRows.push({ ...body, id: body.id, currency: 'USD' }); return json([], 201) }
       if (method === 'DELETE') { state.manualRows.splice(0,1); return json([]) }
+      if (state.failManualRead) return json({ message: 'Workbook unavailable for QA' }, 503)
       const params = new URL(request.url()).searchParams
       const from = Number(params.get('offset') || 0)
       const limit = Number(params.get('limit') || 1000)
@@ -129,4 +130,71 @@ test('mobile navigation reaches workbook and separates source tabs',async ({page
   await page.locator('.mobile-more-grid').getByRole('button',{name:'Bookkeeping'}).click()
   await expect(page.getByRole('button',{name:'Finviant Office workbook'})).toBeVisible()
   await expect(page.getByRole('button',{name:'QuickBooks Online'})).toBeVisible()
+})
+
+test('a failed workbook read shows unavailable totals and can recover without reporting a zero balance', async ({page}) => {
+  const state = await mockFinance(page, {failManualRead:true})
+  await page.goto('/')
+  await page.getByRole('button',{name:'Bookkeeping',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Workbook could not be loaded'})).toBeVisible({timeout:15000})
+  await expect(page.locator('.bookkeeping-overview strong')).toHaveText(['Unavailable','Unavailable','Unavailable'])
+  await expect(page.getByRole('button',{name:'Download CSV'})).toBeDisabled()
+  await expect(page.getByRole('heading',{name:'Your workbook is ready'})).toHaveCount(0)
+  // One failed source must not invalidate a separately verified source.
+  await page.getByRole('button',{name:'QuickBooks Online',exact:true}).click()
+  await expect(page.locator('.bookkeeping-overview strong').first()).toHaveText('$150.00')
+  await expect(page.getByRole('button',{name:'Download CSV'})).toBeEnabled()
+  await page.getByRole('button',{name:'Finviant Office workbook',exact:true}).click()
+  state.failManualRead = false
+  await page.getByRole('button',{name:'Retry loading workbook'}).click()
+  await expect(page.locator('.bookkeeping-overview strong').nth(1)).toHaveText('$35.00')
+  await expect(page.getByRole('button',{name:'Download CSV'})).toBeEnabled()
+})
+
+test('a failed reload after a write prevents exporting the previous workbook snapshot', async ({page}) => {
+  const state = await mockFinance(page)
+  await page.goto('/')
+  await page.getByRole('button',{name:'Bookkeeping',exact:true}).click()
+  await expect(page.getByText('Replacement parts',{exact:true})).toBeVisible()
+  state.failManualRead = true
+  await page.getByRole('button',{name:'+ Add expense or income'}).click()
+  const dialog = page.getByRole('dialog',{name:'Add workbook entry'})
+  await dialog.getByLabel('Amount in USD').fill('42.50')
+  await dialog.getByLabel('Description').fill('Fuel after stale snapshot')
+  await dialog.getByRole('button',{name:'Save entry'}).click()
+  await expect(page.getByRole('heading',{name:'Workbook could not be loaded'})).toBeVisible({timeout:15000})
+  await expect(page.getByText('Replacement parts',{exact:true})).toHaveCount(0)
+  await expect(page.locator('.bookkeeping-overview strong')).toHaveText(['Unavailable','Unavailable','Unavailable'])
+  await expect(page.getByRole('button',{name:'Download CSV'})).toBeDisabled()
+  state.failManualRead = false
+  await page.getByRole('button',{name:'Retry loading workbook'}).click()
+  await expect(page.locator('.bookkeeping-overview strong').nth(1)).toHaveText('$77.50')
+})
+
+test('workbook text stays inert in HTML and formula prefixes are escaped in CSV', async ({page}) => {
+  const markup = '<img src=x onerror="window.qaInjected=true">'
+  await mockFinance(page,{manualRows:[{...manual,description:markup},{...manual,id:'88888888-8888-4888-8888-888888888888',description:'=1+1'}]})
+  await page.goto('/')
+  await page.getByRole('button',{name:'Bookkeeping',exact:true}).click()
+  await expect(page.getByText(markup,{exact:true})).toBeVisible()
+  expect(await page.evaluate(() => window.qaInjected)).toBeUndefined()
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button',{name:'Download CSV'}).click()
+  const stream = await (await downloaded).createReadStream()
+  let csv=''
+  for await (const chunk of stream) csv += chunk.toString()
+  expect(csv).toContain('"\'=1+1"')
+  expect(csv).not.toContain(',"=1+1",')
+})
+
+test('a failed workspace module preserves navigation and offers recovery', async ({page}) => {
+  await mockFinance(page)
+  await page.route('**/src/pages/BookkeepingPage.tsx*', route => route.abort('failed'))
+  await page.goto('/')
+  await page.getByRole('button',{name:'Bookkeeping',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'This page could not be opened'})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Reload workspace'})).toBeEnabled()
+  await expect(page.getByRole('button',{name:'Dashboard',exact:true})).toBeEnabled()
+  await page.getByRole('button',{name:'Dashboard',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'This page could not be opened'})).toHaveCount(0)
 })
