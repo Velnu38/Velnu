@@ -50,6 +50,7 @@ const nav: { id: View; label: string; icon: string }[] = [
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'jobs', 'schedule']
 const mobileMore: View[] = ['locations', 'change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'services', 'settings']
+const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'schedule', 'jobs'].includes(id))
 
 export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)
@@ -81,7 +82,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><span>Finviant <span className="finviant-product">Office</span></span></div>
-        <nav>{nav.map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
+        <nav>{sidebarNav.map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
         <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a><a href="/plans">Service tier</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </aside>
       <main className="workspace">
