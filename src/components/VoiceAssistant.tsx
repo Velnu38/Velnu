@@ -73,6 +73,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
   const [voiceStatus, setVoiceStatus] = useState('')
+  const [voiceMode, setVoiceMode] = useState<'checking' | 'cloud' | 'browser'>('checking')
   const mutationInFlight = useRef(false)
   const mounted = useRef(true)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -98,6 +99,28 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       chunksRef.current = []
     }
   }, [])
+  // Preflight on panel open, NOT when the microphone is tapped. Browser microphone
+  // APIs need a live user gesture; awaiting a network status request in the click
+  // handler can lose that activation (notably on iPhone Safari).
+  useEffect(() => {
+    if (!open) return
+    let active = true
+    setVoiceMode('checking')
+    setVoiceStatus('Checking speech-to-text availability…')
+    void getTranscriptionStatus(business.id).then(status => {
+      if (!active) return
+      setVoiceMode(status.configured ? 'cloud' : 'browser')
+      setVoiceStatus(status.configured
+        ? 'Cloud transcription ready. Tap to record, speak, then tap again to stop. Words appear after processing.'
+        : 'Cloud transcription is unavailable. Browser dictation will be tried; the keyboard microphone is another option.')
+    }).catch(() => {
+      if (!active) return
+      setVoiceMode('browser')
+      setVoiceStatus('Could not check cloud transcription. Browser dictation will be tried; the keyboard microphone is another option.')
+    })
+    return () => { active = false }
+  }, [open, business.id])
+
   function reset() {
     setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setVoiceStatus(''); setText('')
   }
@@ -250,6 +273,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         }
       }
       recorder.start()
+      setBusy(false)
       setRecording(true)
       setVoiceStatus('Recording securely. Speak your request, then tap to stop. Maximum 2 minutes.')
       recordingTimeoutRef.current = window.setTimeout(() => {
@@ -260,13 +284,14 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       recorderRef.current = null
       recordingStartedAtRef.current = null
       setRecording(false)
+      setBusy(false)
       setVoiceStatus('')
       const message = err instanceof Error ? err.message : 'Microphone is unavailable.'
       setError('Cloud transcription is ready, but the microphone could not start: ' + message)
     }
   }
 
-  async function toggleRecording() {
+  function toggleRecording() {
     if (recording) {
       if (recognizerRef.current) {
         setBusy(true)
@@ -276,24 +301,19 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       }
       return
     }
-
+    if (busy || voiceMode === 'checking') return
     setError('')
-    setVoiceStatus('Checking voice service…')
     setAction(null)
     setQuickInvoiceRequest(null)
     setResult(null)
-    setBusy(true)
-    try {
-      const status = await getTranscriptionStatus(business.id)
-      setBusy(false)
-      if (status.configured) {
-        await startCloudRecording()
-      } else {
-        startBrowserDictation('Cloud transcription is waiting for OpenAI API setup. Using Safari dictation instead.')
-      }
-    } catch {
-      setBusy(false)
-      startBrowserDictation('Could not check the cloud transcription service. Trying browser dictation instead.')
+    if (voiceMode === 'cloud') {
+      setBusy(true)
+      // Begin getUserMedia in the actual tap handler, before any await.
+      // This preserves user activation on Safari and other mobile browsers.
+      void startCloudRecording()
+    } else {
+      // Likewise, start browser recognition before leaving the tap handler.
+      startBrowserDictation('Listening. Speak clearly, then tap again to stop.')
     }
   }
 
@@ -323,7 +343,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Finviant Office"><span className="mic-dot">●</span><span>Talk to Finviant Office</span></button>
     {open && <div className="assistant-backdrop" onMouseDown={() => !recording && setOpen(false)}><section className="assistant-panel" onMouseDown={(e) => e.stopPropagation()}>
       <div className="assistant-head"><div><p className="eyebrow">Finviant Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)}>×</button></div>
-      <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy}><span className="record-orb">●</span>{recording ? 'Tap to stop' : busy ? 'Working…' : 'Tap and speak'}</button>
+      <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy || voiceMode === 'checking'}><span className="record-orb">●</span>{recording ? 'Tap to stop' : voiceMode === 'checking' ? 'Checking voice…' : busy ? 'Working…' : 'Tap and speak'}</button>
       {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
       <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your iPhone keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use iPhone keyboard microphone</button>
       <div className="assistant-divider"><span>or dictate / type it</span></div>
