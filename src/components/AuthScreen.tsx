@@ -39,7 +39,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       if (result.error) throw result.error
       if (mode === 'signup' && !result.data.session) {
         setAwaitingConfirmation(true)
-        setMessage('Your account is pending email confirmation. Open the newest confirmation email and follow its link before signing in. Check spam if needed.')
+        setMessage('If this is a new account, check your email for a confirmation link. If you registered before, creating another account will not reset your password or send you a new confirmation. Please sign in or reset your password instead.')
       }
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unable to connect. Please try again.'
@@ -94,6 +94,10 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
         <button className="primary-button" disabled={busy}>{busy ? 'Working…' : mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}</button>
       </form>
       {message && <p className="form-message" role="status" aria-live="polite">{message}</p>}
+      {awaitingConfirmation && mode === 'signup' && <div className="auth-help-actions">
+        <button type="button" className="secondary-button compact" disabled={busy} onClick={() => switchMode('signin')}>Already registered? Sign in</button>
+        <button type="button" className="text-button" disabled={busy} onClick={() => switchMode('reset')}>Forgot your password?</button>
+      </div>}
       {(mode === 'signin' || awaitingConfirmation) && <button type="button" className="text-button" disabled={busy} onClick={resendConfirmation}>Resend confirmation email</button>}
       {mode === 'signin' && <button className="text-button" disabled={busy} onClick={() => switchMode('reset')}>Forgot password?</button>}
       <button className="text-button" disabled={busy} onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
