@@ -108,6 +108,7 @@ const empty: DashboardSnapshot = {
   outstandingBalance: 0,
   jobsThisWeek: 0,
   overdueInvoiceCount: 0,
+  pendingApprovalCount: 0,
   overdueInvoices: [],
   dueReminders: [],
   todayAppointments: [],
@@ -177,7 +178,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     }
   }
 
-  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminders.length + snapshot.pendingApprovals.length
+  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminders.length + snapshot.pendingApprovalCount
 
   return <div className="page-stack">
     <div className="page-heading split-heading">
@@ -187,7 +188,20 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-shortcuts" aria-label="Work areas">
-      <button className="dashboard-shortcut" onClick={() => onNavigate?.('estimates')}><span className="shortcut-icon">E</span><span><strong>Estimates</strong><small>Prepare and track quotes</small></span><span className="shortcut-arrow">↗</span></button>
+      <article className="dashboard-shortcut estimate-shortcut" aria-label="Estimates overview">
+        <button type="button" className="estimate-shortcut-link" aria-label="Estimates" onClick={() => onNavigate?.('estimates')}>
+          <span className="shortcut-icon">E</span>
+          <span className="estimate-shortcut-copy"><span className="estimate-shortcut-title"><strong>Estimates</strong>{!loading && !error && snapshot.pendingApprovalCount > 0 && <span className="estimate-approval-badge">{snapshot.pendingApprovalCount} awaiting approval</span>}</span><small>Prepare quotes and track customer approvals</small></span>
+          <span className="shortcut-arrow" aria-hidden="true">↗</span>
+        </button>
+        {loading ? <p className="estimate-tile-status" role="status">Checking customer approvals…</p> : error ? <p className="estimate-tile-status">Customer approvals unavailable. Select Refresh to try again.</p> : snapshot.pendingApprovalCount === 0 ? <p className="estimate-tile-status">No sent estimates or change orders are waiting for a decision.</p> : <div className="estimate-tile-approvals" role="region" aria-label="Customer approvals">
+          <ul className="estimate-approval-list">{snapshot.pendingApprovals.map((item) => <li className="estimate-approval-row" key={`${item.document_type}-${item.id}`}>
+            <div className="row-main"><strong>{item.number || item.title} · {personName(item.customers?.[0])}</strong><span>{item.document_type === 'estimate' ? 'Estimate' : `Change order · ${item.title}`} · sent {new Date(item.issue_date + 'T00:00:00').toLocaleDateString()}</span></div>
+            <strong className="approval-money">{usd.format(Number(item.total))}</strong>
+          </li>)}</ul>
+          {snapshot.pendingApprovalCount > snapshot.pendingApprovals.length && <p className="estimate-tile-limit">Showing {snapshot.pendingApprovals.length} pending approvals. Open Estimates or Change Orders to see all.</p>}
+        </div>}
+      </article>
       <article className="dashboard-shortcut invoice-shortcut" aria-label="Invoices overview">
         <button type="button" className="invoice-shortcut-link" aria-label="Invoices" onClick={() => onNavigate?.('invoices')}>
           <span className="shortcut-icon">I</span>
@@ -209,15 +223,10 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
 
     <FinancialPerformance key={`${business.id}:${business.role}`} business={business} />
 
-    <section className="office-panel">
-        <div className="office-panel-head"><div><p className="eyebrow">Today’s work</p><h2>Schedule</h2></div><span className="count-badge">{snapshot.todayAppointments.length}</span></div>
-        {snapshot.todayAppointments.length === 0 ? <p className="quiet">Nothing is scheduled for today.</p> : <div className="office-list">{snapshot.todayAppointments.map((appointment) => <div className="office-list-row" key={appointment.id}><div className="time-box"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{personName(appointment.customers?.[0])} · {appointment.status.replaceAll('_', ' ')}</span></div></div>)}</div>}
-    </section>
-
     <section className="office-day-grid">
       <article className="office-panel">
-        <div className="office-panel-head"><div><p className="eyebrow">Waiting on customer</p><h2>Approvals</h2></div><span className="count-badge">{snapshot.pendingApprovals.length}</span></div>
-        {snapshot.pendingApprovals.length === 0 ? <p className="quiet">No sent estimates or change orders are waiting for a decision.</p> : <div className="office-list">{snapshot.pendingApprovals.map((item) => <div className="office-list-row" key={`${item.document_type}-${item.id}`}><div className="approval-type-mini">{item.document_type === 'estimate' ? 'E' : 'CO'}</div><div className="row-main"><strong>{item.number || item.title} · {personName(item.customers?.[0])}</strong><span>{item.document_type === 'estimate' ? 'Estimate' : item.title} · sent {new Date(item.issue_date + 'T00:00:00').toLocaleDateString()}</span></div><strong className="money">${Number(item.total).toFixed(2)}</strong></div>)}</div>}
+        <div className="office-panel-head"><div><p className="eyebrow">Today’s work</p><h2>Schedule</h2></div><span className="count-badge">{snapshot.todayAppointments.length}</span></div>
+        {snapshot.todayAppointments.length === 0 ? <p className="quiet">Nothing is scheduled for today.</p> : <div className="office-list">{snapshot.todayAppointments.map((appointment) => <div className="office-list-row" key={appointment.id}><div className="time-box"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{personName(appointment.customers?.[0])} · {appointment.status.replaceAll('_', ' ')}</span></div></div>)}</div>}
       </article>
 
       <article className="office-panel">

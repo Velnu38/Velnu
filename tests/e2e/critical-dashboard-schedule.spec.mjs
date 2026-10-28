@@ -138,8 +138,8 @@ async function mockWorkspace(page, options = {}) {
       return reply(state.reminders.filter(r => r.status === 'pending'))
     }
     if (path.endsWith('/invoices')) return reply(state.invoices.slice(0, 10), 200, state.invoices.length)
-    if (path.endsWith('/estimates')) return reply(state.estimates.slice(0, 10))
-    if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10))
+    if (path.endsWith('/estimates')) return reply(state.estimates.slice(0, 10), 200, state.estimates.length)
+    if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10), 200, state.changeOrders.length)
     if (path.endsWith('/messages') || path.endsWith('/bookkeeping_entries')) return reply([])
     return reply([])
   })
@@ -306,12 +306,24 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
     status: 'sent', total: 50, issue_date: '2026-10-02', customers: customer,
   }))
   const state = await openDashboard(page, { estimates, changeOrders })
-  await expect(page.locator('.office-panel').filter({ hasText: 'Approvals' }).locator('.office-list-row')).toHaveCount(12)
+  const tile = page.getByRole('article', { name: 'Estimates overview' })
+  await expect(tile.getByText('20 awaiting approval', { exact: true })).toBeVisible()
+  await expect(tile.getByRole('region', { name: 'Customer approvals' }).getByRole('listitem')).toHaveCount(12)
+  await expect(tile).toContainText('EST-0 · Jane Doe')
+  await expect(tile).toContainText('CO-0 · Jane Doe')
+  await expect(page.getByRole('heading', { name: 'Approvals', exact: true })).toHaveCount(0)
   for (const request of state.requests.filter(r =>
     ['/invoices', '/jobs', '/reminders', '/appointments', '/estimates', '/change_orders'].some(p => r.path.endsWith(p)))) {
     expect(new URL(request.url).searchParams.get('business_id'), request.url).toBe('eq.' + BID)
   }
   expect(state.requests.filter(r => ['/estimates', '/change_orders', '/reminders'].some(p => r.path.endsWith(p)) && new URL(r.url).searchParams.get('limit') === null)).toEqual([])
+  state.estimates = []
+  state.changeOrders = []
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+  await expect(tile).toContainText('No sent estimates or change orders are waiting for a decision.')
+  await expect(tile.locator('.estimate-approval-badge')).toHaveCount(0)
+  await tile.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Quote the work without the paperwork.' })).toBeVisible()
 })
 
 // SCHEDULE: 13 critical cases

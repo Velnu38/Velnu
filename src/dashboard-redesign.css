@@ -2,21 +2,22 @@
 @media(max-width:900px){.sidebar{display:none}.app-shell{grid-template-columns:1fr}.workspace-inner{padding:28px 18px 120px}.dashboard-shortcuts{grid-template-columns:1fr}.dashboard-shortcut{min-height:78px}.financial-head,.financial-chart,.financial-detail{padding-left:17px;padding-right:17px}.financial-months{gap:2px}.financial-summary{gap:7px}.financial-summary>div{padding:11px 10px}.financial-summary strong{font-size:17px}}
 @media(max-width:600px){.financial-head{flex-direction:column;gap:10px}.financial-head h2{font-size:21px}.financial-period{align-self:flex-start}.financial-chart{padding-left:10px;padding-right:10px}.financial-months{height:145px;gap:1px}.financial-month{padding:0}.financial-month-label{font-size:9px}.financial-month-label small{font-size:7px}.financial-legend{padding-right:7px}.financial-detail{padding:15px 13px}.financial-summary{grid-template-columns:1fr 1fr}.financial-summary>div:last-child{grid-column:1/-1}.financial-summary strong{font-size:16px}.financial-posting{grid-template-columns:67px minmax(0,1fr) auto;gap:8px}.posting-kind{font-size:8px;padding:5px 6px}.posting-description strong{font-size:11px}.posting-description span{font-size:9px}.posting-amount{font-size:10px}.shortcut-actions button{padding:8px 7px}}
 .dashboard-shortcuts { align-items: start; }
-.dashboard-shortcut.invoice-shortcut { display: block; padding: 0; overflow: hidden; }
-.dashboard-shortcut.invoice-shortcut:hover { transform: none; }
-.invoice-shortcut-link { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 94px; border: 0; padding: 17px 18px; background: transparent; color: inherit; text-align: left; }
-.invoice-shortcut-link:hover { background: #f7faf9; }
-.invoice-shortcut-link:focus-visible { outline: 2px solid #16866f; outline-offset: -3px; border-radius: 14px; }
-.invoice-shortcut-copy { display: grid; flex: 1; min-width: 0; gap: 5px; }
-.invoice-shortcut-title { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.dashboard-shortcut:is(.invoice-shortcut, .estimate-shortcut) { display: block; padding: 0; overflow: hidden; }
+.dashboard-shortcut:is(.invoice-shortcut, .estimate-shortcut):hover { transform: none; }
+:is(.invoice-shortcut-link, .estimate-shortcut-link) { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 94px; border: 0; padding: 17px 18px; background: transparent; color: inherit; text-align: left; }
+:is(.invoice-shortcut-link, .estimate-shortcut-link):hover { background: #f7faf9; }
+:is(.invoice-shortcut-link, .estimate-shortcut-link):focus-visible { outline: 2px solid #16866f; outline-offset: -3px; border-radius: 14px; }
+:is(.invoice-shortcut-copy, .estimate-shortcut-copy) { display: grid; flex: 1; min-width: 0; gap: 5px; }
+:is(.invoice-shortcut-title, .estimate-shortcut-title) { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .invoice-overdue-badge { display: inline-flex; padding: 4px 7px; border-radius: 20px; background: #fff0ed; color: #a62e23; font-size: 10px; font-weight: 800; white-space: nowrap; }
-.invoice-tile-status { margin: 0; padding: 0 18px 16px; font-size: 11px; line-height: 1.5; color: #71818a; }
-.invoice-tile-overdue { border-top: 1px solid #edf0f2; padding: 0 18px; }
-.invoice-overdue-list { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
-.invoice-overdue-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid #edf0f2; }
-.invoice-overdue-row:last-child { border-bottom: 0; }
-.invoice-overdue-row .row-main { flex: 1 1 110px; }
-.invoice-overdue-row .row-main strong { font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
-.invoice-overdue-row .row-main span { font-size: 10px; }
-.invoice-overdue-row .overdue-money { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
-.invoice-tile-limit { margin: 0; border-top: 1px solid #edf0f2; padding: 10px 0; color: #71818a; font-size: 10px; line-height: 1.5; }
+.estimate-approval-badge { display: inline-flex; padding: 4px 7px; border-radius: 20px; background: #fff5df; color: #805a13; font-size: 10px; font-weight: 800; white-space: nowrap; }
+:is(.invoice-tile-status, .estimate-tile-status) { margin: 0; padding: 0 18px 16px; font-size: 11px; line-height: 1.5; color: #71818a; }
+:is(.invoice-tile-overdue, .estimate-tile-approvals) { border-top: 1px solid #edf0f2; padding: 0 18px; }
+:is(.invoice-overdue-list, .estimate-approval-list) { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
+:is(.invoice-overdue-row, .estimate-approval-row) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid #edf0f2; }
+:is(.invoice-overdue-row, .estimate-approval-row):last-child { border-bottom: 0; }
+:is(.invoice-overdue-row, .estimate-approval-row) .row-main { flex: 1 1 110px; }
+:is(.invoice-overdue-row, .estimate-approval-row) .row-main strong { font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+:is(.invoice-overdue-row, .estimate-approval-row) .row-main span { font-size: 10px; }
+.invoice-overdue-row .overdue-money, .estimate-approval-row .approval-money { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
+:is(.invoice-tile-limit, .estimate-tile-limit) { margin: 0; border-top: 1px solid #edf0f2; padding: 10px 0; color: #71818a; font-size: 10px; line-height: 1.5; }
