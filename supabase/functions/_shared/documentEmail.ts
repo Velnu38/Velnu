@@ -1,14 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 import { dispatchQueuedEmail } from './emailDispatch.ts'
 import { readLimitedRequest } from './signedEvents.ts'
+import { resolveAppEnvironment } from './appEnvironment.ts'
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const origins=new Set(['https://finviant.com','https://www.finviant.com','https://app.finviant.com','https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app','http://localhost:5173'])
 export function documentEmailHandler(invoiceOnly:boolean){
  return async(req:Request):Promise<Response>=>{
   const trace=crypto.randomUUID(),origin=req.headers.get('origin')||''
-  const headers={'content-type':'application/json','cache-control':'no-store','x-request-id':trace,'access-control-allow-origin':origins.has(origin)?origin:'https://finviant.com','access-control-allow-headers':'authorization,apikey,x-client-info,content-type','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'}
+  const environment=resolveAppEnvironment(Deno.env.get('SUPABASE_URL'),Deno.env.get('FINVIANT_APP_BASE_URL'))
+  const headers={'content-type':'application/json','cache-control':'no-store','x-request-id':trace,...(environment?.origins.includes(origin)?{'access-control-allow-origin':origin}:{}),'access-control-allow-headers':'authorization,apikey,x-client-info,content-type','access-control-allow-methods':'POST, OPTIONS','vary':'Origin'}
   const respond=(status:number,body:Record<string,unknown>)=>new Response(JSON.stringify({...body,request_id:trace}),{status,headers})
-  if(origin&&!origins.has(origin))return respond(403,{error:'This app address is not authorized.'})
+  if(!environment)return respond(503,{error:'Application environment is not configured.'})
+  if(origin&&!environment.origins.includes(origin))return respond(403,{error:'This app address is not authorized.'})
   if(req.method==='OPTIONS')return new Response('ok',{headers})
   if(req.method!=='POST')return respond(405,{error:'Method not allowed.'})
   const auth=req.headers.get('authorization')||''
@@ -27,7 +29,7 @@ export function documentEmailHandler(invoiceOnly:boolean){
    const kind=invoiceOnly?'invoice':String(input.document_type||'')
    if(![business,document,operation].every(v=>UUID.test(v))||(!invoiceOnly&&!['estimate','change_order'].includes(kind)))return respond(400,{error:'A valid business, document and persistent send identifier are required.'})
    const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
-   const {data:prepared,error:prepError}=await admin.rpc('prepare_document_email',{p_actor:identity.user.id,p_business:business,p_kind:kind,p_document:document,p_request:operation,p_origin:Deno.env.get('FINVIANT_APP_BASE_URL')||'https://finviant.com'}).abortSignal(AbortSignal.timeout(5000))
+   const {data:prepared,error:prepError}=await admin.rpc('prepare_document_email',{p_actor:identity.user.id,p_business:business,p_kind:kind,p_document:document,p_request:operation,p_origin:environment.baseUrl}).abortSignal(AbortSignal.timeout(5000))
    if(prepError||!prepared)return respond(prepError?.code==='42501'?403:409,{error:'Unable to queue the document. Check account permissions, plan, recipient and document status.'})
    const result=await dispatchQueuedEmail(admin,resend,prepared.id,trace)
    return respond(result.status,result.body)

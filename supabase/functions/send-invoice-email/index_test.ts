@@ -3,13 +3,13 @@ const handle=documentEmailHandler(true),docHandle=documentEmailHandler(false)
 const biz='11111111-1111-4111-8111-111111111111',invoice='22222222-2222-4222-8222-222222222222',user='33333333-3333-4333-8333-333333333333',id='55555555-5555-4555-8555-555555555555'
 function assert(value:unknown,message='Assertion failed'):asserts value{if(!value)throw new Error(message)}
 function req(extra:Record<string,unknown>={},auth=true,origin='https://finviant.com'){
- return new Request('https://example.supabase.co/functions/v1/send-invoice-email',{method:'POST',headers:{'content-type':'application/json',Origin:origin,...(auth?{Authorization:'Bearer test-session'}:{})},body:JSON.stringify({business_id:biz,invoice_id:invoice,request_id:id,...extra})})
+ return new Request('https://qusmeexjbwphoezlcmie.supabase.co/functions/v1/send-invoice-email',{method:'POST',headers:{'content-type':'application/json',Origin:origin,...(auth?{Authorization:'Bearer test-session'}:{})},body:JSON.stringify({business_id:biz,invoice_id:invoice,request_id:id,...extra})})
 }
 type Opt={role?:string;unavailable?:boolean;missingEmail?:boolean;providerStatus?:number;network?:boolean;invalidJSON?:boolean;badReceipt?:boolean;disabled?:boolean;ackFail?:boolean;claim?:string}
 async function mock(opt:Opt,run:(state:{emails:Record<string,unknown>[];keys:string[];preparations:Record<string,unknown>[];finishes:Record<string,unknown>[]})=>Promise<void>){
  const original=globalThis.fetch,emails:Record<string,unknown>[]=[],keys:string[]=[],preparations:Record<string,unknown>[]=[],finishes:Record<string,unknown>[]=[]
  const rows=new Map<string,{document:string;status:string;provider_id?:string}>()
- const vars={SUPABASE_URL:'https://example.supabase.co',SUPABASE_ANON_KEY:'test-key',SUPABASE_SERVICE_ROLE_KEY:'fake-server-key',RESEND_API_KEY:'fake-resend-key',RESEND_WEBHOOK_SECRET:'fake-signing-key',FINVIANT_CUSTOMER_EMAIL_ENABLED:opt.disabled?'false':'true'}
+ const vars={SUPABASE_URL:'https://qusmeexjbwphoezlcmie.supabase.co',SUPABASE_ANON_KEY:'test-key',SUPABASE_SERVICE_ROLE_KEY:'fake-server-key',RESEND_API_KEY:'fake-resend-key',RESEND_WEBHOOK_SECRET:'fake-signing-key',FINVIANT_CUSTOMER_EMAIL_ENABLED:opt.disabled?'false':'true',FINVIANT_APP_BASE_URL:'https://finviant.com'}
  const previous=new Map(Object.keys(vars).map(k=>[k,Deno.env.get(k)]));for(const[k,v]of Object.entries(vars))Deno.env.set(k,v)
  const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}})
  globalThis.fetch=async(input,init)=>{
@@ -21,7 +21,7 @@ async function mock(opt:Opt,run:(state:{emails:Record<string,unknown>[];keys:str
    if(opt.providerStatus)return json({error:'simulated'},opt.providerStatus)
    return json(opt.badReceipt?{}:{id:'provider-test-'+keys.at(-1)})
   }
-  if(u.hostname!=='example.supabase.co')throw new Error('External network forbidden')
+  if(u.hostname!=='qusmeexjbwphoezlcmie.supabase.co')throw new Error('External network forbidden')
   if(u.pathname==='/auth/v1/user')return json({id:user,email:'owner@example.invalid',app_metadata:{},user_metadata:{}})
   const body=await r.json()
   if(u.pathname.endsWith('/prepare_document_email')){
@@ -51,6 +51,8 @@ async function mock(opt:Opt,run:(state:{emails:Record<string,unknown>[];keys:str
 }
 Deno.test('unauthenticated requests cannot send email',()=>mock({},async s=>{assert((await handle(req({},false))).status===401);assert(s.emails.length===0)}))
 Deno.test('unapproved browser origins cannot send email',()=>mock({},async s=>{assert((await handle(req({},true,'https://unrelated.example'))).status===403);assert(s.emails.length===0)}))
+Deno.test('production email rejects the staging browser origin',()=>mock({},async s=>{const r=await handle(req({},true,'https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app'));assert(r.status===403);assert(!r.headers.has('access-control-allow-origin'));assert(s.emails.length===0);assert(s.preparations.length===0)}))
+Deno.test('cross-environment email callback override fails before network access',()=>mock({},async s=>{Deno.env.set('FINVIANT_APP_BASE_URL','https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app');assert((await handle(req())).status===503);assert(s.emails.length===0);assert(s.preparations.length===0)}))
 Deno.test('viewer cannot email invoices',()=>mock({role:'viewer'},async s=>{assert((await handle(req())).status===403);assert(s.emails.length===0)}))
 Deno.test('technicians cannot email financial documents',()=>mock({role:'technician'},async s=>{assert((await handle(req())).status===403);assert(s.emails.length===0)}))
 Deno.test('unavailable invoice is not emailed',()=>mock({unavailable:true},async s=>{assert((await handle(req())).status===409);assert(s.emails.length===0)}))
