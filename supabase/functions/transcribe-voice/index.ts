@@ -123,7 +123,20 @@ Deno.serve(async (req: Request) => {
     const transcript = typeof result.text === "string" ? result.text.trim() : "";
     if (!transcript || transcript.length > 6000) return respond(422, { error: "No usable short command was detected. Please type or record a shorter request." });
 
-    const { data: saved, error: saveError } = await db.from("voice_transcriptions").insert({
+    // The browser role intentionally has SELECT-only rights on this table.
+    // Never grant client-side INSERT: it would allow callers to forge AI transcripts.
+    // Persist only after verified authentication, tenant access, quota reservation,
+    // and a valid OpenAI response using a separate server-only client.
+    const serviceSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim()
+      || JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}").default;
+    if (!serviceSecret) {
+      console.error("Transcription storage unavailable: service credential missing");
+      return respond(503, { error: "Speech was recognized but secure storage is temporarily unavailable. Please try again later." });
+    }
+    const admin = createClient(url, serviceSecret, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: saved, error: saveError } = await admin.from("voice_transcriptions").insert({
       business_id: businessId,
       user_id: authData.user.id,
       provider: "openai",
@@ -131,11 +144,10 @@ Deno.serve(async (req: Request) => {
       transcript,
       duration_seconds: seconds,
     }).select("id").single();
-    if (saveError) {
-      console.error("Failed to save transcription", saveError.code || "unknown");
-      return respond(500, { error: "Speech was transcribed but could not be saved securely." });
+    if (saveError || !saved?.id) {
+      console.error("Failed to save transcription", saveError?.code || "missing_id");
+      return respond(503, { error: "Speech was recognized but could not be saved securely. Nothing was changed. Please try again later." });
     }
-
     return respond(200, {
       transcript,
       transcription_id: saved.id,
