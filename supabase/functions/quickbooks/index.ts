@@ -1,10 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveAppEnvironment } from "../_shared/appEnvironment.ts";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const DEV_URL = "https://velnu-git-feature-velnu-stage1-mbarone5-1747.vercel.app";
-const APP_URL = (Deno.env.get("VELNU_APP_URL") || DEV_URL).replace(/\/$/, "");
+const APP_ENVIRONMENT = resolveAppEnvironment(PROJECT_URL, Deno.env.get("FINVIANT_APP_BASE_URL") || Deno.env.get("VELNU_APP_URL"));
+const APP_URL = APP_ENVIRONMENT?.baseUrl || "";
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") === "production" ? "production" : "sandbox";
 const CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID")?.trim() ?? "";
 const CLIENT_SECRET = Deno.env.get("INTUIT_CLIENT_SECRET")?.trim() ?? "";
@@ -32,6 +33,7 @@ function configured() {
     && APP_URL.startsWith("https://"));
 }
 function redirectHome(status: "connected" | "error" | "cancelled") {
+  if (!APP_URL) return result(503, { error: "Application environment is not configured." });
   const u = new URL(APP_URL);
   u.searchParams.set("quickbooks", status);
   return new Response(null, { status: 302, headers: {

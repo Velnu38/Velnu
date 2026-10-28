@@ -1,6 +1,6 @@
 # Finviant environment isolation
 
-Status on 2026-10-28: deployment safeguards prepared; separate production database and domain cutover are pending provisioning approval. This is not a completed environment separation or a public launch.
+Status on 2026-10-28: provisioning approved and the separate production database is installed and verified. Authentication URL configuration and the production domain cutover are still pending. This is not yet a completed domain separation or a public launch.
 
 ## Verified starting point
 
@@ -20,7 +20,18 @@ Status on 2026-10-28: deployment safeguards prepared; separate production databa
 
 Use a dedicated release branch so the older `main` branch and draft PR #4 are not silently released. The release branch starts at the reviewed feature commit plus the isolation changes. Domain reassignment happens only after a production-target build and backend checks pass. Until then, the existing domains continue to be the protected staging application.
 
-The additional Supabase project was quoted at $10/month for the existing organization (`ddywjoktgvdueilcgmnt`, mbarone5@verizon.net's Org). Provisioning requires the owner's explicit agreement to the cost and organization. Usage-dependent charges are not established by this project quote.
+The owner approved the $10/month additional project in the existing organization (`ddywjoktgvdueilcgmnt`, mbarone5@verizon.net's Org). `Finviant Production` is provisioned in `us-east-1`, project reference `qusmeexjbwphoezlcmie`. Usage-dependent charges are not established by this project quote.
+
+## Provisioning evidence
+
+- The complete application catalog was extracted through read-only queries, covering the four tables absent from the old migration history. A transactional rehearsal succeeded and rolled back before the production baseline was applied.
+- `supabase/migrations/20261028173902_finviant_complete_application_bootstrap.sql` matches the production migration version. It is a fresh-project bootstrap, not an incremental migration for the existing staging database. No automated database deployment workflow was enabled.
+- All 36 tables (including columns, constraints, indexes and effective grants), 96 policies, 66 function definitions, application triggers, schemas and logo bucket configuration were verified against staging. Five function ACLs are explicit representations of the same implicit PostgreSQL default grants; they are semantically equivalent.
+- Future objects created by `postgres` require explicit browser-role grants; default execution by PUBLIC is revoked for new functions. Supabase-managed auth/storage tables and internal storage triggers were not replaced. Platform-owned default privileges remain platform-managed.
+- All 16 tenant/finance checks passed in a transaction that rolled back. Afterwards production had zero auth users, businesses, invoices, bookkeeping records and storage objects; all 36 application tables were empty. No staging users, financial records or provider credentials were copied.
+- Six live REST probes passed: each project's own publishable key and signed anonymous JWT were accepted, and the other project's publishable key and signed anonymous JWT were rejected with HTTP 401 in both directions. This verifies key/signature separation, not a complete human login or recovery flow.
+- Production Vercel variables use the new project and are scoped only to Production. Preview/Development retain the original staging project. Customer actions remain disabled in all targets.
+- The QuickBooks callback and document-email origin logic now resolve from the actual backend project. Unknown projects and cross-environment callback overrides fail closed.
 
 ## Build safeguards
 
@@ -31,7 +42,7 @@ These checks prevent accidental configuration mix-ups. Supabase RLS and authenti
 | Variable | Preview / Development | Production |
 | --- | --- | --- |
 | `FINVIANT_DEPLOYMENT_ENV` | `staging` | `production` |
-| `FINVIANT_SUPABASE_PROJECT_REF` | `xvybcmyoblfgzokaifsx` | New production project reference |
+| `FINVIANT_SUPABASE_PROJECT_REF` | `xvybcmyoblfgzokaifsx` | `qusmeexjbwphoezlcmie` |
 | `VITE_SUPABASE_URL` | Existing staging URL | New production URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Staging publishable key | New production publishable key |
 | `FINVIANT_PRODUCTION_GIT_REF` | Unset | `release/production` |
@@ -70,4 +81,4 @@ Rollback: retain the known-good protected staging deployment and its domain mapp
 
 - 21 deployment-isolation tests exercise accepted configuration, cross-environment URLs, privileged credentials, customer-delivery flags, release branches and non-disclosing CLI failures.
 - A normal frontend build and a Vercel Preview build must both pass.
-- Separate database provisioning, schema replay and actual cross-environment token/data tests remain pending. Passing mocked deployment checks does not establish those properties.
+- Production schema provisioning and cross-project signed-anonymous-token/API-key tests have passed as recorded above. Human authentication callbacks, production deployment and domain routing still require verification before cutover.
