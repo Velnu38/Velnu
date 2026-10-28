@@ -20,10 +20,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - run: npm install --ignore-scripts
+      - run: npm ci --ignore-scripts
       - run: npm run build
-      - name: Install isolated browser-test tooling
-        run: npm install --no-save --ignore-scripts @playwright/test@1.63.0
       - name: Use installed Chrome or perform a bounded browser installation
         shell: bash
         run: |
@@ -38,8 +36,8 @@ jobs:
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
         with:
           deno-version: v2.x
-      - name: Scheduling unit tests (edge cases)
-        run: deno test tests/unit/scheduleTime_test.ts
+      - name: Financial input, workbook completeness, and scheduling unit tests
+        run: deno test tests/unit/
       - name: Check invoice email backend
         run: deno check --node-modules-dir=auto supabase/functions/send-invoice-email/index.ts
       - name: Backend regression checks (mock services only)

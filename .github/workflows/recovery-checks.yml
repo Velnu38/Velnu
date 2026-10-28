@@ -20,8 +20,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22'
-      - run: npm install --ignore-scripts
+      - run: npm ci --ignore-scripts
       - run: npm run build
+      - name: Verify actual workbook service pagination and failure handling
+        run: node --test tests/financial/*.test.mjs
       - name: Compile actual provider and signature helpers
         run: npx tsc supabase/functions/_shared/providerRequest.ts supabase/functions/_shared/signedEvents.ts supabase/functions/_shared/healthStatus.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build
       - name: Inject provider and signature failures without external requests

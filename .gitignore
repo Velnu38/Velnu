@@ -4,3 +4,8 @@ dist
 .env.local
 .DS_Store
 *.log
+.recovery-build/
+.qa-build/
+test-results/
+playwright-report/
+*.tsbuildinfo
