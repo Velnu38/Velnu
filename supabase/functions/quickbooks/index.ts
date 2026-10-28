@@ -5,7 +5,7 @@ import { fetchQuickBooksQueryPages } from "../_shared/quickbooksQuery.ts";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const APP_ENVIRONMENT = resolveAppEnvironment(PROJECT_URL, Deno.env.get("FINVIANT_APP_BASE_URL") || Deno.env.get("VELNU_APP_URL"));
+const APP_ENVIRONMENT = resolveAppEnvironment(PROJECT_URL, Deno.env.get("FINVIANT_APP_BASE_URL"));
 const APP_URL = APP_ENVIRONMENT?.baseUrl || "";
 const INTUIT_ENVIRONMENT = Deno.env.get("INTUIT_ENVIRONMENT") === "production" ? "production" : "sandbox";
 const CLIENT_ID = Deno.env.get("INTUIT_CLIENT_ID")?.trim() ?? "";
