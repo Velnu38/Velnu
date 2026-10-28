@@ -36,16 +36,16 @@ type View = 'dashboard' | 'customers' | 'jobs' | 'locations' | 'change_orders' |
 const nav: { id: View; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
   { id: 'customers', label: 'Customers', icon: 'C' },
-  { id: 'jobs', label: 'Jobs', icon: 'J' },
   { id: 'locations', label: 'Locations', icon: '⌖' },
-  { id: 'change_orders', label: 'Change Orders', icon: 'CO' },
   { id: 'estimates', label: 'Estimates', icon: 'E' },
   { id: 'invoices', label: 'Invoices', icon: 'I' },
   { id: 'schedule', label: 'Schedule', icon: 'S' },
+  { id: 'jobs', label: 'Jobs', icon: 'J' },
+  { id: 'change_orders', label: 'Change Orders', icon: 'CO' },
   { id: 'payments', label: 'Payments', icon: '$' },
-  { id: 'bookkeeping', label: 'Bookkeeping', icon: '↗' },
+  { id: 'bookkeeping', label: 'Financial performance', icon: '↗' },
   { id: 'services', label: 'My services', icon: '◈' },
-  { id: 'settings', label: 'Company settings', icon: '⚙' },
+  { id: 'settings', label: 'Settings', icon: '⚙' },
 ]
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'jobs', 'schedule']
@@ -65,7 +65,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   function page() {
     if (view === 'services') return <WorkspaceServicesPage business={company} />
     if (view === 'settings') return <SettingsPage business={company} onSaved={(next) => { setCompany(next); setRefreshVersion(v => v + 1) }} />
-    if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} />
+    if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} />
     if (view === 'customers') return <CustomersPage business={company} />
     if (view === 'jobs') return <JobsPage business={company} />
     if (view === 'locations') return <LocationsPage business={company} onCustomers={() => navigate('customers')} />
