@@ -2,7 +2,13 @@ import { chromium } from '@playwright/test'
 
 // Public, unauthenticated smoke checks only. Never sign in or send real data.
 const browser = await chromium.launch({ headless: true })
-const urls = ['https://finviant.com/', 'https://www.finviant.com/', 'https://finviant.com/legal']
+const urls = [
+  'https://finviant.com/',
+  'https://www.finviant.com/',
+  'https://finviant.com/auth?mode=signin',
+  'https://www.finviant.com/auth?mode=signin',
+  'https://finviant.com/legal',
+]
 let failures = 0
 try {
   for (const url of urls) {
@@ -27,10 +33,12 @@ try {
       }))
       const expectedHost = new URL(url).hostname
       const actualHost = new URL(page.url()).hostname
-      const correctSite = actualHost === expectedHost && /Finviant/i.test(info.title) && info.visibleTextLength >= 60
+      const authRoute = new URL(url).pathname === '/auth'
+      const authReady = !authRoute || (await page.getByRole('button', {name: 'Sign in', exact: true}).count() > 0 && await page.locator('input[type="password"]').count() > 0)
+      const correctSite = actualHost === expectedHost && /Finviant/i.test(info.title) && info.visibleTextLength >= 60 && authReady
       console.log('LIVE CHECK', JSON.stringify({ url, status: resp?.status(), finalUrl: page.url(),
         title: info.title, headline: info.headline, textLength: info.visibleTextLength,
-        snippet: info.snippet, scriptCount: info.scripts.length, jsErrors,
+        snippet: info.snippet, scriptCount: info.scripts.length, authReady, jsErrors,
         requestFailures: requestFailures.slice(0, 6), correctSite }))
       if (!resp || resp.status() >= 400 || !correctSite || jsErrors.length) failures++
     } catch (err) {
