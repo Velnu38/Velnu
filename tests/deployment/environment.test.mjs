@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { STAGING_PROJECT_REF, validateDeploymentEnvironment } from '../../scripts/check-deployment.mjs'
 
@@ -58,4 +59,11 @@ test('CLI fails closed and does not print a rejected credential', () => {
   assert.equal(result.status, 1)
   assert.match(result.stderr, /Deployment blocked/)
   assert.ok(!(result.stdout + result.stderr).includes(secret))
+})
+
+test('all deployed routes opt out of search indexing and cached archives', () => {
+  const config = JSON.parse(readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'))
+  const catchAll = config.headers.find(({ source }) => source === '/(.*)')
+  const robots = catchAll?.headers.find(({ key }) => key.toLowerCase() === 'x-robots-tag')
+  assert.equal(robots?.value, 'noindex, nofollow, noarchive')
 })
