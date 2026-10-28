@@ -134,3 +134,38 @@ test('sign-in and password recovery remain usable on a phone-sized screen', asyn
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
   await page.screenshot({ path: 'test-results/mobile-recovery.png', fullPage: true })
 })
+
+
+test('repeat signup response does not imply a new account or require waiting forever', async ({ page }) => {
+  let signups = 0
+  await page.route('https://example.supabase.co/**', async route => {
+    const req = route.request()
+    const path = new URL(req.url()).pathname
+    const json = (value, status=200) => route.fulfill({
+      status, contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(value),
+    })
+    if (req.method() === 'OPTIONS') return route.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '',
+    })
+    if (path.endsWith('/signup')) {
+      signups++
+      // Supabase masks repeated registration of confirmed accounts using a successful response.
+      return json({ user: { ...user, id: '99999999-9999-4999-8999-999999999999' }, session: null })
+    }
+    if (path.endsWith('/recover')) return json({})
+    return json({})
+  })
+  await page.goto('/auth?mode=signup')
+  await page.getByLabel('Email', { exact: true }).fill('existing@example.test')
+  await page.getByLabel('Password', { exact: true }).fill('NotARealPassword123!')
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('If you registered before')
+  await expect(page.getByRole('button', {name:'Already registered? Sign in'})).toBeVisible()
+  expect(signups).toBe(1)
+  await page.getByRole('button', {name:'Already registered? Sign in'}).click()
+  await expect(page.getByRole('heading', {name:'Sign in', exact:true})).toBeVisible()
+  await page.getByRole('button', { name: 'Forgot password?' }).click()
+  await expect(page.getByRole('button', {name:'Send reset link'})).toBeVisible()
+})
