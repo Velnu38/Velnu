@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
+import { collectWorkbookPages } from '../lib/workbookPages'
 
 export type EntryDirection = 'income' | 'expense'
 export type WorkbookSource = 'velnu' | 'quickbooks'
@@ -51,16 +52,15 @@ function dollars(v: unknown) {
 
 export async function listVelnuWorkbook(businessId: string): Promise<WorkbookLine[]> {
   const [payments, manual] = await Promise.all([
-    supabase.from('payments')
-      .select('id,amount,paid_at,status,method,invoices!payments_invoice_id_fkey(invoice_number)')
-      .eq('business_id', businessId).eq('status', 'succeeded').order('paid_at', { ascending: false }).limit(1000),
-    supabase.from('bookkeeping_entries')
-      .select('id,entry_date,direction,amount,currency,category,description')
-      .eq('business_id', businessId).order('entry_date', { ascending: false }).limit(1000),
+    collectWorkbookPages((from, to) => supabase.from('payments')
+      .select('id,amount,paid_at,status,method,invoices!payments_invoice_id_fkey(invoice_number)', { count: 'exact' })
+      .eq('business_id', businessId).eq('status', 'succeeded')
+      .order('id', { ascending: true }).range(from, to)),
+    collectWorkbookPages((from, to) => supabase.from('bookkeeping_entries')
+      .select('id,entry_date,direction,amount,currency,category,description', { count: 'exact' })
+      .eq('business_id', businessId).order('id', { ascending: true }).range(from, to)),
   ])
-  if (payments.error) throw payments.error
-  if (manual.error) throw manual.error
-  const received = ((payments.data ?? []) as PaymentRow[]).map(p => {
+  const received = (payments as PaymentRow[]).map(p => {
     const inv = asList(p.invoices as { invoice_number: string | null } | null)[0]
     const invoice = inv?.invoice_number || 'Invoice'
     return {
@@ -76,7 +76,7 @@ export async function listVelnuWorkbook(businessId: string): Promise<WorkbookLin
       removable: false,
     }
   })
-  const extra = (manual.data ?? []).map(row => ({
+  const extra = manual.map(row => ({
     id: row.id,
     entry_date: row.entry_date as string,
     direction: row.direction as EntryDirection,
@@ -92,12 +92,10 @@ export async function listVelnuWorkbook(businessId: string): Promise<WorkbookLin
 }
 
 export async function listQuickBooksWorkbook(businessId: string): Promise<WorkbookLine[]> {
-  const { data, error } = await supabase.from('quickbooks_transactions')
-    .select('id,txn_date,direction,amount,description,source_type,currency')
-    .eq('business_id', businessId)
-    .order('txn_date', { ascending: false }).limit(1000)
-  if (error) throw error
-  return ((data ?? []) as QBRow[]).map(row => ({
+  const data = await collectWorkbookPages((from, to) => supabase.from('quickbooks_transactions')
+    .select('id,txn_date,direction,amount,description,source_type,currency', { count: 'exact' })
+    .eq('business_id', businessId).order('id', { ascending: true }).range(from, to))
+  return (data as QBRow[]).map(row => ({
     id: row.id,
     entry_date: row.txn_date,
     direction: row.direction,
@@ -108,7 +106,7 @@ export async function listQuickBooksWorkbook(businessId: string): Promise<Workbo
     source: 'quickbooks' as const,
     source_label: 'QuickBooks Online · ' + row.source_type,
     removable: false,
-  }))
+  })).sort((a, b) => b.entry_date.localeCompare(a.entry_date))
 }
 
 export async function addManualEntry(input: BookkeepingInput) {

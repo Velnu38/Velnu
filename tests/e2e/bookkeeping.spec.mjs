@@ -14,7 +14,7 @@ async function signedIn(page) {
   await page.addInitScript(value => localStorage.setItem('sb-example-auth-token', JSON.stringify(value)), session)
 }
 async function mockFinance(page, opts={}) {
-  const state = { requests: [], manualRows: [manual], connected: Boolean(opts.connected), configured: Boolean(opts.configured) }
+  const state = { requests: [], manualRows: opts.manualRows || [manual], connected: Boolean(opts.connected), configured: Boolean(opts.configured) }
   await signedIn(page)
   await page.route('https://example.supabase.co/**', async route => {
     const request = route.request()
@@ -23,7 +23,7 @@ async function mockFinance(page, opts={}) {
     let body = null
     try { body = request.postDataJSON() } catch {}
     state.requests.push({ path, method, body })
-    const json = (payload, status=200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'content-range': '0-0/0' }, body: JSON.stringify(payload) })
+    const json = (payload, status=200, total=Array.isArray(payload) ? payload.length : 1) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': '0-' + Math.max(0, (Array.isArray(payload) ? payload.length : 1) - 1) + '/' + total }, body: JSON.stringify(payload) })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
@@ -38,7 +38,10 @@ async function mockFinance(page, opts={}) {
     if (path.endsWith('/bookkeeping_entries')) {
       if (method === 'POST') { state.manualRows.push({ ...body, id: body.id, currency: 'USD' }); return json([], 201) }
       if (method === 'DELETE') { state.manualRows.splice(0,1); return json([]) }
-      return json(state.manualRows)
+      const params = new URL(request.url()).searchParams
+      const from = Number(params.get('offset') || 0)
+      const limit = Number(params.get('limit') || 1000)
+      return json(state.manualRows.slice(from, from + limit), 200, state.manualRows.length)
     }
     if (path.endsWith('/quickbooks_transactions')) return json([qbIncome, qbExpense])
     if (path.endsWith('/customers') || path.endsWith('/jobs') || path.endsWith('/invoices') || path.endsWith('/reminders') || path.endsWith('/appointments') || path.endsWith('/estimates') || path.endsWith('/change_orders')) return json([])
@@ -62,6 +65,24 @@ test('paid invoices and manual expenses appear in Finviant Office workbook, not 
   await expect(cards.nth(1).locator('strong')).toHaveText('$25.00')
   await expect(page.getByText(/Do not add the two summaries together/)).toBeVisible()
   await expect(page.getByRole('button',{name:'Connect QuickBooks Online'})).toBeDisabled()
+})
+
+test('workbook totals and CSV include entries beyond the first API page', async ({page}) => {
+  const rows = Array.from({length:1001}, (_, i) => ({...manual, id: String(i).padStart(6,'0'), amount: 1, description: 'QA expense ' + i}))
+  const state = await mockFinance(page,{manualRows:rows})
+  await page.goto('/')
+  await page.getByRole('button',{name:'Bookkeeping',exact:true}).click()
+  await page.getByLabel('Period').selectOption('all')
+  await expect(page.locator('.bookkeeping-overview article').nth(1).locator('strong')).toHaveText('$1,001.00')
+  await expect(page.getByText('QA expense 1000',{exact:true})).toBeVisible()
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button',{name:'Download CSV'}).click()
+  const stream = await (await downloaded).createReadStream()
+  let csv=''
+  for await (const chunk of stream) csv += chunk.toString()
+  expect(csv).toContain('QA expense 1000')
+  expect(csv.split('\r\n')).toHaveLength(1003) // header + 1001 expenses + one payment
+  expect(state.requests.filter(x=>x.path.endsWith('/bookkeeping_entries') && x.method==='GET')).toHaveLength(2)
 })
 
 test('bookkeeping owner can enter expense without changing payment transactions',async ({page})=>{
