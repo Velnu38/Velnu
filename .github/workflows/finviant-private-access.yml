@@ -1,0 +1,44 @@
+name: Finviant private-access guard
+on:
+  push:
+    branches: [feature/velnu-stage1]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: finviant-private-access-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify-protected:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify anonymous visitors cannot reach Finviant Office
+        shell: bash
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://finviant.com/"
+            "https://www.finviant.com/"
+            "https://finviant.com/auth?mode=signin"
+            "https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app/"
+          )
+          for url in "${urls[@]}"; do
+            headers="$(mktemp)"
+            body="$(mktemp)"
+            status="$(curl --silent --show-error --max-time 30 -D "$headers" -o "$body" -w '%{http_code}' "$url")"
+            echo "Anonymous access to ${url%%\?*}: HTTP $status"
+            if grep -qE 'Finviant Office.*AI Business Assistant|Your work[.] Less paperwork[.]|Welcome to Finviant Office' "$body"; then
+              echo "FAIL: Public visitor can read Finviant application or sign-in page"
+              exit 1
+            fi
+            if [[ "$status" == "401" || "$status" == "403" ]]; then
+              echo "PASS: Authentication required"
+            elif grep -Eiq 'vercel.com/(sso-api|login)|Authentication Required|Vercel Authentication|This Deployment is protected' "$headers" "$body"; then
+              echo "PASS: Vercel authentication challenge"
+            else
+              echo "FAIL: Missing a verified authentication challenge (HTTP $status)"
+              exit 1
+            fi
+            rm -f "$headers" "$body"
+          done
