@@ -25,7 +25,8 @@ Prioritize: (1) login/business isolation, (2) customer creation, (3) job/invoice
 - GitHub development branch: `feature/velnu-stage1`
 - Staging backend: **Owedly-Test** (`xvybcmyoblfgzokaifsx`), active as of 2026-10-26
 - Original backend: **Owedly** (`mntucevxsztpcggfdkhg`), reported inactive as of 2026-10-26
-- The `.env.example` on this branch points to staging using a browser-safe publishable key. `RESEND_API_KEY`, service-role credentials, and payment secrets must **never** be committed to Git or exposed in the browser.
+- The `.env.example` requires explicit local staging configuration. `RESEND_API_KEY`, service-role credentials, and payment secrets must **never** be committed to Git or exposed in the browser.
+- See [environment isolation and the production cutover gates](docs/ENVIRONMENT_ISOLATION.md). Hosted builds now validate their backend and release target before compiling.
 - Existing verified sending domain remains `owedlyworks.com` until a replacement domain is legally and technically ready. Do not change the sender email to an unverified Velnu domain.
 - No live Vercel project was visible in the currently connected Vercel account during the audit; deployment remains to be established/confirmed.
 

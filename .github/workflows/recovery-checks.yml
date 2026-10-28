@@ -22,6 +22,8 @@ jobs:
           node-version: '22'
       - run: npm ci --ignore-scripts
       - run: npm run build
+      - name: Reject mixed staging and production configuration
+        run: npm run test:deployment
       - name: Verify actual workbook service pagination and failure handling
         run: node --test tests/financial/*.test.mjs
       - name: Compile actual provider and signature helpers

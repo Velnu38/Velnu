@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/check-deployment.mjs && tsc -b && vite build",
+    "test:deployment": "node --test tests/deployment/*.test.mjs",
     "preview": "vite preview",
     "test:unit": "deno test tests/unit/",
     "test:stress": "deno test --unstable-sloppy-imports tests/stress/velnu-1500-inputs_test.ts",
