@@ -22,7 +22,7 @@ async function mockFinance(page, opts={}) {
     const method = request.method()
     let body = null
     try { body = request.postDataJSON() } catch {}
-    state.requests.push({ path, method, body })
+    state.requests.push({ path, method, body, query: Object.fromEntries(new URL(request.url()).searchParams) })
     const json = (payload, status=200, total=Array.isArray(payload) ? payload.length : 1) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': '0-' + Math.max(0, (Array.isArray(payload) ? payload.length : 1) - 1) + '/' + total }, body: JSON.stringify(payload) })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
@@ -82,7 +82,11 @@ test('workbook totals and CSV include entries beyond the first API page', async 
   for await (const chunk of stream) csv += chunk.toString()
   expect(csv).toContain('QA expense 1000')
   expect(csv.split('\r\n')).toHaveLength(1003) // header + 1001 expenses + one payment
-  expect(state.requests.filter(x=>x.path.endsWith('/bookkeeping_entries') && x.method==='GET')).toHaveLength(2)
+  // React Strict Mode can repeat the initial read. Check the page boundaries
+  // and tenant scope; the totals and CSV above prove rows are not duplicated.
+  const pages = state.requests.filter(x=>x.path.endsWith('/bookkeeping_entries') && x.method==='GET')
+  expect([...new Set(pages.map(x=>Number(x.query.offset || 0)))].sort((a,b)=>a-b)).toEqual([0,1000])
+  expect(pages.every(x=>x.query.business_id === 'eq.' + businessId && x.query.limit === '1000' && x.query.order === 'id.asc')).toBe(true)
 })
 
 test('bookkeeping owner can enter expense without changing payment transactions',async ({page})=>{
