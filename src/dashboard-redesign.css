@@ -21,7 +21,7 @@
 :is(.invoice-overdue-row, .estimate-approval-row) .row-main span { font-size: 10px; }
 .invoice-overdue-row .overdue-money, .estimate-approval-row .approval-money { margin-left: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
 :is(.invoice-tile-limit, .estimate-tile-limit) { margin: 0; border-top: 1px solid #edf0f2; padding: 10px 0; color: #71818a; font-size: 10px; line-height: 1.5; }
-.dashboard-shortcuts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dashboard-shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .financial-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .financial-actions .secondary-button { font-size: 11px; }
 .estimate-document-open { border: 0; padding: 0; background: transparent; text-align: left; color: inherit; }
@@ -31,3 +31,54 @@
 @media(max-width:1200px){.dashboard-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.dashboard-shortcuts{grid-template-columns:1fr}}
 @media(max-width:600px){.financial-actions{align-items:flex-start}}
+
+.dashboard-shortcut.work-shortcut { display: block; padding: 0; overflow: hidden; }
+.dashboard-shortcut.work-shortcut:hover { transform: none; }
+.work-shortcut-link { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 94px; border: 0; padding: 17px 18px; background: transparent; color: inherit; text-align: left; }
+.work-shortcut-link:hover { background: #f7faf9; }
+.work-shortcut-copy { display: grid; flex: 1; min-width: 0; gap: 5px; }
+.work-tile-reminders { border-top: 1px solid #edf0f2; padding: 12px 18px 16px; }
+.work-tile-reminders button { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border: 0; background: none; padding: 4px 0; width: 100%; text-align: left; color: #235e50; font-size: 12px; font-weight: 750; }
+.work-tile-reminders button > span:last-child { margin-left: auto; }
+.work-tile-reminders p { margin: 6px 0 0; font-size: 11px; color: #71818a; }
+.work-view-nav, .work-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.work-view-nav { padding: 6px; border: 1px solid #e2e8eb; border-radius: 14px; background: #fff; }
+.work-view-nav button { flex: 1; min-height: 45px; padding: 10px 18px; background: transparent; border: 0; border-radius: 9px; color: #627770; font-weight: 750; }
+.work-view-nav button[aria-pressed="true"] { background: #eaf4f1; color: #15594e; }
+.work-view-nav button:hover { background: #f1f7f5; }
+.work-hub .page-heading > .quiet { margin-bottom: 0; line-height: 1.5; }
+.work-hub-content .page-heading h2 { margin: 0; font-size: clamp(20px, 2vw, 27px); letter-spacing: -.035em; color: #18313f; }
+.work-filters button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid #e1e8e5; border-radius: 22px; background: #fff; color: #627770; font-weight: 700; font-size: 12px; }
+.work-filters button[aria-pressed="true"] { background: #174e43; color: #fff; border-color: #174e43; }
+.work-filters button span { font-size: 10px; font-variant-numeric: tabular-nums; opacity: .85; }
+.work-group-description { margin: -8px 0 0; font-size: 12px; color: #647782; line-height: 1.6; }
+.work-heading-actions, .job-row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.job-row-actions select { width: auto; min-width: 130px; }
+.work-hub .job-row .row-main { min-width: 0; }
+.work-hub .job-row .row-main strong { overflow-wrap: anywhere; }
+.work-list-message { padding: 22px; color: #647782; font-size: 13px; }
+.reminder-composer { padding: 24px; background: #fff; border: 1px solid #dce8e4; border-radius: 16px; }
+.reminder-composer h3 { margin: 0; color: #18313f; }
+.reminder-composer .quiet { font-size: 12px; line-height: 1.6; }
+.reminder-success { margin: 0; padding: 14px 18px; border-radius: 10px; background: #eaf4f1; color: #15594e; font-size: 13px; }
+.work-reminder-row { display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid #edf0f2; }
+.work-reminder-row:last-child { border-bottom: 0; }
+.work-reminder-row .row-main { flex: 1; min-width: 0; }
+.work-reminder-row .row-main strong { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.work-reminder-row .row-main span { line-height: 1.5; }
+.reminder-state { padding: 5px 8px; border-radius: 20px; font-size: 10px; font-weight: 750; color: #55716a; background: #edf4f1; white-space: nowrap; }
+.reminder-state.is-due { background: #fff0ed; color: #a62e23; }
+.reminder-pagination, .reminder-pagination > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.reminder-pagination > span { font-size: 12px; color: #647782; }
+:is(.work-shortcut-link, .work-tile-reminders button, .work-view-nav button, .work-filters button):focus-visible { outline: 2px solid #16866f; outline-offset: -2px; }
+@media(max-width:1200px) and (min-width:901px) { .work-shortcut { grid-column: 1 / -1; } }
+@media(max-width:600px) {
+  .work-view-nav button { padding: 10px 8px; font-size: 12px; }
+  .work-hub .job-row { flex-wrap: wrap; }
+  .work-hub .job-row .row-main { flex-basis: 100%; }
+  .job-row-actions { width: 100%; justify-content: space-between; }
+  .reminder-composer { padding: 18px; }
+  .work-reminder-row { flex-wrap: wrap; padding: 16px; gap: 10px; }
+  .work-reminder-row .row-main { flex-basis: 100%; }
+  .work-reminder-row > button { margin-left: auto; }
+}

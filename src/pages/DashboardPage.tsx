@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
-import { completeReminder, getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
+import type { CurrentBusiness } from '../lib/business'
+import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 import { listVelnuWorkbook, type WorkbookLine } from '../services/bookkeeping'
 import { readableError } from '../lib/errors'
 
-type DashboardDestination = 'estimates' | 'invoices' | 'schedule' | 'jobs' | 'bookkeeping'
+type DashboardDestination = 'estimates' | 'invoices' | 'work' | 'bookkeeping'
 const financeRoles = ['owner', 'admin', 'office']
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
@@ -109,6 +109,7 @@ const empty: DashboardSnapshot = {
   jobsThisWeek: 0,
   overdueInvoiceCount: 0,
   pendingApprovalCount: 0,
+  dueReminderCount: 0,
   overdueInvoices: [],
   dueReminders: [],
   todayAppointments: [],
@@ -120,7 +121,7 @@ function personName(customer?: { first_name: string | null; last_name: string | 
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
 }
 
-export default function DashboardPage({ business, onSetup, onNavigate }: { business: CurrentBusiness; onSetup?: () => void; onNavigate?: (view: DashboardDestination) => void }) {
+export default function DashboardPage({ business, onSetup, onNavigate, onReminders }: { business: CurrentBusiness; onSetup?: () => void; onNavigate?: (view: DashboardDestination) => void; onReminders?: () => void }) {
   const [snapshot, setSnapshot] = useState(empty)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -169,16 +170,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     return () => { mounted.current = false; currentRequest.current++ }
   }, [business.id])
 
-  async function finishReminder(reminderId: string) {
-    try {
-      await completeReminder(reminderId)
-      if (mounted.current) await refresh(true)
-    } catch (err) {
-      if (mounted.current) setError(readableError(err, 'Unable to complete reminder'))
-    }
-  }
-
-  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminders.length + snapshot.pendingApprovalCount
+  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount
 
   return <div className="page-stack">
     <div className="page-heading split-heading">
@@ -216,20 +208,15 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
           {snapshot.overdueInvoiceCount > snapshot.overdueInvoices.length && <p className="invoice-tile-limit">Showing the {snapshot.overdueInvoices.length} oldest. Open Invoices to see all.</p>}
         </div>}
       </article>
-      <button type="button" className="dashboard-shortcut" aria-label="Jobs" onClick={() => onNavigate?.('jobs')}><span className="shortcut-icon">J</span><span><strong>Jobs</strong><small>{loading ? 'Loading jobs…' : error ? 'Manage your jobs' : `${snapshot.jobsThisWeek} in the next 7 days`}</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
-      <button type="button" className="dashboard-shortcut" aria-label="Schedule" onClick={() => onNavigate?.('schedule')}><span className="shortcut-icon">S</span><span><strong>Schedule</strong><small>{loading ? 'Loading schedule…' : error ? 'Open your calendar' : `${snapshot.todayAppointments.length} scheduled today`}</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
+      <article className="dashboard-shortcut work-shortcut" aria-label="Jobs and schedule overview">
+        <button type="button" className="work-shortcut-link" aria-label="Jobs & schedule" onClick={() => onNavigate?.('work')}><span className="shortcut-icon">J</span><span className="work-shortcut-copy"><strong>Jobs &amp; schedule</strong><small>{loading ? 'Loading work…' : error ? 'Plan your work and follow-ups' : `${snapshot.todayAppointments.length}${snapshot.todayAppointments.length === 20 ? '+' : ''} scheduled today · ${snapshot.jobsThisWeek} jobs in the next 7 days`}</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
+        <div className="work-tile-reminders"><button type="button" onClick={onReminders}><span>Reminders</span>{!loading && !error && <span className={snapshot.dueReminderCount ? 'invoice-overdue-badge' : 'quiet'}>{snapshot.dueReminderCount ? `${snapshot.dueReminderCount} due` : 'None due'}</span>}<span aria-hidden="true">→</span></button><p>View follow-ups or create a reminder.</p></div>
+      </article>
     </section>
 
     {error && <p role="alert" className="form-message error-text">{error}</p>}
 
     <FinancialPerformance key={`${business.id}:${business.role}`} business={business} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />
-
-    <section>
-      <article className="office-panel">
-        <div className="office-panel-head"><div><p className="eyebrow">Follow-up</p><h2>Reminders due</h2></div><span className="count-badge">{snapshot.dueReminders.length}</span></div>
-        {snapshot.dueReminders.length === 0 ? <p className="quiet">You’re caught up on reminders.</p> : <div className="office-list">{snapshot.dueReminders.map((reminder) => <div className="office-list-row" key={reminder.id}><div className="reminder-check">!</div><div className="row-main"><strong>{reminder.note || reminder.kind.replaceAll('_', ' ')}</strong><span>Due {new Date(reminder.due_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span></div>{canWrite(business.role) && <button className="secondary-button small-button" onClick={() => finishReminder(reminder.id)}>Done</button>}</div>)}</div>}
-      </article>
-    </section>
 
     <section className="attention-card">
       <div><p className="eyebrow">AI-assisted office manager</p><h2>Tell Finviant Office what needs to get done.</h2><p>Create customers, jobs, estimates, change orders, invoices, payments and schedule changes by voice. Anything involving money, scope or schedule is shown for confirmation first.</p></div>

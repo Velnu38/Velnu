@@ -18,7 +18,8 @@ function name(customer?: Customer) {
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
 }
 
-export default function SchedulePage({ business }: { business: CurrentBusiness }) {
+export default function SchedulePage({ business, embedded = false }: { business: CurrentBusiness; embedded?: boolean }) {
+  const Heading = embedded ? 'h2' : 'h1'
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -109,7 +110,7 @@ export default function SchedulePage({ business }: { business: CurrentBusiness }
   }
 
   return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><h1>Know where you need to be next.</h1></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Schedule work</button>}</div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><Heading>Know where you need to be next.</Heading></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Schedule work</button>}</div>
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
     <section className="schedule-card">
       {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Finviant Office when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{name(appointment.customers?.[0])}</span>{appointment.jobs?.[0]?.properties?.[0] && <div className="schedule-location"><span>{formatServiceAddress(appointment.jobs[0].properties![0])}</span><GoogleMapTools address={appointment.jobs[0].properties![0]} compact /></div>}</div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}

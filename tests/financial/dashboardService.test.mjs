@@ -43,7 +43,13 @@ async function fixture(options, run) {
         issue_date: table === 'change_orders' ? '2020-01-01' : '2020-01-02', customers: customer,
       })), total)
     }
-    assert.ok(['jobs', 'appointments', 'reminders'].includes(table))
+    if (table === 'reminders') {
+      assert.match(request.headers.get('prefer') || '', /count=exact/)
+      assert.equal(url.searchParams.get('status'), 'eq.pending')
+      assert.match(url.searchParams.get('due_at') || '', /^lte\./)
+      return reply(options.empty ? [] : Array.from({ length: 10 }, (_, n) => ({ id: `reminder-${n}` })), options.empty ? 0 : 18)
+    }
+    assert.ok(['jobs', 'appointments'].includes(table))
     return reply([])
   }
   try { await run(calls) } finally { globalThis.fetch = original }
@@ -55,6 +61,8 @@ test('dashboard counts all pending approvals and overdue invoices beyond the bou
   assert.equal(snapshot.pendingApprovals.length, 12)
   assert.equal(snapshot.overdueInvoiceCount, 14)
   assert.equal(snapshot.overdueInvoices.length, 10)
+  assert.equal(snapshot.dueReminderCount, 18)
+  assert.equal(snapshot.dueReminders.length, 10)
   assert.deepEqual(new Set(snapshot.pendingApprovals.map(row => row.document_type)), new Set(['estimate', 'change_order']))
   assert.ok(snapshot.pendingApprovals.every(row => row.customers[0].first_name === 'Jane'))
   assert.equal(calls.length, 7)
