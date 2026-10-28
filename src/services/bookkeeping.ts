@@ -1,3 +1,4 @@
+import { isRecord, validCalendarDate, validDecimal, readFinancialNumber } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 import { collectWorkbookPages } from '../lib/workbookPages'
@@ -45,10 +46,7 @@ type QBRow = {
   source_type: string
   currency: string
 }
-function dollars(v: unknown) {
-  const value = Number(v)
-  return Number.isFinite(value) ? value : 0
-}
+const dollars = readFinancialNumber
 
 export async function listVelnuWorkbook(businessId: string): Promise<WorkbookLine[]> {
   const [payments, manual] = await Promise.all([
@@ -110,16 +108,12 @@ export async function listQuickBooksWorkbook(businessId: string): Promise<Workbo
 }
 
 export async function addManualEntry(input: BookkeepingInput) {
-  const amt = Number(input.amount)
-  if (!Number.isFinite(amt) || amt <= 0 || Math.abs(amt * 100 - Math.round(amt * 100)) > 1e-7) {
-    throw new Error('Enter a positive amount with no more than two decimal places.')
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.entry_date) || Number.isNaN(Date.parse(input.entry_date + 'T00:00:00'))) {
-    throw new Error('Choose a valid transaction date.')
-  }
-  if (!input.description.trim() || !input.category.trim()) {
-    throw new Error('A description and category are required.')
-  }
+  if (!isRecord(input) || !validDecimal(input.amount, 0.01, 1000000000)) throw new Error('Enter a positive amount with no more than two decimal places.')
+  const amt = input.amount
+  if (!validCalendarDate(input.entry_date)) throw new Error('Choose a valid transaction date.')
+  if (input.direction !== 'income' && input.direction !== 'expense') throw new Error('Choose income or expense.')
+  if (typeof input.description !== 'string' || !input.description.trim() || typeof input.category !== 'string' || !input.category.trim()) throw new Error('A description and category are required.')
+  if (input.description.length > 4000 || input.category.length > 120 || (input.notes !== undefined && (typeof input.notes !== 'string' || input.notes.length > 4000))) throw new Error('Transaction text is too long or invalid.')
   const payload = {
     id: input.id,
     business_id: input.business_id,

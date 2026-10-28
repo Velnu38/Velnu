@@ -1,3 +1,4 @@
+import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 
@@ -34,17 +35,10 @@ export async function listChangeOrders(businessId: string) {
 }
 
 export async function createChangeOrder(businessId: string, input: ChangeOrderInput & { request_id?: string }) {
-  if (!input.customer_id || !input.job_id) throw new Error('Choose an existing job and customer')
-  if (!input.title?.trim()) throw new Error('Change order title is required')
-  if (!input.items.length || input.items.length > 50) throw new Error('Enter 1 to 50 line items')
+  validateDocumentInput(input)
+  if (typeof input.job_id !== 'string' || !input.job_id.trim()) throw new Error('Choose an existing job and customer')
+  if (typeof input.title !== 'string' || !input.title.trim() || input.title.length > 4000) throw new Error('Change order title is required and must be at most 4,000 characters')
   if (!Number.isInteger(input.schedule_impact_days ?? 0) || Math.abs(input.schedule_impact_days ?? 0) > 3650) throw new Error('Enter a valid schedule impact in whole days')
-  for (const item of input.items) {
-    if (!item.description?.trim()) throw new Error('Every line item needs a description')
-    if (!Number.isFinite(item.quantity) || item.quantity <= 0 || Math.abs(item.quantity * 100 - Math.round(item.quantity * 100)) > 1e-7) throw new Error('Enter a valid quantity')
-    if (!Number.isFinite(item.unit_price) || item.unit_price < 0 || Math.abs(item.unit_price * 100 - Math.round(item.unit_price * 100)) > 1e-7) throw new Error('Enter a valid price')
-    const tax = item.tax_rate ?? 0
-    if (!Number.isFinite(tax) || tax < 0 || tax > 100 || Math.abs(tax * 100 - Math.round(tax * 100)) > 1e-7) throw new Error('Enter a tax rate between 0 and 100 percent')
-  }
   const { data, error } = await supabase.rpc('create_change_order_document', {
     target_business_id: businessId,
     request_id: input.request_id ?? crypto.randomUUID(),

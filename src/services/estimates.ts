@@ -1,3 +1,4 @@
+import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 
@@ -23,19 +24,7 @@ export async function createEstimate(
   businessId: string,
   input: { customer_id: string; expires_on?: string; notes?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
 ) {
-  if (!input.customer_id) throw new Error('Choose a customer')
-  if (!input.items.length || input.items.length > 50) throw new Error('Enter 1 to 50 line items')
-  if (input.notes && input.notes.length > 4000) throw new Error('Internal notes must be at most 4,000 characters')
-  if (input.customer_message && input.customer_message.length > 4000) throw new Error('Customer message must be at most 4,000 characters')
-
-  const validMoney = (value: number) => Number.isFinite(value) && Math.abs(value * 100 - Math.round(value * 100)) < 1e-7
-  for (const item of input.items) {
-    if (!item.description.trim()) throw new Error('Every line item needs a description')
-    if (!validMoney(item.quantity) || item.quantity <= 0 || item.quantity > 100000) throw new Error('Enter a valid quantity with at most 2 decimal places')
-    if (!validMoney(item.unit_price) || item.unit_price < 0 || item.unit_price > 10000000) throw new Error('Enter a valid unit price with at most 2 decimal places')
-    const tax = item.tax_rate ?? 0
-    if (!validMoney(tax) || tax < 0 || tax > 100) throw new Error('Tax rate must be between 0% and 100%, with at most 2 decimal places')
-  }
+  validateDocumentInput(input)
 
   // This database function inserts the document and all line items atomically.
   // An identical request_id can be retried safely after a lost network response.

@@ -1,3 +1,4 @@
+import { readFinancialNumber } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 
@@ -55,7 +56,7 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
   todayStart.setHours(0, 0, 0, 0)
   const tomorrowStart = new Date(todayStart)
   tomorrowStart.setDate(todayStart.getDate() + 1)
-  const todayDate = todayStart.toISOString().slice(0, 10)
+  const todayDate = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-')
 
   const [invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting] = await Promise.all([
     // SECURITY INVOKER RPC calculates exact totals under the caller's existing invoice RLS.
@@ -102,8 +103,8 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
   ].sort((a, b) => String(a.issue_date).localeCompare(String(b.issue_date))).slice(0, 12)
 
   return {
-    openInvoices: Number(invoiceTotals.open_invoices),
-    outstandingBalance: Number(invoiceTotals.outstanding_balance),
+    openInvoices: readFinancialNumber(invoiceTotals.open_invoices),
+    outstandingBalance: readFinancialNumber(invoiceTotals.outstanding_balance),
     jobsThisWeek: jobs.count ?? 0,
     overdueInvoiceCount: overdueInvoices.count ?? (overdueInvoices.data ?? []).length,
     dueReminderCount: dueReminders.count ?? (dueReminders.data ?? []).length,

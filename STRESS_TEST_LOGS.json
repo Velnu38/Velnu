@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "campaign": "Finviant staging QA",
+  "target": "xvybcmyoblfgzokaifsx",
+  "requested_active_seconds": 28800,
+  "started_at": "2026-10-28T23:41:30.834Z",
+  "status": "phase_completed",
+  "active_seconds": 14.677955797000001,
+  "phases": [
+    {
+      "phase": 1,
+      "started_at": "2026-10-28T23:41:30.834Z",
+      "completed_at": "2026-10-28T23:41:45.512Z",
+      "active_seconds": 14.67797847
+    }
+  ],
+  "cycles": [
+    {
+      "phase": 1,
+      "cycle": 1,
+      "started_at": "2026-10-28T23:41:44.882Z",
+      "passed": 1000,
+      "failed": 0,
+      "elapsed_ms": 630
+    }
+  ],
+  "errors": [],
+  "modes": {
+    "dataset": "live Supabase REST read",
+    "services": "real app modules; isolated simulated database transport",
+    "edges": "live staging unauthenticated guard probes",
+    "browser": "reported separately by GitHub Actions"
+  },
+  "limits": {
+    "endpoint_requests_per_second": 2,
+    "endpoint_concurrency": 1,
+    "cycle_interval_seconds": 300,
+    "production_writes": 0,
+    "customer_sends": 0
+  },
+  "totals": {
+    "profiles_checked": 1000,
+    "passed": 1000,
+    "failed": 0,
+    "expected_rejections": 360,
+    "live_requests": 22,
+    "edge_probes": 12
+  },
+  "per_function": {
+    "createInvoice": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "createEstimate": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "createChangeOrder": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "recordPayment": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "addManualEntry": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "listVelnuWorkbook": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "listQuickBooksWorkbook": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "getDashboardSnapshot": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "parseQuickInvoice": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "assistantMonthlyTotal": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    }
+  },
+  "dataset": {
+    "count": 1000,
+    "sha256": "aa525017285c57a253a84cdda4b43233d0cf919c5c8358bbabdf234c2d4e65bd",
+    "functions": {
+      "createInvoice": 100,
+      "createEstimate": 100,
+      "createChangeOrder": 100,
+      "recordPayment": 100,
+      "addManualEntry": 100,
+      "listVelnuWorkbook": 100,
+      "listQuickBooksWorkbook": 100,
+      "getDashboardSnapshot": 100,
+      "parseQuickInvoice": 100,
+      "assistantMonthlyTotal": 100
+    }
+  },
+  "edge_coverage": {
+    "ai-command": {
+      "attempts": 1,
+      "statuses": {
+        "401": 1
+      }
+    },
+    "execute-ai-action": {
+      "attempts": 1,
+      "statuses": {
+        "401": 1
+      }
+    },
+    "create-approval-link": {
+      "attempts": 1,
+      "statuses": {
+        "401": 1
+      }
+    },
+    "customer-approval": {
+      "attempts": 1,
+      "statuses": {
+        "400": 1
+      }
+    },
+    "email-recovery-worker": {
+      "attempts": 1,
+      "statuses": {
+        "503": 1
+      }
+    },
+    "reliability-health": {
+      "attempts": 1,
+      "statuses": {
+        "503": 1
+      }
+    },
+    "send-document-email": {
+      "attempts": 1,
+      "statuses": {
+        "401": 1
+      }
+    },
+    "send-invoice-email": {
+      "attempts": 1,
+      "statuses": {
+        "401": 1
+      }
+    },
+    "transcribe-voice": {
+      "attempts": 1,
+      "statuses": {
+        "401": 1
+      }
+    },
+    "resend-events": {
+      "attempts": 1,
+      "statuses": {
+        "503": 1
+      }
+    },
+    "stripe-events": {
+      "attempts": 1,
+      "statuses": {
+        "503": 1
+      }
+    },
+    "quickbooks": {
+      "attempts": 1,
+      "statuses": {
+        "403": 1
+      }
+    }
+  },
+  "updated_at": "2026-10-28T23:41:45.512Z"
+}

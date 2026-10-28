@@ -12,7 +12,8 @@
     "test:stress": "deno test --unstable-sloppy-imports tests/stress/velnu-1500-inputs_test.ts",
     "test:recovery": "tsc supabase/functions/_shared/providerRequest.ts supabase/functions/_shared/signedEvents.ts supabase/functions/_shared/healthStatus.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build && node --test tests/recovery/*.test.mjs",
     "test:e2e": "playwright test",
-    "test:services": "node --test tests/financial/*.test.mjs"
+    "test:services": "node --test tests/financial/*.test.mjs",
+    "test:campaign": "node scripts/qa/stress-engine.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

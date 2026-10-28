@@ -7,12 +7,14 @@ export interface QuickInvoiceSeed {
 }
 
 export function isQuickInvoiceCommand(value: string): boolean {
+  if (typeof value !== 'string') return false
   return /\b(?:create|make|draft|prepare|write|generate|start)\b[\s\S]{0,100}\b(?:an?\s+)?invoice\b/i.test(value)
     || /\b(?:invoice|bill)\s+(?:for|to)\b/i.test(value)
     || /\b(?:bill)\s+(?:[A-Za-z][\w'-]*\s+){0,5}(?:for|\$)/i.test(value)
 }
 
 export function parseQuickInvoice(value: string): QuickInvoiceSeed {
+  if (typeof value !== 'string') throw new Error('A text invoice command is required')
   const command = value.trim().replace(/\s+/g, ' ')
   // Count distinct *mentions*, not distinct amounts: $100 labor + $100
   // materials is still a multi-price instruction. Currency followed by
@@ -40,7 +42,7 @@ export function parseQuickInvoice(value: string): QuickInvoiceSeed {
     const trailing = command.slice(match.end)
     const incompleteToken = /^[\w,]|^\.\d/.test(trailing)
     const normalized = match.value.replaceAll(',', '')
-    if (negativePrefix || !validToken || incompleteToken || !Number.isFinite(Number(normalized))) unsafeAmount = true
+    if (negativePrefix || !validToken || incompleteToken || !Number.isFinite(Number(normalized)) || Number(normalized) > 10000000) unsafeAmount = true
     amounts.push(normalized)
   }
   const match = command.match(/\b(?:invoice|bill)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|due|total|amount|at|with|including|on|description|service|work|to)\b|\s+\$|[,.;!?]|$)/i)

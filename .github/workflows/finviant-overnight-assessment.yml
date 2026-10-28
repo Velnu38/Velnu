@@ -1,0 +1,102 @@
+name: Finviant eight-hour assessment
+on:
+  push:
+    branches: [ux/professional-dashboard-20261028]
+    paths:
+      - '.github/workflows/finviant-overnight-assessment.yml'
+      - 'scripts/qa/stress-engine.mjs'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: finviant-eight-hour-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  phase-one:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Four-hour live staging and service campaign
+        run: node scripts/qa/stress-engine.mjs --seconds=14400 --phase=1 --interval=300
+      - name: Publish observed results to repository root
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QA_BRANCH: ${{ github.ref_name }}
+        run: node scripts/qa/publish-results.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finviant-phase-one
+          path: STRESS_TEST_LOGS.json
+          if-no-files-found: error
+          retention-days: 14
+  phase-two:
+    needs: [phase-one, browser-and-regression]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: finviant-phase-one
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: finviant-browser-and-regression-results
+          path: browser
+      - name: Continue for another four hours
+        run: node scripts/qa/stress-engine.mjs --seconds=14400 --phase=2 --interval=300 --resume=true
+      - name: Publish complete observed results to repository root
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QA_BRANCH: ${{ github.ref_name }}
+          EXPECT_BROWSER_RESULTS: true
+        run: node scripts/qa/publish-results.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finviant-eight-hour-results
+          path: STRESS_TEST_LOGS.json
+          if-no-files-found: error
+          retention-days: 14
+  browser-and-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: npm ci --ignore-scripts
+      - run: npm run test:deployment && npm run test:services && npm run test:recovery && npm run test:unit && npm run test:stress
+      - run: npx playwright install --with-deps chromium
+      - name: Browser flows and failures
+        run: npx playwright test --reporter=json > browser-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finviant-browser-and-regression-results
+          path: |
+            browser-results.json
+            test-results/
+          retention-days: 14
