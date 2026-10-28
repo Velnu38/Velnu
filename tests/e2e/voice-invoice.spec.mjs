@@ -268,7 +268,9 @@ test('browser dictation starts in the tap gesture after unavailable cloud prefli
   })
   await page.addInitScript(() => {
     window.__speechGesture = false
-    window.webkitSpeechRecognition = class {
+    // Chrome also exposes SpeechRecognition, which takes priority over webkitSpeechRecognition.
+    // Replace both so this verifies our browser fallback rather than the native service.
+    window.SpeechRecognition = window.webkitSpeechRecognition = class {
       start(){window.__speechGesture=navigator.userActivation?.isActive===true}
       stop(){this.onresult?.({results:[[{transcript:'Give me a business summary'}]]});this.onend?.()}
     }
