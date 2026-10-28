@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveAppEnvironment } from "../_shared/appEnvironment.ts";
+import { fetchQuickBooksQueryPages } from "../_shared/quickbooksQuery.ts";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -160,21 +161,28 @@ async function getFreshAccess(businessId: string, connection: any): Promise<stri
 }
 type Kind = "Payment" | "SalesReceipt" | "Purchase";
 async function loadTransactions(accessToken: string, realmId: string, kind: Kind, since: string) {
-  const statement = "SELECT * FROM " + kind + " WHERE TxnDate >= '" + since + "' STARTPOSITION 1 MAXRESULTS 100";
-  const url = new URL(API_BASE + "/v3/company/" + encodeURIComponent(realmId) + "/query");
-  url.searchParams.set("query", statement);
-  url.searchParams.set("minorversion", "75");
-  const response = await fetch(url, {
-    headers: { authorization: "Bearer " + accessToken, accept: "application/json" },
-    signal: AbortSignal.timeout(16000),
+  return fetchQuickBooksQueryPages(async (startPosition, pageSize) => {
+    const statement = "SELECT * FROM " + kind + " WHERE TxnDate >= '" + since + "' STARTPOSITION " + startPosition + " MAXRESULTS " + pageSize;
+    const url = new URL(API_BASE + "/v3/company/" + encodeURIComponent(realmId) + "/query");
+    url.searchParams.set("query", statement);
+    url.searchParams.set("minorversion", "75");
+    const response = await fetch(url, {
+      headers: { authorization: "Bearer " + accessToken, accept: "application/json" },
+      signal: AbortSignal.timeout(16000),
+    });
+    if (!response.ok) {
+      console.error("Intuit query failed:", kind, response.status);
+      throw new Error("QuickBooks could not fetch " + kind + " transactions (" + response.status + "). Try reconnecting or checking the account permissions.");
+    }
+    const body = await response.json();
+    const queryResponse = body?.QueryResponse;
+    const records = queryResponse?.[kind];
+    return {
+      records: Array.isArray(records) ? records : [],
+      totalCount: queryResponse?.totalCount,
+      startPosition: queryResponse?.startPosition,
+    };
   });
-  if (!response.ok) {
-    console.error("Intuit query failed:", kind, response.status);
-    throw new Error("QuickBooks could not fetch " + kind + " transactions (" + response.status + "). Try reconnecting or checking the account permissions.");
-  }
-  const body = await response.json();
-  const records = body?.QueryResponse?.[kind];
-  return Array.isArray(records) ? records.slice(0, 100) : [];
 }
 function money(value: unknown) {
   const n = Number(value);
@@ -210,9 +218,9 @@ async function handleSync(businessId: string, connection: any) {
   let count = 0;
   let limited = false;
   for (const kind of ["Payment","SalesReceipt","Purchase"] as Kind[]) {
-    const rows = await loadTransactions(token, connection.realm_id, kind, since);
-    limited = limited || rows.length === 100;
-    const parsed = parseRows(businessId, connection.realm_id, kind, rows);
+    const page = await loadTransactions(token, connection.realm_id, kind, since);
+    limited = limited || page.limited;
+    const parsed = parseRows(businessId, connection.realm_id, kind, page.records);
     if (parsed.length) {
       const { error } = await admin.from("quickbooks_transactions").upsert(parsed, {
         onConflict: "business_id,realm_id,source_type,source_id",
