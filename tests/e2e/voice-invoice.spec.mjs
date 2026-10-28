@@ -195,3 +195,90 @@ test('cloud recording uses server transcription and opens draft review, without 
   expect(calls.filter(x => x.path.endsWith('/invoices') && x.method === 'POST')).toHaveLength(0)
   expect(calls.filter(x => x.path.includes('/send-invoice-email'))).toHaveLength(0)
 })
+
+
+test('microphone permission is requested directly inside the tap after a delayed cloud preflight', async ({ page }) => {
+  await signedIn(page)
+  let statusChecks = 0
+  let uploads = 0
+  await page.route('https://example.supabase.co/**', async route => {
+    const request = route.request(), path = new URL(request.url()).pathname
+    const json = (body, status=200) => route.fulfill({ status, contentType:'application/json', headers:{'access-control-allow-origin':'*'}, body:JSON.stringify(body) })
+    if (request.method() === 'OPTIONS') return route.fulfill({ status:200, headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'}, body:'' })
+    if(path.endsWith('/user'))return json(user)
+    if(path.endsWith('/user_plan_preferences'))return json({selected_tier:'free'})
+    if(path.endsWith('/user_agreement_acceptances'))return json({id:'88888888-8888-4888-8888-888888888888',agreement_version:'2026-10-27-v3'})
+    if(path.endsWith('/business_members'))return json({business_id:businessId,role:'owner',businesses:{id:businessId,name:'Testing Services'}})
+    if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',voice_limit:50,ai_limit:50})
+    if(path.endsWith('/functions/v1/transcribe-voice')) {
+      if(request.headers()['content-type']?.includes('application/json')) {
+        statusChecks++
+        await new Promise(resolve=>setTimeout(resolve,200))
+        return json({configured:true,model:'gpt-4o-transcribe'})
+      }
+      uploads++
+      return json({transcript:'Who has not paid me?',transcription_id:'55555555-5555-4555-8555-555555555555'})
+    }
+    return json([])
+  })
+  await page.addInitScript(() => {
+    window.__voiceTest = {micCalls:0, gesture: false}
+    Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:() => {
+      window.__voiceTest.micCalls++
+      window.__voiceTest.gesture = navigator.userActivation?.isActive === true
+      return Promise.resolve({getTracks:()=>[{stop(){} }]})
+    }}})
+    window.MediaRecorder = class {
+      static isTypeSupported(mime) {return mime==='audio/webm;codecs=opus'}
+      constructor(_stream, options){this.state='inactive';this.mimeType=options?.mimeType||'audio/webm'}
+      start(){this.state='recording'}
+      stop(){
+        this.state='inactive'
+        this.ondataavailable?.({data:new Blob([new Uint8Array(500)],{type:this.mimeType})})
+        this.onstop?.()
+      }
+    }
+  })
+  await page.goto('/')
+  await page.getByRole('button',{name:'Talk to Finviant Office'}).click()
+  const start = page.getByRole('button',{name:'Tap and speak'})
+  await expect(start).toBeEnabled()
+  expect(statusChecks).toBe(1)
+  expect(await page.evaluate(()=>window.__voiceTest.micCalls)).toBe(0)
+  await start.click()
+  expect(await page.evaluate(()=>window.__voiceTest)).toEqual({micCalls:1,gesture:true})
+  await page.getByRole('button',{name:'Tap to stop'}).click()
+  await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toHaveValue('Who has not paid me?')
+  expect(uploads).toBe(1)
+})
+
+test('browser dictation starts in the tap gesture after unavailable cloud preflight', async ({ page }) => {
+  await signedIn(page)
+  await page.route('https://example.supabase.co/**', async route => {
+    const request=route.request(), path=new URL(request.url()).pathname
+    const json=body=>route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)})
+    if(request.method()==='OPTIONS')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:''})
+    if(path.endsWith('/user'))return json(user)
+    if(path.endsWith('/user_plan_preferences'))return json({selected_tier:'free'})
+    if(path.endsWith('/user_agreement_acceptances'))return json({id:'88888888-8888-4888-8888-888888888888',agreement_version:'2026-10-27-v3'})
+    if(path.endsWith('/business_members'))return json({business_id:businessId,role:'owner',businesses:{id:businessId,name:'Testing Services'}})
+    if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',ai_limit:50,voice_limit:50})
+    if(path.endsWith('/functions/v1/transcribe-voice'))return json({configured:false,model:null})
+    return json([])
+  })
+  await page.addInitScript(() => {
+    window.__speechGesture = false
+    window.webkitSpeechRecognition = class {
+      start(){window.__speechGesture=navigator.userActivation?.isActive===true}
+      stop(){this.onresult?.({results:[[{transcript:'Give me a business summary'}]]});this.onend?.()}
+    }
+  })
+  await page.goto('/')
+  await page.getByRole('button',{name:'Talk to Finviant Office'}).click()
+  const start=page.getByRole('button',{name:'Tap and speak'})
+  await expect(start).toBeEnabled()
+  await start.click()
+  expect(await page.evaluate(()=>window.__speechGesture)).toBe(true)
+  await page.getByRole('button',{name:'Tap to stop'}).click()
+  await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toHaveValue('Give me a business summary')
+})
