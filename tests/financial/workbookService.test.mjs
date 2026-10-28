@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 await build({ entryPoints: ['src/services/bookkeeping.ts'], outfile: '.qa-build/bookkeeping.mjs', bundle: true, platform: 'node', format: 'esm',
   define: { 'import.meta.env': JSON.stringify({ VITE_SUPABASE_URL: 'https://qa.invalid', VITE_SUPABASE_PUBLISHABLE_KEY: 'qa-test-only' }) },
 })
-const { listVelnuWorkbook, listQuickBooksWorkbook } = await import('../../.qa-build/bookkeeping.mjs')
+const { listVelnuWorkbook, listQuickBooksWorkbook, addManualEntry } = await import('../../.qa-build/bookkeeping.mjs')
 const tenant = '11111111-1111-4111-8111-111111111111'
 const paymentRows = Array.from({ length: 1001 }, (_, i) => ({ id: 'p' + i, amount: 1, paid_at: '2026-10-28T12:00:00Z', status: 'succeeded', method: 'cash', invoices: { invoice_number: 'INV-' + i } }))
 const manualRows = Array.from({ length: 1001 }, (_, i) => ({ id: 'm' + i, amount: 2, entry_date: '2026-10-28', direction: 'expense', description: 'Expense ' + i, category: 'Parts', currency: 'USD' }))
@@ -50,4 +50,31 @@ test('actual service propagates second-page failure instead of a partial total',
 }))
 test('actual service rejects a response without the completeness count', () => fixture({ missingCount: true }, async () => {
   await assert.rejects(() => listQuickBooksWorkbook(tenant), /Unable to verify/)
+}))
+
+const entry = { id: '44444444-4444-4444-8444-444444444444', business_id: tenant, entry_date: '2026-10-28', direction: 'expense', amount: 42.5, category: 'Parts', description: 'Replacement part', notes: 'Receipt 1' }
+async function duplicateEntry(existing, run) {
+  const original = globalThis.fetch, calls = []
+  globalThis.fetch = async (input, init) => {
+    const request = new Request(input, init), url = new URL(request.url)
+    assert.equal(url.hostname, 'qa.invalid', 'No external requests allowed')
+    assert.ok(url.pathname.endsWith('/bookkeeping_entries'))
+    calls.push(request.method)
+    if (request.method === 'POST') return new Response(JSON.stringify({ code: '23505', message: 'duplicate key' }), { status: 409, headers: { 'content-type': 'application/json' } })
+    assert.equal(request.method, 'GET')
+    assert.equal(url.searchParams.get('business_id'), 'eq.' + tenant)
+    assert.equal(url.searchParams.get('id'), 'eq.' + entry.id)
+    return new Response(JSON.stringify(existing), { headers: { 'content-type': 'application/json' } })
+  }
+  try { await run(calls) } finally { globalThis.fetch = original }
+}
+test('manual-entry retry rejects a previously saved ID with changed financial details', () => duplicateEntry({ ...entry, currency: 'USD', amount: 10 }, async () => {
+  await assert.rejects(() => addManualEntry(entry), /different details/)
+}))
+test('manual-entry retry verifies identical stored data in the same workspace', () => duplicateEntry({ ...entry, currency: 'USD' }, async calls => {
+  await addManualEntry({ ...entry, description: '  Replacement part  ' })
+  assert.deepEqual(calls, ['POST', 'GET'])
+}))
+test('manual-entry retry cannot claim success when the stored row is inaccessible', () => duplicateEntry(null, async () => {
+  await assert.rejects(() => addManualEntry(entry), /verify/)
 }))

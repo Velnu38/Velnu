@@ -120,7 +120,7 @@ export async function addManualEntry(input: BookkeepingInput) {
   if (!input.description.trim() || !input.category.trim()) {
     throw new Error('A description and category are required.')
   }
-  const { error } = await supabase.from('bookkeeping_entries').insert({
+  const payload = {
     id: input.id,
     business_id: input.business_id,
     entry_date: input.entry_date,
@@ -130,8 +130,26 @@ export async function addManualEntry(input: BookkeepingInput) {
     description: input.description.trim(),
     notes: input.notes?.trim() || null,
     currency: 'USD',
-  })
-  if (error && error.code !== '23505') throw error
+  }
+  const { error } = await supabase.from('bookkeeping_entries').insert(payload)
+  if (!error) return
+  if (error.code !== '23505') throw error
+  // A lost acknowledgement may cause a legitimate retry. A unique-key error
+  // alone does not prove that this workspace's exact entry was saved.
+  const { data: existing, error: readError } = await supabase.from('bookkeeping_entries')
+    .select('id,business_id,entry_date,direction,amount,category,description,notes,currency')
+    .eq('business_id', input.business_id).eq('id', input.id).maybeSingle()
+  if (readError || !existing) {
+    throw new Error('Unable to verify whether this entry was saved. Reload the workbook before trying again.')
+  }
+  const same = existing.business_id === payload.business_id && existing.id === payload.id &&
+    existing.entry_date === payload.entry_date && existing.direction === payload.direction &&
+    Number(existing.amount) === payload.amount && existing.currency === payload.currency &&
+    existing.category === payload.category && existing.description === payload.description &&
+    (existing.notes ?? null) === payload.notes
+  if (!same) {
+    throw new Error('This entry was already saved with different details. Review the workbook before adding another entry.')
+  }
 }
 
 export async function removeManualEntry(businessId: string, id: string) {

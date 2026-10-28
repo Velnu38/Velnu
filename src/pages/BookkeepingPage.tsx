@@ -16,6 +16,7 @@ function money(amount: number, currency = 'USD') {
 const permitted = ['owner','admin','office']
 const managers = ['owner','admin']
 type RangeChoice = '30' | '90' | 'all'
+type LoadState = 'loading' | 'ready' | 'error'
 
 function exportCsv(rows: WorkbookLine[], source: WorkbookSource) {
   const safe = (value: unknown) => {
@@ -47,7 +48,9 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
   const [qbRows, setQbRows] = useState<WorkbookLine[]>([])
   const [qbStatus, setQbStatus] = useState<QBStatus | null>(null)
   const [busy, setBusy] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [velnuState, setVelnuState] = useState<LoadState>('loading')
+  const [qbState, setQbState] = useState<LoadState>('loading')
+  const refreshId = useRef(0)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [newEntry, setNewEntry] = useState(false)
@@ -62,26 +65,34 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
 
   async function refresh() {
     if (!canSee) return
+    const requestId = ++refreshId.current
+    setVelnuState('loading'); setQbState('loading')
+    setVelnuRows([]); setQbRows([]); setQbStatus(null)
     const results = await Promise.allSettled([
       listVelnuWorkbook(business.id),
       listQuickBooksWorkbook(business.id),
       canManageQuickBooks ? getQuickBooksStatus(business.id) : Promise.resolve(null),
     ])
+    if (requestId !== refreshId.current) return
     const errors: string[] = []
     if (results[0].status === 'fulfilled') setVelnuRows(results[0].value)
     else errors.push('Finviant Office entries: ' + String(results[0].reason?.message || results[0].reason))
+    setVelnuState(results[0].status === 'fulfilled' ? 'ready' : 'error')
     if (results[1].status === 'fulfilled') setQbRows(results[1].value)
     else errors.push('QuickBooks entries: ' + String(results[1].reason?.message || results[1].reason))
+    setQbState(results[1].status === 'fulfilled' ? 'ready' : 'error')
     if (results[2].status === 'fulfilled') setQbStatus(results[2].value)
     else errors.push('QuickBooks status: ' + String(results[2].reason?.message || results[2].reason))
     setError(errors.join(' · '))
   }
   useEffect(() => {
-    if (!canSee) { setLoading(false); return }
-    setLoading(true)
-    void refresh().finally(() => setLoading(false))
+    if (canSee) void refresh()
+    return () => { refreshId.current += 1 }
   }, [business.id, business.role])
 
+  const sourceState = source === 'velnu' ? velnuState : qbState
+  const loading = sourceState === 'loading'
+  const summary = (amount: number) => sourceState === 'ready' ? usd.format(amount) : loading ? 'Loading…' : 'Unavailable'
   const allRows = source === 'velnu' ? velnuRows : qbRows
   const visible = useMemo(() => {
     if (range === 'all') return allRows
@@ -193,7 +204,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       <label>Period <select value={range} onChange={e => setRange(e.target.value as RangeChoice)}>
         <option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All available entries</option>
       </select></label>
-      <button type="button" className="secondary-button compact" disabled={!visible.length} onClick={() => exportCsv(visible, source)}>Download CSV</button>
+      <button type="button" className="secondary-button compact" disabled={sourceState !== 'ready' || !visible.length} onClick={() => exportCsv(visible, source)}>Download CSV</button>
     </div>
 
     {source === 'quickbooks' && <section className="bookkeeping-connect">
@@ -221,17 +232,18 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     </section>}
 
     <section className="bookkeeping-overview" aria-label="Summary in US dollars">
-      <article><small>Received income · USD</small><strong>{usd.format(totals.income)}</strong><span>{source === 'velnu' ? 'Recorded customer payments + manual income' : 'Imported QBO payments and sales receipts'}</span></article>
-      <article><small>Recorded expenses · USD</small><strong>{usd.format(totals.expenses)}</strong><span>{source === 'velnu' ? 'Manually entered expenses' : 'Imported QBO purchases'}</span></article>
-      <article><small>Difference · USD</small><strong>{usd.format(totals.income - totals.expenses)}</strong><span>Not an accounting profit-and-loss or tax report</span></article>
+      <article><small>Received income · USD</small><strong>{summary(totals.income)}</strong><span>{source === 'velnu' ? 'Recorded customer payments + manual income' : 'Imported QBO payments and sales receipts'}</span></article>
+      <article><small>Recorded expenses · USD</small><strong>{summary(totals.expenses)}</strong><span>{source === 'velnu' ? 'Manually entered expenses' : 'Imported QBO purchases'}</span></article>
+      <article><small>Difference · USD</small><strong>{summary(totals.income - totals.expenses)}</strong><span>Not an accounting profit-and-loss or tax report</span></article>
     </section>
     {source === 'velnu' && <p className="bookkeeping-caution">Income from Finviant Office invoices is included <strong>only when a payment is recorded</strong>, not when an invoice is issued. Do not add a second manual income entry for the same payment. Recording income here does not process a payment.</p>}
     {source === 'quickbooks' && <p className="bookkeeping-caution">QuickBooks figures are independent from Finviant Office figures. Do not add the two summaries together. Non-USD amounts are shown below but excluded from USD totals. These are selected transaction types, not a complete accounting report.</p>}
     {notice && <p className="form-message success-text" role="status">{notice}</p>}
     {error && <p className="form-message error-text" role="alert">{error}</p>}
     <section className="bookkeeping-list">
-      <div className="bookkeeping-list-title"><h2>{source === 'velnu' ? 'Finviant Office income & expenses' : 'Imported QuickBooks transactions'}</h2><span>{visible.length} records</span></div>
-      {loading ? <div className="empty-state">Loading your workbook…</div> : !visible.length ?
+      <div className="bookkeeping-list-title"><h2>{source === 'velnu' ? 'Finviant Office income & expenses' : 'Imported QuickBooks transactions'}</h2><span>{sourceState === 'ready' ? visible.length + ' records' : 'Records unavailable'}</span></div>
+      {loading ? <div className="empty-state" role="status">Loading your workbook…</div> : sourceState === 'error' ?
+        <div className="empty-state"><h2>Workbook could not be loaded</h2><p>Totals and export are unavailable until all entries can be verified.</p><button className="secondary-button" onClick={() => void refresh()}>Retry loading workbook</button></div> : !visible.length ?
         <div className="empty-state"><div className="empty-icon">$</div><h2>{source === 'velnu' ? 'Your workbook is ready' : 'No QuickBooks transactions yet'}</h2>
           <p>{source === 'velnu' ? 'Record a payment on an issued invoice, or add an expense to begin.' : 'Connect QuickBooks Online and run a manual sync after Intuit setup is complete.'}</p></div> :
         <div className="bookkeeping-table-wrap"><table className="bookkeeping-table"><thead><tr>

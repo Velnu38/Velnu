@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { supabase } from '../lib/supabase'
+import WorkspaceErrorBoundary from './WorkspaceErrorBoundary'
 
 
 
@@ -72,7 +73,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     if (view === 'estimates') return <EstimatesPage business={company} />
     if (view === 'invoices') return <InvoicesPage business={company} />
     if (view === 'schedule') return <SchedulePage business={company} />
-    if (view === 'bookkeeping') return <BookkeepingPage business={company} />
+    if (view === 'bookkeeping') return <BookkeepingPage key={company.id + ':' + company.role} business={company} />
     return <PaymentsPage business={company} onOpenWorkbook={() => navigate('bookkeeping')} />
   }
 
@@ -85,7 +86,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><strong>Finviant <span className="finviant-product">Office</span></strong></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
-        <div className="workspace-inner" key={`${view}-${refreshVersion}`}><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></div>
+        <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>
       <nav className="mobile-nav">
         {mobilePrimary.map((id) => {
