@@ -107,6 +107,7 @@ const empty: DashboardSnapshot = {
   openInvoices: 0,
   outstandingBalance: 0,
   jobsThisWeek: 0,
+  overdueInvoiceCount: 0,
   overdueInvoices: [],
   dueReminders: [],
   todayAppointments: [],
@@ -176,8 +177,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     }
   }
 
-  const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-  const attentionCount = snapshot.overdueInvoices.length + snapshot.dueReminders.length + snapshot.pendingApprovals.length
+  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminders.length + snapshot.pendingApprovals.length
 
   return <div className="page-stack">
     <div className="page-heading split-heading">
@@ -188,7 +188,20 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-shortcuts" aria-label="Work areas">
       <button className="dashboard-shortcut" onClick={() => onNavigate?.('estimates')}><span className="shortcut-icon">E</span><span><strong>Estimates</strong><small>Prepare and track quotes</small></span><span className="shortcut-arrow">↗</span></button>
-      <button className="dashboard-shortcut" onClick={() => onNavigate?.('invoices')}><span className="shortcut-icon">I</span><span><strong>Invoices</strong><small>Bill customers and track payments</small></span><span className="shortcut-arrow">↗</span></button>
+      <article className="dashboard-shortcut invoice-shortcut" aria-label="Invoices overview">
+        <button type="button" className="invoice-shortcut-link" aria-label="Invoices" onClick={() => onNavigate?.('invoices')}>
+          <span className="shortcut-icon">I</span>
+          <span className="invoice-shortcut-copy"><span className="invoice-shortcut-title"><strong>Invoices</strong>{!loading && !error && snapshot.overdueInvoiceCount > 0 && <span className="invoice-overdue-badge">{snapshot.overdueInvoiceCount} overdue</span>}</span><small>Bill customers and track payments</small></span>
+          <span className="shortcut-arrow" aria-hidden="true">↗</span>
+        </button>
+        {loading ? <p className="invoice-tile-status" role="status">Checking overdue invoices…</p> : error ? <p className="invoice-tile-status">Overdue invoices unavailable. Select Refresh to try again.</p> : snapshot.overdueInvoiceCount === 0 ? <p className="invoice-tile-status">No overdue balances need attention.</p> : <div className="invoice-tile-overdue" role="region" aria-label="Overdue invoices">
+          <ul className="invoice-overdue-list">{snapshot.overdueInvoices.map((invoice) => <li className="invoice-overdue-row" key={invoice.id}>
+            <div className="row-main"><strong>{invoice.invoice_number || 'Invoice'} · {personName(invoice.customers?.[0])}</strong><span>{invoice.due_date ? `Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : 'Past due'}</span></div>
+            <strong className="overdue-money">{usd.format(Number(invoice.balance_due))}</strong>
+          </li>)}</ul>
+          {snapshot.overdueInvoiceCount > snapshot.overdueInvoices.length && <p className="invoice-tile-limit">Showing the {snapshot.overdueInvoices.length} oldest. Open Invoices to see all.</p>}
+        </div>}
+      </article>
       <div className="dashboard-shortcut combined-shortcut"><span className="shortcut-icon">S</span><span><strong>Schedule & jobs</strong><small>Plan work and keep jobs moving</small></span><span className="shortcut-actions"><button onClick={() => onNavigate?.('schedule')}>Schedule</button><button onClick={() => onNavigate?.('jobs')}>Jobs</button></span></div>
     </section>
 
@@ -196,16 +209,9 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
 
     <FinancialPerformance key={`${business.id}:${business.role}`} business={business} />
 
-    <section className="office-day-grid">
-      <article className="office-panel">
+    <section className="office-panel">
         <div className="office-panel-head"><div><p className="eyebrow">Today’s work</p><h2>Schedule</h2></div><span className="count-badge">{snapshot.todayAppointments.length}</span></div>
         {snapshot.todayAppointments.length === 0 ? <p className="quiet">Nothing is scheduled for today.</p> : <div className="office-list">{snapshot.todayAppointments.map((appointment) => <div className="office-list-row" key={appointment.id}><div className="time-box"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{personName(appointment.customers?.[0])} · {appointment.status.replaceAll('_', ' ')}</span></div></div>)}</div>}
-      </article>
-
-      <article className="office-panel overdue-panel">
-        <div className="office-panel-head"><div><p className="eyebrow">Get paid</p><h2>Overdue invoices</h2></div><span className="count-badge">{snapshot.overdueInvoices.length}</span></div>
-        {snapshot.overdueInvoices.length === 0 ? <p className="quiet">No overdue balances need attention.</p> : <div className="office-list">{snapshot.overdueInvoices.map((invoice) => <div className="office-list-row" key={invoice.id}><div className="row-main"><strong>{invoice.invoice_number || 'Invoice'} · {personName(invoice.customers?.[0])}</strong><span>{invoice.due_date ? `Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : 'Past due'}</span></div><strong className="overdue-money">${Number(invoice.balance_due).toFixed(2)}</strong></div>)}</div>}
-      </article>
     </section>
 
     <section className="office-day-grid">
