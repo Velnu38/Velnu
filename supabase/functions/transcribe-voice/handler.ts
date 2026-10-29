@@ -2,7 +2,6 @@ import {
   providerJson,
   ProviderRequestError,
 } from "../_shared/providerRequest.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const jsonHeaders = {
   "Content-Type": "application/json",
@@ -20,88 +19,90 @@ const allowedExtensions = /\.(webm|mp3|mp4|mpeg|mpga|m4a|ogg|wav|flac)$/i;
 const allowedMime =
   /^(audio\/(webm|mpeg|mp4|x-m4a|m4a|wav|x-wav|ogg|flac)|video\/mp4)(;|$)/;
 const allowedModels = new Set(["gpt-4o-transcribe", "gpt-4o-mini-transcribe"]);
-const maxAudioBytes = 10 * 1024 * 1024;
-
-function credential(single: string, collection: string): string | undefined {
-  const value = Deno.env.get(single)?.trim();
+export type VoiceDependencies = {
+  createClient: (url: string, key: string, options: any) => any;
+  env: (key: string) => string | undefined;
+  provider?: typeof providerJson;
+  bodyTimeoutMs?: number;
+  databaseTimeoutMs?: number;
+  fetcher?: typeof fetch;
+};
+function configuredKey(
+  env: VoiceDependencies["env"],
+  direct: string,
+  collection: string,
+) {
+  const value = env(direct)?.trim();
   if (value) return value;
   try {
-    const fallback = JSON.parse(Deno.env.get(collection) || "{}").default;
-    return typeof fallback === "string"
-      ? fallback.trim() || undefined
-      : undefined;
+    const candidate = JSON.parse(env(collection) || "{}").default;
+    return typeof candidate === "string" ? candidate.trim() : "";
   } catch {
-    return undefined;
+    return "";
   }
 }
-
-class InputError extends Error {
-  constructor(readonly status: number, message: string) {
-    super(message);
-  }
-}
-
-// Bound bytes while reading, before multipart parsing allocates complete Files.
-// Content-Length is only an early rejection; chunked/forged lengths are bounded too.
-async function readBody(
+async function boundedBody(
   req: Request,
-  maxBytes: number,
-): Promise<Uint8Array<ArrayBuffer>> {
-  if (Number(req.headers.get("content-length") || 0) > maxBytes) {
-    void req.body?.cancel().catch(() => {});
-    throw new InputError(
-      413,
-      "Recording or request is too large. Try a shorter voice command.",
-    );
+  limit: number,
+  timeoutMs: number,
+): Promise<Uint8Array> {
+  const size = req.headers.get("content-length");
+  if (size && (!/^\d+$/.test(size) || Number(size) > limit)) {
+    throw new Error("BODY_TOO_LARGE");
   }
-  if (!req.body) throw new InputError(400, "No request body was attached.");
-  const reader = req.body.getReader();
+  const reader = req.body?.getReader();
+  if (!reader) return new Uint8Array();
   const chunks: Uint8Array[] = [];
-  let size = 0;
+  let length = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("BODY_TIMEOUT"));
+      void reader.cancel().catch(() => {});
+    }, timeoutMs);
+  });
   try {
-    return await Promise.race([
-      (async () => {
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          size += value.byteLength;
-          if (size > maxBytes) {
-            throw new InputError(
-              413,
-              "Recording or request is too large. Try a shorter voice command.",
-            );
-          }
-          chunks.push(value);
-        }
-        const result = new Uint8Array(size);
-        let offset = 0;
-        for (const chunk of chunks) {
-          result.set(chunk, offset);
-          offset += chunk.byteLength;
-        }
-        return result;
-      })(),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(
-          () =>
-            reject(
-              new InputError(408, "Recording upload timed out. Try again."),
-            ),
-          15000,
-        );
-      }),
-    ]);
+    while (true) {
+      const part = await Promise.race([reader.read(), deadline]);
+      if (part.done) break;
+      length += part.value.byteLength;
+      if (length > limit) {
+        await reader.cancel();
+        throw new Error("BODY_TOO_LARGE");
+      }
+      chunks.push(part.value);
+    }
   } finally {
     if (timer !== undefined) clearTimeout(timer);
-    void reader.cancel().catch(() => {});
-    chunks.length = 0;
+    try {
+      reader.releaseLock();
+    } catch { /* Cancellation may still be settling. */ }
   }
+  const result = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
 }
-
-export function createTranscribeVoiceHandler(
-  provider: typeof providerJson = providerJson,
-) {
+export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
+  const { createClient, env } = deps;
+  const callProvider = deps.provider ?? providerJson;
+  const databaseFetch: typeof fetch = (resource, init) =>
+    (deps.fetcher ?? fetch)(resource, {
+      ...init,
+      signal: init?.signal
+        ? AbortSignal.any([
+          init.signal,
+          AbortSignal.timeout(deps.databaseTimeoutMs ?? 10000),
+        ])
+        : AbortSignal.timeout(deps.databaseTimeoutMs ?? 10000),
+    });
+  const requestedModel = env("OPENAI_TRANSCRIPTION_MODEL") ?? "";
+  const model = allowedModels.has(requestedModel)
+    ? requestedModel
+    : "gpt-4o-transcribe";
   return async (req: Request): Promise<Response> => {
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: jsonHeaders });
@@ -116,8 +117,9 @@ export function createTranscribeVoiceHandler(
         return respond(401, { error: "Sign in to use transcription." });
       }
 
-      const url = Deno.env.get("SUPABASE_URL");
-      const publicKey = credential(
+      const url = env("SUPABASE_URL");
+      const publicKey = configuredKey(
+        env,
         "SUPABASE_ANON_KEY",
         "SUPABASE_PUBLISHABLE_KEYS",
       );
@@ -127,64 +129,62 @@ export function createTranscribeVoiceHandler(
         });
       }
       const db = createClient(url, publicKey, {
-        global: { headers: { Authorization: authHeader } },
+        global: {
+          headers: { Authorization: authHeader },
+          fetch: databaseFetch,
+        },
         auth: { persistSession: false, autoRefreshToken: false },
       });
-      const { data: authData, error: authError } = await db.auth.getUser();
-      if (authError || !authData.user) {
+      let identity;
+      try {
+        identity = await db.auth.getUser();
+      } catch {
+        return respond(503, {
+          error: "Session verification is temporarily unavailable.",
+        });
+      }
+      const { data: authData, error: authError } = identity;
+      if (authError || !uuid.test(authData?.user?.id ?? "")) {
         return respond(401, { error: "Your session expired. Sign in again." });
       }
 
       const contentType = req.headers.get("content-type") || "";
-      const mediaType = contentType.split(";")[0].trim().toLowerCase();
-      const isJson = mediaType === "application/json";
-      if (!isJson && mediaType !== "multipart/form-data") {
+      const isJson =
+        contentType.split(";")[0].trim().toLowerCase() === "application/json";
+      if (
+        !isJson && !contentType.toLowerCase().startsWith("multipart/form-data;")
+      ) {
         return respond(415, {
-          error: "Use JSON status or a multipart audio upload.",
+          error: "Use a JSON status request or an audio upload.",
         });
       }
-      let fields: Record<string, unknown> = {};
-      let form: FormData | undefined;
+      let body: any;
       try {
-        const bytes = await readBody(
+        const bytes = await boundedBody(
           req,
-          isJson ? 4096 : maxAudioBytes + 65536,
+          isJson ? 8192 : 10 * 1024 * 1024 + 65536,
+          deps.bodyTimeoutMs ?? 10000,
         );
-        if (isJson) {
-          const parsed: unknown = JSON.parse(
-            new TextDecoder("utf-8", { fatal: true }).decode(bytes),
-          );
-          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-            throw new InputError(400, "Invalid status request.");
-          }
-          fields = parsed as Record<string, unknown>;
-        } else {
-          form = await new Response(bytes, {
+        body = isJson
+          ? JSON.parse(new TextDecoder().decode(bytes))
+          : await new Response(bytes.slice().buffer, {
             headers: { "content-type": contentType },
           }).formData();
-          for (
-            const key of ["business_id", "audio", "duration_seconds", "prompt"]
-          ) {
-            if (form.getAll(key).length > 1) {
-              throw new InputError(
-                400,
-                "Duplicate request fields are not supported.",
-              );
-            }
-          }
-        }
+        if (
+          isJson && (!body || typeof body !== "object" || Array.isArray(body))
+        ) return respond(400, { error: "Invalid status request." });
       } catch (error) {
-        return respond(error instanceof InputError ? error.status : 400, {
-          error: error instanceof InputError
-            ? error.message
-            : "Invalid recording or status request.",
-        });
+        return respond(
+          error instanceof Error && error.message === "BODY_TIMEOUT"
+            ? 408
+            : error instanceof Error && error.message === "BODY_TOO_LARGE"
+            ? 413
+            : 400,
+          { error: "Invalid, stalled or oversized request body." },
+        );
       }
-      const businessId = isJson ? fields.business_id : form!.get("business_id");
-      if (typeof businessId !== "string") {
-        return respond(400, { error: "A valid business is required." });
-      }
-      if (!uuid.test(businessId)) {
+      const businessId = isJson ? body?.business_id : body.get("business_id");
+      if (typeof businessId !== "string" || !uuid.test(businessId)) {
         return respond(400, { error: "A valid business is required." });
       }
 
@@ -194,7 +194,7 @@ export function createTranscribeVoiceHandler(
         .eq("business_id", businessId)
         .eq("user_id", authData.user.id)
         .maybeSingle();
-      if (memberError || !membership) {
+      if (memberError || !membership || membership.business_id !== businessId) {
         return respond(403, { error: "No access to this business." });
       }
 
@@ -209,12 +209,16 @@ export function createTranscribeVoiceHandler(
           error: "Could not verify voice service permissions.",
         });
       }
-      const voiceLimit = Number(usage.voice_limit ?? 0);
+      const voiceLimit = typeof usage.voice_limit === "number" ||
+          (typeof usage.voice_limit === "string" &&
+            /^\d+$/.test(usage.voice_limit))
+        ? Number(usage.voice_limit)
+        : NaN;
       if (
         usage.plan !== "pro" || !Number.isSafeInteger(voiceLimit) ||
         voiceLimit <= 0
       ) {
-        if (isJson && fields.action === "status") {
+        if (isJson && body?.action === "status") {
           return respond(200, {
             configured: false,
             model: null,
@@ -228,22 +232,21 @@ export function createTranscribeVoiceHandler(
         });
       }
 
-      const apiKey = Deno.env.get("OPENAI_API_KEY")?.trim() || "";
-      const serviceSecret = credential(
+      const apiKey = env("OPENAI_API_KEY")?.trim() || "";
+      const serviceSecret = configuredKey(
+        env,
         "SUPABASE_SERVICE_ROLE_KEY",
         "SUPABASE_SECRET_KEYS",
       );
-      const requestedModel = Deno.env.get("OPENAI_TRANSCRIPTION_MODEL") ?? "";
-      const model = allowedModels.has(requestedModel)
-        ? requestedModel
-        : "gpt-4o-transcribe";
       if (isJson) {
-        if (fields.action !== "status") {
+        if (body?.action !== "status") {
           return respond(400, { error: "Unknown action." });
         }
         // Do not return, log, or expose the API credential. The status is tenant-authenticated.
-        const configured = apiKey.startsWith("sk-") && !!serviceSecret;
-        return respond(200, { configured, model: configured ? model : null });
+        return respond(200, {
+          configured: apiKey.startsWith("sk-") && !!serviceSecret,
+          model: apiKey.startsWith("sk-") && serviceSecret ? model : null,
+        });
       }
       if (!apiKey.startsWith("sk-")) {
         return respond(503, {
@@ -253,15 +256,15 @@ export function createTranscribeVoiceHandler(
         });
       }
 
-      // Fail before quota reservation or a billable call if persistence cannot work.
       if (!serviceSecret) {
         return respond(503, {
+          code: "voice_storage_unavailable",
           error:
-            "Secure transcription storage is temporarily unavailable. Please try again later.",
+            "Secure transcription storage is not configured. No provider call was made.",
         });
       }
 
-      const audio = form!.get("audio");
+      const audio = body.get("audio");
       if (!(audio instanceof File)) {
         return respond(400, { error: "No audio recording was attached." });
       }
@@ -270,7 +273,7 @@ export function createTranscribeVoiceHandler(
           error: "The recording is empty. Speak after tapping the microphone.",
         });
       }
-      if (audio.size > maxAudioBytes) {
+      if (audio.size > 10 * 1024 * 1024) {
         return respond(413, {
           error: "Recording is too large. Try a shorter voice command.",
         });
@@ -287,7 +290,7 @@ export function createTranscribeVoiceHandler(
         });
       }
 
-      const duration = form!.get("duration_seconds");
+      const duration = body.get("duration_seconds");
       const seconds = duration === null || String(duration) === ""
         ? null
         : Number(duration);
@@ -301,14 +304,14 @@ export function createTranscribeVoiceHandler(
       }
 
       // Failed and uncertain provider attempts remain counted; row locking prevents overshoot.
-      const { data: budget, error: budgetError } = await db.rpc(
+      const { data: reservation, error: budgetError } = await db.rpc(
         "reserve_ai_provider_attempt",
         {
           p_business_id: businessId,
           p_kind: "transcription",
         },
       );
-      if (budgetError || budget?.reserved !== true) {
+      if (budgetError || reservation?.reserved !== true) {
         return respond(
           budgetError?.code === "42501"
             ? 403
@@ -322,7 +325,7 @@ export function createTranscribeVoiceHandler(
         );
       }
 
-      const prompt = String(form!.get("prompt") || "").slice(0, 300);
+      const prompt = String(body.get("prompt") || "").slice(0, 300);
       const upload = new FormData();
       upload.append("file", audio, audioName);
       upload.append("model", model);
@@ -331,7 +334,7 @@ export function createTranscribeVoiceHandler(
 
       let result: Record<string, unknown>;
       try {
-        result = await provider(
+        result = await callProvider(
           "https://api.openai.com/v1/audio/transcriptions",
           {
             method: "POST",
@@ -367,27 +370,32 @@ export function createTranscribeVoiceHandler(
       // Never grant client-side INSERT: it would allow callers to forge AI transcripts.
       // Persist only after verified authentication, tenant access, quota reservation,
       // and a valid OpenAI response using a separate server-only client.
-      const admin = createClient(url, serviceSecret, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { data: saved, error: saveError } = await admin.from(
-        "voice_transcriptions",
-      ).insert({
-        business_id: businessId,
-        user_id: authData.user.id,
-        provider: "openai",
-        model,
-        transcript,
-        duration_seconds: seconds,
-      }).select("id").single();
-      if (saveError || !saved?.id) {
-        console.error(
-          "Failed to save transcription",
-          saveError?.code || "missing_id",
-        );
+      let saved: { id?: string } | null = null;
+      let saveFailed = false;
+      try {
+        const admin = createClient(url, serviceSecret, {
+          global: { fetch: databaseFetch },
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const result = await admin.from("voice_transcriptions").insert({
+          business_id: businessId,
+          user_id: authData.user.id,
+          provider: "openai",
+          model,
+          transcript,
+          duration_seconds: seconds,
+        }).select("id").single();
+        saved = result.data;
+        saveFailed = !!result.error;
+      } catch {
+        saveFailed = true;
+      }
+      if (saveFailed || !saved?.id) {
+        console.error("Transcription storage outcome unconfirmed");
         return respond(503, {
+          code: "voice_storage_unconfirmed",
           error:
-            "Speech was recognized but could not be saved securely. Nothing was changed. Please try again later.",
+            "Transcript storage could not be confirmed. Check recent voice activity before retrying to avoid another provider charge; typed input remains available.",
         });
       }
       return respond(200, {
@@ -405,5 +413,3 @@ export function createTranscribeVoiceHandler(
     }
   };
 }
-
-export const transcribeVoiceHandler = createTranscribeVoiceHandler();

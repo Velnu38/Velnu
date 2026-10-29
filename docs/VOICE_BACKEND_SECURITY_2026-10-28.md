@@ -2,7 +2,7 @@
 
 Date: October 28, 2026 (America/New_York).
 
-Scope: `transcribe-voice`, transcript database permissions, paid entitlements, and provider-attempt budgets. Based on `feature/velnu-stage1` at `208f12a83006376efad5f9fcde5731639d836d4d`, which includes server-storage commit `bb65df2de023210f91aa2f9b67fa3d8782bd5f82`. The branch literally named `development` is an older app snapshot without this endpoint; changes are isolated on `fix/voice-backend-security-20261028` for review against the current feature branch.
+Scope: `transcribe-voice`, transcript database permissions, paid entitlements, and provider-attempt budgets. Initially reviewed `feature/velnu-stage1` at `208f12a83006376efad5f9fcde5731639d836d4d`, which includes server-storage commit `bb65df2de023210f91aa2f9b67fa3d8782bd5f82`. The integrated result also preserves the concurrent voice-hardening commit `52b0f508374ba6f12b3c544f174d612e6f809e2c`, including its 67-test suite and staging API runner. The branch literally named `development` is an older app snapshot without this endpoint; changes are isolated on `fix/voice-backend-security-20261028` for review against the current feature branch.
 
 No production deployment, production branch, hosted database, entitlement, secret, provider account, or customer record is changed by this work. No OpenAI request is made by these tests.
 
@@ -14,19 +14,19 @@ The initial endpoint regression run reproduced **58 passing and 8 failing cases*
 | --- | --- | --- |
 | Multipart stream exceeds the upload limit, including without Content-Length | Multipart parsing reads/allocates the entire request before the audio-size check | Read and count bytes before parsing; cancel an oversized stream; return 413. Keep the existing 10 MiB audio limit plus 64 KiB multipart overhead. |
 | Declared oversized request containing a small valid recording | Header is ignored and provider can be called | Reject before parsing or spending quota. Actual streamed bytes are also bounded independently of the header. |
-| Malformed JSON/multipart or unsupported request media type | Generic 500, obscuring caller input errors | Bounded JSON/multipart parsing; 400 for malformed input and 415 for unsupported media type. JSON status requests have a 4 KiB ceiling. Upload reads have a 15-second deadline. |
+| Malformed JSON/multipart or unsupported request media type | Generic 500, obscuring caller input errors | Bounded JSON/multipart parsing; 400 for malformed input and 415 for unsupported media type. JSON status requests have an 8 KiB ceiling. Upload reads have a ten-second deadline. |
 | Missing storage credential | Provider attempt is consumed before storage configuration is checked | Return 503 before reservation/provider call. Status reports configured only when both provider and storage configuration exist. |
 | Invalid JSON storage-secret map | Credential parsing throws after the provider call | Fail closed with 503 before reservation/provider call; accept only nonempty credential strings. |
 | Non-numeric voice limit | NaN bypasses the `<= 0` comparison | Require a positive safe-integer voice limit. This protects against malformed internal entitlement responses; subscribers cannot edit the private entitlement record. |
 | Null reservation result without an RPC error | Handler proceeds to the provider without a positive reservation receipt | Require `reserved: true`; return 503 otherwise. |
 
-The deployed entrypoint remains a small `Deno.serve` wrapper. Its handler is exported from `handler.ts` so tests execute the same request path without starting a listener. The Supabase SDK is pinned to the existing endpoint version, 2.57.4, through the npm import scheme already used by other backend functions. Credentials, actor identity, provider, model, and transcript are still authored on the server. No client transcript-write permission was added. Successful recordings return the same `transcript` and `transcription_id` fields.
+The deployed entrypoint remains a small `Deno.serve` wrapper that injects the Supabase client and environment reader into the exported handler. The Supabase SDK is pinned to the existing endpoint version, 2.57.4, through the npm import scheme already used by other backend functions. Credentials, actor identity, provider, model, and transcript are still authored on the server. No client transcript-write permission was added. Successful recordings return the same `transcript` and `transcription_id` fields. The integrated handler retains ten-second database deadlines and an explicit `voice_storage_unconfirmed` response: a failed acknowledgement cannot establish that no row was saved, and the user is warned to check voice activity before another billable attempt.
 
 ## Automated coverage and evidence
 
-### Endpoint: `supabase/functions/transcribe-voice/index_test.ts`
+### Endpoint: `supabase/functions/transcribe-voice/index_test.ts` and `http_test.ts`
 
-**67 tests.** The fake HTTP transport exercises the real Supabase client and existing bounded provider helper. Tests run without Deno network permission, install only synthetic environment values, reject unexpected URLs, and restore their global state. The timeout case injects a typed timeout into the handler; the existing provider-helper tests separately exercise actual deadlines, stalled bodies, cancellation, response-size limits, and no automatic retries.
+**134 tests passed locally: 67 dependency-injection cases preserved from the concurrent commit plus 67 HTTP-transport cases added here.** The HTTP transport suite exercises the real pinned Supabase client and existing bounded provider helper. Tests run without Deno network permission. HTTP cases install only synthetic environment values, reject unexpected URLs, and restore their global state. The HTTP timeout case injects a typed timeout; the preserved suite and existing provider-helper tests separately exercise actual deadlines, stalled bodies, cancellation, response-size limits, and no automatic retries.
 
 Coverage includes:
 
@@ -71,14 +71,14 @@ The containers and JWT settings are defined in `.github/workflows/voice-security
 
 - App production build passed locally; this is a local build, not a production deployment.
 - 56 existing provider/recovery tests and 21 environment-isolation tests passed locally.
-- The 67 voice tests and 22 existing email-handler tests passed with the pinned 2.57.4 SDK in a temporary copy of the same source and Deno 2.5.6. This local package layout avoids the execution environment's blocked Deno npm downloads; no source transforms or service calls are involved. CI uses the normal npm-specifier resolution command above.
-- Local Chromium browser checks initially could not start because the required browser binary was absent. This is an environment limitation, not a passing browser result. Browser and CI results will be updated after execution.
+- The 134 voice tests and 22 existing email-handler tests passed with the pinned 2.57.4 SDK in a temporary copy of the same source and Deno 2.5.6. This local package layout avoids the execution environment's blocked Deno npm downloads; no source transforms or service calls are involved. CI uses the normal npm-specifier resolution command above.
+- Local Chromium browser checks could not start because its required binary was absent and the download was blocked/truncated. The installed WebKit engine also lacked OS libraries. Neither attempt is counted as a passing browser check. The existing full trial workflow provides the independent browser regression check after integration.
 
 ## Remaining launch validation
 
 | Remaining check | What it requires | Required evidence |
 | --- | --- | --- |
-| Hosted authorization/configuration parity | Disposable staging users from two businesses and staging Supabase credentials; test JWTs issued by real Auth | Actual deployed endpoint rejects missing/expired/forged sessions and foreign business IDs. Repeat direct transcript REST read/write denials with ordinary subscribers. Verify staging schema/grants match the reviewed migration. Never substitute production credentials. |
+| Hosted authorization/configuration parity | Disposable staging users from two businesses and staging Supabase credentials; test JWTs issued by real Auth | Actual deployed endpoint rejects missing/expired/forged sessions and foreign business IDs. Run the preserved `tests/security/transcribe-direct-api.mjs` for ordinary-subscriber transcript REST checks; it now requires the exact registered staging URL and verifies each transcript belongs to the named QA business/actor before attempted mutations. Verify deployed schema/grants match the migration. Never substitute production credentials. |
 | Activated-plan and quota parity | A disposable staging business with an administrator-activated Pro entitlement; ordinary subscription JWT | UI-selected Pro alone is denied; backend-activated Pro is accepted; expiry is denied. Exercise only the disposable tenant's budgets. No provider call is needed to test reservation RPC locking. |
 | Real audio/provider acceptance | A working server-only OpenAI credential on an isolated staging function and activated voice entitlement | A small controlled recording returns a real transcript and stored ID. Check actual unsupported/corrupt container handling, accent/noise quality, latency, and provider error mapping. Automated mocks cannot establish model accuracy or credential validity. |
 | Physical microphone and mobile review flow | Physical iPhone/iPad Safari and Android Chrome, permission prompt interaction, plus staging voice access for cloud recording | Grant/deny/revoke microphone permissions; keyboard-microphone fallback; WebM/M4A/MP4 recording; background/interruption handling; slow/offline recovery; transcript to invoice draft review without sending. Desktop emulation cannot prove real-device behavior. |
@@ -87,4 +87,6 @@ No claim of full launch readiness or live-provider validation is made. Keep invo
 
 ## CI execution
 
-Pending the security-fix branch workflow run. No unexecuted direct API or browser check is recorded as passing.
+Initial security-fix commit `77ccb4904eddd07782c4490d9fe0f62977d44fcc` passed [Voice backend security run 40790667980](https://github.com/Velnu38/Velnu/actions/runs/40790667980): the deployed entrypoint type check, 67 HTTP endpoint tests, embedded SQL tests, and all seven direct HTTP test groups completed successfully. The actual PostgreSQL 17.11/PostgREST 13.0.7 run confirmed both groups of 20 competing reservations admitted exactly one request.
+
+The integrated 134-case voice source is awaiting its subsequent CI run. Hosted staging sessions and physical-device/provider checks remain unexecuted; local container HTTP success does not close those gaps.

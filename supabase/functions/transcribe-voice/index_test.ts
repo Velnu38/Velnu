@@ -1,620 +1,708 @@
 import {
   createTranscribeVoiceHandler,
-  transcribeVoiceHandler as handle,
+  type VoiceDependencies,
 } from "./handler.ts";
-import { ProviderRequestError } from "../_shared/providerRequest.ts";
-
-const business = "11111111-1111-4111-8111-111111111111";
-const foreignBusiness = "22222222-2222-4222-8222-222222222222";
-const actor = "33333333-3333-4333-8333-333333333333";
-const receipt = "44444444-4444-4444-8444-444444444444";
-const base = "https://voice-test.invalid";
-const secret = "server-only-test-secret";
-const providerKey = "sk-mocked-not-a-real-openai-key";
-const maxAudio = 10 * 1024 * 1024;
+import { providerJson } from "../_shared/providerRequest.ts";
+const BUSINESS = "11111111-1111-4111-8111-111111111111",
+  OTHER = "22222222-2222-4222-8222-222222222222",
+  USER = "33333333-3333-4333-8333-333333333333";
+const PUBLIC = "test-public",
+  SECRET = "test-server-secret",
+  API = "sk-test-no-real-provider";
 function assert(value: unknown, message = "Assertion failed"): asserts value {
   if (!value) throw new Error(message);
 }
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
+function equal(a: unknown, b: unknown) {
+  assert(
+    JSON.stringify(a) === JSON.stringify(b),
+    `Expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`,
+  );
+}
+type Options = {
+  expired?: boolean;
+  authNull?: boolean;
+  memberError?: boolean;
+  usageError?: boolean;
+  usage?: unknown;
+  budgetCode?: string;
+  emptyReservation?: boolean;
+  slots?: number;
+  saveError?: boolean;
+  saveThrow?: boolean;
+  missingID?: boolean;
+  provider?: VoiceDependencies["provider"];
+  env?: Record<string, string | undefined>;
+  text?: unknown;
+  bodyTimeoutMs?: number;
+};
+function fixture(options: Options = {}) {
+  const state = {
+    clients: [] as Array<{ key: string; options: any }>,
+    filters: [] as Array<[string, unknown]>,
+    calls: [] as string[],
+    provider: 0,
+    reservations: 0,
+    saved: [] as any[],
+    uploads: [] as FormData[],
+  };
+  let slots = options.slots ?? 1000;
+  const vars: Record<string, string | undefined> = {
+    SUPABASE_URL: "https://test.invalid",
+    SUPABASE_ANON_KEY: PUBLIC,
+    SUPABASE_SERVICE_ROLE_KEY: SECRET,
+    OPENAI_API_KEY: API,
+    ...options.env,
+  };
+  const handler = createTranscribeVoiceHandler({
+    env: (key) => vars[key],
+    bodyTimeoutMs: options.bodyTimeoutMs,
+    createClient: (_url, key, config) => {
+      state.clients.push({ key, options: config });
+      equal(config.auth, { persistSession: false, autoRefreshToken: false });
+      if (key === SECRET) {
+        assert(
+          !config.global?.headers?.Authorization,
+          "Server storage must not inherit caller Authorization",
+        );
+      }
+      return {
+        auth: {
+          getUser: async () => {
+            state.calls.push("auth");
+            return {
+              data: options.authNull
+                ? null
+                : { user: options.expired ? null : { id: USER } },
+              error: options.expired ? { code: "expired" } : null,
+            };
+          },
+        },
+        from: (table: string) => {
+          if (table === "business_members") {
+            assert(key === PUBLIC);
+            const filters = new Map<string, unknown>();
+            const q = {
+              select: (_s: string) => q,
+              eq: (field: string, value: unknown) => {
+                filters.set(field, value);
+                state.filters.push([field, value]);
+                return q;
+              },
+              maybeSingle: async () => {
+                state.calls.push("membership");
+                equal(filters.get("user_id"), USER);
+                return {
+                  data: filters.get("business_id") === BUSINESS
+                    ? { business_id: BUSINESS }
+                    : null,
+                  error: options.memberError ? { code: "unavailable" } : null,
+                };
+              },
+            };
+            return q;
+          }
+          equal(table, "voice_transcriptions");
+          equal(key, SECRET);
+          return {
+            insert: (payload: any) => {
+              state.calls.push("storage");
+              state.saved.push(payload);
+              return {
+                select: (_s: string) => ({
+                  single: async () => {
+                    if (options.saveThrow) {
+                      throw new Error("private storage diagnostic");
+                    }
+                    return {
+                      data: options.missingID
+                        ? {}
+                        : { id: "44444444-4444-4444-8444-444444444444" },
+                      error: options.saveError
+                        ? { code: "private-storage-error" }
+                        : null,
+                    };
+                  },
+                }),
+              };
+            },
+          };
+        },
+        rpc: async (name: string, payload: any) => {
+          state.calls.push(name);
+          if (name === "get_plan_usage") {
+            equal(payload, { target_business_id: BUSINESS });
+            return {
+              data: options.usage === undefined
+                ? { plan: "pro", voice_limit: 50 }
+                : options.usage,
+              error: options.usageError ? { code: "unavailable" } : null,
+            };
+          }
+          equal(name, "reserve_ai_provider_attempt");
+          equal(payload, { p_business_id: BUSINESS, p_kind: "transcription" });
+          state.reservations++;
+          if (options.budgetCode || slots-- <= 0) {
+            return {
+              data: null,
+              error: { code: options.budgetCode ?? "P0001" },
+            };
+          }
+          return {
+            data: options.emptyReservation ? null : { reserved: true },
+            error: null,
+          };
+        },
+      };
+    },
+    provider: async (url, init, bounds) => {
+      state.provider++;
+      equal(url, "https://api.openai.com/v1/audio/transcriptions");
+      equal(bounds, { timeoutMs: 60000, maxBytes: 262144 });
+      equal((init.headers as any).Authorization, "Bearer " + API);
+      assert(init.body instanceof FormData);
+      state.uploads.push(init.body);
+      if (options.provider) return options.provider(url, init, bounds);
+      return {
+        text: options.text === undefined
+          ? "Create an invoice for Alex for $120"
+          : options.text,
+      };
+    },
   });
-function recording(
+  return { handler, state };
+}
+function upload(
+  extra: Record<string, unknown> = {},
   options: {
-    business?: string;
-    name?: string;
-    type?: string;
+    auth?: string;
     size?: number;
-    duration?: string;
-    extras?: Record<string, string>;
+    name?: string;
+    mime?: string;
+    business?: unknown;
+    duration?: unknown;
+    noAudio?: boolean;
   } = {},
 ) {
   const form = new FormData();
-  form.set("business_id", options.business ?? business);
-  form.set(
-    "audio",
-    new File(
-      [new Uint8Array(options.size ?? 256)],
-      options.name ?? "speech.webm",
-      {
-        type: options.type ?? "audio/webm",
-      },
-    ),
-  );
-  if (options.duration !== undefined) {
-    form.set("duration_seconds", options.duration);
+  form.set("business_id", String(options.business ?? BUSINESS));
+  form.set("duration_seconds", String(options.duration ?? 12));
+  if (!options.noAudio) {
+    form.set(
+      "audio",
+      new File(
+        [new Uint8Array(options.size ?? 256)],
+        options.name ?? "voice.webm",
+        { type: options.mime ?? "audio/webm" },
+      ),
+    );
   }
-  for (const [key, value] of Object.entries(options.extras ?? {})) {
-    form.set(key, value);
-  }
-  return new Request(base + "/functions/v1/transcribe-voice", {
+  for (const [k, v] of Object.entries(extra)) form.set(k, String(v));
+  return new Request("https://test.invalid/functions/v1/transcribe-voice", {
     method: "POST",
-    headers: { authorization: "Bearer subscriber-test-token" },
+    headers: options.auth === undefined
+      ? { Authorization: "Bearer session" }
+      : options.auth
+      ? { Authorization: options.auth }
+      : {},
     body: form,
   });
 }
-function status(body: unknown = { business_id: business, action: "status" }) {
-  return new Request(base, {
+function status(body: unknown = { business_id: BUSINESS, action: "status" }) {
+  return new Request("https://test.invalid", {
     method: "POST",
     headers: {
-      authorization: "Bearer subscriber-test-token",
+      Authorization: "Bearer session",
       "content-type": "application/json",
     },
     body: JSON.stringify(body),
   });
 }
-type Options = {
-  expired?: boolean;
-  noMember?: boolean;
-  memberError?: boolean;
-  plan?: string;
-  voiceLimit?: unknown;
-  usageError?: boolean;
-  budgetError?: string;
-  missingReservation?: boolean;
-  available?: number;
-  providerStatus?: number;
-  providerNetwork?: boolean;
-  invalidProviderJson?: boolean;
-  providerPayload?: unknown;
-  saveError?: boolean;
-  noReceipt?: boolean;
-  storageNetwork?: boolean;
-  env?: Record<string, string | undefined>;
-};
-type State = {
-  calls: string[];
-  providerCalls: number;
-  reservations: number;
-  writes: Record<string, unknown>[];
-  remaining: number;
-};
-// Exercise the real Supabase SDK and bounded provider helper at the HTTP boundary.
-// Deno is deliberately run without --allow-net; every URL must match this fake.
-async function mock(options: Options, run: (s: State) => Promise<void>) {
-  const original = globalThis.fetch;
-  const env: Record<string, string | undefined> = {
-    SUPABASE_URL: base,
-    SUPABASE_ANON_KEY: "publishable-test-key",
-    SUPABASE_PUBLISHABLE_KEYS: undefined,
-    SUPABASE_SERVICE_ROLE_KEY: secret,
-    SUPABASE_SECRET_KEYS: undefined,
-    OPENAI_API_KEY: providerKey,
-    OPENAI_TRANSCRIPTION_MODEL: undefined,
-    ...options.env,
-  };
-  const previous = new Map(Object.keys(env).map((k) => [k, Deno.env.get(k)]));
-  for (const [key, value] of Object.entries(env)) {
-    if (value === undefined) Deno.env.delete(key);
-    else Deno.env.set(key, value);
-  }
-  const s: State = {
-    calls: [],
-    providerCalls: 0,
-    reservations: 0,
-    writes: [],
-    remaining: options.available ?? 50,
-  };
-  globalThis.fetch = async (input, init) => {
-    const req = new Request(input, init), url = new URL(req.url);
-    s.calls.push(req.method + " " + url.pathname);
-    if (url.hostname === "api.openai.com") {
-      s.providerCalls++;
-      assert(req.headers.get("authorization") === "Bearer " + providerKey);
-      assert(
-        s.reservations >= s.providerCalls,
-        "A provider call requires a reserved attempt",
-      );
-      const upload = await req.formData();
-      assert(upload.get("file") instanceof File);
-      assert(upload.get("response_format") === "json");
-      assert(String(upload.get("prompt") ?? "").length <= 300);
-      if (options.providerNetwork) {
-        throw new TypeError("provider network failed: PRIVATE DETAIL");
-      }
-      if (options.invalidProviderJson) {
-        return new Response("not-json: PRIVATE DETAIL");
-      }
-      return json(
-        options.providerPayload ??
-          { text: "  Invoice Taylor for faucet repair, $185.  " },
-        options.providerStatus ?? 200,
-      );
-    }
-    assert(url.origin === base, "Unexpected external URL: " + url.origin);
-    const storage = url.pathname === "/rest/v1/voice_transcriptions";
-    assert(
-      req.headers.get("apikey") === (storage ? secret : "publishable-test-key"),
-    );
-    assert(
-      req.headers.get("authorization") ===
-        "Bearer " + (storage ? secret : "subscriber-test-token"),
-      "Server storage must never inherit the subscriber authorization header",
-    );
-    if (url.pathname === "/auth/v1/user") {
-      return options.expired
-        ? json({ code: "bad_jwt", message: "expired PRIVATE DETAIL" }, 401)
-        : json({
-          id: actor,
-          email: "subscriber@example.invalid",
-          app_metadata: {},
-          user_metadata: { business_id: foreignBusiness, plan: "pro" },
-        });
-    }
-    if (url.pathname === "/rest/v1/business_members") {
-      assert(url.searchParams.get("business_id") === "eq." + business);
-      assert(url.searchParams.get("user_id") === "eq." + actor);
-      if (options.memberError) {
-        return json({ code: "XX000", message: "PRIVATE DETAIL" }, 500);
-      }
-      return json(options.noMember ? [] : [{ business_id: business }]);
-    }
-    if (url.pathname === "/rest/v1/rpc/get_plan_usage") {
-      assert((await req.json()).target_business_id === business);
-      return options.usageError
-        ? json({ code: "XX000", message: "PRIVATE DETAIL" }, 500)
-        : json({
-          plan: options.plan ?? "pro",
-          voice_limit: options.voiceLimit === undefined
-            ? 50
-            : options.voiceLimit,
-        });
-    }
-    if (url.pathname === "/rest/v1/rpc/reserve_ai_provider_attempt") {
-      const body = await req.json();
-      assert(
-        body.p_business_id === business && body.p_kind === "transcription",
-      );
-      if (options.missingReservation) return json(null);
-      if (options.budgetError) {
-        return json(
-          { code: options.budgetError, message: "PRIVATE DETAIL" },
-          400,
-        );
-      }
-      if (s.remaining <= 0) {
-        return json(
-          { code: "P0001", message: "AI_ATTEMPT_BUDGET_EXHAUSTED" },
-          400,
-        );
-      }
-      s.remaining--;
-      s.reservations++;
-      return json({ reserved: true, remaining: s.remaining });
-    }
-    if (storage) {
-      assert(req.method === "POST", "Endpoint may only insert a transcript");
-      s.writes.push(await req.json());
-      if (options.storageNetwork) throw new TypeError("storage PRIVATE DETAIL");
-      return options.saveError
-        ? json({ code: "23503", message: "PRIVATE DETAIL" }, 400)
-        : json(options.noReceipt ? {} : { id: receipt });
-    }
-    throw new Error("Unexpected database route: " + url.pathname);
-  };
-  try {
-    await run(s);
-  } finally {
-    globalThis.fetch = original;
-    for (const [key, value] of previous) {
-      if (value === undefined) Deno.env.delete(key);
-      else Deno.env.set(key, value);
-    }
-  }
-}
-async function rejected(
+async function noProvider(
+  f: ReturnType<typeof fixture>,
   req: Request,
   expected: number,
-  s: State,
-  handler = handle,
 ) {
-  const response = await handler(req);
-  assert(
-    response.status === expected,
-    `Expected ${expected}, got ${response.status}: ${await response.clone()
-      .text()}`,
-  );
-  const body = await response.json();
-  assert(
-    !body.transcript && !body.transcription_id,
-    "Failure must not return a success receipt",
-  );
-  const text = JSON.stringify(body);
-  for (const sensitive of [secret, providerKey, "PRIVATE DETAIL"]) {
-    assert(!text.includes(sensitive));
-  }
-  assert(response.headers.get("cache-control") === "no-store");
-  if (s.reservations === 0) {
-    assert(s.providerCalls === 0 && s.writes.length === 0);
-  }
+  const r = await f.handler(req);
+  equal(r.status, expected);
+  equal(f.state.provider, 0);
+  equal(f.state.saved.length, 0);
+  return r;
 }
-
-for (const authorization of [undefined, "", "Basic xyz", "Bearer "]) {
-  Deno.test(
-    "reject unauthenticated header: " + String(authorization),
-    () =>
-      mock({}, async (s) => {
-        const req = recording();
-        if (authorization === undefined) req.headers.delete("authorization");
-        else req.headers.set("authorization", authorization);
-        await rejected(req, 401, s);
-        assert(s.calls.length === 0);
-      }),
+Deno.test("unauthenticated and non-Bearer calls cannot reach auth, data or provider", async () => {
+  for (const auth of ["", "Basic abc", "bearer invalid"]) {
+    const f = fixture();
+    await noProvider(f, upload({}, { auth }), 401);
+    equal(f.state.clients.length, 0);
+  }
+});
+Deno.test("expired or malformed verified session fails closed", async () => {
+  for (const option of [{ expired: true }, { authNull: true }]) {
+    const f = fixture(option);
+    await noProvider(f, upload(), 401);
+    equal(f.state.calls, ["auth"]);
+  }
+});
+Deno.test("methods and preflight never contact provider or data", async () => {
+  for (const method of ["GET", "PUT", "DELETE", "OPTIONS"]) {
+    const f = fixture();
+    await noProvider(
+      f,
+      new Request("https://test.invalid", { method }),
+      method === "OPTIONS" ? 200 : 405,
+    );
+    equal(f.state.clients.length, 0);
+  }
+});
+Deno.test("100 forged tenant identifiers cannot reserve or transcribe", async () => {
+  for (let i = 0; i < 100; i++) {
+    const f = fixture();
+    await noProvider(
+      f,
+      upload({}, { business: i % 2 ? OTHER : "forged-" + i }),
+      i % 2 ? 403 : 400,
+    );
+    equal(f.state.reservations, 0);
+  }
+});
+Deno.test("membership service failure is denied even when a row is returned", async () => {
+  const f = fixture({ memberError: true });
+  await noProvider(f, upload(), 403);
+});
+Deno.test("body user ID, transcript, provider and plan cannot forge persisted identity", async () => {
+  const f = fixture();
+  const r = await f.handler(
+    upload({
+      user_id: OTHER,
+      transcript: "FORGED",
+      provider: "attacker",
+      plan: "pro",
+      voice_limit: 99999,
+    }),
   );
-}
-Deno.test("expired or forged session is rejected by verified Auth", () =>
-  mock({ expired: true }, async (s) => {
-    await rejected(recording(), 401, s);
-    assert(s.calls.length === 1);
-  }));
-Deno.test("nonmember and forged JWT user metadata cannot authorize a business", () =>
-  mock({ noMember: true }, (s) => rejected(recording(), 403, s)));
-Deno.test("membership lookup failure fails closed", () =>
-  mock({ memberError: true }, (s) => rejected(recording(), 403, s)));
-Deno.test("business identifier must be a UUID", () =>
-  mock({}, (s) => rejected(recording({ business: "x' OR 1=1 --" }), 400, s)));
-Deno.test("cross-tenant business identifier is looked up against the authenticated actor", () =>
-  mock({}, async (s) => {
-    // The foreign ID is never queried with privileged credentials.
-    const original = globalThis.fetch;
-    globalThis.fetch = (input, init) => {
-      const req = new Request(input, init), url = new URL(req.url);
-      if (url.pathname.endsWith("/business_members")) {
-        assert(req.headers.get("apikey") === "publishable-test-key");
-        assert(url.searchParams.get("business_id") === "eq." + foreignBusiness);
-        assert(url.searchParams.get("user_id") === "eq." + actor);
-        return Promise.resolve(json([]));
-      }
-      return original(input, init);
+  equal(r.status, 200);
+  equal(f.state.saved.length, 1);
+  const saved = f.state.saved[0];
+  equal(saved.business_id, BUSINESS);
+  equal(saved.user_id, USER);
+  equal(saved.provider, "openai");
+  assert(saved.transcript !== "FORGED");
+  equal(f.state.clients.map((x) => x.key), [PUBLIC, SECRET]);
+  assert(
+    f.state.clients[0].options.global.headers.Authorization ===
+      "Bearer session",
+  );
+});
+Deno.test("100 restricted or malformed backend entitlements never call provider", async () => {
+  const values = [
+    { plan: "free", voice_limit: 50 },
+    { plan: "basic", voice_limit: 50 },
+    { plan: "pro", voice_limit: 0 },
+    { plan: "pro", voice_limit: -1 },
+    { plan: "pro", voice_limit: "NaN" },
+    { plan: "pro", voice_limit: null },
+    { plan: "pro", voice_limit: {} },
+    { plan: "pro", voice_limit: true },
+    { plan: "pro", voice_limit: 0.5 },
+    { plan: "pro", voice_limit: 1e308 },
+  ];
+  for (let i = 0; i < 100; i++) {
+    const f = fixture({ usage: values[i % values.length] });
+    await noProvider(f, upload({ plan: "pro", voice_limit: 999 }), 403);
+    equal(f.state.reservations, 0);
+  }
+});
+Deno.test("restricted status is truthful and hides model/configuration", async () => {
+  const f = fixture({ usage: { plan: "free", voice_limit: 0 } });
+  const r = await noProvider(f, status(), 200);
+  equal(await r.json(), {
+    configured: false,
+    model: null,
+    plan_restricted: true,
+  });
+});
+Deno.test("entitlement read failure or missing usage fails closed", async () => {
+  for (const o of [{ usageError: true }, { usage: null }]) {
+    await noProvider(fixture(o), upload(), 503);
+  }
+});
+Deno.test("quota, authorization and reservation-service failures make no provider call", async () => {
+  for (
+    const [code, expected] of [["P0001", 429], ["42501", 403], [
+      "XX000",
+      503,
+    ]] as const
+  ) {
+    const f = fixture({ budgetCode: code });
+    await noProvider(f, upload(), expected);
+    equal(f.state.reservations, 1);
+  }
+});
+Deno.test("successful RPC with missing reservation proof fails closed", async () => {
+  const f = fixture({ emptyReservation: true });
+  await noProvider(f, upload(), 503);
+});
+Deno.test("100 simultaneous calls honor 10 mocked atomic quota reservations", async () => {
+  const f = fixture({ slots: 10 });
+  const results = await Promise.all(
+    Array.from({ length: 100 }, () => f.handler(upload())),
+  );
+  equal(results.filter((x) => x.status === 200).length, 10);
+  equal(results.filter((x) => x.status === 429).length, 90);
+  equal(f.state.provider, 10);
+  equal(f.state.saved.length, 10);
+});
+Deno.test("missing server storage credential is rejected before quota or billable work", async () => {
+  const f = fixture({ env: { SUPABASE_SERVICE_ROLE_KEY: undefined } });
+  await noProvider(f, upload(), 503);
+  equal(f.state.reservations, 0);
+});
+Deno.test("missing provider key is rejected before quota", async () => {
+  const f = fixture({ env: { OPENAI_API_KEY: undefined } });
+  await noProvider(f, upload(), 503);
+  equal(f.state.reservations, 0);
+});
+Deno.test("status requires storage readiness and never reveals credentials", async () => {
+  for (const env of [{}, { SUPABASE_SERVICE_ROLE_KEY: undefined }]) {
+    const f = fixture({ env });
+    const r = await noProvider(f, status(), 200);
+    const value = await r.text();
+    assert(!value.includes(API) && !value.includes(SECRET));
+    equal(
+      JSON.parse(value).configured,
+      env.SUPABASE_SERVICE_ROLE_KEY === undefined && Object.keys(env).length > 0
+        ? false
+        : true,
+    );
+  }
+});
+Deno.test("invalid credential maps fail closed rather than throwing JSON parse errors", async () => {
+  for (const field of ["SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_SECRET_KEYS"]) {
+    const env: Record<string, string | undefined> = {
+      SUPABASE_ANON_KEY: field === "SUPABASE_PUBLISHABLE_KEYS"
+        ? undefined
+        : PUBLIC,
+      SUPABASE_SERVICE_ROLE_KEY: field === "SUPABASE_SECRET_KEYS"
+        ? undefined
+        : SECRET,
+      [field]: "not json",
     };
-    await rejected(recording({ business: foreignBusiness }), 403, s);
-  }));
+    await noProvider(fixture({ env }), upload(), 503);
+  }
+});
+Deno.test("malformed and nonobject JSON body returns 400, not generic 500", async () => {
+  for (const body of ["{", "null", "[]", "42"]) {
+    const f = fixture();
+    await noProvider(
+      f,
+      new Request("https://test.invalid", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer session",
+          "content-type": "application/json",
+        },
+        body,
+      }),
+      400,
+    );
+  }
+});
+Deno.test("non-string or malformed business field is rejected before membership", async () => {
+  for (const business_id of [null, 42, {}, [BUSINESS], "bad"]) {
+    const f = fixture();
+    await noProvider(f, status({ business_id, action: "status" }), 400);
+    equal(f.state.calls, ["auth"]);
+  }
+});
+Deno.test("unknown JSON actions cannot activate transcription", async () => {
+  await noProvider(
+    fixture(),
+    status({ business_id: BUSINESS, action: "transcribe", text: "forged" }),
+    400,
+  );
+});
+Deno.test("invalid multipart encoding and unsupported body types fail safely", async () => {
+  for (const type of ["text/plain", "multipart/form-data; boundary=missing"]) {
+    const f = fixture();
+    await noProvider(
+      f,
+      new Request("https://test.invalid", {
+        method: "POST",
+        headers: { Authorization: "Bearer session", "content-type": type },
+        body: "bad",
+      }),
+      type === "text/plain" ? 415 : 400,
+    );
+  }
+});
+Deno.test("oversized declared and streamed JSON bodies are bounded before parsing", async () => {
+  for (const declared of [false, true]) {
+    const f = fixture();
+    const headers: Record<string, string> = {
+      Authorization: "Bearer session",
+      "content-type": "application/json",
+    };
+    if (declared) headers["content-length"] = "9000";
+    await noProvider(
+      f,
+      new Request("https://test.invalid", {
+        method: "POST",
+        headers,
+        body: "x".repeat(9000),
+      }),
+      413,
+    );
+  }
+});
+Deno.test("stalled request body is cancelled within deadline", async () => {
+  let cancelled = false;
+  const f = fixture({ bodyTimeoutMs: 10 });
+  const stream = new ReadableStream<Uint8Array>({
+    cancel() {
+      cancelled = true;
+    },
+  });
+  await noProvider(
+    f,
+    new Request(
+      "https://test.invalid",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer session",
+          "content-type": "application/json",
+        },
+        body: stream,
+        duplex: "half",
+      } as RequestInit,
+    ),
+    408,
+  );
+  assert(cancelled);
+});
 for (
-  const [plan, voiceLimit] of [
-    ["free", 0],
-    ["free", 50],
-    ["pro", 0],
-    ["pro", -1],
-    ["pro", null],
-    ["pro", "invalid"],
+  const [title, opt, expected] of [
+    ["missing audio", { noAudio: true }, 400],
+    ["empty audio", { size: 0 }, 422],
+    ["tiny audio", { size: 127 }, 422],
+    ["oversized audio", { size: 10 * 1024 * 1024 + 1 }, 413],
+    ["wrong extension", { name: "payload.html" }, 415],
+    ["wrong mime", { mime: "text/html" }, 415],
+    ["zero duration", { duration: 0 }, 400],
+    ["negative duration", { duration: -1 }, 400],
+    ["long duration", { duration: 121 }, 400],
+    ["malformed duration", { duration: "NaN" }, 400],
   ] as const
 ) {
-  Deno.test(`deny unactivated entitlement ${plan}/${voiceLimit}`, () =>
-    mock({ plan, voiceLimit }, (s) => rejected(recording(), 403, s)));
+  Deno.test(title + " is rejected before provider/quota", async () => {
+    const f = fixture();
+    await noProvider(f, upload({}, opt), expected);
+    equal(f.state.reservations, 0);
+  });
 }
-Deno.test("entitlement lookup failure does not call the provider", () =>
-  mock({ usageError: true }, (s) => rejected(recording(), 503, s)));
-Deno.test("Free status is restricted and exposes no model or key", () =>
-  mock({ plan: "free" }, async (s) => {
-    const res = await handle(status());
-    assert(res.status === 200);
-    const body = await res.json();
-    assert(
-      body.configured === false && body.model === null &&
-        body.plan_restricted === true,
-    );
-    assert(
-      s.reservations === 0 && s.providerCalls === 0 && s.writes.length === 0,
-    );
-  }));
-Deno.test("Pro status is authenticated and does not spend quota", () =>
-  mock({}, async (s) => {
-    const res = await handle(status());
-    assert(res.status === 200);
-    const body = await res.json();
-    assert(body.configured === true && body.model === "gpt-4o-transcribe");
-    assert(!JSON.stringify(body).includes(providerKey));
-    assert(s.reservations === 0);
-  }));
-for (const code of ["42501", "P0001", "XX000"]) {
+for (
+  const [name, mime] of [
+    ["voice.webm", "audio/webm;codecs=opus"],
+    ["voice.m4a", "audio/mp4"],
+    ["voice.mp4", "video/mp4"],
+    ["voice.wav", "audio/wav"],
+    ["voice.mp3", "audio/mpeg"],
+    ["voice.ogg", "audio/ogg"],
+    ["voice.flac", "audio/flac"],
+  ]
+) {
   Deno.test(
-    "failed attempt reservation prevents provider call: " + code,
-    () =>
-      mock({ budgetError: code }, (s) =>
-        rejected(
-          recording(),
-          code === "42501" ? 403 : code === "P0001" ? 429 : 503,
-          s,
-        )),
+    name + " preserves supported upload contract (not real codec validation)",
+    async () => {
+      const f = fixture();
+      equal((await f.handler(upload({}, { name, mime }))).status, 200);
+      equal(f.state.provider, 1);
+    },
   );
 }
-Deno.test("exhausted monthly or minute allowance is 429", () =>
-  mock({ available: 0 }, (s) => rejected(recording(), 429, s)));
-Deno.test("missing reservation receipt fails closed before a provider attempt", () =>
-  mock({ missingReservation: true }, (s) => rejected(recording(), 503, s)));
-Deno.test("simultaneous endpoint calls respect one remaining mocked reservation", () =>
-  mock({ available: 1 }, async (s) => {
-    const responses = await Promise.all(
-      Array.from({ length: 20 }, () => handle(recording())),
-    );
-    assert(responses.filter((r) => r.status === 200).length === 1);
-    assert(responses.filter((r) => r.status === 429).length === 19);
-    assert(
-      s.providerCalls === 1 && s.reservations === 1 && s.writes.length === 1,
-    );
-    await Promise.all(responses.map((r) => r.arrayBuffer()));
-  }));
-Deno.test("unknown JSON action does not invoke transcription", () =>
-  mock(
-    {},
-    (s) =>
-      rejected(
-        status({
-          business_id: business,
-          action: "store",
-          transcript: "forged",
-        }),
-        400,
-        s,
+Deno.test("prompt length is bounded and unapproved model cannot be selected", async () => {
+  const f = fixture({
+    env: { OPENAI_TRANSCRIPTION_MODEL: "arbitrary-expensive-model" },
+  });
+  equal(
+    (await f.handler(upload({ prompt: "x".repeat(1000), model: "attacker" })))
+      .status,
+    200,
+  );
+  equal(f.state.uploads[0].get("prompt"), "x".repeat(300));
+  equal(f.state.uploads[0].get("model"), "gpt-4o-transcribe");
+});
+for (const statusCode of [400, 401, 403, 413, 415, 422, 429, 500, 503]) {
+  Deno.test(
+    "provider HTTP " + statusCode + " is bounded and never silently retried",
+    async () => {
+      let calls = 0;
+      const f = fixture({
+        provider: (url, init, options) =>
+          providerJson(url, init, {
+            ...options,
+            fetcher: async () => {
+              calls++;
+              return new Response("private provider diagnostic", {
+                status: statusCode,
+              });
+            },
+          }),
+      });
+      const r = await f.handler(upload());
+      equal(r.status, statusCode === 429 ? 429 : 502);
+      equal(calls, 1);
+      equal(f.state.saved.length, 0);
+      assert(!(await r.text()).includes("private provider diagnostic"));
+    },
+  );
+}
+Deno.test("provider network failure returns sanitized 502 without persistence", async () => {
+  const f = fixture({
+    provider: (url, init, options) =>
+      providerJson(url, init, {
+        ...options,
+        fetcher: () => {
+          throw new Error("private network details");
+        },
+      }),
+  });
+  equal((await f.handler(upload())).status, 502);
+  equal(f.state.provider, 1);
+  equal(f.state.saved.length, 0);
+});
+Deno.test("provider timeout cancels request and returns 504 without retry", async () => {
+  let aborted = false;
+  const f = fixture({
+    provider: (url, init, options) =>
+      providerJson(url, init, {
+        ...options,
+        timeoutMs: 10,
+        fetcher: (_url, request) =>
+          new Promise((_resolve, reject) =>
+            request?.signal?.addEventListener("abort", () => {
+              aborted = true;
+              reject(new Error("aborted"));
+            })
+          ),
+      }),
+  });
+  equal((await f.handler(upload())).status, 504);
+  assert(aborted);
+  equal(f.state.provider, 1);
+  equal(f.state.saved.length, 0);
+});
+for (const body of ["not JSON", "null", "[]", "true"]) {
+  Deno.test(
+    "malformed provider response " + body + " cannot persist",
+    async () => {
+      const f = fixture({
+        provider: (url, init, options) =>
+          providerJson(url, init, {
+            ...options,
+            fetcher: async () => new Response(body),
+          }),
+      });
+      equal((await f.handler(upload())).status, 502);
+      equal(f.state.saved.length, 0);
+    },
+  );
+}
+for (const text of ["", " ", 42, null, "x".repeat(6001)]) {
+  Deno.test(
+    "unusable transcript " + String(text).slice(0, 12) + " cannot persist",
+    async () => {
+      const f = fixture({ text });
+      equal((await f.handler(upload())).status, 422);
+      equal(f.state.saved.length, 0);
+    },
+  );
+}
+Deno.test("provider oversized response cannot persist or leak content", async () => {
+  const f = fixture({
+    provider: (url, init, options) =>
+      providerJson(url, init, {
+        ...options,
+        fetcher: async () => new Response("x".repeat(262145)),
+      }),
+  });
+  equal((await f.handler(upload())).status, 502);
+  equal(f.state.saved.length, 0);
+});
+for (
+  const option of [{ saveError: true }, { saveThrow: true }, {
+    missingID: true,
+  }]
+) {
+  Deno.test(
+    "storage failure " + JSON.stringify(option) +
+      " reports uncertainty without replaying provider",
+    async () => {
+      const f = fixture(option);
+      const r = await f.handler(upload());
+      equal(r.status, 503);
+      const result = await r.json();
+      equal(result.code, "voice_storage_unconfirmed");
+      assert(!result.transcript);
+      assert(!JSON.stringify(result).includes("private"));
+      equal(f.state.provider, 1);
+      equal(f.state.saved.length, 1);
+    },
+  );
+}
+Deno.test("successful transcript is trimmed, attributed and returned with no-store", async () => {
+  const f = fixture({ text: "  Invoice Alex $120  " });
+  const r = await f.handler(upload());
+  equal(r.status, 200);
+  equal(r.headers.get("cache-control"), "no-store");
+  equal((await r.json()).transcript, "Invoice Alex $120");
+  equal(f.state.saved[0].transcript, "Invoice Alex $120");
+  equal(f.state.saved[0].duration_seconds, 12);
+  assert(
+    f.state.calls.indexOf("reserve_ai_provider_attempt") <
+      f.state.calls.indexOf("storage"),
+  );
+});
+Deno.test("Supabase session network stall is aborted and fails before provider", async () => {
+  let aborted = false, provider = 0;
+  const handler = createTranscribeVoiceHandler({
+    env: (key) => ({
+      SUPABASE_URL: "https://test.invalid",
+      SUPABASE_ANON_KEY: PUBLIC,
+    }[key]),
+    databaseTimeoutMs: 10,
+    fetcher: (_resource, init) =>
+      new Promise((_resolve, reject) =>
+        init?.signal?.addEventListener("abort", () => {
+          aborted = true;
+          reject(new Error("timeout"));
+        })
       ),
-  ));
-Deno.test("malformed JSON is a client error", () =>
-  mock({}, async (s) => {
-    const req = status();
-    await rejected(new Request(req, { body: "{" }), 400, s);
-  }));
-Deno.test("unsupported body type is a client error", () =>
-  mock({}, (s) =>
-    rejected(
-      new Request(base, {
-        method: "POST",
-        headers: {
-          authorization: "Bearer subscriber-test-token",
-          "content-type": "text/plain",
+    createClient: (_url, _key, options) => ({
+      auth: {
+        getUser: async () => {
+          await options.global.fetch("https://test.invalid/auth/v1/user");
+          return { data: null, error: null };
         },
-        body: "malformed",
-      }),
-      415,
-      s,
-    )));
-Deno.test("malformed multipart is a client error", () =>
-  mock({}, (s) =>
-    rejected(
-      new Request(base, {
-        method: "POST",
-        headers: {
-          authorization: "Bearer subscriber-test-token",
-          "content-type": "multipart/form-data; boundary=absent",
-        },
-        body: "malformed",
-      }),
-      400,
-      s,
-    )));
-Deno.test("missing audio is rejected without reserving quota", () =>
-  mock({}, (s) => {
-    const form = new FormData();
-    form.set("business_id", business);
-    return rejected(
-      new Request(base, {
-        method: "POST",
-        headers: { authorization: "Bearer subscriber-test-token" },
-        body: form,
-      }),
-      400,
-      s,
-    );
-  }));
-for (const [size, expected] of [[0, 422], [127, 422], [maxAudio + 1, 413]]) {
-  Deno.test(
-    "audio byte boundary " + size,
-    () => mock({}, (s) => rejected(recording({ size }), expected, s)),
-  );
-}
-for (
-  const [name, type] of [["speech.exe", "audio/webm"], [
-    "speech.webm",
-    "text/html",
-  ]]
-) {
-  Deno.test(
-    "unsupported audio " + name + "/" + type,
-    () => mock({}, (s) => rejected(recording({ name, type }), 415, s)),
-  );
-}
-for (const duration of ["0", "-1", "121", "NaN", "Infinity"]) {
-  Deno.test(
-    "invalid duration " + duration,
-    () => mock({}, (s) => rejected(recording({ duration }), 400, s)),
-  );
-}
-for (
-  const options of [
-    { providerStatus: 401 },
-    { providerStatus: 429 },
-    { providerStatus: 500 },
-    { providerNetwork: true },
-    { invalidProviderJson: true },
-    { providerPayload: [] },
-    { providerPayload: { text: "x".repeat(270000) } },
-  ]
-) {
-  Deno.test(
-    "provider failure is bounded and never stored: " +
-      JSON.stringify(options).slice(0, 100),
-    () =>
-      mock(options, async (s) => {
-        await rejected(
-          recording(),
-          options.providerStatus === 429 ? 429 : 502,
-          s,
-        );
-        assert(
-          s.reservations === 1 && s.providerCalls === 1 &&
-            s.writes.length === 0,
-          "No retry or budget refund after an uncertain attempt",
-        );
-      }),
-  );
-}
-Deno.test("provider timeout is 504 and not retried", () =>
-  mock({}, async (s) => {
-    let calls = 0;
-    const handler = createTranscribeVoiceHandler(async () => {
-      calls++;
-      throw new ProviderRequestError("timeout");
-    });
-    await rejected(recording(), 504, s, handler);
-    assert(calls === 1 && s.reservations === 1 && s.writes.length === 0);
-  }));
-for (
-  const providerPayload of [{ text: "" }, { text: "  " }, { text: 123 }, {}, {
-    text: "x".repeat(6001),
-  }]
-) {
-  Deno.test(
-    "unusable transcript is rejected: " +
-      JSON.stringify(providerPayload).slice(0, 80),
-    () =>
-      mock({ providerPayload }, async (s) => {
-        await rejected(recording(), 422, s);
-        assert(s.writes.length === 0 && s.reservations === 1);
-      }),
-  );
-}
-for (
-  const options of [{ saveError: true }, { noReceipt: true }, {
-    storageNetwork: true,
-  }]
-) {
-  Deno.test(
-    "storage failure never claims success: " + JSON.stringify(options),
-    () =>
-      mock(options, async (s) => {
-        await rejected(recording(), 503, s);
-        assert(s.providerCalls === 1 && s.writes.length === 1);
-      }),
-  );
-}
-Deno.test("missing server storage credential fails before spending provider quota", () =>
-  mock({ env: { SUPABASE_SERVICE_ROLE_KEY: undefined } }, async (s) => {
-    await rejected(recording(), 503, s);
-    assert(s.reservations === 0 && s.providerCalls === 0);
-  }));
-Deno.test("missing OpenAI credential fails before quota reservation", () =>
-  mock(
-    { env: { OPENAI_API_KEY: undefined } },
-    (s) => rejected(recording(), 503, s),
-  ));
-Deno.test("malformed server credential map fails without a provider call", () =>
-  mock({
-    env: { SUPABASE_SERVICE_ROLE_KEY: undefined, SUPABASE_SECRET_KEYS: "{" },
-  }, async (s) => {
-    await rejected(recording(), 503, s);
-    assert(s.reservations === 0 && s.providerCalls === 0);
-  }));
-Deno.test("declared oversized upload is rejected before parsing", () =>
-  mock({}, async (s) => {
-    const req = recording();
-    req.headers.set("content-length", String(maxAudio * 2));
-    await rejected(req, 413, s);
-  }));
-Deno.test("chunked oversized upload is canceled before parsing or quota", () =>
-  mock({}, async (s) => {
-    let pulls = 0, canceled = false;
-    const stream = new ReadableStream<Uint8Array>({
-      pull(controller) {
-        pulls++;
-        controller.enqueue(new Uint8Array(1024 * 1024));
-        if (pulls === 20) controller.close();
       },
-      cancel() {
-        canceled = true;
-      },
-    });
-    const req = new Request(base, {
-      method: "POST",
-      headers: {
-        authorization: "Bearer subscriber-test-token",
-        "content-type": "multipart/form-data; boundary=test",
-      },
-      body: stream,
-    });
-    await rejected(req, 413, s);
-    assert(
-      canceled && pulls < 20,
-      "Stop reading as soon as the byte limit is crossed",
-    );
-  }));
-Deno.test("canonical server transcript and actor ignore forged multipart fields", () =>
-  mock({}, async (s) => {
-    const res = await handle(recording({
-      duration: "12.5",
-      extras: {
-        user_id: foreignBusiness,
-        transcript: "forged",
-        provider: "forged",
-        model: "forged",
-        prompt: "x".repeat(600),
-      },
-    }));
-    assert(res.status === 200);
-    const body = await res.json();
-    assert(
-      body.transcription_id === receipt &&
-        body.transcript === "Invoice Taylor for faucet repair, $185.",
-    );
-    assert(
-      s.writes.length === 1 && s.writes[0].business_id === business &&
-        s.writes[0].user_id === actor,
-    );
-    assert(
-      s.writes[0].provider === "openai" &&
-        s.writes[0].model === "gpt-4o-transcribe",
-    );
-    assert(
-      s.writes[0].transcript === body.transcript &&
-        s.writes[0].duration_seconds === 12.5,
-    );
-  }));
-for (
-  const [name, type] of [
-    ["speech.webm", "audio/webm;codecs=opus"],
-    ["speech.m4a", "audio/mp4"],
-    ["speech.mp4", "video/mp4"],
-    ["speech.wav", "audio/wav"],
-    ["speech.mp3", "audio/mpeg"],
-  ]
-) {
-  Deno.test(
-    "preserve supported mobile/audio format " + type,
-    () =>
-      mock({}, async (s) => {
-        const res = await handle(
-          recording({ name, type, size: 128, duration: "120" }),
-        );
-        assert(res.status === 200);
-        await res.arrayBuffer();
-        assert(s.writes.length === 1);
-      }),
-  );
-}
-Deno.test("OPTIONS and unsupported methods never touch external services", () =>
-  mock({}, async (s) => {
-    assert(
-      (await handle(new Request(base, { method: "OPTIONS" }))).status === 200,
-    );
-    assert((await handle(new Request(base))).status === 405);
-    assert(s.calls.length === 0);
-  }));
+    }),
+    provider: async () => {
+      provider++;
+      return { text: "unexpected" };
+    },
+  });
+  equal((await handler(upload())).status, 503);
+  assert(aborted);
+  equal(provider, 0);
+});
+Deno.test("modern public/secret credential maps preserve server-only storage", async () => {
+  const f = fixture({
+    env: {
+      SUPABASE_ANON_KEY: undefined,
+      SUPABASE_SERVICE_ROLE_KEY: undefined,
+      SUPABASE_PUBLISHABLE_KEYS: JSON.stringify({ default: PUBLIC }),
+      SUPABASE_SECRET_KEYS: JSON.stringify({ default: SECRET }),
+    },
+  });
+  equal((await f.handler(upload())).status, 200);
+  equal(f.state.clients.map((x) => x.key), [PUBLIC, SECRET]);
+});

@@ -13,7 +13,7 @@
     "test:recovery": "tsc supabase/functions/_shared/providerRequest.ts supabase/functions/_shared/signedEvents.ts supabase/functions/_shared/healthStatus.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build && node --test tests/recovery/*.test.mjs",
     "test:e2e": "playwright test",
     "test:services": "node --test tests/financial/*.test.mjs",
-    "test:voice:backend": "deno test --no-config --node-modules-dir=none --allow-env supabase/functions/transcribe-voice/index_test.ts",
+    "test:voice:backend": "deno test --no-config --node-modules-dir=none --allow-env supabase/functions/transcribe-voice/",
     "test:voice:database": "node --test tests/security/voice-database.test.mjs",
     "test:voice:api": "node --test tests/security/voice-api.test.mjs"
   },

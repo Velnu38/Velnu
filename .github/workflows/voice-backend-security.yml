@@ -1,0 +1,29 @@
+name: Voice backend security and reliability
+on:
+  push:
+    branches: [feature/velnu-stage1, ux/professional-dashboard-20261028]
+    paths:
+      - 'supabase/functions/transcribe-voice/**'
+      - 'tests/security/transcribe-direct-api.mjs'
+      - '.github/workflows/voice-backend-security.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  voice-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Actual handler with mocked auth, storage, quota and provider services
+        run: deno test --junit-path=voice-backend-results.xml supabase/functions/transcribe-voice/index_test.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-backend-security-results
+          path: voice-backend-results.xml
+          if-no-files-found: error
+          retention-days: 14
