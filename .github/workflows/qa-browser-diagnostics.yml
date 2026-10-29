@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: assessment-browser-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   first-failure:
     runs-on: ubuntu-latest

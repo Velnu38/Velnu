@@ -108,12 +108,11 @@ test('schedule shows driving directions from its associated job location', async
   await expect(page.getByText(/Faucet replacement/).first()).toBeVisible()
 })
 
-test('mobile More exposes Locations and route links without horizontal overflow', async ({ page }) => {
+test('mobile primary navigation exposes Locations and route links without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockBusinessData(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'More' }).click()
-  await page.getByRole('button', { name: /Locations/ }).last().click()
+  await page.locator('.mobile-nav').getByRole('button', { name: 'Locations', exact: true }).click()
   await expect(page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
 })

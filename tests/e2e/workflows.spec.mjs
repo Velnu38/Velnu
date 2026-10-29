@@ -186,7 +186,7 @@ test('mobile More menu exposes invoices and editable company settings', async ({
   await mockWorkspace(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'More' }).click()
-  await page.getByRole('button', { name: 'Company settings' }).last().click()
+  await page.locator('.mobile-more-grid').getByRole('button', { name: 'Settings', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
 })
 
@@ -286,7 +286,7 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
     ],
   })
   await page.goto('/')
-  await expect(page.locator('.metric-grid')).toContainText('$125')
+  await expect(page.getByLabel('Open invoice balance', { exact: true })).toContainText('$125.00')
   const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
   expect(aggregates).toHaveLength(1)
   expect(aggregates[0].body.target_business_id).toBe(businessId)
