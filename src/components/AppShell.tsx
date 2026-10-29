@@ -101,7 +101,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         <div className="mobile-more-head"><div><p className="eyebrow">Finviant Office</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)}>×</button></div>
         <div className="mobile-more-grid">{mobileMore.map((id) => {
           const item = nav.find((entry) => entry.id === id)!
-          return <button key={id} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon">{item.icon}</span><strong>{item.label}</strong></button>
+          return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon" aria-hidden="true">{item.icon}</span><strong>{item.label}</strong></button>
         })}</div>
         <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/plans">Service tier</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </section></div>}
