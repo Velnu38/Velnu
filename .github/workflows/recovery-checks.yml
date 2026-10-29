@@ -37,3 +37,5 @@ jobs:
         run: deno check --node-modules-dir=auto supabase/functions/ai-command/index.ts supabase/functions/transcribe-voice/index.ts supabase/functions/send-invoice-email/index.ts supabase/functions/send-document-email/index.ts supabase/functions/resend-events/index.ts supabase/functions/stripe-events/index.ts supabase/functions/email-recovery-worker/index.ts supabase/functions/reliability-health/index.ts supabase/functions/quickbooks/index.ts
       - name: Test frozen email dispatch and operator gates with mocks only
         run: deno test --node-modules-dir=auto --allow-env supabase/functions/send-invoice-email/index_test.ts supabase/functions/email-recovery-worker/index_test.ts
+      - name: Voice authorization, quota and provider/storage failures (mock services only)
+        run: deno test supabase/functions/transcribe-voice/index_test.ts

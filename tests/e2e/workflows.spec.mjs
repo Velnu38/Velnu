@@ -1,3 +1,4 @@
+import { openWorkArea } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 
 // Browser workflow tests use a fake Supabase API. No customers are emailed, no
@@ -57,8 +58,8 @@ async function mockWorkspace(page, seed = {}) {
     if (path.endsWith('/rpc/create_document')) {
       const isInvoice = body.document_kind === 'invoice'
       const items = body.payload.items
-      const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
-      const tax_amount = items.reduce((sum, item) => sum + item.quantity * item.unit_price * item.tax_rate / 100, 0)
+      const subtotal = seed.documentTotals?.subtotal ?? items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+      const tax_amount = seed.documentTotals?.tax_amount ?? items.reduce((sum, item) => sum + item.quantity * item.unit_price * item.tax_rate / 100, 0)
       const next = {
         id: isInvoice ? invoiceId : estimateId, business_id: businessId, customer_id: body.payload.customer_id,
         invoice_number: isInvoice ? 'INV-1001' : undefined, estimate_number: isInvoice ? undefined : 'EST-1001',
@@ -96,7 +97,7 @@ async function mockWorkspace(page, seed = {}) {
       return fulfill(state.estimates)
     }
     if (path.endsWith('/payments')) return fulfill(state.payments)
-    if (path.endsWith('/invoice_items')) return fulfill(state.invoices.length ? [{ id: 'a', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }] : [])
+    if (path.endsWith('/invoice_items')) return fulfill(seed.invoiceItems ?? (state.invoices.length ? [{ id: 'a', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }] : []))
     if (path.endsWith('/estimate_items')) return fulfill([{ id: 'b', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }])
     if (path.endsWith('/change_orders')) {
       if (method === 'PATCH') {
@@ -115,7 +116,7 @@ async function mockWorkspace(page, seed = {}) {
 test('owner creates a branded invoice atomically and it remains a draft until manually sent', async ({ page }) => {
   const state = await mockWorkspace(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: '+ New invoice' }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
@@ -139,7 +140,7 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   const state = await mockWorkspace(page)
   page.on('dialog', async dialog => { await dialog.accept() })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await openWorkArea(page, 'Estimates')
   await page.getByRole('button', { name: '+ New estimate' }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
@@ -185,7 +186,7 @@ test('mobile More menu exposes invoices and editable company settings', async ({
   await mockWorkspace(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'More' }).click()
-  await page.getByRole('button', { name: 'Company settings' }).last().click()
+  await page.locator('.mobile-more-grid').getByRole('button', { name: 'Settings', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
 })
 
@@ -206,7 +207,7 @@ test('issued invoice preserves original company letterhead after profile changes
   }
   await mockWorkspace(page, { invoices: [issued] })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-HISTORIC/ }).click()
   await expect(page.locator('.invoice-document .letterhead-company')).toHaveText('Original Plumbing Co')
   await expect(page.locator('.invoice-document')).toContainText('55 Historic Road')
@@ -228,7 +229,7 @@ test('issued estimate preview shows original issuer and saved footer, not curren
   }
   await mockWorkspace(page, { estimates: [issued] })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await openWorkArea(page, 'Estimates')
   await page.getByRole('button', { name: 'Preview / Print' }).click()
   const document = page.locator('.estimate-preview-document')
   await expect(document.locator('.letterhead-company')).toHaveText('Original Estimate Co')
@@ -241,11 +242,11 @@ test('issued estimate preview shows original issuer and saved footer, not curren
 test('technician keeps field navigation but cannot edit invoices, estimates or payments', async ({ page }) => {
   await mockWorkspace(page, { role: 'technician' })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await openWorkArea(page, 'Jobs')
   await expect(page.getByRole('button', { name: '+ New job' })).toBeVisible()
-  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await openWorkArea(page, 'Invoices')
   await expect(page.getByRole('button', { name: '+ New invoice' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await openWorkArea(page, 'Estimates')
   await expect(page.getByRole('button', { name: '+ New estimate' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Payments', exact: true }).click()
   await expect(page.getByRole('button', { name: '+ Record payment' })).toHaveCount(0)
@@ -262,10 +263,14 @@ test('issued change order cannot be reverted to draft and voiding requires confi
     customers: customer, jobs: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Kitchen repair' },
     schedule_impact_days: 0, schedule_note: null, sent_at: '2026-10-26T12:00:00Z',
   }
-  const state = await mockWorkspace(page, { changeOrders: [order] })
+  const issuedInvoice = { id: invoiceId, invoice_number: 'INV-CONTEXT', status: 'sent', issue_date: '2026-10-26', customer_id: customerId, job_id: order.job_id, subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100, customers: customer }
+  const state = await mockWorkspace(page, { changeOrders: [order], invoices: [issuedInvoice], invoiceItems: [{ id: 'context-item', description: 'Original work', quantity: 1, unit_price: 100, line_total: 100, tax_rate: 0, sort_order: 0 }] })
   page.on('dialog', async dialog => { await dialog.accept() })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Change Orders' }).click()
+  await expect(page.locator('.sidebar').getByRole('button', { name: 'Change Orders', exact: true })).toHaveCount(0)
+  await openWorkArea(page, 'Invoices')
+  await page.getByRole('button', { name: /INV-CONTEXT/ }).click()
+  await page.getByRole('button', { name: 'Change orders', exact: true }).click()
   await expect(page.getByText('CO-TEST')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
@@ -285,11 +290,37 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
     ],
   })
   await page.goto('/')
-  await expect(page.locator('.metric-grid')).toContainText('$125')
+  await expect(page.getByLabel('Open invoice balance', { exact: true })).toContainText('$125.00')
   const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
   expect(aggregates).toHaveLength(1)
   expect(aggregates[0].body.target_business_id).toBe(businessId)
   const unbounded = state.requests.filter(r => r.path.endsWith('/invoices') &&
     new URL(r.url).searchParams.get('select') === 'balance_due')
   expect(unbounded).toHaveLength(0)
+})
+
+test('fractional invoice preview and saved draft retain database per-line rounding', async ({ page }) => {
+  const invoiceItems = ['First fractional service', 'Second fractional service'].map((description, i) => ({ id: 'fractional-' + i, description, quantity: 1.5, unit_price: 0.01, line_total: 0.02, tax_rate: 0, sort_order: i }))
+  const state = await mockWorkspace(page, { documentTotals: { subtotal: 0.04, tax_amount: 0 }, invoiceItems })
+  await page.goto('/')
+  await openWorkArea(page, 'Invoices')
+  await page.getByRole('button', { name: '+ New invoice' }).click()
+  await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
+  await page.getByPlaceholder('Description').fill('First fractional service')
+  await page.getByPlaceholder('Qty').fill('1.5')
+  await page.getByPlaceholder('Unit price').fill('0.01')
+  await page.getByRole('button', { name: '+ Add line' }).click()
+  await page.getByPlaceholder('Description').nth(1).fill('Second fractional service')
+  await page.getByPlaceholder('Qty').nth(1).fill('1.5')
+  await page.getByPlaceholder('Unit price').nth(1).fill('0.01')
+  await expect(page.locator('.estimate-total strong')).toHaveText('$0.04')
+  await page.getByRole('button', { name: 'Create invoice', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
+  await expect(page.locator('.invoice-document')).toContainText('$0.04')
+  await expect(page.locator('.invoice-document')).toContainText('First fractional service')
+  await expect(page.locator('.invoice-document')).toContainText('Second fractional service')
+  const writes = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
+  expect(writes).toHaveLength(1)
+  expect(writes[0].body.payload.items).toHaveLength(2)
+  expect(writes[0].body.payload.items.every(x => x.quantity === 1.5 && x.unit_price === 0.01)).toBe(true)
 })

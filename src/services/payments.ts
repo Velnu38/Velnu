@@ -1,3 +1,4 @@
+import { isRecord, validDecimal } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 
@@ -29,11 +30,10 @@ export async function recordPayment(
   businessId: string,
   input: { invoice_id: string; amount: number; method: 'cash' | 'check' | 'card' | 'ach' | 'other'; notes?: string; request_id?: string },
 ) {
-  if (!input.invoice_id) throw new Error('Choose an issued invoice')
-  const cents = input.amount * 100
-  if (!Number.isFinite(input.amount) || input.amount <= 0 || Math.abs(cents - Math.round(cents)) >= 1e-7) {
-    throw new Error('Enter a positive payment amount with no more than two decimal places')
-  }
+  if (!isRecord(input) || typeof input.invoice_id !== 'string' || !input.invoice_id.trim()) throw new Error('Choose an issued invoice')
+  if (!validDecimal(input.amount, 0.01, 1000000000)) throw new Error('Enter a positive payment amount with no more than two decimal places')
+  if (!['cash', 'check', 'card', 'ach', 'other'].includes(input.method)) throw new Error('Choose a valid payment method')
+  if (input.notes !== undefined && (typeof input.notes !== 'string' || input.notes.length > 2000)) throw new Error('Payment notes must be at most 2,000 characters')
   // Locks the invoice, rejects draft/void payments and concurrent overpayments,
   // and prevents duplicate records when the same request is retried.
   const { data, error } = await supabase.rpc('record_manual_payment', {

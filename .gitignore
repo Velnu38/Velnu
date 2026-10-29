@@ -12,3 +12,6 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 supabase/.temp/
+
+/scripts/qa/mock-profiles.json
+/scripts/qa/seed-staging.sql

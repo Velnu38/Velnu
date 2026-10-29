@@ -2,8 +2,9 @@
 const environments = {
   'https://xvybcmyoblfgzokaifsx.supabase.co': {
     name: 'staging',
-    baseUrl: 'https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app',
+    baseUrl: 'https://finviant.com',
     origins: [
+      'https://finviant.com', 'https://www.finviant.com',
       'https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app',
       'http://localhost:5173', 'http://127.0.0.1:5173',
     ],

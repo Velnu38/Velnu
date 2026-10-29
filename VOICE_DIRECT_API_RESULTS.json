@@ -1,0 +1,7 @@
+{
+  "scope": "live Supabase subscriber transcript isolation",
+  "status": "not_run",
+  "checks": [],
+  "errors": [],
+  "reason": "Requires two disposable authenticated staging QA accounts/businesses and server-seeded transcripts. No entitlement or OpenAI credential is needed for these Data API checks."
+}

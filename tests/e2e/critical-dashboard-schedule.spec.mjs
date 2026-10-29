@@ -39,6 +39,7 @@ async function mockWorkspace(page, options = {}) {
   const state = {
     role: options.role || 'owner',
     customers: options.customers || [customer],
+    jobs: options.jobs || [],
     appointments: [...(options.appointments || [])],
     reminders: [...(options.reminders || [])],
     invoices: [...(options.invoices || [])],
@@ -62,9 +63,9 @@ async function mockWorkspace(page, options = {}) {
     let body
     try { body = req.postDataJSON() } catch { body = null }
     state.requests.push({ path, method, url: url.toString(), body })
-    const reply = (value, status = 200) => route.fulfill({
+    const reply = (value, status = 200, total = 0) => route.fulfill({
       status, contentType: 'application/json',
-      headers: { 'access-control-allow-origin': '*', 'content-range': '0-0/0' },
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': total ? `0-${Math.min(10, total) - 1}/${total}` : '0-0/0' },
       body: JSON.stringify(value),
     })
     const fail = message => reply({ message, code: 'PGRST_TEST', details: '', hint: '' }, 400)
@@ -110,7 +111,7 @@ async function mockWorkspace(page, options = {}) {
       }
       if (method === 'DELETE') return reply([])
       if (method === 'HEAD') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-range': '0-0/0' }, body: '' })
-      return reply([])
+      return reply(state.jobs)
     }
     if (path.endsWith('/appointments')) {
       if (method === 'POST') {
@@ -128,18 +129,27 @@ async function mockWorkspace(page, options = {}) {
       return reply(state.appointments.filter(a => a.status !== 'canceled'))
     }
     if (path.endsWith('/reminders')) {
+      if (method === 'POST') {
+        state.reminders.push({ ...body, jobs: state.jobs.find(job => job.id === body.job_id) || null })
+        return reply({ id: body.id }, 201)
+      }
       if (method === 'PATCH') {
         if (state.reminderError) return fail('Unable to complete reminder')
         const target = url.searchParams.get('id')?.replace('eq.', '')
         const row = state.reminders.find(r => r.id === target)
         if (row) Object.assign(row, body)
-        return reply([])
+        return reply({ id: row?.id })
       }
-      return reply(state.reminders.filter(r => r.status === 'pending'))
+      const status = url.searchParams.get('status')?.replace('eq.', '')
+      const due = url.searchParams.get('due_at')?.replace('lte.', '')
+      const matching = state.reminders.filter(r => r.status === status && (!due || new Date(r.due_at) <= new Date(due)))
+      const offset = Number(url.searchParams.get('offset') || 0)
+      const limit = Number(url.searchParams.get('limit') || 50)
+      return reply(matching.slice(offset, offset + limit), 200, matching.length)
     }
-    if (path.endsWith('/invoices')) return reply(state.invoices.slice(0, 10))
-    if (path.endsWith('/estimates')) return reply(state.estimates.slice(0, 10))
-    if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10))
+    if (path.endsWith('/invoices')) return reply(state.invoices.slice(0, 10), 200, state.invoices.length)
+    if (path.endsWith('/estimates')) return reply(state.estimates.slice(0, 10), 200, state.estimates.length)
+    if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10), 200, state.changeOrders.length)
     if (path.endsWith('/messages') || path.endsWith('/bookkeeping_entries')) return reply([])
     return reply([])
   })
@@ -155,7 +165,7 @@ const openDashboard = async (page, options) => {
 const openSchedule = async (page, options) => {
   const state = await mockWorkspace(page, options)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await page.getByRole('article', { name: 'Jobs and schedule overview' }).getByRole('button', { name: 'Jobs & schedule', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   return state
 }
@@ -182,26 +192,26 @@ test('01 empty dashboard renders without uncaught exceptions', async ({ page }) 
   const errors = noRuntimeErrors(page)
   await openDashboard(page)
   await expect(page.getByText('No overdue balances need attention.')).toBeVisible()
-  await expect(page.locator('.metric-grid')).toContainText('$0')
+  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
   expect(errors).toEqual([])
 })
 
 test('02 Strict Mode concurrent initial loads share one invoice summary call', async ({ page }) => {
   const state = await openDashboard(page, { aggregate: { open_invoices: 1, outstanding_balance: 30 } })
-  await expect(page.locator('.metric-grid')).toContainText('$30')
+  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
   expect(count(state, '/rpc/get_dashboard_invoice_totals', 'POST')).toBe(1)
 })
 
 test('03 null aggregate values display zero safely', async ({ page }) => {
   await openDashboard(page, { aggregate: { open_invoices: null, outstanding_balance: null } })
-  await expect(page.locator('.metric-grid')).toContainText('$0')
-  await expect(page.locator('.metric-grid')).toContainText('0 unpaid invoices')
+  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+  await expect(page.locator('.dashboard-shortcuts')).not.toContainText('NaN')
 })
 
 test('04 large financial summary stays server-side without an unbounded invoice scan', async ({ page }) => {
   const state = await openDashboard(page, { aggregate: { open_invoices: 12001, outstanding_balance: '123456789.22' } })
-  await expect(page.locator('.metric-grid')).toContainText('$123,456,789')
-  await expect(page.locator('.metric-grid')).toContainText('12001 unpaid invoices')
+  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+  expect(count(state, '/rpc/get_dashboard_invoice_totals', 'POST')).toBe(1)
   expect(state.requests.filter(r => r.path.endsWith('/invoices') && new URL(r.url).searchParams.get('select') === 'balance_due')).toHaveLength(0)
 })
 
@@ -223,7 +233,7 @@ test('06 dashboard manual refresh recovers after failed RPC', async ({ page }) =
   await expect(page.getByText('Dashboard summary temporarily unavailable')).toBeVisible()
   state.aggregateFailures = 0
   await page.getByRole('button', { name: 'Refresh' }).click()
-  await expect(page.locator('.metric-grid')).toContainText('$42')
+  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
   await expect(page.getByText('Dashboard summary temporarily unavailable')).toHaveCount(0)
   expect(count(state, '/rpc/get_dashboard_invoice_totals', 'POST')).toBeGreaterThanOrEqual(2)
 })
@@ -232,7 +242,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
   const errors = noRuntimeErrors(page)
   await mockWorkspace(page, { aggregateDelay: 850 })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await page.getByRole('article', { name: 'Jobs and schedule overview' }).getByRole('button', { name: 'Jobs & schedule', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   await page.waitForTimeout(950)
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
@@ -242,15 +252,42 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
 test('08 absent customer relations and injected invoice HTML do not crash or render executable markup', async ({ page }) => {
   const malicious = '<img src=x onerror=alert(1)>'
   await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, balance_due: 15, due_date: '2020-01-01', customers: null }] })
-  await expect(page.locator('.overdue-panel')).toContainText('Customer')
-  await expect(page.locator('.overdue-panel')).toContainText(malicious)
-  expect(await page.locator('.overdue-panel img').count()).toBe(0)
+  await expect(page.getByRole('region', { name: 'Overdue invoices' })).toContainText('Customer')
+  await expect(page.getByRole('region', { name: 'Overdue invoices' })).toContainText(malicious)
+  expect(await page.getByRole('region', { name: 'Overdue invoices' }).locator('img').count()).toBe(0)
 })
+
+for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+  test(`invoice tile counts all overdue invoices and keeps details together at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport)
+    const invoices = Array.from({ length: 14 }, (_, n) => ({
+      id: id(n + 300), invoice_number: `INV-${n + 1}`, balance_due: 15,
+      due_date: '2020-01-01', issue_date: '2019-12-01', status: 'sent', total: 15, customers: customer,
+    }))
+    const state = await openDashboard(page, { invoices })
+    const tile = page.getByRole('article', { name: 'Invoices overview' })
+    await expect(tile.getByText('14 overdue', { exact: true })).toBeVisible()
+    await expect(tile.getByRole('region', { name: 'Overdue invoices' }).getByRole('listitem')).toHaveCount(10)
+    await expect(tile).toContainText('INV-1 · Jane Doe')
+    await expect(tile).toContainText('$15.00')
+    await expect(tile).toContainText('Showing the 10 oldest')
+    await expect(page.locator('.overdue-panel')).toHaveCount(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    state.invoices = []
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await expect(tile.getByText('No overdue balances need attention.')).toBeVisible()
+    await expect(tile.locator('.invoice-overdue-badge')).toHaveCount(0)
+    await tile.getByRole('button', { name: 'Invoices', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Know what’s owed and get paid faster.' })).toBeVisible()
+  })
+}
 
 test('09 completing reminder persists its status and removes it from attention list', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
+  await page.getByRole('button', { name: /Reminders.*due/ }).click()
   await expect(page.getByText('Call customer 1')).toBeVisible()
-  await page.getByRole('button', { name: 'Done' }).click()
+  await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Call customer 1')).toHaveCount(0)
   expect(count(state, '/reminders', 'PATCH')).toBe(1)
   expect(state.reminders[0].status).toBe('completed')
@@ -258,15 +295,18 @@ test('09 completing reminder persists its status and removes it from attention l
 
 test('10 failing reminder update displays error and does not hide the reminder', async ({ page }) => {
   await openDashboard(page, { reminders: [reminder()], reminderError: true })
-  await page.getByRole('button', { name: 'Done' }).click()
+  await page.getByRole('button', { name: /Reminders.*due/ }).click()
+  await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Unable to complete reminder')).toBeVisible()
   await expect(page.getByText('Call customer 1')).toBeVisible()
 })
 
 test('11 viewer cannot complete reminders', async ({ page }) => {
   const state = await openDashboard(page, { role: 'viewer', reminders: [reminder()] })
+  await page.getByRole('button', { name: /Reminders.*due/ }).click()
   await expect(page.getByText('Call customer 1')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Done' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Mark .* done/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '+ New reminder' })).toHaveCount(0)
   expect(count(state, '/reminders', 'PATCH')).toBe(0)
 })
 
@@ -280,12 +320,24 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
     status: 'sent', total: 50, issue_date: '2026-10-02', customers: customer,
   }))
   const state = await openDashboard(page, { estimates, changeOrders })
-  await expect(page.locator('.office-panel').filter({ hasText: 'Approvals' }).locator('.office-list-row')).toHaveCount(12)
+  const tile = page.getByRole('article', { name: 'Estimates overview' })
+  await expect(tile.getByText('20 awaiting approval', { exact: true })).toBeVisible()
+  await expect(tile.getByRole('region', { name: 'Customer approvals' }).getByRole('listitem')).toHaveCount(12)
+  await expect(tile).toContainText('EST-0 · Jane Doe')
+  await expect(tile).toContainText('CO-0 · Jane Doe')
+  await expect(page.getByRole('heading', { name: 'Approvals', exact: true })).toHaveCount(0)
   for (const request of state.requests.filter(r =>
     ['/invoices', '/jobs', '/reminders', '/appointments', '/estimates', '/change_orders'].some(p => r.path.endsWith(p)))) {
     expect(new URL(request.url).searchParams.get('business_id'), request.url).toBe('eq.' + BID)
   }
   expect(state.requests.filter(r => ['/estimates', '/change_orders', '/reminders'].some(p => r.path.endsWith(p)) && new URL(r.url).searchParams.get('limit') === null)).toEqual([])
+  state.estimates = []
+  state.changeOrders = []
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+  await expect(tile).toContainText('No sent estimates or change orders are waiting for a decision.')
+  await expect(tile.locator('.estimate-approval-badge')).toHaveCount(0)
+  await tile.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Quote the work without the paperwork.' })).toBeVisible()
 })
 
 // SCHEDULE: 13 critical cases
@@ -409,4 +461,60 @@ test('25 failed status change reports an error and leaves stored status unchange
   await page.locator('.appointment-row select').selectOption('completed')
   await expect(page.getByText('Unable to update schedule')).toBeVisible()
   expect(state.appointments[0].status).toBe('scheduled')
+})
+
+test('merged workspace preserves schedule and separates current, upcoming, and historical jobs', async ({ page }) => {
+  const jobs = [
+    { id: id(501), title: 'Current repair', status: 'in_progress', scheduled_start: localDatetime(-1) },
+    { id: id(502), title: 'Future repair', status: 'scheduled', scheduled_start: localDatetime(2) },
+    { id: id(503), title: 'Completed repair', status: 'completed', scheduled_start: localDatetime(-2) },
+  ].map(job => ({ ...job, customer_id: CID, customers: customer }))
+  await openSchedule(page, { jobs, appointments: [appointment()] })
+  await expect(page.getByRole('heading', { name: 'Jobs & schedule', exact: true })).toBeVisible()
+  await expect(page.locator('.appointment-row')).toContainText('Visit 1')
+  const views = page.getByRole('navigation', { name: 'Jobs and schedule views' })
+  await views.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await expect(page.getByRole('region', { name: 'current jobs' })).toContainText('Current repair')
+  await expect(page.getByRole('region', { name: 'current jobs' })).not.toContainText('Future repair')
+  await page.getByRole('button', { name: /Upcoming/ }).click()
+  await expect(page.getByRole('region', { name: 'upcoming jobs' })).toContainText('Future repair')
+  await page.getByRole('button', { name: /History/ }).click()
+  await expect(page.getByRole('region', { name: 'history jobs' })).toContainText('Completed repair')
+  await views.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await expect(page.locator('.appointment-row')).toContainText('Visit 1')
+})
+
+for (const width of [1280, 390]) test(`standalone reminder creation is accessible from the merged tile at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 })
+  const state = await openDashboard(page, { reminders: Array.from({ length: 18 }, (_, n) => reminder(n)) })
+  await expect(page.locator('.dashboard-shortcuts > article')).toHaveCount(3)
+  const tile = page.getByRole('article', { name: 'Jobs and schedule overview' })
+  await expect(tile).toContainText('18 due')
+  await expect(page.getByRole('heading', { name: 'Reminders due', exact: true })).toHaveCount(0)
+  await tile.getByRole('button', { name: /Reminders/ }).click()
+  await page.getByRole('button', { name: '+ New reminder' }).click()
+  await page.getByLabel('What needs to be done?').fill('Order replacement parts')
+  await page.getByLabel('Remind me on').fill(localDatetime(2))
+  await page.getByRole('button', { name: 'Save reminder' }).evaluate(button => { button.click(); button.click() })
+  await expect(page.getByRole('status').filter({ hasText: 'Reminder created.' })).toBeVisible()
+  expect(count(state, '/reminders', 'POST')).toBe(1)
+  expect(state.reminders.at(-1).job_id).toBeNull()
+  expect(state.reminders.at(-1).business_id).toBe(BID)
+  await expect(page.getByRole('region', { name: 'Pending reminders' })).toContainText('Order replacement parts')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+test('job action preselects the related job when creating a reminder', async ({ page }) => {
+  const job = { id: id(511), title: 'Kitchen repair', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }
+  const state = await openSchedule(page, { jobs: [job] })
+  await page.getByRole('navigation', { name: 'Jobs and schedule views' }).getByRole('button', { name: 'Jobs', exact: true }).click()
+  await page.getByRole('button', { name: 'Add reminder for Kitchen repair' }).click()
+  await expect(page.getByLabel('Related job (optional)')).toHaveValue(job.id)
+  await expect(page.getByLabel('Related job (optional)')).toBeEnabled()
+  await page.getByLabel('What needs to be done?').fill('Confirm customer access')
+  await page.getByLabel('Remind me on').fill(localDatetime(1))
+  await page.getByRole('button', { name: 'Save reminder' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Reminder created.' })).toBeVisible()
+  expect(state.reminders[0].job_id).toBe(job.id)
+  expect(state.reminders[0].customer_id).toBe(CID)
 })

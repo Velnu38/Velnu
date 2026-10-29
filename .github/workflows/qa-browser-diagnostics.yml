@@ -1,0 +1,35 @@
+name: Assessment browser diagnostics
+on:
+  push:
+    branches: [ux/professional-dashboard-20261028]
+    paths: ['.github/workflows/qa-browser-diagnostics.yml', 'tests/e2e/**', 'src/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: assessment-browser-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  first-failure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Use stable runner Chrome
+        run: google-chrome --version
+      - name: Capture first failure with actual browser
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+        run: npx playwright test --max-failures=5 --workers=2 --reporter=json > browser-diagnostics.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: assessment-first-browser-failure
+          path: |
+            browser-diagnostics.json
+            test-results/
+          retention-days: 7

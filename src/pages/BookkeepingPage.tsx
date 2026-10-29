@@ -164,7 +164,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       const result = await syncQuickBooks(business.id)
       await refresh()
       setNotice('QuickBooks read-only import completed: ' + result.rows_processed + ' transactions processed.'
-        + (result.limited ? ' Some categories reached the 100-record limit; this is not a complete accounting report.' : ''))
+        + (result.limited ? ' Some categories exceeded the 1,000-record query limit; this is not a complete accounting report.' : ''))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'QuickBooks sync failed.')
     } finally { setBusy(false) }
@@ -228,7 +228,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <button className="primary-button compact" disabled={busy || !qbStatus?.configured || !!qbStatus.connected || !costsAcknowledged} onClick={connect}>Connect QuickBooks Online</button>
         </>}
       </> : <p className="form-message">Only a business owner or administrator may connect, sync or disconnect QuickBooks.</p>}
-      <p className="bookkeeping-small">Current import covers up to 100 records each for QuickBooks Payments, Sales Receipts, and Purchases from approximately the past 90 days. It does not include bills, payroll, refunds, bank reconciliation, or a complete profit-and-loss statement. No transactions are written back to QuickBooks. <a href="https://quickbooks.intuit.com/pricing/" target="_blank" rel="noopener noreferrer">Review Intuit plans and fees</a>.</p>
+      <p className="bookkeeping-small">Current import covers up to 1,000 records each for QuickBooks Payments, Sales Receipts, and Purchases from approximately the past 90 days. If a category exceeds that query limit, the import is marked incomplete. It does not include bills, payroll, refunds, bank reconciliation, or a complete profit-and-loss statement. No transactions are written back to QuickBooks. <a href="https://quickbooks.intuit.com/pricing/" target="_blank" rel="noopener noreferrer">Review Intuit plans and fees</a>.</p>
     </section>}
 
     <section className="bookkeeping-overview" aria-label="Summary in US dollars">

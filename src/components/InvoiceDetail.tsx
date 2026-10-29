@@ -1,13 +1,16 @@
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { createInvoiceReminder, getInvoiceDetail } from '../services/invoiceDetail'
 import { recordPayment } from '../services/payments'
 import { updateInvoiceStatus } from '../services/invoices'
 import InvoiceEmailButton from './InvoiceEmailButton'
 import DocumentBrand from './DocumentBrand'
+import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
+
+const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
 
 type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null }
-type Invoice = { issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; customers:Customer|Customer[]|null }
+type Invoice = { issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
 type Item = { id:string; description:string; quantity:number; unit_price:number; tax_rate:number; line_total:number }
 type Payment = { id:string; amount:number; method:string|null; status:string; paid_at:string; notes:string|null }
 type Message = { id:string; direction:string; channel:string; recipient:string|null; subject:string|null; body:string; status:string; sent_at:string|null; created_at:string }
@@ -25,6 +28,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const [error,setError]=useState('')
   const [showPayment,setShowPayment]=useState(false)
   const [showReminder,setShowReminder]=useState(false)
+  const [showChangeOrders,setShowChangeOrders]=useState(false)
   const [amount,setAmount]=useState('')
   const [method,setMethod]=useState<'cash'|'check'|'card'|'ach'|'other'>('other')
   const [paymentNote,setPaymentNote]=useState('')
@@ -33,7 +37,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const paymentRetryRef=useRef<{signature:string; requestId:string}|null>(null)
 
   async function refresh(){setLoading(true);setError('');try{const next=await getInvoiceDetail(business.id,invoiceId) as Detail;setDetail(next);setAmount(String(next.invoice.balance_due))}catch(err){setError(err instanceof Error?err.message:'Unable to load invoice')}finally{setLoading(false)}}
-  useEffect(()=>{setDetail(null);void refresh()},[business.id,invoiceId])
+  useEffect(()=>{setDetail(null);setShowChangeOrders(false);void refresh()},[business.id,invoiceId])
 
   async function savePayment(event:FormEvent){
     event.preventDefault();if(!detail||busy)return;setBusy(true);setError('')
@@ -55,6 +59,8 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const customer=Array.isArray(invoice.customers)?invoice.customers[0]:invoice.customers
   const issuedBrand=invoice.issuer_snapshot?.name ? { ...business, ...invoice.issuer_snapshot, name: invoice.issuer_snapshot.name } : business
 
+  if(showChangeOrders && offersDocumentChangeOrders('invoice', invoice.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType:'invoice', documentId:invoice.id, documentNumber:invoice.invoice_number || 'Invoice', customerId:invoice.customer_id, jobId:invoice.job_id, estimateId:invoice.estimate_id }} onBack={()=>setShowChangeOrders(false)} /></Suspense>
+
   return <div className="page-stack invoice-detail-page">
     <div className="detail-top"><button className="back-button" onClick={onBack}>← Invoices</button></div>
     <section className="invoice-hero">
@@ -62,6 +68,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
     <div className="invoice-action-bar">
+      {offersDocumentChangeOrders('invoice', invoice.status)&&<button className="secondary-button" disabled={busy} onClick={()=>setShowChangeOrders(true)}>Change orders</button>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={refresh}/>}
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
       {canManageFinances(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}

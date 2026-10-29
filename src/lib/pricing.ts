@@ -154,6 +154,7 @@ export function assistantPriceForTier(addOnId: AssistantAddOnId, tier: VelnuTier
   return assistantAddOns.find(a => a.id === addOnId)?.priceMonthlyByTier[tier] ?? null
 }
 export function assistantMonthlyTotal(tier: VelnuTier, choices: readonly string[]): number {
+  if (!['free', 'basic', 'pro'].includes(tier) || !Array.isArray(choices) || choices.some(value => typeof value !== 'string')) throw new Error('Choose a valid plan and service selection')
   if (tier === 'free') return 0
   const ids = new Set(choices)
   return assistantAddOns.reduce((sum, item) =>
