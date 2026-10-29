@@ -33,10 +33,10 @@ export default function PasswordRecovery({ session, invalidLink, onDone }: { ses
   if (!complete && (invalidLink || !session)) return <AuthScreen initialMode="reset" initialMessage="This reset link is invalid or expired. Request a new link below and open the newest email." />
 
   return <main className="auth-page">
-    <section className="auth-hero"><div className="logo-mark">O</div><div className="brand-word">Owedly</div><h1>Get back to your business.</h1><p>Choose a strong password that you do not use for other accounts.</p></section>
+    <section className="auth-hero"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><div className="brand-word">Finviant Office</div><h1>Get back to your business.</h1><p>Choose a strong password that you do not use for other accounts.</p></section>
     <section className="auth-card">
       <h2>{complete ? 'Password updated' : 'Choose a new password'}</h2>
-      {complete ? <><p>Your new password is ready to use.</p><button className="primary-button" disabled={busy} onClick={onDone}>Return to Owedly</button></> : <>
+      {complete ? <><p>Your new password is ready to use.</p><button className="primary-button" disabled={busy} onClick={onDone}>Return to Finviant Office</button></> : <>
         <p>{session?.user.email}</p>
         <form onSubmit={submit}>
           <label>New password<input type="password" autoComplete="new-password" minLength={8} required disabled={busy} value={password} onChange={e => setPassword(e.target.value)} /></label>

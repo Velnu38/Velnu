@@ -2,5 +2,13 @@ node_modules
 dist
 .env
 .env.local
+.env.*
+!.env.example
 .DS_Store
 *.log
+.recovery-build/
+.qa-build/
+test-results/
+playwright-report/
+*.tsbuildinfo
+supabase/.temp/

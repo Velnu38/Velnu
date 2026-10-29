@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { getCustomerDetail } from '../services/customerDetail'
 import { createProperty } from '../services/properties'
+import GoogleMapTools from './GoogleMapTools'
 
 type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null; notes:string|null }
 type Property = { id:string; label:string|null; address_line1:string; address_line2:string|null; city:string|null; state:string|null; postal_code:string|null; access_notes:string|null }
@@ -50,7 +51,7 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
 
     <section className="detail-grid">
       <article className="detail-card properties-card"><div className="detail-card-head"><div><p className="eyebrow">Properties</p><h2>Service locations</h2></div>{canWrite(business.role)&&<button className="secondary-button small-button" onClick={()=>setShowProperty(true)}>+ Add property</button>}</div>
-        {detail.properties.length===0?<p className="quiet">No property addresses yet.</p>:<div className="property-list">{detail.properties.map((item)=><div className="property-item" key={item.id}><strong>{item.label||'Property'}</strong><span>{item.address_line1}{item.address_line2?`, ${item.address_line2}`:''}</span><span>{[item.city,item.state,item.postal_code].filter(Boolean).join(', ')}</span>{item.access_notes&&<small>{item.access_notes}</small>}</div>)}</div>}
+        {detail.properties.length===0?<p className="quiet">No property addresses yet.</p>:<div className="property-list">{detail.properties.map((item)=><div className="property-item" key={item.id}><strong>{item.label||'Property'}</strong><span>{item.address_line1}{item.address_line2?`, ${item.address_line2}`:''}</span><span>{[item.city,item.state,item.postal_code].filter(Boolean).join(', ')}</span>{item.access_notes&&<small>{item.access_notes}</small>}<div className="property-map-actions"><GoogleMapTools address={item} preview compact /></div></div>)}</div>}
       </article>
       <article className="detail-card"><p className="eyebrow">Snapshot</p><h2>Customer history</h2><div className="mini-metrics"><div><strong>{detail.jobs.length}</strong><span>Jobs</span></div><div><strong>{detail.estimates.length}</strong><span>Estimates</span></div><div><strong>{detail.invoices.length}</strong><span>Invoices</span></div></div>{customer.notes&&<p className="customer-notes">{customer.notes}</p>}</article>
     </section>

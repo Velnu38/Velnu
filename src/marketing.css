@@ -1,0 +1,338 @@
+/* Finviant public marketing website and account agreement; scoped to prevent workspace regressions. */
+.marketing-page,.legal-public-page,.agreement-gate{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172637}
+.marketing-page{background:#fbfaf7;overflow:hidden}
+.marketing-page a,.legal-public-page a,.agreement-gate a{text-decoration:none}
+.marketing-container{width:min(1180px,calc(100% - 56px));margin-inline:auto}
+.marketing-topbar{position:relative;z-index:10;background:#fbfaf7;border-bottom:1px solid #e7e8e2}
+.marketing-nav{min-height:86px;display:flex;align-items:center;justify-content:space-between;gap:30px}
+.marketing-brand{display:inline-flex;align-items:center;gap:9px;color:#122338;font-weight:900;font-size:25px;letter-spacing:-.065em;white-space:nowrap}
+.marketing-logo{width:37px;height:37px;flex:0 0 37px;display:grid;place-items:center;background:#14b8a6;color:#fff;border-radius:11px;font-size:24px;font-weight:900;letter-spacing:-.12em;padding-right:3px;box-shadow:0 5px 13px rgba(20,184,166,.12)}
+.brand-dot{color:#14b8a6}
+.marketing-main-nav{display:flex;gap:32px;align-items:center}
+.marketing-main-nav a,.marketing-nav-actions a.marketing-signin{color:#526073;font-size:13px;font-weight:720}
+.marketing-main-nav a:hover,.marketing-nav-actions a.marketing-signin:hover{color:#0f766e}
+.marketing-nav-actions{display:flex;align-items:center;gap:25px}
+.marketing-btn{display:inline-flex;align-items:center;justify-content:center;gap:26px;min-height:54px;border-radius:12px;font-size:14px;font-weight:850;padding:0 24px;transition:transform .2s ease,box-shadow .2s ease;background:#182b3d;color:#fff;white-space:nowrap}
+.marketing-btn:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(19,37,54,.16)}
+.marketing-btn span{font-size:18px;font-weight:500}
+.marketing-btn-small{min-height:42px;font-size:12px;padding:0 17px;gap:12px}
+.marketing-btn-dark{background:#17293b;color:#fff}
+.marketing-btn-accent{background:#14b8a6;color:#172637}
+.marketing-btn-accent:hover{box-shadow:0 10px 22px rgba(20,184,166,.2)}
+.marketing-btn-outline{background:#eef2f3;color:#15263a}
+.marketing-hero{background:linear-gradient(115deg,#f7f6f0 0%,#fbfaf7 42%,#e8f2ef 100%);padding:90px 0 100px;min-height:675px}
+.marketing-hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:44px}
+.marketing-hero-copy{position:relative;z-index:2}
+.marketing-beta{display:inline-flex;align-items:center;gap:10px;border:1px solid #e4e9e3;background:#fffdf7;padding:8px 12px;border-radius:40px;color:#415b56;font-weight:750;font-size:11px;letter-spacing:.02em}
+.marketing-live-dot{background:#32ad82;box-shadow:0 0 0 4px #dff6e9;width:7px;height:7px;border-radius:50%}
+.marketing-hero h1{font-size:clamp(56px,6.1vw,87px);line-height:.99;letter-spacing:-.075em;margin:25px 0;color:#14283a;font-weight:900}
+.marketing-hero h1 em{font-weight:720;font-style:normal;color:#2d9cff}
+.marketing-hero-lead{font-size:17px;line-height:1.72;color:#63717f;max-width:525px;margin:25px 0 29px}
+.marketing-hero-actions{display:flex;align-items:center;gap:25px;flex-wrap:wrap}
+.marketing-watch{display:inline-flex;gap:10px;align-items:center;color:#1e3748;font-size:13px;font-weight:780}
+.marketing-watch span{font-size:18px}
+.marketing-hero-fine{font-size:11px;color:#81909a;margin-top:17px}
+.marketing-hero-statline{display:flex;gap:19px;margin-top:58px;border-top:1px solid #cdd9d7;padding-top:23px}
+.marketing-hero-statline span{display:grid;gap:4px;font-size:11px;color:#71858b;line-height:1.4;flex:1}
+.marketing-hero-statline strong{color:#163147;font-size:13px}
+.marketing-scene{position:relative;min-height:520px;display:flex;align-items:center;justify-content:center}
+.marketing-orbit{position:absolute;border-radius:50%;z-index:0}
+.marketing-orbit-one{width:490px;height:490px;background:radial-gradient(circle at 48% 48%,#a4cdc9 0,#b9d6cf 48%,#d3e5da 70%,transparent 71%);right:-35px;top:0;opacity:.82}
+.marketing-orbit-two{width:345px;height:345px;border:1px solid rgba(255,255,255,.68);right:38px;top:65px}
+.marketing-float-label{z-index:2;position:absolute;right:-20px;top:24px;font-size:12px;letter-spacing:.05em;color:#285457;transform:rotate(8deg);font-weight:760}
+.marketing-demo-window{position:relative;z-index:1;margin:20px 10px 15px 0;width:min(100%,548px);height:395px;overflow:hidden;border-radius:17px;background:white;box-shadow:0 32px 65px rgba(22,54,57,.24),0 0 0 1px rgba(19,49,58,.1);transform:rotate(-3deg)}
+.marketing-demo-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #edf0f1;padding:14px 16px}
+.marketing-demo-brand{display:flex;gap:7px;align-items:center;font-size:12px}
+.marketing-demo-brand .marketing-logo{width:22px;height:22px;flex-basis:22px;border-radius:7px;font-size:15px}
+.marketing-demo-brand span:last-child{color:#97a5ac;font-size:9px;margin-left:6px}
+.marketing-demo-dots{display:flex;gap:4px}.marketing-demo-dots i{width:6px;height:6px;background:#d5dde0;border-radius:50%}
+.marketing-demo-body{display:grid;grid-template-columns:118px 1fr;height:100%}
+.marketing-demo-sidebar{border-right:1px solid #e8edef;background:#f8faf9;padding:23px 11px;display:grid;align-content:start;gap:10px}
+.marketing-demo-sidebar span{font-size:9px;color:#94a4ae;padding:8px;border-radius:6px}
+.marketing-demo-sidebar span.on{background:#e4eeeb;color:#356058;font-weight:800}
+.marketing-demo-main{min-width:0;padding:20px 24px}
+.marketing-demo-kicker{font-size:9px;letter-spacing:.12em;font-weight:900;color:#f0794c;margin:0 0 7px}
+.marketing-demo-main h3{font-size:17px;letter-spacing:-.025em;margin:0 0 16px;color:#1b3040;max-width:250px}
+.marketing-demo-invoice{border:1px solid #e1e9e8;padding:15px;background:#fff;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,.02)}
+.marketing-demo-company{display:flex;align-items:center;gap:9px}
+.marketing-demo-avatar{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#193e3b;color:white;font-weight:900}
+.marketing-demo-company div:nth-child(2){display:grid;gap:2px}.marketing-demo-company b{font-size:10px;color:#1c3142}.marketing-demo-company small{font-size:8px;color:#a3aab2}
+.marketing-demo-company>span{margin-left:auto;font-weight:900;letter-spacing:.08em;font-size:9px;color:#56746c}
+.marketing-demo-detail{display:flex;justify-content:space-between;gap:12px;margin-top:18px;padding:13px 0;border-top:1px solid #edf1f1}
+.marketing-demo-detail>div{display:grid;gap:4px}.marketing-demo-detail small{font-size:8px;color:#a4afb5}.marketing-demo-detail strong{font-size:10px}
+.marketing-demo-line{border-top:1px solid #edf1f1;padding:13px 0;display:flex;justify-content:space-between;gap:10px;font-size:10px}
+.marketing-demo-total{display:flex;justify-content:space-between;font-size:11px;color:#193c38;border-top:2px solid #e1e9e6;padding:9px 0}
+.marketing-demo-draft{display:inline-block;font-size:9px;color:#926029;background:#fff3e2;padding:5px 9px;border-radius:20px;margin-top:4px}
+.marketing-voice-card{z-index:2;position:absolute;bottom:17px;left:-13px;background:#fff;border:1px solid #e4eae8;display:flex;gap:12px;align-items:center;padding:14px 18px;border-radius:15px;box-shadow:0 17px 35px rgba(36,71,71,.18);max-width:390px}
+.marketing-voice-icon{background:#ffebdf;color:#e66a3e;width:43px;height:43px;border-radius:12px;display:grid;place-items:center;font-size:20px}
+.marketing-voice-card>div:nth-child(2){display:grid;gap:5px}
+.marketing-voice-card span{font-size:8px;color:#a1aeb2;font-weight:900;letter-spacing:.09em}
+.marketing-voice-card strong{font-size:11px;color:#273746}
+.marketing-wave{display:flex;align-items:center;gap:3px;margin-left:4px}
+.marketing-wave i{width:3px;height:10px;background:#ec8d62;border-radius:3px}
+.marketing-wave i:nth-child(2),.marketing-wave i:nth-child(6){height:22px}
+.marketing-wave i:nth-child(3),.marketing-wave i:nth-child(5){height:14px}
+.marketing-wave i:nth-child(4){height:29px}
+.marketing-trust{background:#fff;border-bottom:1px solid #eee}
+.marketing-trust-inner{display:flex;justify-content:space-between;align-items:center;gap:20px;min-height:112px}
+.marketing-trust-inner p{font-size:12px;color:#869097;font-weight:770}
+.marketing-trust-inner>div{display:flex;gap:30px;flex-wrap:wrap;font-size:12px;font-weight:780;color:#6e8187}
+.marketing-features{padding:112px 0;background:#fff}
+.marketing-section-intro{display:flex;align-items:end;justify-content:space-between;gap:60px;margin-bottom:46px}
+.marketing-section-kicker{font-size:11px!important;letter-spacing:.14em!important;color:#e76b43!important;font-weight:900!important;margin:0 0 18px!important}
+.marketing-section-intro h2,.marketing-steps h2,.marketing-centered-intro h2,.marketing-faq h2,.marketing-last h2{font-size:clamp(36px,4vw,54px);letter-spacing:-.065em;line-height:1.06;margin:0;color:#172b3c}
+.marketing-section-intro h2 span{color:#9da9ac}
+.marketing-section-intro>p{max-width:430px;font-size:15px;color:#76848e;line-height:1.7}
+.marketing-features-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.marketing-feature-card{padding:32px;background:#fcfcfb;border:1px solid #e9edef;border-radius:18px;min-height:282px;transition:border-color .2s,transform .2s}
+.marketing-feature-card:hover{transform:translateY(-3px);border-color:#bed6d0}
+.marketing-feature-top{display:flex;justify-content:space-between;align-items:start;gap:12px;margin-bottom:30px}
+.marketing-feature-top>span:last-child{font-size:9px;line-height:1.5;color:#7e8c92;text-align:right;max-width:125px}
+.marketing-feature-icon{width:46px;height:46px;background:#edf6f1;color:#295c50;display:grid;place-items:center;font-size:27px;border-radius:12px;font-weight:800}
+.marketing-feature-card .marketing-section-kicker{font-size:9px!important;margin-bottom:8px!important}
+.marketing-feature-card h3{font-size:21px;letter-spacing:-.035em;line-height:1.24;max-width:300px}
+.marketing-feature-card>p:last-child{margin-top:13px;font-size:13px;color:#7a8690;line-height:1.7}
+.marketing-steps{padding:110px 0;background:#eff3f0}
+.marketing-steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:85px}
+.marketing-steps-grid>div:first-child>p:not(.marketing-section-kicker){color:#758891;line-height:1.7;max-width:425px;font-size:15px;margin:23px 0}
+.marketing-inline-link{display:inline-flex;gap:18px;align-items:center;color:#e06338;font-size:13px;font-weight:900;margin-top:9px}
+.marketing-steps-list{display:grid;gap:0}
+.marketing-steps-list article{display:flex;align-items:flex-start;gap:24px;padding:24px 0;border-bottom:1px solid #d6dfdc}
+.marketing-steps-list article:first-child{padding-top:0}
+.marketing-steps-list article>span{font-size:14px;font-weight:900;color:#da704c;background:#fff;border-radius:11px;width:45px;height:45px;flex:none;display:grid;place-items:center}
+.marketing-steps-list h3{font-size:20px;letter-spacing:-.035em;margin:0 0 9px}
+.marketing-steps-list p{color:#78888e;line-height:1.6;font-size:13px;margin:0}
+.marketing-pricing{padding:112px 0 92px;background:#fff}
+.marketing-centered-intro{text-align:center;max-width:740px;margin:0 auto 56px}
+.marketing-centered-intro p:not(.marketing-section-kicker){color:#7e8992;font-size:15px;line-height:1.7;margin:18px 0}
+.marketing-price-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
+.marketing-price-card{border:1px solid #e5e9ec;border-radius:20px;padding:29px;display:flex;flex-direction:column;min-height:490px;position:relative;box-shadow:0 5px 16px rgba(16,24,40,.02)}
+.marketing-price-card.featured{background:#1b3341;color:#fff;border-color:#1b3341;box-shadow:0 19px 45px rgba(16,40,54,.14)}
+.marketing-price-card .marketing-price-top{min-height:155px}
+.marketing-price-card h3{font-size:23px;margin:0 0 9px;letter-spacing:-.035em}
+.marketing-price-card .marketing-price-top>p{color:#8a969f;font-size:12px;margin:0 0 20px}
+.marketing-price-card.featured .marketing-price-top>p{color:#afc4c7}
+.marketing-plan-pill{background:rgba(241,155,107,.17);color:#ffb48d;font-size:9px;text-transform:uppercase;font-weight:850;letter-spacing:.09em;display:inline-flex;padding:7px 11px;border-radius:30px;margin-bottom:16px}
+.marketing-price-value{font-size:clamp(29px,2.9vw,37px);letter-spacing:-.065em;font-weight:900;color:#162e3c;margin:0 0 6px}
+.marketing-price-card.featured .marketing-price-value{color:#fff}
+.marketing-price-detail{color:#8d9aa2;font-size:10px;line-height:1.4}
+.marketing-price-card.featured .marketing-price-detail{color:#b1c2c8}
+.marketing-price-card ul{list-style:none;padding:23px 0;margin:22px 0 27px;border-top:1px solid #e5eaeb;display:grid;gap:16px;flex:1}
+.marketing-price-card.featured ul{border-color:rgba(255,255,255,.16)}
+.marketing-price-card li{font-size:12px;display:flex;gap:11px;align-items:flex-start;line-height:1.45;color:#627480}
+.marketing-price-card.featured li{color:#d7e2e7}
+.marketing-check{color:#229776;font-weight:900}
+.marketing-price-card.featured .marketing-check{color:#ffaf81}
+.marketing-price-card .marketing-btn{font-size:12px;min-height:47px;justify-content:space-between}
+.marketing-price-card.featured .marketing-btn{color:#203543}
+.marketing-pricing-note{text-align:center;color:#9aa5a9;font-size:11px;line-height:1.6;margin-top:24px}
+.marketing-faq{padding:105px 0;background:#f7f7f4}
+.marketing-faq-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:100px}
+.marketing-faq-grid>div:first-child>p:last-child{color:#768791;line-height:1.75;font-size:14px;margin-top:24px}
+.marketing-faq-item{border-bottom:1px solid #dfe5e4}
+.marketing-faq-item:first-child{border-top:1px solid #dfe5e4}
+.marketing-faq-item button{background:transparent;color:#283a47;border:0;width:100%;min-height:74px;padding:18px 4px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:820;text-align:left;font-size:16px}
+.marketing-faq-item button b{font-size:20px;color:#e4724d}
+.marketing-faq-item p{margin:-4px 4px 21px;color:#6f818b;font-size:13px;line-height:1.75}
+.marketing-last{padding:85px 0;background:#f7f7f4}
+.marketing-last-card{padding:68px 70px;border-radius:24px;background:radial-gradient(circle at 82% 28%,#355d60 0%,transparent 39%),#1b3544;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:60px}
+.marketing-last h2{color:#fff;max-width:500px;font-size:clamp(32px,3.5vw,48px)}
+.marketing-last-card p:not(.marketing-section-kicker){color:#a6bdc4;font-size:14px;line-height:1.6;margin-top:17px}
+.marketing-last .marketing-btn{flex:none}
+.marketing-footer{background:#182b3b;color:#f7fafc;padding:60px 0}
+.marketing-footer .marketing-brand{color:#fff}
+.marketing-footer-inner{display:flex;justify-content:space-between;gap:40px}
+.marketing-footer-inner p,.marketing-footer-inner small{color:#8fa2b1;font-size:12px;margin-top:12px}
+.marketing-footer-inner nav{display:flex;gap:30px;flex-wrap:wrap;justify-content:flex-end;max-width:500px;align-content:start}
+.marketing-footer-inner nav a{color:#b4c2ca;font-size:12px}
+
+/* Terms and mandatory click-through consent */
+.legal-public-page,.agreement-gate{min-height:100vh;background:#f4f7f7}
+.legal-nav{width:min(920px,calc(100% - 36px));margin:auto;min-height:86px;display:flex;align-items:center;justify-content:space-between}
+.legal-nav>a:last-child{color:#667781;font-size:12px;font-weight:800}
+.legal-paper,.agreement-panel{background:#fff;border:1px solid #e1e8e9;border-radius:24px;max-width:920px;margin:0 auto 70px;padding:56px;box-shadow:0 13px 45px rgba(21,54,64,.06)}
+.legal-paper h1,.agreement-header h1{font-size:clamp(30px,4vw,46px);letter-spacing:-.06em;line-height:1.1;margin:0 0 16px;color:#1b3140}
+.legal-meta{font-size:12px;color:#81909b;line-height:1.6}
+.legal-disclaimer{background:#fff6e9;border-left:4px solid #eda45d;padding:17px;font-size:13px;color:#795b36;line-height:1.65;border-radius:0 12px 12px 0;margin:25px 0}
+.legal-section{margin:24px 0}
+.legal-section h2{font-size:17px;line-height:1.35;letter-spacing:-.02em;color:#213c4a;margin-bottom:10px}
+.legal-section p{font-size:13px;color:#627480;line-height:1.77;margin:9px 0}
+.legal-bottom-links{border-top:1px solid #e4ebed;display:flex;gap:25px;flex-wrap:wrap;margin-top:35px;padding-top:22px;font-size:12px;font-weight:800}
+.legal-bottom-links a,.agreement-read-copy a{color:#d7643a;text-decoration:underline}
+.agreement-gate{padding:46px 20px}
+.agreement-panel{max-width:830px;margin:0 auto;padding:38px}
+.agreement-header{display:flex;align-items:start;justify-content:space-between;gap:25px}
+.agreement-header .marketing-brand{margin:0 0 28px}
+.agreement-header>div>p:last-child{font-size:13px;color:#72818b;line-height:1.6;margin-bottom:21px}
+.agreement-header>.text-button{font-size:11px;white-space:nowrap}
+.agreement-ai-notice{background:#ebf5f2;border:1px solid #cfe5dc;border-radius:14px;padding:18px 20px;margin:18px 0}
+.agreement-ai-notice strong{font-size:14px;color:#1e5044}
+.agreement-ai-notice p{color:#4e756a;font-size:12px;line-height:1.65;margin-top:9px}
+.agreement-reading{max-height:310px;overflow-y:auto;padding:5px 24px;background:#fcfdfd;border:1px solid #e3e8e8;border-radius:14px}
+.agreement-reading .legal-section{margin:20px 0}
+.agreement-reading .legal-section h2{font-size:14px}
+.agreement-reading .legal-section p{font-size:12px}
+.agreement-read-copy{font-size:12px;color:#75838c;margin:16px 0 22px;line-height:1.6}
+.agreement-consents{display:grid;gap:12px}
+.agreement-consents label{display:flex;align-items:start;gap:13px;cursor:pointer;font-size:12px;font-weight:620;color:#536976;line-height:1.55;background:#fbfbfb;border:1px solid #e7eded;border-radius:11px;padding:13px}
+.agreement-consents input{width:18px;min-height:18px;height:18px;flex:none;accent-color:#ed744e;margin:1px 0}
+.agreement-actions{display:flex;gap:12px;justify-content:flex-end;align-items:center;margin-top:24px}
+.agreement-small{font-size:11px;line-height:1.6;color:#8c9aa0;margin-top:15px}
+@media(max-width:1080px){.marketing-scene{min-height:460px}.marketing-demo-window{transform:rotate(-2deg)}.marketing-trust-inner>div{gap:13px}}
+@media(max-width:900px){
+ .marketing-container{width:min(100% - 36px,680px)}
+ .marketing-main-nav{display:none}.marketing-nav-actions{gap:12px}.marketing-hero{padding:65px 0 80px}
+ .marketing-hero-grid,.marketing-steps-grid,.marketing-faq-grid{grid-template-columns:1fr;gap:44px}
+ .marketing-hero h1{font-size:clamp(50px,10vw,79px);max-width:690px}
+ .marketing-scene{width:min(100%,580px);margin:auto}.marketing-features-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .marketing-section-intro{display:block}.marketing-section-intro>p{margin-top:22px}
+ .marketing-price-grid{grid-template-columns:1fr 1fr}.marketing-price-card{min-height:470px}.marketing-steps{padding:80px 0}
+ .marketing-faq-grid{gap:25px}.marketing-last-card{padding:50px;display:grid}
+}
+@media(max-width:620px){
+ .marketing-container{width:calc(100% - 34px)}
+ .marketing-nav{min-height:70px}
+ .marketing-brand{font-size:22px}
+ .marketing-logo{width:33px;height:33px;flex-basis:33px}
+ .marketing-signin{display:none}.marketing-nav-actions .marketing-btn{font-size:11px;padding:0 12px;min-height:39px}
+ .marketing-hero{padding:43px 0 52px}
+ .marketing-beta{font-size:10px}
+ .marketing-hero h1{font-size:clamp(46px,12vw,62px)}
+ .marketing-hero-lead{font-size:15px}
+ .marketing-hero-actions{align-items:stretch;flex-direction:column;gap:16px}
+ .marketing-hero-actions .marketing-btn{justify-content:space-between}
+ .marketing-hero-statline{margin-top:35px;gap:12px}
+ .marketing-hero-statline span{font-size:10px}.marketing-hero-statline strong{font-size:11px}
+ .marketing-scene{min-height:370px}
+ .marketing-orbit-one{width:335px;height:335px;right:0}
+ .marketing-orbit-two{width:240px;height:240px;right:40px;top:45px}
+ .marketing-demo-window{height:320px;width:95%;transform:rotate(-2deg);margin:0 10px 25px 0}
+ .marketing-demo-header{padding:11px}
+ .marketing-demo-body{grid-template-columns:78px 1fr}
+ .marketing-demo-sidebar{padding:12px 5px;gap:6px}
+ .marketing-demo-sidebar span{font-size:7px;padding:7px 3px}
+ .marketing-demo-main{padding:10px 13px}
+ .marketing-demo-main h3{font-size:13px;margin-bottom:10px}
+ .marketing-demo-invoice{padding:10px}.marketing-demo-company b{font-size:8px}
+ .marketing-demo-detail{margin-top:8px;padding:8px 0}
+ .marketing-demo-line,.marketing-demo-total{padding:7px 0;font-size:9px}
+ .marketing-voice-card{bottom:0;left:0;max-width:100%;padding:11px 12px}
+ .marketing-voice-icon{width:32px;height:32px;font-size:15px}
+ .marketing-voice-card strong{font-size:10px}.marketing-wave{display:none}
+ .marketing-trust-inner{padding:24px 0;display:grid;gap:10px}.marketing-trust-inner p{margin:0}
+ .marketing-trust-inner>div{gap:8px 14px;font-size:10px}
+ .marketing-features,.marketing-pricing,.marketing-faq{padding:72px 0}
+ .marketing-features-grid,.marketing-price-grid{grid-template-columns:1fr}
+ .marketing-feature-card{min-height:auto;padding:24px}
+ .marketing-feature-top{margin-bottom:20px}
+ .marketing-price-card{min-height:400px}
+ .marketing-steps{padding:70px 0}
+ .marketing-last{padding:45px 0}.marketing-last-card{padding:34px 26px;gap:27px}
+ .marketing-footer{padding:46px 0}.marketing-footer-inner{display:grid}
+ .marketing-footer-inner nav{justify-content:flex-start;gap:17px}
+ .legal-paper,.agreement-panel{padding:24px 20px;margin-bottom:35px;border-radius:18px}
+ .agreement-gate{padding:20px 12px}.agreement-panel{padding:23px 15px}
+ .agreement-header{display:grid;gap:6px}.agreement-header>.text-button{text-align:left;white-space:normal}
+ .agreement-reading{padding:5px 14px;max-height:265px}
+ .agreement-actions{display:grid;grid-template-columns:1fr}
+ .agreement-actions .primary-button{order:-1}
+}
+@media(prefers-reduced-motion:reduce){.marketing-btn,.marketing-feature-card{transition:none!important}}
+
+.sidebar-legal{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:17px}
+.sidebar-legal a{color:#aab4c5;font-size:10px;text-decoration:underline}
+.auth-brand-link{color:inherit;text-decoration:none;display:inline-flex;gap:14px;align-items:center}
+.auth-brand-link .logo-mark{margin:0}
+.auth-brand-link .brand-word{margin:0}
+.auth-legal-note{font-size:11px;line-height:1.65;color:#7c8795;margin-top:17px}
+.auth-legal-note a{color:#e96b3f;text-decoration:underline}
+.auth-home-link{display:inline-block;margin-top:14px;font-size:12px}
+.mobile-more-account>a{font-size:11px;color:#6c7988;text-decoration:underline}
+
+
+/* Plan preference screen shown after authentication and before legal acceptance. */
+.plan-pick-page{min-height:100vh;background:linear-gradient(140deg,#f1f7f4,#fbfaf7 55%,#f7f6f0);font-family:Inter,system-ui,-apple-system,sans-serif;color:#183040}
+.plan-pick-header{width:min(1160px,calc(100% - 48px));margin:auto;padding:23px 0;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dfe8e4}
+.plan-pick-header button{font-size:12px}
+.plan-pick-content{width:min(1160px,calc(100% - 48px));margin:0 auto;padding:56px 0 95px}
+.plan-pick-intro{max-width:750px;margin:0 0 40px}
+.plan-pick-intro h1{font-size:clamp(36px,4.7vw,59px);letter-spacing:-.075em;line-height:1.07;margin:12px 0 18px}
+.plan-pick-intro>p:last-child{color:#6b7c86;line-height:1.65;font-size:14px;max-width:650px}
+.plan-pick-intro strong{color:#29495a}
+.plan-pick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+.plan-pick-card{border:1px solid #dce7e7;background:#fff;border-radius:21px;display:flex;flex-direction:column;padding:28px;box-shadow:0 10px 26px rgba(26,56,59,.04)}
+.plan-pick-featured{border:2px solid #f0764c;padding:27px;box-shadow:0 17px 40px rgba(237,107,60,.11)}
+.plan-pick-card-heading{min-height:133px;display:flex;gap:10px;justify-content:space-between;align-items:start}
+.plan-pick-status{color:#e46c42;font-size:10px;font-weight:850;letter-spacing:.025em}
+.plan-pick-card h2{font-size:30px;line-height:1.1;letter-spacing:-.04em;margin:13px 0 7px}
+.plan-pick-card-heading p{font-size:12px;line-height:1.5;color:#7c8b95}
+.plan-pick-current{font-size:10px;background:#e2f5eb;color:#247550;padding:7px 9px;border-radius:25px;white-space:nowrap}
+.plan-pick-price{font-size:23px;letter-spacing:-.035em;margin-bottom:20px}
+.plan-pick-card ul{list-style:none;padding:20px 0 8px;border-top:1px solid #e7eff0;display:grid;gap:13px;flex:1}
+.plan-pick-card li{display:flex;align-items:start;gap:11px;color:#586f79;font-size:12px;line-height:1.5}
+.plan-pick-card li>span{font-weight:850;color:#26977e;flex:none}
+.plan-pick-card .marketing-btn{width:100%;min-height:48px;justify-content:space-between;font-size:12px;border:0;cursor:pointer;margin-top:24px}
+.plan-pick-card .marketing-btn:disabled{opacity:.55;cursor:progress}
+.plan-pick-notice{background:#fff;border:1px solid #dce9e6;border-radius:17px;padding:22px 26px;margin-top:25px}
+.plan-pick-notice strong{font-size:13px}
+.plan-pick-notice p{font-size:12px;color:#6a7e87;line-height:1.65;margin:8px 0 0}
+.legal-section-links{display:flex;gap:20px;margin:18px 0 26px;flex-wrap:wrap}
+.legal-section-links a{color:#c95f34;font-weight:760;text-decoration:underline;font-size:12px}
+.legal-chapter{padding-top:12px;border-top:1px solid #e3ebeb}
+.legal-chapter h2,.legal-chapter-title{color:#1e4650;font-size:19px!important;letter-spacing:-.035em!important;margin:15px 0!important}
+.legal-section h3{font-size:16px;letter-spacing:-.02em;line-height:1.35;color:#213c4a;margin:0 0 10px}
+.legal-section:target{scroll-margin-top:26px}
+.marketing-pricing-note a{text-decoration:underline;color:#db633e;font-weight:850}
+@media(max-width:910px){.plan-pick-grid{grid-template-columns:1fr 1fr}.plan-pick-card:last-child{grid-column:1/-1}}
+@media(max-width:650px){
+ .plan-pick-header,.plan-pick-content{width:calc(100% - 32px)}
+ .plan-pick-content{padding:35px 0 70px}
+ .plan-pick-grid{grid-template-columns:1fr;gap:12px}
+ .plan-pick-card:last-child{grid-column:auto}
+ .plan-pick-card{padding:23px}
+ .plan-pick-featured{padding:22px}
+ .plan-pick-card-heading{min-height:auto;margin-bottom:17px}
+ .plan-pick-price{font-size:22px}
+ .plan-pick-card ul{margin:0}
+}
+
+/* AI assistant value proposition: explicitly segregated from free features */
+.marketing-assistant-spotlight{background:#16303d;color:#fff;padding:100px 0}
+.marketing-ai-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:75px;align-items:start}
+.marketing-ai-grid h2{font-size:clamp(35px,4vw,53px);line-height:1.07;letter-spacing:-.055em;margin:0 0 25px;color:#fff}
+.marketing-ai-grid h2 span{color:#f5aa82}
+.marketing-ai-lead{font-size:15px;line-height:1.75;color:#bed0d6}
+.marketing-ai-status{background:#274757;border:1px solid #456372;color:#d5e6e9;border-radius:12px;padding:15px;font-size:12px;line-height:1.6;margin-top:27px}
+.marketing-ai-status strong{color:#ffba98}
+.marketing-ai-examples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.marketing-ai-examples article{border-radius:16px;border:1px solid #3a5967;background:#213e4c;padding:24px}
+.marketing-ai-examples strong{display:block;color:#ffa67a;font-size:12px;letter-spacing:.015em}
+.marketing-ai-examples p{font-size:17px;line-height:1.4;font-weight:720;margin:17px 0;color:#fff}
+.marketing-ai-examples small{font-size:12px;color:#b6cad2;line-height:1.65}
+@media(max-width:900px){.marketing-ai-grid{grid-template-columns:1fr;gap:35px}.marketing-assistant-spotlight{padding:75px 0}}
+@media(max-width:620px){.marketing-ai-examples{grid-template-columns:1fr}.marketing-ai-examples article{padding:22px}}
+
+/* Future optional assistant add-on comparison — accessible and mobile scrollable. */
+.marketing-assistant-pricing{margin-top:38px;padding:30px;background:#f5f8f6;border-radius:20px;border:1px solid #dfe9e5}
+.marketing-assistant-pricing .marketing-topups-header{margin:0 0 20px}
+.marketing-assistant-pricing .marketing-topups-header h3{font-size:24px;letter-spacing:-.04em;margin:0 0 10px}
+.marketing-assistant-pricing .marketing-topups-header p:not(.marketing-section-kicker){font-size:13px;line-height:1.65;color:#617781}
+.marketing-assistant-price-table-wrap{overflow-x:auto;border:1px solid #dce5e5;border-radius:13px;background:#fff}
+.marketing-assistant-price-table{border-collapse:collapse;width:100%;min-width:470px}
+.marketing-assistant-price-table th,.marketing-assistant-price-table td{padding:17px 18px;text-align:left;vertical-align:top;border-bottom:1px solid #edf1f0}
+.marketing-assistant-price-table thead th{font-size:12px;font-weight:850;background:#e9f1ef;color:#274638}
+.marketing-assistant-price-table tbody th{width:56%;font-size:13px;color:#223947}
+.marketing-assistant-price-table tbody td{font-weight:900;color:#173b33;font-size:15px;white-space:nowrap}
+.marketing-assistant-price-table small{display:block;font-size:11px;font-weight:450;color:#7c8c93;line-height:1.5;margin-top:5px}
+.marketing-assistant-price-table tr:last-child th,.marketing-assistant-price-table tr:last-child td{border-bottom:none}
+.marketing-assistant-total{background:#f5f8f6}
+.marketing-assistant-pricing>.marketing-inline-link{margin-top:15px}
+.service-assistant-options{border-top:1px solid #e7eeee;padding-top:19px}
+.service-addon-unavailable{opacity:.65}
+.service-assistant-subtotal{padding:13px 14px;background:#f1f8f4;border:1px solid #d6eadd;border-radius:11px;font-size:12px;line-height:1.6;margin-top:14px;color:#254a3e}
+@media(max-width:620px){.marketing-assistant-pricing{padding:17px}.marketing-assistant-price-table th,.marketing-assistant-price-table td{padding:14px 13px}}
+
+/* Finviant replaces the former single-letter marketing mark. */
+.marketing-logo{background:#fff;box-shadow:0 3px 12px rgba(15,39,71,.12);overflow:hidden;letter-spacing:normal;padding:0;border-radius:9px}
+.marketing-logo img{display:block;width:100%;height:100%;object-fit:contain}
+.brand-dot{color:#14b8a6}

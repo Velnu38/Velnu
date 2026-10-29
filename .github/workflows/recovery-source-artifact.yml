@@ -1,0 +1,22 @@
+name: Recovery source snapshot
+on:
+  push:
+    branches: [feature/velnu-stage1]
+    paths: ['.github/workflows/recovery-source-artifact.yml']
+permissions:
+  contents: read
+jobs:
+  source-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Archive tracked source only (no credentials or working files)
+        run: git archive --format=zip --output=/tmp/finviant-recovery-source.zip HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: finviant-recovery-source
+          path: /tmp/finviant-recovery-source.zip
+          retention-days: 1

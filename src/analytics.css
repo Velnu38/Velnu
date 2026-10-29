@@ -1,0 +1,11 @@
+
+/* PostHog optional consent. No SDK requests occur before the user opts in. */
+.analytics-consent{position:fixed;z-index:180;bottom:16px;left:50%;transform:translateX(-50%);width:min(950px,calc(100% - 24px));padding:18px 21px;background:#fff;border:1px solid #dae4e3;border-radius:16px;box-shadow:0 16px 50px rgba(17,43,56,.21);display:flex;align-items:center;gap:20px;justify-content:space-between;color:#203344}
+.analytics-consent>div:first-child{flex:1;min-width:0}
+.analytics-consent strong{font-size:15px}
+.analytics-consent p{font-size:12px;color:#576a74;line-height:1.5;margin:5px 0}
+.analytics-consent a{font-size:11px;color:#b25736;text-decoration:underline}
+.analytics-consent-actions{display:flex;gap:8px;flex-wrap:wrap;flex:none}
+.analytics-settings{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.analytics-settings p{font-size:13px;color:#52616b;flex:1 0 100%;margin:0}
+@media(max-width:640px){.analytics-consent{bottom:9px;align-items:stretch;flex-direction:column;gap:12px;padding:14px}.analytics-consent-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}.analytics-consent-actions button{font-size:11px;padding:8px 10px;white-space:normal}}

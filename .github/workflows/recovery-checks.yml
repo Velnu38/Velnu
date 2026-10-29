@@ -1,0 +1,39 @@
+name: Finviant recovery checks
+on:
+  push:
+    branches: [feature/velnu-stage1]
+  pull_request:
+    branches: [main, feature/velnu-stage1]
+permissions:
+  contents: read
+concurrency:
+  group: recovery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  provider-failure-injection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Reject mixed staging and production configuration
+        run: npm run test:deployment
+      - name: Verify actual workbook service pagination and failure handling
+        run: node --test tests/financial/*.test.mjs
+      - name: Compile actual provider and signature helpers
+        run: npx tsc supabase/functions/_shared/providerRequest.ts supabase/functions/_shared/signedEvents.ts supabase/functions/_shared/healthStatus.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build
+      - name: Inject provider and signature failures without external requests
+        run: node --test tests/recovery/*.test.mjs
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.x
+      - name: Typecheck changed backend functions
+        run: deno check --node-modules-dir=auto supabase/functions/ai-command/index.ts supabase/functions/transcribe-voice/index.ts supabase/functions/send-invoice-email/index.ts supabase/functions/send-document-email/index.ts supabase/functions/resend-events/index.ts supabase/functions/stripe-events/index.ts supabase/functions/email-recovery-worker/index.ts supabase/functions/reliability-health/index.ts supabase/functions/quickbooks/index.ts
+      - name: Test frozen email dispatch and operator gates with mocks only
+        run: deno test --node-modules-dir=auto --allow-env supabase/functions/send-invoice-email/index_test.ts supabase/functions/email-recovery-worker/index_test.ts

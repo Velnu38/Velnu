@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listJobs } from '../services/jobs'
 import { createChangeOrder, listChangeOrders, updateChangeOrderStatus } from '../services/changeOrders'
 import { createApprovalLink } from '../services/approvals'
 import { sendDocumentEmail } from '../services/communications'
+import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
@@ -38,6 +39,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   const [scheduleImpactDays, setScheduleImpactDays] = useState('0')
   const [scheduleNote, setScheduleNote] = useState('')
   const [lines, setLines] = useState<Line[]>([blankLine()])
+  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
     const [orders, jobRows] = await Promise.all([listChangeOrders(business.id), listJobs(business.id)])
@@ -45,7 +47,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
     setJobs((jobRows as unknown as Job[]).filter((job) => job.status !== 'canceled'))
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load change orders')) }, [business.id])
 
   const preview = useMemo(() => lines.reduce((sum, line) => {
     const quantity = Number(line.quantity || 0)
@@ -56,7 +58,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   }, 0), [lines])
 
   function resetForm() {
-    setJobId(''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice('')
+    setJobId(''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
@@ -64,7 +66,10 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
     try {
       const job = jobs.find((row) => row.id === jobId)
       if (!job) throw new Error('Choose a job')
+      const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines})
+      if (retryRef.current?.signature !== signature) retryRef.current = {signature, requestId: crypto.randomUUID()}
       await createChangeOrder(business.id, {
+        request_id: retryRef.current.requestId,
         customer_id: job.customer_id,
         job_id: job.id,
         title,
@@ -85,13 +90,22 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
     } finally { setBusy(false) }
   }
 
-  async function changeStatus(id: string, status: ChangeOrder['status']) {
-    setError(''); setNotice('')
-    await updateChangeOrderStatus(id, status as 'draft' | 'sent' | 'approved' | 'declined' | 'void')
-    await refresh()
+  async function changeStatus(id: string, status: 'sent' | 'void') {
+    if (!window.confirm(status === 'sent'
+      ? 'Mark this change order as sent outside Finviant Office? This does not email the customer.'
+      : 'Void this change order? This removes it from the approval workflow but keeps a record of it.')) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await updateChangeOrderStatus(id, status)
+      await refresh()
+      setNotice(status === 'sent' ? 'Marked as sent manually. No customer email was generated.' : 'Change order voided.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update change order')
+    } finally { setBusy(false) }
   }
 
   async function shareForApproval(order: ChangeOrder) {
+    if (!customerActionsEnabled) return
     setBusy(true); setError(''); setNotice('')
     try {
       const link = await createApprovalLink(business.id, 'change_order', order.id)
@@ -102,6 +116,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   }
 
   async function emailForApproval(order: ChangeOrder) {
+    if (!customerActionsEnabled || !window.confirm('Send this change order to the customer for approval?')) return
     setBusy(true); setError(''); setNotice('')
     try {
       const sent = await sendDocumentEmail(business.id, 'change_order', order.id)
@@ -115,23 +130,25 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
   return <div className="page-stack">
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Change orders</p><h1>Capture scope changes before they become lost revenue.</h1></div>
-      {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
+      {canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
     </div>
     <section className="change-order-intro"><strong>Accuracy first.</strong><span>Added work, price, tax and schedule impact stay separate until the customer approves the change.</span></section>
+    {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && <p className="form-message error-text">{error}</p>}
     <section className="list-card">
       {changeOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : changeOrders.map((order) => {
         const customer = order.customers?.[0]
         const job = order.jobs?.[0]
-        const terminal = ['approved', 'declined', 'void'].includes(order.status)
         return <article className="document-row change-order-row" key={order.id}>
           <div className="row-main"><strong>{order.change_order_number || 'Draft change order'} · {order.title}</strong><span>{customerName(customer)} · {job?.title || 'Job'}{order.schedule_impact_days ? ` · ${order.schedule_impact_days > 0 ? '+' : ''}${order.schedule_impact_days} day schedule impact` : ''}</span></div>
           <div className="invoice-money"><strong className="money">${Number(order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
           <div className="document-actions">
-            {terminal ? <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span> : <select value={order.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(order.id, e.target.value)}><option value="draft">Draft</option><option value="sent">Sent</option><option value="void">Void</option></select>}
-            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="primary-button compact" disabled={busy} onClick={() => emailForApproval(order)}>Email customer</button>}
-            {canWrite(business.role) && !['void','approved'].includes(order.status) && <button className="secondary-button compact" disabled={busy} onClick={() => shareForApproval(order)}>Copy approval link</button>}
+            <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span>
+            {canManageFinances(business.role) && order.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'sent')}>Mark sent manually</button>}
+            {canManageFinances(business.role) && ['draft','sent'].includes(order.status) && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'void')}>Void</button>}
+            {canManageFinances(business.role) && order.status === 'draft' && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
+            {canManageFinances(business.role) && order.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Get customer approval link</button>}
           </div>
         </article>
       })}
@@ -148,7 +165,7 @@ export default function ChangeOrdersPage({ business }: { business: CurrentBusine
           <label className="full">Schedule note<input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} placeholder="Adds one working day to completion." /></label>
         </div>
         <div className="line-items"><div className="line-items-head"><strong>Price change</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
-        <div className="estimate-total"><span>Proposed change</span><strong>${preview.toFixed(2)}</strong><small>Final totals are calculated by Owedly when saved. Customer approval is the next workflow step.</small></div>
+        <div className="estimate-total"><span>Proposed change</span><strong>${preview.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved. Customer approval is the next workflow step.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create change order'}</button></div>
       </form>

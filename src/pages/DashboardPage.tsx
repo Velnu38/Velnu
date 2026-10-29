@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { completeReminder, getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
+import { readableError } from '../lib/errors'
 
 const empty: DashboardSnapshot = {
-  customers: 0,
   openInvoices: 0,
   outstandingBalance: 0,
   jobsThisWeek: 0,
@@ -18,31 +18,61 @@ function personName(customer?: { first_name: string | null; last_name: string | 
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
 }
 
-export default function DashboardPage({ business }: { business: CurrentBusiness }) {
+export default function DashboardPage({ business, onSetup }: { business: CurrentBusiness; onSetup?: () => void }) {
   const [snapshot, setSnapshot] = useState(empty)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // A route change or newer refresh invalidates an older response. This also
+  // avoids setState on an unmounted workspace after a slow network request.
+  const currentRequest = useRef(0)
+  const mounted = useRef(false)
+  // Share concurrent first loads (including React Strict Mode's effect replay)
+  // without caching financial data across users, sessions, or businesses.
+  const pendingLoad = useRef<{ businessId: string; promise: Promise<DashboardSnapshot> } | null>(null)
 
-  async function refresh() {
+  async function refresh(force = false) {
+    if (!mounted.current) return
+    const request = ++currentRequest.current
     setLoading(true)
     setError('')
+
+    let load = !force && pendingLoad.current?.businessId === business.id
+      ? pendingLoad.current.promise
+      : null
+    if (!load) {
+      load = getDashboardSnapshot(business.id)
+      pendingLoad.current = { businessId: business.id, promise: load }
+      const currentLoad = load
+      const clearPending = () => {
+        if (pendingLoad.current?.promise === currentLoad) pendingLoad.current = null
+      }
+      // Both resolve and reject paths clear the slot without leaking an
+      // unhandled rejection from a detached finally() promise.
+      void currentLoad.then(clearPending, clearPending)
+    }
     try {
-      setSnapshot(await getDashboardSnapshot(business.id))
+      const next = await load
+      if (mounted.current && request === currentRequest.current) setSnapshot(next)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load dashboard')
+      if (mounted.current && request === currentRequest.current) setError(readableError(err, 'Unable to load dashboard'))
     } finally {
-      setLoading(false)
+      if (mounted.current && request === currentRequest.current) setLoading(false)
     }
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => {
+    mounted.current = true
+    setSnapshot(empty)
+    void refresh()
+    return () => { mounted.current = false; currentRequest.current++ }
+  }, [business.id])
 
   async function finishReminder(reminderId: string) {
     try {
       await completeReminder(reminderId)
-      await refresh()
+      if (mounted.current) await refresh(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to complete reminder')
+      if (mounted.current) setError(readableError(err, 'Unable to complete reminder'))
     }
   }
 
@@ -51,17 +81,18 @@ export default function DashboardPage({ business }: { business: CurrentBusiness 
 
   return <div className="page-stack">
     <div className="page-heading split-heading">
-      <div><p className="eyebrow">Owedly Office · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
-      <button className="secondary-button compact" onClick={refresh} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
+      <div><p className="eyebrow">Finviant Office · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
+      <button className="secondary-button compact" onClick={() => void refresh(true)} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
+    {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="metric-grid">
       <article className="metric-card"><span>Outstanding</span><strong>{loading ? '—' : money.format(snapshot.outstandingBalance)}</strong><small>{snapshot.openInvoices} unpaid invoice{snapshot.openInvoices === 1 ? '' : 's'}</small></article>
       <article className="metric-card"><span>Jobs next 7 days</span><strong>{loading ? '—' : snapshot.jobsThisWeek}</strong><small>{snapshot.todayAppointments.length} scheduled today</small></article>
       <article className="metric-card"><span>Waiting on customers</span><strong>{loading ? '—' : snapshot.pendingApprovals.length}</strong><small>Sent estimates and change orders</small></article>
     </section>
 
-    {error && <p className="form-message error-text">{error}</p>}
+    {error && <p role="alert" className="form-message error-text">{error}</p>}
 
     <section className="office-day-grid">
       <article className="office-panel">
@@ -88,7 +119,7 @@ export default function DashboardPage({ business }: { business: CurrentBusiness 
     </section>
 
     <section className="attention-card">
-      <div><p className="eyebrow">AI-assisted office manager</p><h2>Tell Owedly what needs to get done.</h2><p>Create customers, jobs, estimates, change orders, invoices, payments and schedule changes by voice. Anything involving money, scope or schedule is shown for confirmation first.</p></div>
+      <div><p className="eyebrow">AI-assisted office manager</p><h2>Tell Finviant Office what needs to get done.</h2><p>Create customers, jobs, estimates, change orders, invoices, payments and schedule changes by voice. Anything involving money, scope or schedule is shown for confirmation first.</p></div>
       <div className="command-examples"><span>“Who hasn’t paid me?”</span><span>“Schedule Williams Tuesday at 10.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>
     </section>
   </div>

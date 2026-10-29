@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabase'
+import { asList } from './relations'
 
 type CustomerRef = Array<{ first_name: string | null; last_name: string | null; company: string | null }> | null
 
 export interface DashboardSnapshot {
-  customers: number
   openInvoices: number
   outstandingBalance: number
   jobsThisWeek: number
@@ -54,20 +54,28 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
   tomorrowStart.setDate(todayStart.getDate() + 1)
   const todayDate = todayStart.toISOString().slice(0, 10)
 
-  const [customers, invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting] = await Promise.all([
-    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('business_id', businessId).eq('archived', false),
-    supabase.from('invoices').select('balance_due').eq('business_id', businessId).gt('balance_due', 0).neq('status', 'void'),
+  const [invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting] = await Promise.all([
+    // SECURITY INVOKER RPC calculates exact totals under the caller's existing invoice RLS.
+    supabase.rpc('get_dashboard_invoice_totals', { target_business_id: businessId }).single(),
     supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('business_id', businessId).gte('scheduled_start', now.toISOString()).lt('scheduled_start', weekEnd.toISOString()).neq('status', 'canceled'),
-    supabase.from('invoices').select('id,invoice_number,due_date,balance_due,customers(first_name,last_name,company)').eq('business_id', businessId).lt('due_date', todayDate).gt('balance_due', 0).neq('status', 'void').order('due_date', { ascending: true }).limit(10),
+    supabase.from('invoices').select('id,invoice_number,due_date,balance_due,customers!invoices_customer_id_fkey(first_name,last_name,company)').eq('business_id', businessId).lt('due_date', todayDate).gt('balance_due', 0) .not('status', 'in', '(draft,void)').order('due_date', { ascending: true }).limit(10),
     supabase.from('reminders').select('id,kind,due_at,note,invoice_id,estimate_id,job_id,customer_id').eq('business_id', businessId).eq('status', 'pending').lte('due_at', now.toISOString()).order('due_at', { ascending: true }).limit(10),
-    supabase.from('appointments').select('id,title,starts_at,ends_at,status,customers(first_name,last_name,company)').eq('business_id', businessId).gte('starts_at', todayStart.toISOString()).lt('starts_at', tomorrowStart.toISOString()).neq('status', 'canceled').order('starts_at', { ascending: true }).limit(20),
-    supabase.from('estimates').select('id,estimate_number,total,issue_date,customers(first_name,last_name,company)').eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10),
-    supabase.from('change_orders').select('id,change_order_number,title,total,issue_date,customers(first_name,last_name,company)').eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10),
+    supabase.from('appointments').select('id,title,starts_at,ends_at,status,customers!appointments_customer_id_fkey(first_name,last_name,company)').eq('business_id', businessId).gte('starts_at', todayStart.toISOString()).lt('starts_at', tomorrowStart.toISOString()).neq('status', 'canceled').order('starts_at', { ascending: true }).limit(20),
+    supabase.from('estimates').select('id,estimate_number,total,issue_date,customers!estimates_customer_id_fkey(first_name,last_name,company)').eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10),
+    supabase.from('change_orders').select('id,change_order_number,title,total,issue_date,customers!change_orders_customer_id_fkey(first_name,last_name,company)').eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10),
   ])
 
-  for (const result of [customers, invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting]) {
+  for (const result of [invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting]) {
     if (result.error) throw result.error
   }
+
+  // This is a database table-returning RPC. Keep the response contract explicit:
+  // the project does not yet generate typed Supabase Database definitions.
+  const invoiceTotals = invoices.data as {
+    open_invoices: number | string
+    outstanding_balance: number | string
+  } | null
+  if (!invoiceTotals) throw new Error('Unable to calculate dashboard invoice totals')
 
   const pendingApprovals: DashboardSnapshot['pendingApprovals'] = [
     ...(estimatesAwaiting.data ?? []).map((row: any) => ({
@@ -77,7 +85,7 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
       title: 'Estimate awaiting approval',
       total: Number(row.total ?? 0),
       issue_date: row.issue_date,
-      customers: row.customers,
+      customers: asList(row.customers),
     })),
     ...(changeOrdersAwaiting.data ?? []).map((row: any) => ({
       id: row.id,
@@ -91,13 +99,12 @@ export async function getDashboardSnapshot(businessId: string): Promise<Dashboar
   ].sort((a, b) => String(a.issue_date).localeCompare(String(b.issue_date))).slice(0, 12)
 
   return {
-    customers: customers.count ?? 0,
-    openInvoices: invoices.data?.length ?? 0,
-    outstandingBalance: (invoices.data ?? []).reduce((sum, row) => sum + Number(row.balance_due ?? 0), 0),
+    openInvoices: Number(invoiceTotals.open_invoices),
+    outstandingBalance: Number(invoiceTotals.outstanding_balance),
     jobsThisWeek: jobs.count ?? 0,
-    overdueInvoices: (overdueInvoices.data ?? []) as DashboardSnapshot['overdueInvoices'],
+    overdueInvoices: (overdueInvoices.data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) })) as DashboardSnapshot['overdueInvoices'],
     dueReminders: (dueReminders.data ?? []) as DashboardSnapshot['dueReminders'],
-    todayAppointments: (todayAppointments.data ?? []) as DashboardSnapshot['todayAppointments'],
+    todayAppointments: (todayAppointments.data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) })) as DashboardSnapshot['todayAppointments'],
     pendingApprovals,
   }
 }

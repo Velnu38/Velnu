@@ -4,7 +4,7 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string) {
   const [invoice, items, payments, messages] = await Promise.all([
     supabase
       .from('invoices')
-      .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,notes,customer_message,sent_at,paid_at,customer_id,job_id,estimate_id,customers(id,first_name,last_name,company,email,phone)')
+      .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,notes,customer_message,sent_at,paid_at,issuer_snapshot,customer_id,job_id,estimate_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company,email,phone)')
       .eq('business_id', businessId)
       .eq('id', invoiceId)
       .single(),

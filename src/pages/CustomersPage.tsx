@@ -25,7 +25,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     setCustomers((await listCustomers(business.id)) as Customer[])
   }
 
-  useEffect(() => { refresh() }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load customers')) }, [business.id])
 
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase()
@@ -64,7 +64,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
       <div className="toolbar"><input className="search-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" /></div>
       <section className="list-card">
         {visible.length === 0 ? (
-          <div className="empty-state"><div className="empty-icon">C</div><h2>{customers.length ? 'No matches' : 'No customers yet'}</h2><p>{customers.length ? 'Try a different search.' : 'Add your first customer or tell Owedly to create one.'}</p></div>
+          <div className="empty-state"><div className="empty-icon">C</div><h2>{customers.length ? 'No matches' : 'No customers yet'}</h2><p>{customers.length ? 'Try a different search.' : 'Add your first customer or tell Finviant Office to create one.'}</p></div>
         ) : visible.map((customer) => {
           const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Unnamed customer'
           return <button className="customer-row customer-row-button" key={customer.id} onClick={() => setSelectedCustomerId(customer.id)}>

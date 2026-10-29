@@ -40,7 +40,7 @@ async function mockApi(page, options = {}) {
 
 test('forgot password requests an on-site recovery link and gives a generic account message', async ({ page }) => {
   const requests = await mockApi(page)
-  await page.goto('/')
+  await page.goto('/auth?mode=signin')
   await page.getByRole('button', { name: 'Forgot password?' }).click()
   await page.getByLabel('Email', { exact: true }).fill(user.email)
   await page.getByRole('button', { name: 'Send reset link' }).click()
@@ -77,10 +77,10 @@ test('valid password update completes and signs out', async ({ page }) => {
   await page.getByLabel('Confirm password').fill('TrialPassword123!')
   await page.getByRole('button', { name: 'Update password' }).click()
   await expect(page.getByRole('heading', { name: 'Password updated' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Return to Owedly' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Return to Finviant Office' })).toBeEnabled()
   expect(requests.filter(item => item.path.endsWith('/user') && item.method === 'PUT')).toHaveLength(1)
   expect(requests.filter(item => item.path.endsWith('/logout'))).toHaveLength(1)
-  await page.getByRole('button', { name: 'Return to Owedly' }).click()
+  await page.getByRole('button', { name: 'Return to Finviant Office' }).click()
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
 })
 
@@ -127,10 +127,45 @@ test('canceling the email confirmation never sends a message', async ({ page }) 
 test('sign-in and password recovery remain usable on a phone-sized screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockApi(page)
-  await page.goto('/')
+  await page.goto('/auth?mode=signin')
   await page.getByRole('button', { name: 'Forgot password?' }).click()
   await expect(page.getByRole('button', { name: 'Send reset link' })).toBeVisible()
   await expect(page.getByLabel('Email', { exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
   await page.screenshot({ path: 'test-results/mobile-recovery.png', fullPage: true })
+})
+
+
+test('repeat signup response does not imply a new account or require waiting forever', async ({ page }) => {
+  let signups = 0
+  await page.route('https://example.supabase.co/**', async route => {
+    const req = route.request()
+    const path = new URL(req.url()).pathname
+    const json = (value, status=200) => route.fulfill({
+      status, contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(value),
+    })
+    if (req.method() === 'OPTIONS') return route.fulfill({
+      status: 200,
+      headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '',
+    })
+    if (path.endsWith('/signup')) {
+      signups++
+      // Supabase masks repeated registration of confirmed accounts using a successful response.
+      return json({ user: { ...user, id: '99999999-9999-4999-8999-999999999999' }, session: null })
+    }
+    if (path.endsWith('/recover')) return json({})
+    return json({})
+  })
+  await page.goto('/auth?mode=signup')
+  await page.getByLabel('Email', { exact: true }).fill('existing@example.test')
+  await page.getByLabel('Password', { exact: true }).fill('NotARealPassword123!')
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('If you registered before')
+  await expect(page.getByRole('button', {name:'Already registered? Sign in'})).toBeVisible()
+  expect(signups).toBe(1)
+  await page.getByRole('button', {name:'Already registered? Sign in'}).click()
+  await expect(page.getByRole('heading', {name:'Sign in', exact:true})).toBeVisible()
+  await page.getByRole('button', { name: 'Forgot password?' }).click()
+  await expect(page.getByRole('button', {name:'Send reset link'})).toBeVisible()
 })
