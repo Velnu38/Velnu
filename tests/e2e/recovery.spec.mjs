@@ -1,3 +1,4 @@
+import { openWorkArea } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 const B='11111111-1111-4111-8111-111111111111', U='33333333-3333-4333-8333-333333333333', C='44444444-4444-4444-8444-444444444444', A='55555555-5555-4555-8555-555555555555'
 const user={id:U,email:'qa@example.test',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-01-01T00:00:00Z'}
@@ -92,7 +93,7 @@ test('recorded payment is described as a payment, not a newly created invoice',a
 })
 test('job creation preserves request identity after a lost response',async({page})=>{
  const s=await setup(page,{jobLost:true})
- await page.getByRole('button',{name:'Jobs',exact:true}).click()
+ await openWorkArea(page, 'Jobs')
  await page.getByRole('button',{name:'+ New job'}).click()
  await page.getByRole('combobox',{name:'Customer',exact:true}).selectOption(C)
  await page.getByLabel('Job title',{exact:true}).fill('Recovery demonstration')
@@ -107,7 +108,7 @@ test('job creation preserves request identity after a lost response',async({page
 })
 test('job status failure remains visible and makes no separate appointment write',async({page})=>{
  const s=await setup(page,{jobs:[{id:A,title:'Existing job',status:'lead',customers:customer,scheduled_start:null}]})
- await page.getByRole('button',{name:'Jobs',exact:true}).click()
+ await openWorkArea(page, 'Jobs')
  await page.locator('.job-row select').selectOption('completed')
  await expect(page.getByRole('alert')).toBeVisible()
  expect(s.requests.filter(r=>r.path.endsWith('/appointments')&&r.method==='PATCH')).toHaveLength(0)

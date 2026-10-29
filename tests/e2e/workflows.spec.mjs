@@ -1,3 +1,4 @@
+import { openWorkArea } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 
 // Browser workflow tests use a fake Supabase API. No customers are emailed, no
@@ -115,7 +116,7 @@ async function mockWorkspace(page, seed = {}) {
 test('owner creates a branded invoice atomically and it remains a draft until manually sent', async ({ page }) => {
   const state = await mockWorkspace(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: '+ New invoice' }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
@@ -139,7 +140,7 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   const state = await mockWorkspace(page)
   page.on('dialog', async dialog => { await dialog.accept() })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await openWorkArea(page, 'Estimates')
   await page.getByRole('button', { name: '+ New estimate' }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
@@ -206,7 +207,7 @@ test('issued invoice preserves original company letterhead after profile changes
   }
   await mockWorkspace(page, { invoices: [issued] })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-HISTORIC/ }).click()
   await expect(page.locator('.invoice-document .letterhead-company')).toHaveText('Original Plumbing Co')
   await expect(page.locator('.invoice-document')).toContainText('55 Historic Road')
@@ -228,7 +229,7 @@ test('issued estimate preview shows original issuer and saved footer, not curren
   }
   await mockWorkspace(page, { estimates: [issued] })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await openWorkArea(page, 'Estimates')
   await page.getByRole('button', { name: 'Preview / Print' }).click()
   const document = page.locator('.estimate-preview-document')
   await expect(document.locator('.letterhead-company')).toHaveText('Original Estimate Co')
@@ -241,11 +242,11 @@ test('issued estimate preview shows original issuer and saved footer, not curren
 test('technician keeps field navigation but cannot edit invoices, estimates or payments', async ({ page }) => {
   await mockWorkspace(page, { role: 'technician' })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await openWorkArea(page, 'Jobs')
   await expect(page.getByRole('button', { name: '+ New job' })).toBeVisible()
-  await page.getByRole('button', { name: 'Invoices', exact: true }).click()
+  await openWorkArea(page, 'Invoices')
   await expect(page.getByRole('button', { name: '+ New invoice' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await openWorkArea(page, 'Estimates')
   await expect(page.getByRole('button', { name: '+ New estimate' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Payments', exact: true }).click()
   await expect(page.getByRole('button', { name: '+ Record payment' })).toHaveCount(0)

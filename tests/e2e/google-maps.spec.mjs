@@ -1,3 +1,4 @@
+import { openWorkArea } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
@@ -32,6 +33,7 @@ async function mockBusinessData(page) {
       body: JSON.stringify(obj),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, body: '' })
+    if (path.endsWith('/get_dashboard_invoice_totals')) return json({open_invoices:0,outstanding_balance:0})
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v2' })
@@ -81,7 +83,7 @@ test('service location opens a valid Google Maps view and driving directions wit
 test('owner assigns a matching customer property when creating a job', async ({ page }) => {
   const requests = await mockBusinessData(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await openWorkArea(page, 'Jobs')
   await page.getByRole('button', { name: '+ New job' }).click()
   await page.getByRole('combobox', { name: 'Customer', exact: true }).selectOption(customerId)
   await expect(page.getByLabel('Service location').locator('option[value="' + propertyId + '"]')).toHaveCount(1)
@@ -100,7 +102,7 @@ test('owner assigns a matching customer property when creating a job', async ({ 
 test('schedule shows driving directions from its associated job location', async ({ page }) => {
   await mockBusinessData(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await openWorkArea(page, 'Schedule')
   const url = await page.getByRole('link', { name: /Get driving directions to 123 Example Street/ }).getAttribute('href')
   expect(new URL(url).searchParams.get('destination')).toContain('123 Example Street')
   await expect(page.getByText(/Faucet replacement/).first()).toBeVisible()
