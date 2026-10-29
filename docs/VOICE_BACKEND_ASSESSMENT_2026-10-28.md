@@ -52,3 +52,7 @@ The [October 27 development report](https://github.com/Velnu38/Velnu/blob/featur
 - **Full product flow:** verify that a real transcript opens a reviewable draft, never sends an invoice or records a payment automatically, and preserves customer/amount/tax review.
 
 Sources: [server-only storage commit](https://github.com/Velnu38/Velnu/commit/bb65df2de023210f91aa2f9b67fa3d8782bd5f82), [original handler](https://github.com/Velnu38/Velnu/blob/feature/velnu-stage1/supabase/functions/transcribe-voice/index.ts), [voice browser tests](https://github.com/Velnu38/Velnu/blob/feature/velnu-stage1/tests/e2e/voice-invoice.spec.mjs), [October 28 successful trial checks](https://github.com/Velnu38/Velnu/actions/runs/40706193494).
+
+## Additional automated database and API evidence
+
+The integrated follow-up preserves this handler suite and adds 67 HTTP-transport tests with the actual pinned Supabase SDK, a PostgreSQL schema/RLS suite and real PostgREST concurrency checks. [The detailed evidence record](VOICE_BACKEND_SECURITY_2026-10-28.md) documents the successful 134-case voice campaign, direct subscriber-write denials, tenant/actor isolation, and two 20-request races against the last monthly/minute reservation. These run against disposable local services. The hosted two-account staging check above remains explicitly unexecuted; no live OpenAI call or production change is part of this evidence.

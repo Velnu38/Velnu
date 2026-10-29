@@ -72,7 +72,7 @@ The containers and JWT settings are defined in `.github/workflows/voice-security
 - App production build passed locally; this is a local build, not a production deployment.
 - 56 existing provider/recovery tests and 21 environment-isolation tests passed locally.
 - The 134 voice tests and 22 existing email-handler tests passed with the pinned 2.57.4 SDK in a temporary copy of the same source and Deno 2.5.6. This local package layout avoids the execution environment's blocked Deno npm downloads; no source transforms or service calls are involved. CI uses the normal npm-specifier resolution command above.
-- Local Chromium browser checks could not start because its required binary was absent and the download was blocked/truncated. The installed WebKit engine also lacked OS libraries. Neither attempt is counted as a passing browser check. The existing full trial workflow provides the independent browser regression check after integration.
+- Local Chromium browser checks could not start because its required binary was absent and the download was blocked/truncated. The installed WebKit engine also lacked OS libraries. Neither local attempt is counted as passing. Independent CI completed all 88 browser regressions, including the seven voice flows; the controlled-stress workflow also passed 25 mobile-size WebKit checks. These remain mocked browser/desktop-engine tests, not physical-device transcription validation.
 
 ## Remaining launch validation
 
@@ -89,4 +89,13 @@ No claim of full launch readiness or live-provider validation is made. Keep invo
 
 Initial security-fix commit `77ccb4904eddd07782c4490d9fe0f62977d44fcc` passed [Voice backend security run 40790667980](https://github.com/Velnu38/Velnu/actions/runs/40790667980): the deployed entrypoint type check, 67 HTTP endpoint tests, embedded SQL tests, and all seven direct HTTP test groups completed successfully. The actual PostgreSQL 17.11/PostgREST 13.0.7 run confirmed both groups of 20 competing reservations admitted exactly one request.
 
-The integrated 134-case voice source is awaiting its subsequent CI run. Hosted staging sessions and physical-device/provider checks remain unexecuted; local container HTTP success does not close those gaps.
+The integrated application source at `86dd4f7d303514ce16e32de41b8296841ec9c8c0` passed:
+
+| Workflow | Verified result |
+| --- | --- |
+| [Voice backend security, 40791130218](https://github.com/Velnu38/Velnu/actions/runs/40791130218) | 134 voice tests; real PostgreSQL policy/quota suite; all seven direct HTTP groups (8 Node test results including their parent), zero skipped; both actual 20-request quota races passed. Entrypoint type check passed. |
+| [Trial readiness, 40791130069](https://github.com/Velnu38/Velnu/actions/runs/40791130069) | App build, 88 browser regressions including all seven voice flows, 49 unit tests, 22 email tests, 134 voice tests and the SQL suite passed. |
+| [Controlled stress QA, 40791130005](https://github.com/Velnu38/Velnu/actions/runs/40791130005) | Generated-input campaign (1,800 cases), unit checks and 25 mobile-size WebKit browser checks passed. |
+| [Recovery checks, 40791130024](https://github.com/Velnu38/Velnu/actions/runs/40791130024) | Build, environment-isolation checks, workbook service checks, provider/signature failure injection, backend type checks and email/operator gates passed. |
+
+These workflows overlap; their test counts are not additive measures of unique coverage. Hosted staging sessions and physical-device/provider checks remain unexecuted; container HTTP success does not close those gaps. The preserved hosted-results file remains explicitly `not_run` until staging accounts and canonical QA fixtures are supplied.
