@@ -1,0 +1,68 @@
+name: Voice backend security
+on:
+  pull_request:
+    branches: [feature/velnu-stage1, development]
+  push:
+    branches: [fix/voice-backend-security-20261028]
+permissions:
+  contents: read
+concurrency:
+  group: voice-security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  mocked-endpoint-and-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.x
+      - run: npm ci --ignore-scripts
+      - name: Check deployed voice entrypoint
+        run: deno check --no-config --node-modules-dir=none supabase/functions/transcribe-voice/index.ts
+      - name: Endpoint tests have no network permission and no provider credentials
+        run: npm run test:voice:backend
+      - name: Real PostgreSQL policy and quota tests (embedded, disposable)
+        run: npm run test:voice:database
+  direct-api-and-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: voice-local-test-only
+          POSTGRES_DB: finviant_voice_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d finviant_voice_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      postgrest:
+        image: postgrest/postgrest:v13.0.7
+        env:
+          PGRST_DB_URI: postgres://postgres:voice-local-test-only@postgres:5432/finviant_voice_test
+          PGRST_DB_SCHEMAS: public
+          PGRST_DB_ANON_ROLE: anon
+          PGRST_JWT_SECRET: finviant-voice-local-only-jwt-secret-32-bytes-minimum
+          PGRST_DB_POOL: '20'
+        ports: ['3001:3000']
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - name: Direct HTTP forgery, tenant access and real concurrent reservations
+        run: npm run test:voice:api
+        env:
+          FINVIANT_VOICE_API_TESTS: local-disposable
+          VOICE_TEST_DATABASE_URL: postgres://postgres:voice-local-test-only@127.0.0.1:5432/finviant_voice_test
+          VOICE_TEST_REST_URL: http://127.0.0.1:3001

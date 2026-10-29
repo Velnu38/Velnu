@@ -12,7 +12,10 @@
     "test:stress": "deno test --unstable-sloppy-imports tests/stress/velnu-1500-inputs_test.ts",
     "test:recovery": "tsc supabase/functions/_shared/providerRequest.ts supabase/functions/_shared/signedEvents.ts supabase/functions/_shared/healthStatus.ts --target ES2022 --module ES2022 --lib ES2022,DOM --strict --skipLibCheck --outDir .recovery-build && node --test tests/recovery/*.test.mjs",
     "test:e2e": "playwright test",
-    "test:services": "node --test tests/financial/*.test.mjs"
+    "test:services": "node --test tests/financial/*.test.mjs",
+    "test:voice:backend": "deno test --no-config --node-modules-dir=none --allow-env supabase/functions/transcribe-voice/",
+    "test:voice:database": "node --test tests/security/voice-database.test.mjs",
+    "test:voice:api": "node --test tests/security/voice-api.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -21,10 +24,12 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
     "@playwright/test": "1.63.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
+    "pg": "8.16.3",
     "typescript": "^5.9.2",
     "vite": "^7.1.7"
   }

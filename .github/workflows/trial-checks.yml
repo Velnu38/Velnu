@@ -42,6 +42,10 @@ jobs:
         run: deno check --node-modules-dir=auto supabase/functions/send-invoice-email/index.ts
       - name: Backend regression checks (mock services only)
         run: deno test --node-modules-dir=auto --allow-env supabase/functions/send-invoice-email/index_test.ts
+      - name: Voice backend security and reliability (mock services only)
+        run: npm run test:voice:backend
+      - name: Voice transcript database permissions and quota regression
+        run: npm run test:voice:database
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

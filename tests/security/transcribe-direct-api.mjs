@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 const target=existsSync('scripts/qa/target.json') ? JSON.parse(readFileSync('scripts/qa/target.json')) : {projectRef:'xvybcmyoblfgzokaifsx',url:'https://xvybcmyoblfgzokaifsx.supabase.co',publishableKey:process.env.VOICE_QA_PUBLISHABLE_KEY}
 assert.equal(target.projectRef,'xvybcmyoblfgzokaifsx')
+assert.equal(target.url,'https://xvybcmyoblfgzokaifsx.supabase.co','Only the registered staging API may be tested')
 const required=['VOICE_QA_OWNER_A_JWT','VOICE_QA_OWNER_B_JWT','VOICE_QA_BUSINESS_A','VOICE_QA_BUSINESS_B','VOICE_QA_TRANSCRIPT_A','VOICE_QA_TRANSCRIPT_B']
 const result={scope:'live Supabase subscriber transcript isolation',status:'not_run',checks:[],errors:[],reason:''}
 function save(){writeFileSync('VOICE_DIRECT_API_RESULTS.json',JSON.stringify(result,null,2)+'\n')}
@@ -14,7 +15,10 @@ async function call(path,jwt,init={}){return fetch(target.url+path,{...init,head
 async function check(name,fn){try{await fn();result.checks.push({name,status:'pass'})}catch(e){result.errors.push({name,message:e.message});result.checks.push({name,status:'fail'})}}
 const identityA=await call('/auth/v1/user',jwtA),identityB=await call('/auth/v1/user',jwtB);assert.equal(identityA.status,200);assert.equal(identityB.status,200)
 const userA=(await identityA.json()).id,userB=(await identityB.json()).id;assert.notEqual(userA,userB);assert.notEqual(ba,bb)
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+for(const value of [userA,userB,ba,bb,ta,tb])assert.match(value,uuid,'QA fixture identifiers must be UUIDs')
 for(const[id,jwt]of [[ba,jwtA],[bb,jwtB]]){const r=await call('/rest/v1/businesses?id=eq.'+id+'&select=id,name',jwt);assert.equal(r.status,200);const rows=await r.json();assert.equal(rows.length,1);assert.match(rows[0].name,/^QA[_ -]/,'Only disposable QA businesses may be used')}
+for(const[id,business_id,user_id,jwt]of [[ta,ba,userA,jwtA],[tb,bb,userB,jwtB]]){const r=await call('/rest/v1/voice_transcriptions?id=eq.'+id+'&select=id,business_id,user_id',jwt);assert.equal(r.status,200);const rows=await r.json();assert.deepEqual(rows,[{id,business_id,user_id}],'Every mutation target must be a verified disposable QA transcript')}
 for(const[title,jwt,own,foreign]of [['A',jwtA,ta,tb],['B',jwtB,tb,ta]]){
  await check(title+' can select own transcript',async()=>{const r=await call('/rest/v1/voice_transcriptions?id=eq.'+own+'&select=id',jwt);assert.equal(r.status,200);assert.equal((await r.json()).length,1)})
  await check(title+' cannot select other business transcript',async()=>{const r=await call('/rest/v1/voice_transcriptions?id=eq.'+foreign+'&select=id',jwt);assert.equal(r.status,200);assert.deepEqual(await r.json(),[])})
