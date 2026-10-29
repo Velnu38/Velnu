@@ -6,11 +6,11 @@ Assessment date: October 28, 2026 (America/New_York). Repository: `Velnu38/Velnu
 
 <!-- CAMPAIGN_STATUS_START -->
 
-Updated: 2026-10-28T23:41:45.512Z. Status: **smoke_completed_infrastructure_campaign_running**. Verified accumulated campaign duration: **15 seconds** of the required 28,800 seconds.
+Updated: 2026-10-29T03:46:08.089Z. Status: **completed_with_failures**. Verified accumulated campaign duration: **14,401 seconds** of the required 28,800 seconds.
 
-Profiles exercised: 1000; successful service checks: 1000; failures: 0; expected input rejections: 360; live edge probes: 12.
+Profiles exercised: 47000; successful service checks: 47000; failures: 1; expected input rejections: 16920; live edge probes: 1199.
 
-Workflow: https://github.com/Velnu38/Velnu/actions/runs/40802292269
+Workflow: https://github.com/Velnu38/Velnu/actions/runs/40789573149
 
 The JSON log contains every observed unexpected exception and per-function counts. A nonzero failure count remains a finding and does not become a pass when a job finishes.
 
@@ -178,4 +178,10 @@ The campaign is pinned to its original source revision. Its historical 22 browse
 
 The accepted dashboard design removes Change Orders from the left navigation and offers it from a sent invoice or estimate. An earlier audit change had mistakenly reintroduced the standalone menu entry. That regression is corrected: the menu remains removed, the existing sent-document workflow is preserved, and the browser regression now checks both the menu's absence and status/void behavior through a sent invoice. The navigation-only correction passed all 95 browser cases in GitHub run 40802703491, with none skipped; provider/device prerequisites and the 07:30 report delivery are unchanged.
 
-Current verification after the navigation correction: **`ba5cdb2448ad524775c427bf1df972fdcedb1693`**, [browser run 40802703491](https://github.com/Velnu38/Velnu/actions/runs/40802703491), **95 passed / 0 failed / 0 skipped**. The corrected Change orders test enters through a sent invoice and retains its status/voiding assertions, while explicitly checking that the left-menu entry is absent. This supersedes the earlier menu restoration and its classification as a product defect. Both domains now point to the ready deployment `dpl_7C1RdpuvG8jGbSZv49EQvAWDfvV1`; access protection remains enabled. The latest test receipt records this revision. No new campaign runtime/data/security failure or publication failure was observed in this check; phase one remains running and the previously measured failures are retained.
+Current verification after the navigation correction: **`ba5cdb2448ad524775c427bf1df972fdcedb1693`**, [browser run 40802703491](https://github.com/Velnu38/Velnu/actions/runs/40802703491), **95 passed / 0 failed / 0 skipped**. The corrected Change orders test enters through a sent invoice and retains its status/voiding assertions, while explicitly checking that the left-menu entry is absent. This supersedes the earlier menu restoration and its classification as a product defect. Both domains now point to the ready deployment `dpl_7C1RdpuvG8jGbSZv49EQvAWDfvV1`; access protection remains enabled. The latest test receipt records this revision. At that earlier check, phase one was still running and no new campaign failure had yet been observed; the completed phase-one result is recorded below without altering the earlier source-specific history.
+
+## Phase-one infrastructure result and publication recovery
+
+Phase one completed its full measured window with **14,401.27 active seconds**, 47 complete live-dataset cycles, **47,000 successful service checks**, 16,920 expected validation rejections and no application-service or dataset failures. The persisted artifact contains one unexpected runtime event: unauthenticated staging guard probe 13 for `stripe-events` exceeded the runner's 12-second client timeout. The other 99 `stripe-events` probes returned the expected gated 503 response. Supabase function-edge logs for the probe window independently contain 99 matching 503 responses with recorded execution times from 31 to 385 ms; no function-edge record exists for the timed-out request. This is consistent with a transient client/network path timeout before a completed handler response, not evidence that the failure can be erased or relabeled as a pass. It remains in `STRESS_TEST_LOGS.json` and keeps the phase status `completed_with_failures`.
+
+The phase-one root publisher separately failed when its initial connection to `api.github.com` exceeded the runner's connection timeout. The artifact upload succeeded, and phase two downloaded that artifact and began from the measured 14,401.27-second checkpoint, so no campaign time was discarded or restarted. The root files were recovered from artifact `finviant-phase-one` (ID `12871203061`). Publication now retries bounded transient network, 408, 429 and 5xx failures with exponential backoff, and re-reads file state after a 409 conflict. A simulated connection failure followed by a 503 verified the retry path before commit; the publication verification workflow now runs whenever the publisher changes. Phase two continues toward the required 28,800 accumulated seconds. The original browser failures remain attached to the original campaign source and are not altered by this recovery.

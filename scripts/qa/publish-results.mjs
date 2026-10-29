@@ -1,9 +1,42 @@
 import { readFileSync, existsSync } from 'node:fs'
+import { setTimeout as delay } from 'node:timers/promises'
 const token=process.env.GITHUB_TOKEN, repo=process.env.GITHUB_REPOSITORY, branch=process.env.QA_BRANCH
 if(!token||!repo||!branch)throw new Error('GitHub publication configuration missing')
 const headers={authorization:'Bearer '+token,accept:'application/vnd.github+json','content-type':'application/json','X-GitHub-Api-Version':'2022-11-28'}
-async function api(path,init={}){const r=await fetch('https://api.github.com/repos/'+repo+path,{...init,headers,signal:AbortSignal.timeout(30000)});const data=await r.json();if(!r.ok)throw new Error('GitHub publication failed: '+r.status+' '+data.message);return data}
-async function save(path,content){const current=await api('/contents/'+path+'?ref='+encodeURIComponent(branch));await api('/contents/'+path,{method:'PUT',body:JSON.stringify({message:'Record Finviant infrastructure QA results [skip ci]',branch,sha:current.sha,content:Buffer.from(content).toString('base64')})})}
+class ApiError extends Error { constructor(status,message){super(message);this.status=status} }
+const transient=status=>status===408||status===429||status>=500
+async function api(path,init={}){
+ let last
+ for(let attempt=1;attempt<=5;attempt++){
+  try{
+   const r=await fetch('https://api.github.com/repos/'+repo+path,{...init,headers,signal:AbortSignal.timeout(30000)})
+   const raw=await r.text();let data
+   try{data=raw?JSON.parse(raw):{}}catch{data={message:raw.slice(0,500)}}
+   if(r.ok)return data
+   const error=new ApiError(r.status,'GitHub publication failed: '+r.status+' '+(data.message??'Unknown response'))
+   if(!transient(r.status)||attempt===5)throw error
+   last=error
+  }catch(error){
+   if(error instanceof ApiError&&!transient(error.status))throw error
+   last=error
+   if(attempt===5)throw error
+  }
+  await delay(500*2**(attempt-1))
+ }
+ throw last
+}
+async function save(path,content){
+ for(let attempt=1;attempt<=3;attempt++){
+  const current=await api('/contents/'+path+'?ref='+encodeURIComponent(branch))
+  try{
+   await api('/contents/'+path,{method:'PUT',body:JSON.stringify({message:'Record Finviant infrastructure QA results [skip ci]',branch,sha:current.sha,content:Buffer.from(content).toString('base64')})})
+   return
+  }catch(error){
+   if(error.status!==409||attempt===3)throw error
+   await delay(500*attempt)
+  }
+ }
+}
 const log=JSON.parse(readFileSync('STRESS_TEST_LOGS.json','utf8'))
 if(process.env.EXPECT_BROWSER_RESULTS==='true'){
  const path='browser/browser-results.json'

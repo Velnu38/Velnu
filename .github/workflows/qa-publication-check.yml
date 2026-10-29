@@ -2,7 +2,9 @@ name: Verify assessment publication
 on:
   push:
     branches: [ux/professional-dashboard-20261028]
-    paths: ['.github/workflows/qa-publication-check.yml']
+    paths:
+      - '.github/workflows/qa-publication-check.yml'
+      - 'scripts/qa/publish-results.mjs'
   workflow_dispatch:
 permissions:
   contents: write
