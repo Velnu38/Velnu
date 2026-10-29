@@ -21,4 +21,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           QA_BRANCH: ${{ github.ref_name }}
+          QA_WORKFLOW_RUN_ID: '40789573149'
         run: node scripts/qa/publish-results.mjs
