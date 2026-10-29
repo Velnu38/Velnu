@@ -58,8 +58,8 @@ async function mockWorkspace(page, seed = {}) {
     if (path.endsWith('/rpc/create_document')) {
       const isInvoice = body.document_kind === 'invoice'
       const items = body.payload.items
-      const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
-      const tax_amount = items.reduce((sum, item) => sum + item.quantity * item.unit_price * item.tax_rate / 100, 0)
+      const subtotal = seed.documentTotals?.subtotal ?? items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+      const tax_amount = seed.documentTotals?.tax_amount ?? items.reduce((sum, item) => sum + item.quantity * item.unit_price * item.tax_rate / 100, 0)
       const next = {
         id: isInvoice ? invoiceId : estimateId, business_id: businessId, customer_id: body.payload.customer_id,
         invoice_number: isInvoice ? 'INV-1001' : undefined, estimate_number: isInvoice ? undefined : 'EST-1001',
@@ -97,7 +97,7 @@ async function mockWorkspace(page, seed = {}) {
       return fulfill(state.estimates)
     }
     if (path.endsWith('/payments')) return fulfill(state.payments)
-    if (path.endsWith('/invoice_items')) return fulfill(state.invoices.length ? [{ id: 'a', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }] : [])
+    if (path.endsWith('/invoice_items')) return fulfill(seed.invoiceItems ?? (state.invoices.length ? [{ id: 'a', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }] : []))
     if (path.endsWith('/estimate_items')) return fulfill([{ id: 'b', description: 'Faucet repair', quantity: 1, unit_price: 150, line_total: 150, tax_rate: 0, sort_order: 0 }])
     if (path.endsWith('/change_orders')) {
       if (method === 'PATCH') {
@@ -293,4 +293,30 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
   const unbounded = state.requests.filter(r => r.path.endsWith('/invoices') &&
     new URL(r.url).searchParams.get('select') === 'balance_due')
   expect(unbounded).toHaveLength(0)
+})
+
+test('fractional invoice preview and saved draft retain database per-line rounding', async ({ page }) => {
+  const invoiceItems = ['First fractional service', 'Second fractional service'].map((description, i) => ({ id: 'fractional-' + i, description, quantity: 1.5, unit_price: 0.01, line_total: 0.02, tax_rate: 0, sort_order: i }))
+  const state = await mockWorkspace(page, { documentTotals: { subtotal: 0.04, tax_amount: 0 }, invoiceItems })
+  await page.goto('/')
+  await openWorkArea(page, 'Invoices')
+  await page.getByRole('button', { name: '+ New invoice' }).click()
+  await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
+  await page.getByPlaceholder('Description').fill('First fractional service')
+  await page.getByPlaceholder('Qty').fill('1.5')
+  await page.getByPlaceholder('Unit price').fill('0.01')
+  await page.getByRole('button', { name: '+ Add line' }).click()
+  await page.getByPlaceholder('Description').nth(1).fill('Second fractional service')
+  await page.getByPlaceholder('Qty').nth(1).fill('1.5')
+  await page.getByPlaceholder('Unit price').nth(1).fill('0.01')
+  await expect(page.locator('.estimate-total strong')).toHaveText('$0.04')
+  await page.getByRole('button', { name: 'Create invoice', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
+  await expect(page.locator('.invoice-document')).toContainText('$0.04')
+  await expect(page.locator('.invoice-document')).toContainText('First fractional service')
+  await expect(page.locator('.invoice-document')).toContainText('Second fractional service')
+  const writes = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
+  expect(writes).toHaveLength(1)
+  expect(writes[0].body.payload.items).toHaveLength(2)
+  expect(writes[0].body.payload.items.every(x => x.quantity === 1.5 && x.unit_price === 0.01)).toBe(true)
 })

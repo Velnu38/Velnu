@@ -1,3 +1,4 @@
+import { previewDocumentTotal } from '../lib/financialValidation'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listJobs } from '../services/jobs'
@@ -53,13 +54,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   const availableJobs = jobs.filter(job => matchesChangeOrderContext({ customer_id: job.customer_id, job_id: job.id }, context))
   const visibleOrders = changeOrders.filter(order => matchesChangeOrderContext(order, context))
 
-  const preview = useMemo(() => lines.reduce((sum, line) => {
-    const quantity = Number(line.quantity || 0)
-    const price = Number(line.unit_price || 0)
-    const tax = Number(line.tax_rate || 0)
-    const base = Number.isFinite(quantity * price) ? quantity * price : 0
-    return sum + base + (base * tax / 100)
-  }, 0), [lines])
+  const preview = useMemo(() => previewDocumentTotal(lines), [lines])
 
   function resetForm() {
     setJobId(context?.jobId || ''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
@@ -175,7 +170,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
           <label className="full">Schedule note<input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} placeholder="Adds one working day to completion." /></label>
         </div>
         <div className="line-items"><div className="line-items-head"><strong>Price change</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
-        <div className="estimate-total"><span>Proposed change</span><strong>${preview.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved. Customer approval is the next workflow step.</small></div>
+        <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved. Customer approval is the next workflow step.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create change order'}</button></div>
       </form>

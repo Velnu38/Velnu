@@ -1,5 +1,22 @@
 /** Runtime checks are required even when callers have TypeScript types. */
 export const MAX_SUPPORTED_MONEY = 1_000_000_000_000
+function lineCents(quantity: number, price: number, taxRate: number): bigint {
+  const base = (BigInt(Math.round(quantity * 100)) * BigInt(Math.round(price * 100)) + 50n) / 100n
+  return base + (base * BigInt(Math.round(taxRate * 100)) + 5000n) / 10000n
+}
+
+/** Mirrors PostgreSQL's per-line, then per-line-tax rounding for positive items. */
+export function previewDocumentTotal(items: readonly { quantity: unknown; unit_price: unknown; tax_rate?: unknown }[]): number | null {
+  if (items.length < 1 || items.length > 50) return null
+  const number = (value: unknown) => typeof value === 'number' ? value : typeof value === 'string' ? Number(value || 0) : NaN
+  let total = 0n
+  for (const item of items) {
+    const quantity = number(item.quantity), price = number(item.unit_price), tax = number(item.tax_rate ?? 0)
+    if (!validDecimal(quantity, 0.01, 100000) || !validDecimal(price, 0, 10000000) || !validDecimal(tax, 0, 100)) return null
+    total += lineCents(quantity, price, tax)
+  }
+  return total > BigInt(MAX_SUPPORTED_MONEY) * 100n ? null : Number(total) / 100
+}
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -25,9 +42,7 @@ export function validateDocumentInput(input: unknown): asserts input is Record<s
     if (!validDecimal(item.quantity, 0.01, 100000)) throw new Error('Enter a valid quantity with at most 2 decimal places')
     if (!validDecimal(item.unit_price, 0, 10000000)) throw new Error('Enter a valid unit price with at most 2 decimal places')
     if (!validDecimal(item.tax_rate ?? 0, 0, 100)) throw new Error('Tax rate must be between 0% and 100%, with at most 2 decimal places')
-    const line = (BigInt(Math.round(item.quantity * 100)) * BigInt(Math.round(item.unit_price * 100)) + 50n) / 100n
-    const tax = (line * BigInt(Math.round(Number(item.tax_rate ?? 0) * 100)) + 5000n) / 10000n
-    totalCents += line + tax
+    totalCents += lineCents(item.quantity, item.unit_price, Number(item.tax_rate ?? 0))
   }
   if (totalCents > BigInt(MAX_SUPPORTED_MONEY) * 100n) throw new Error('Document total exceeds the supported $1 trillion limit')
 }

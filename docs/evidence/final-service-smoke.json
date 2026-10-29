@@ -3,25 +3,25 @@
   "campaign": "Finviant staging QA",
   "target": "xvybcmyoblfgzokaifsx",
   "requested_active_seconds": 28800,
-  "started_at": "2026-10-29T01:21:55.847Z",
+  "started_at": "2026-10-29T01:36:22.939Z",
   "status": "phase_completed",
-  "active_seconds": 7.445753202,
+  "active_seconds": 7.170192733,
   "phases": [
     {
       "phase": 1,
-      "started_at": "2026-10-29T01:21:55.847Z",
-      "completed_at": "2026-10-29T01:22:03.293Z",
-      "active_seconds": 7.445770383999999
+      "started_at": "2026-10-29T01:36:22.938Z",
+      "completed_at": "2026-10-29T01:36:30.109Z",
+      "active_seconds": 7.170210787
     }
   ],
   "cycles": [
     {
       "phase": 1,
       "cycle": 1,
-      "started_at": "2026-10-29T01:22:02.704Z",
+      "started_at": "2026-10-29T01:36:29.587Z",
       "passed": 1000,
       "failed": 0,
-      "elapsed_ms": 588
+      "elapsed_ms": 522
     }
   ],
   "errors": [],
@@ -114,6 +114,6 @@
       "assistantMonthlyTotal": 100
     }
   },
-  "updated_at": "2026-10-29T01:22:03.293Z",
-  "financial_validation_sha256": "80c6279764b0733b5c9a78965ad3c145cfbb0da19664c7d97160be6679d80cb1"
+  "updated_at": "2026-10-29T01:36:30.109Z",
+  "financial_validation_sha256": "4d92614d72e18f1c1aff6fa0cf3b7bf16091c584332fb2bf07f65c0d74174378"
 }
