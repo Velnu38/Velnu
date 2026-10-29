@@ -7,7 +7,6 @@ export default function AccountAgreement({ userId, email, selectedTier, onChange
   userId: string
   email: string
   selectedTier: PlanTier
-  onChangeTier: () => void
   onAccepted: () => void
   onSignOut: () => void
 }) {
@@ -35,10 +34,11 @@ export default function AccountAgreement({ userId, email, selectedTier, onChange
         <div><a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant</strong></a>
           <p className="eyebrow">STEP 2 OF 2 · ONE COMBINED AGREEMENT</p>
           <h1>Review your User Agreement, AI Disclosure & Privacy Notice</h1>
-          <p>Signed in as {email}. Selected tier: <strong>{selectedTier.toUpperCase()}</strong>. <button type="button" className="text-button" onClick={onChangeTier}>Change tier</button>. Please read the combined agreement before entering your workspace.</p>
+          <p>Signed in as {email}. Please read the combined agreement before entering your private test workspace.</p>
         </div>
         <button type="button" className="text-button" onClick={onSignOut}>Not my account? Sign out</button>
       </header>
+      <PrivateBetaNotice compact />
       <section className="agreement-ai-notice">
         <strong>Important: Finviant Office uses artificial intelligence.</strong>
         <p>Voice recordings, transcripts, requests, and relevant business information may be processed by third-party AI providers when you use AI tools. AI-generated invoices, estimates, amounts, dates, and advice can be wrong. You must review all results, and your business must obtain any legally required employee or customer notices and recording permissions.</p>
@@ -57,7 +57,7 @@ export default function AccountAgreement({ userId, email, selectedTier, onChange
       </div>
       {error && <p role="alert" className="form-message error-text">{error}</p>}
       <div className="agreement-actions"><button type="button" className="secondary-button" onClick={onSignOut} disabled={busy}>Decline & sign out</button><button className="primary-button" type="button" disabled={busy||!agree||!ai||!electronic} onClick={accept}>{busy?'Saving your acceptance…':'I agree · Continue to Finviant Office'}</button></div>
-      <p className="agreement-small">Your chosen {selectedTier.toUpperCase()} tier, agreement version, and acceptance are recorded with a server timestamp. Basic and Pro are preferences only, not paid subscriptions; accepting does not authorize charges.</p>
+      <p className="agreement-small">Your agreement acceptance and timestamp are recorded. No subscription or charge is active during private testing. Test data may be reset or deleted; do not rely on this workspace as the only copy of important information.</p>
     </div>
   </main>
 }

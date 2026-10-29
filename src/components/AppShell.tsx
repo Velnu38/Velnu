@@ -13,10 +13,11 @@ import type { WorkView } from '../pages/JobsSchedulePage'
 
 
 import AiAssistantAccess from './AiAssistantAccess'
+import PrivateBetaNotice from './PrivateBetaNotice'
+import './private-beta.css'
 
 
 
-import { hasPendingServiceInterests } from '../lib/serviceCatalog'
 
 // Load each workspace module only when navigated to; preserve page state boundaries.
 const DashboardPage = lazy(() => import('../pages/DashboardPage'))
@@ -29,9 +30,8 @@ const PaymentsPage = lazy(() => import('../pages/PaymentsPage'))
 const BookkeepingPage = lazy(() => import('../pages/BookkeepingPage'))
 const SettingsPage = lazy(() => import('../pages/SettingsPage'))
 const LocationsPage = lazy(() => import('../pages/LocationsPage'))
-const WorkspaceServicesPage = lazy(() => import('../pages/WorkspaceServicesPage'))
 
-type View = 'dashboard' | 'customers' | 'work' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'payments' | 'bookkeeping' | 'settings' | 'services'
+type View = 'dashboard' | 'customers' | 'work' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'payments' | 'bookkeeping' | 'settings'
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
@@ -43,17 +43,16 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'change_orders', label: 'Change Orders', icon: 'CO' },
   { id: 'payments', label: 'Payments', icon: '$' },
   { id: 'bookkeeping', label: 'Financial performance', icon: '↗' },
-  { id: 'services', label: 'My services', icon: '◈' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ]
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'work', 'locations']
-const mobileMore: View[] = ['change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'services', 'settings']
+const mobileMore: View[] = ['change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
 const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders'].includes(id))
 
 export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)
-  const [view, setView] = useState<View>(new URLSearchParams(window.location.search).has('quickbooks') ? 'bookkeeping' : hasPendingServiceInterests() ? 'services' : 'dashboard')
+  const [view, setView] = useState<View>(new URLSearchParams(window.location.search).has('quickbooks') ? 'bookkeeping' : 'dashboard')
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [showMobileMore, setShowMobileMore] = useState(false)
   const [workView, setWorkView] = useState<WorkView>('schedule')
@@ -65,7 +64,6 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   function page() {
-    if (view === 'services') return <WorkspaceServicesPage business={company} />
     if (view === 'settings') return <SettingsPage business={company} onSaved={(next) => { setCompany(next); setRefreshVersion(v => v + 1) }} />
     if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} onReminders={() => { setWorkView('reminders'); setView('work') }} />
     if (view === 'customers') return <CustomersPage business={company} />
@@ -83,10 +81,11 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><span>Finviant <span className="finviant-product">Office</span></span></div>
         <nav>{sidebarNav.map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
-        <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a><a href="/plans">Service tier</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+        <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><strong>Finviant <span className="finviant-product">Office</span></strong></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
+        <div className="private-testing-app"><PrivateBetaNotice compact /></div>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>
       <nav className="mobile-nav">
@@ -103,7 +102,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon" aria-hidden="true">{item.icon}</span><strong>{item.label}</strong></button>
         })}</div>
-        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/plans">Service tier</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </section></div>}
       <AiAssistantAccess business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />
     </div>

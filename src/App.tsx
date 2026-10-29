@@ -12,7 +12,6 @@ import AppShell from './components/AppShell'
 import AccountAgreement from './components/AccountAgreement'
 import CustomerApprovalPage from './pages/CustomerApprovalPage'
 import LandingPage from './pages/LandingPage'
-import ServicesPage from './pages/ServicesPage'
 import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
 
@@ -132,7 +131,7 @@ export default function App() {
 
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
   if (['/legal', '/terms', '/privacy'].includes(publicPath)) return <LegalPage />
-  if (publicPath === '/services') return <ServicesPage />
+  if (publicPath === '/services') return <LandingPage />
   if (publicPath === '/install') return <InstallPage />
   if (!authReady) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening Finviant Office…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
@@ -151,7 +150,6 @@ export default function App() {
   if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your agreement…</p></main>
   if (agreementStatus === 'needed') return <AccountAgreement
     userId={session.user.id} email={session.user.email ?? 'your account'} selectedTier={selectedTier!}
-    onChangeTier={() => setPlanRequested(true)}
     onAccepted={() => setAgreementStatus('accepted')}
     onSignOut={() => void supabase.auth.signOut()}
   />
