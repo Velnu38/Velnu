@@ -1,0 +1,22 @@
+name: Verify assessment publication
+on:
+  push:
+    branches: [ux/professional-dashboard-20261028]
+    paths: ['.github/workflows/qa-publication-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish-smoke-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Publish measured smoke evidence using the overnight publisher
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          QA_BRANCH: ${{ github.ref_name }}
+        run: node scripts/qa/publish-results.mjs
