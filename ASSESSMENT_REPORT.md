@@ -103,10 +103,10 @@ API coverage includes `ai-command`, `execute-ai-action`, `create-approval-link`,
 | Deployment environment/header tests | 22 passed |
 | Financial service regressions | 25 passed |
 | Recovery/provider/signature regressions | 56 passed, including generated malformed inputs and tampered signatures |
-| Deno unit suite | 59 passed after final corrections, including 302 QuickBooks pagination/boundary inputs and high-value financial checks |
+| Deno unit suite | 60 passed after final corrections, including 302 QuickBooks pagination/boundary inputs and high-value financial checks |
 | Generated feature regression | 1,800 inputs passed |
 | Dependency audit earlier in this review | 0 reported npm vulnerabilities; not a general security certification |
-| Browser suite | Final GitHub Chrome run 40800202503: 94 passed, 0 failed, 0 skipped |
+| Browser suite | Final GitHub Chrome run 40801505015: 95 passed, 0 failed, 0 skipped |
 | Earlier workspace soak | Log ends at 22 successful cycles; no eight-hour completion record; excluded from an eight-hour claim |
 | Fresh transactional live DB financial/RLS regression | 16 passed; synthetic fixtures rolled back |
 | Live transcript database-role isolation / forgery regression | 6 passed; synthetic fixtures rolled back |
@@ -154,4 +154,12 @@ The corrected frontend was built successfully. Both Finviant domains were verifi
 
 Final verification: [GitHub Chrome run 40800202503](https://github.com/Velnu38/Velnu/actions/runs/40800202503) passed all **94 tests with no skipped tests** at final functional revision `6402308b9db4f0a2fddebae04e51b1138ebdd143`. The committed compact browser receipt now refers to that final revision, including the financial range guard. The ready Vercel deployment for this revision is `dpl_XxkRcwbKzXn95fPVaL5UuXxLfywt`. Final functional changes are verified separately from the continuing eight-hour campaign and its original source revision.
 
-Final rounding review additionally confirmed that old draft previews summed unrounded line amounts, while the server rounds each line and its tax before summing. Invoice, estimate and change-order previews now share exact-cent rounding and show a validation prompt for invalid line values. Live PostgreSQL golden queries returned $0.04 for two $0.015 lines and $0.02 for $0.01 plus a half-cent tax; the new unit regression matches those values. A dedicated browser case verifies the fractional-line preview and draft return contract without weakening existing assertions. The expanded 95-case browser run is pending until that latest source is verified.
+Final rounding review additionally confirmed that old draft previews summed unrounded line amounts, while the server rounds each line and its tax before summing. Invoice, estimate and change-order previews now share exact-cent rounding and show a validation prompt for invalid line values. Live PostgreSQL golden queries returned $0.04 for two $0.015 lines and $0.02 for $0.01 plus a half-cent tax; the new unit regression matches those values. A dedicated browser case verifies the fractional-line preview and draft return contract without weakening existing assertions. The expanded 95-case browser run passed with zero failures and no skipped tests at the final rounding-corrected revision.
+
+## Final functional verification and delivery state
+
+The final functional revision is **`66b5cbc4669bfd54ce11ae7ff144b7c9aec2ee39`**. [GitHub browser run 40801505015](https://github.com/Velnu38/Velnu/actions/runs/40801505015) completed **95 passed, zero failed, zero skipped**, including the fractional-line rounding regression. The committed browser receipt now records that revision. The final unit suite has **60 passing tests**, and the final live-profile service smoke has **1,000 passing checks**. Voice backend coverage remains **67 passing tests**, with **six verified native subscriber-role transcript isolation/forgery checks** and **16 verified native financial/RLS checks**. These results supersede earlier pending statements for functional verification while retaining the earlier failures as history.
+
+The ready final frontend deployment is **`dpl_BXkwHV6dq1FjjoQAF2y2JvrNi1k8`** and both Finviant domains were assigned to it. Staging transcription remains ACTIVE at version 11 with JWT verification. The complete assessment and the initial measured log are committed at the repository root on the review branch. The eight-hour infrastructure campaign **40789573149 is still running** and publishes measured logs/report status after each four-hour phase. Hourly supervision is scheduled through the overnight window to investigate new failures and recover failed publication; the final report delivery remains October 29 at **07:30 America/New_York**.
+
+The campaign is pinned to its original source revision. Its historical 22 browser failures must remain in the final campaign log even though the corrected functional source now passes all 95 browser tests. A later code correction is not represented as eight hours of testing of that later revision. The report's commercial launch blockers and real-device/credential prerequisites remain open and explicit.

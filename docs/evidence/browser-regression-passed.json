@@ -1,10 +1,10 @@
 {
-  "workflow_run": 40800202503,
-  "source_revision": "6402308b9db4f0a2fddebae04e51b1138ebdd143",
+  "workflow_run": 40801505015,
+  "source_revision": "66b5cbc4669bfd54ce11ae7ff144b7c9aec2ee39",
   "stats": {
-    "startTime": "2026-10-29T01:24:22.949Z",
-    "duration": 106744.27100000001,
-    "expected": 94,
+    "startTime": "2026-10-29T01:37:26.940Z",
+    "duration": 124997.899,
+    "expected": 95,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
@@ -943,6 +943,16 @@
     {
       "file": "workflows.spec.mjs",
       "name": "dashboard uses one tenant-scoped aggregate RPC instead of downloading invoice balances",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "fractional invoice preview and saved draft retain database per-line rounding",
       "results": [
         {
           "status": "passed",
