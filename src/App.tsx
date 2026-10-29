@@ -12,7 +12,6 @@ import AppShell from './components/AppShell'
 import AccountAgreement from './components/AccountAgreement'
 import CustomerApprovalPage from './pages/CustomerApprovalPage'
 import LandingPage from './pages/LandingPage'
-import ServicesPage from './pages/ServicesPage'
 import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
 
@@ -84,7 +83,7 @@ export default function App() {
       setSelectedTier(tier)
       setPlanStatus(tier ? 'selected' : 'needed')
     }).catch(err => {
-      if (active) setError(err instanceof Error ? err.message : 'Unable to load your service tier.')
+      if (active) setError(err instanceof Error ? err.message : 'Unable to load your private test account settings.')
     })
     return () => { active = false }
   }, [userId, recovery, approvalToken])
@@ -132,7 +131,7 @@ export default function App() {
 
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
   if (['/legal', '/terms', '/privacy'].includes(publicPath)) return <LegalPage />
-  if (publicPath === '/services') return <ServicesPage />
+  if (publicPath === '/services') return <LandingPage />
   if (publicPath === '/install') return <InstallPage />
   if (!authReady) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening Finviant Office…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
@@ -143,7 +142,7 @@ export default function App() {
     return <LandingPage />
   }
   if (error) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
-  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your service tier…</p></main>
+  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Preparing your private test workspace…</p></main>
   if (planStatus === 'needed' || planRequested) return <PlanSelection
     userId={session.user.id} email={session.user.email ?? 'your account'} currentTier={selectedTier}
     onSelected={savePlanChoice} onSignOut={() => void supabase.auth.signOut()}
@@ -151,7 +150,6 @@ export default function App() {
   if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your agreement…</p></main>
   if (agreementStatus === 'needed') return <AccountAgreement
     userId={session.user.id} email={session.user.email ?? 'your account'} selectedTier={selectedTier!}
-    onChangeTier={() => setPlanRequested(true)}
     onAccepted={() => setAgreementStatus('accepted')}
     onSignOut={() => void supabase.auth.signOut()}
   />
