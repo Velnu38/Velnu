@@ -103,10 +103,10 @@ API coverage includes `ai-command`, `execute-ai-action`, `create-approval-link`,
 | Deployment environment/header tests | 22 passed |
 | Financial service regressions | 25 passed |
 | Recovery/provider/signature regressions | 56 passed, including generated malformed inputs and tampered signatures |
-| Deno unit suite | 54 passed, including 302 QuickBooks pagination/boundary inputs |
+| Deno unit suite | 59 passed after final corrections, including 302 QuickBooks pagination/boundary inputs and high-value financial checks |
 | Generated feature regression | 1,800 inputs passed |
 | Dependency audit earlier in this review | 0 reported npm vulnerabilities; not a general security certification |
-| Local browser suite | Previously blocked before execution by missing Chromium; fresh GitHub browser run is pending |
+| Browser suite | Final GitHub Chrome run 40800202503: 94 passed, 0 failed, 0 skipped |
 | Earlier workspace soak | Log ends at 22 successful cycles; no eight-hour completion record; excluded from an eight-hour claim |
 | Fresh transactional live DB financial/RLS regression | 16 passed; synthetic fixtures rolled back |
 | Live transcript database-role isolation / forgery regression | 6 passed; synthetic fixtures rolled back |
@@ -140,7 +140,7 @@ The original full browser run completed with **72 passed and 22 failed** at revi
 
 A separate boundary probe reproduced a mathematical validation defect: binary multiplication noise caused legitimate two-decimal amounts such as $8,388,913.46 to fail the old fixed epsilon check. Shared frontend validation now checks the canonical cent round-trip, matching strict server precision. Four new unit tests include 1,000 generated high-value cent inputs and reject noncanonical fractional cents, malformed data and rollover dates. Those tests passed; financial service regressions were rerun after this correction.
 
-The follow-up Chrome run at `fd4e916` completed all 94 cases: **93 passed, one failed**. Its remaining failure identified a real mobile accessibility mismatch: a decorative gear was included in the Settings menu button's accessible name. Mobile menu buttons now have explicit text labels and decorative icons are hidden from assistive technology. The final full browser rerun is pending. The native transcript role test also verified all six isolation/forgery checks after agreement-complete disposable fixture setup; this does not require OpenAI access.
+The follow-up Chrome run at `fd4e916` completed all 94 cases: **93 passed, one failed**. Its remaining failure identified a real mobile accessibility mismatch: a decorative gear was included in the Settings menu button's accessible name. Mobile menu buttons now have explicit text labels and decorative icons are hidden from assistive technology. The final full browser rerun passed all 94 tests with none skipped. The native transcript role test also verified all six isolation/forgery checks after agreement-complete disposable fixture setup; this does not require OpenAI access.
 
 ## Latest verified correction results
 
@@ -150,4 +150,6 @@ After the final financial-range correction, a fresh live-dataset service smoke c
 
 Extreme aggregate document totals now have an explicit **$1 trillion supported ceiling**, checked with BigInt cents in the frontend and validated CHECK constraints on staging invoices, estimates and change orders. Existing records were confirmed within the ceiling before applying the migration, and all three constraints were verified validated. Reporting rejects amounts outside that supported range rather than converting them through unsafe JavaScript number precision. The product migration is `supabase/migrations/20261029012001_guard_document_supported_financial_totals.sql`; it has been applied to staging only. Production requires the recorded migration during release cutover.
 
-The corrected frontend was built successfully. Both Finviant domains were verified pointing at the ready review deployment, with no alias protection bypass, and a public request still redirected to Vercel SSO. The final financial-range source update receives another browser CI run before being treated as browser verified. The eight-hour campaign continues against its original pinned source revision and live staging services; later corrections have their own test receipts. It cannot establish eight hours on every later code revision.
+The corrected frontend was built successfully. Both Finviant domains were verified pointing at the ready review deployment, with no alias protection bypass, and a public request still redirected to Vercel SSO. The final financial-range source update was independently browser verified by run 40800202503: 94 passed, zero failed, zero skipped. The eight-hour campaign continues against its original pinned source revision and live staging services; later corrections have their own test receipts. It cannot establish eight hours on every later code revision.
+
+Final verification: [GitHub Chrome run 40800202503](https://github.com/Velnu38/Velnu/actions/runs/40800202503) passed all **94 tests with no skipped tests** at final functional revision `6402308b9db4f0a2fddebae04e51b1138ebdd143`. The committed compact browser receipt now refers to that final revision, including the financial range guard. The ready Vercel deployment for this revision is `dpl_XxkRcwbKzXn95fPVaL5UuXxLfywt`. Final functional changes are verified separately from the continuing eight-hour campaign and its original source revision.
