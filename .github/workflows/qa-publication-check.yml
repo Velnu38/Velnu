@@ -23,3 +23,12 @@ jobs:
           QA_BRANCH: ${{ github.ref_name }}
           QA_WORKFLOW_RUN_ID: '40789573149'
         run: node scripts/qa/publish-results.mjs
+      - name: Upload recovered root publication
+        uses: actions/upload-artifact@v4
+        with:
+          name: finviant-publication-recovery
+          path: |
+            ASSESSMENT_REPORT.md
+            STRESS_TEST_LOGS.json
+          if-no-files-found: error
+          retention-days: 14

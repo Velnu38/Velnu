@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { setTimeout as delay } from 'node:timers/promises'
 const token=process.env.GITHUB_TOKEN, repo=process.env.GITHUB_REPOSITORY, branch=process.env.QA_BRANCH
 if(!token||!repo||!branch)throw new Error('GitHub publication configuration missing')
@@ -51,10 +51,12 @@ if(process.env.EXPECT_BROWSER_RESULTS==='true'){
  }
  if(log.totals.failed)log.status='completed_with_failures'
 }
-const text=JSON.stringify(log,null,2)+'\n' 
+const text=JSON.stringify(log,null,2)+'\n'
+writeFileSync('STRESS_TEST_LOGS.json',text)
 await save('STRESS_TEST_LOGS.json',text)
 const source=await api('/contents/ASSESSMENT_REPORT.md?ref='+encodeURIComponent(branch));let report=Buffer.from(source.content,'base64').toString('utf8')
 const status=['<!-- CAMPAIGN_STATUS_START -->',`Updated: ${log.updated_at}. Status: **${log.status}**. Verified accumulated campaign duration: **${Math.round(log.active_seconds)} seconds** of the required 28,800 seconds.`,`Profiles exercised: ${log.totals.profiles_checked}; successful service checks: ${log.totals.passed}; failures: ${log.totals.failed}; expected input rejections: ${log.totals.expected_rejections}; live edge probes: ${log.totals.edge_probes}.`,`Workflow: https://github.com/${repo}/actions/runs/${(process.env.QA_WORKFLOW_RUN_ID??process.env.GITHUB_RUN_ID)}`,`The JSON log contains every observed unexpected exception and per-function counts. A nonzero failure count remains a finding and does not become a pass when a job finishes.`,'<!-- CAMPAIGN_STATUS_END -->'].join('\n\n')
 report=report.replace(/<!-- CAMPAIGN_STATUS_START -->[\s\S]*?<!-- CAMPAIGN_STATUS_END -->/,status)
+writeFileSync('ASSESSMENT_REPORT.md',report)
 await save('ASSESSMENT_REPORT.md',report)
 console.log('Published root report and JSON log to '+branch)
