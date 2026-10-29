@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "campaign": "Finviant staging QA",
+  "target": "xvybcmyoblfgzokaifsx",
+  "requested_active_seconds": 28800,
+  "started_at": "2026-10-29T01:21:55.847Z",
+  "status": "phase_completed",
+  "active_seconds": 7.445753202,
+  "phases": [
+    {
+      "phase": 1,
+      "started_at": "2026-10-29T01:21:55.847Z",
+      "completed_at": "2026-10-29T01:22:03.293Z",
+      "active_seconds": 7.445770383999999
+    }
+  ],
+  "cycles": [
+    {
+      "phase": 1,
+      "cycle": 1,
+      "started_at": "2026-10-29T01:22:02.704Z",
+      "passed": 1000,
+      "failed": 0,
+      "elapsed_ms": 588
+    }
+  ],
+  "errors": [],
+  "modes": {
+    "dataset": "live Supabase REST read",
+    "services": "real app modules; isolated simulated database transport",
+    "edges": "live staging unauthenticated guard probes",
+    "browser": "reported separately by GitHub Actions"
+  },
+  "limits": {
+    "endpoint_requests_per_second": 2,
+    "endpoint_concurrency": 1,
+    "cycle_interval_seconds": 300,
+    "production_writes": 0,
+    "customer_sends": 0
+  },
+  "totals": {
+    "profiles_checked": 1000,
+    "passed": 1000,
+    "failed": 0,
+    "expected_rejections": 360,
+    "live_requests": 10,
+    "edge_probes": 0
+  },
+  "per_function": {
+    "createInvoice": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "createEstimate": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "createChangeOrder": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "recordPayment": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "addManualEntry": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "listVelnuWorkbook": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "listQuickBooksWorkbook": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "getDashboardSnapshot": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "parseQuickInvoice": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    "assistantMonthlyTotal": {
+      "attempts": 100,
+      "passed": 100,
+      "failed": 0
+    }
+  },
+  "dataset": {
+    "count": 1000,
+    "sha256": "aa525017285c57a253a84cdda4b43233d0cf919c5c8358bbabdf234c2d4e65bd",
+    "functions": {
+      "createInvoice": 100,
+      "createEstimate": 100,
+      "createChangeOrder": 100,
+      "recordPayment": 100,
+      "addManualEntry": 100,
+      "listVelnuWorkbook": 100,
+      "listQuickBooksWorkbook": 100,
+      "getDashboardSnapshot": 100,
+      "parseQuickInvoice": 100,
+      "assistantMonthlyTotal": 100
+    }
+  },
+  "updated_at": "2026-10-29T01:22:03.293Z",
+  "financial_validation_sha256": "80c6279764b0733b5c9a78965ad3c145cfbb0da19664c7d97160be6679d80cb1"
+}

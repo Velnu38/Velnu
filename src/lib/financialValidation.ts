@@ -1,4 +1,5 @@
 /** Runtime checks are required even when callers have TypeScript types. */
+export const MAX_SUPPORTED_MONEY = 1_000_000_000_000
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -18,12 +19,17 @@ export function validateDocumentInput(input: unknown): asserts input is Record<s
     const value = input[field]
     if (value !== undefined && value !== null && (typeof value !== 'string' || value.length > 4000)) throw new Error('Document text must be at most 4,000 characters')
   }
+  let totalCents = 0n
   for (const item of input.items) {
     if (!isRecord(item) || typeof item.description !== 'string' || !item.description.trim() || item.description.length > 4000) throw new Error('Every line item needs a valid description')
     if (!validDecimal(item.quantity, 0.01, 100000)) throw new Error('Enter a valid quantity with at most 2 decimal places')
     if (!validDecimal(item.unit_price, 0, 10000000)) throw new Error('Enter a valid unit price with at most 2 decimal places')
     if (!validDecimal(item.tax_rate ?? 0, 0, 100)) throw new Error('Tax rate must be between 0% and 100%, with at most 2 decimal places')
+    const line = (BigInt(Math.round(item.quantity * 100)) * BigInt(Math.round(item.unit_price * 100)) + 50n) / 100n
+    const tax = (line * BigInt(Math.round(Number(item.tax_rate ?? 0) * 100)) + 5000n) / 10000n
+    totalCents += line + tax
   }
+  if (totalCents > BigInt(MAX_SUPPORTED_MONEY) * 100n) throw new Error('Document total exceeds the supported $1 trillion limit')
 }
 
 export function validCalendarDate(value: unknown): value is string {
@@ -36,6 +42,6 @@ export function validCalendarDate(value: unknown): value is string {
 export function readFinancialNumber(value: unknown): number {
   if ((typeof value !== 'number' && typeof value !== 'string') || (typeof value === 'string' && !/^-?\d+(\.\d+)?$/.test(value))) throw new Error('Financial records contain an invalid amount. Reload before using totals.')
   const amount = Number(value)
-  if (!Number.isFinite(amount) || Math.abs(amount) > Number.MAX_SAFE_INTEGER / 100) throw new Error('Financial records contain an unsupported amount.')
+  if (!Number.isFinite(amount) || Math.abs(amount) > MAX_SUPPORTED_MONEY) throw new Error('Financial records exceed the supported $1 trillion reporting range.')
   return amount
 }

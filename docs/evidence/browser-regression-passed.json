@@ -1,0 +1,954 @@
+{
+  "workflow_run": 40799543355,
+  "source_revision": "a5d15718068285c544ce2fbd99505e743927a733",
+  "stats": {
+    "startTime": "2026-10-29T01:17:56.998Z",
+    "duration": 124011.866,
+    "expected": 94,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "paid invoices and manual expenses appear in Finviant Office workbook, not as double-counted QuickBooks income",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "workbook totals and CSV include entries beyond the first API page",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "bookkeeping owner can enter expense without changing payment transactions",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "QuickBooks connection requires explicit extra-cost acknowledgment and shows sandbox state",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "mobile navigation reaches workbook and separates source tabs",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "a failed workbook read shows unavailable totals and can recover without reporting a zero balance",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "a failed reload after a write prevents exporting the previous workbook snapshot",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "workbook text stays inert in HTML and formula prefixes are escaped in CSV",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "bookkeeping.spec.mjs",
+      "name": "a failed workspace module preserves navigation and offers recovery",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "business-profile.spec.mjs",
+      "name": "new owner can enter company branding and business context during onboarding",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "business-profile.spec.mjs",
+      "name": "existing owner can update letterhead, upload a logo and retain business context",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "business-profile.spec.mjs",
+      "name": "free owner has manual branding but no hosted logo uploads or paid AI assistant",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "business-profile.spec.mjs",
+      "name": "activated Basic tier can upload company logo when backend grants storage quota",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "01 empty dashboard renders without uncaught exceptions",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "02 Strict Mode concurrent initial loads share one invoice summary call",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "03 null aggregate values display zero safely",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "04 large financial summary stays server-side without an unbounded invoice scan",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "05 failed invoice-summary RPC displays recoverable error instead of crashing",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "06 dashboard manual refresh recovers after failed RPC",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "07 navigation during a slow dashboard load does not resurrect the old screen",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "08 absent customer relations and injected invoice HTML do not crash or render executable markup",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "invoice tile counts all overdue invoices and keeps details together at 1280px",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "invoice tile counts all overdue invoices and keeps details together at 390px",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "09 completing reminder persists its status and removes it from attention list",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "10 failing reminder update displays error and does not hide the reminder",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "11 viewer cannot complete reminders",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "12 dashboard tenant filters and bounded approval lists are preserved",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "13 empty schedule shows its empty state",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "14 viewers cannot schedule work or update an existing appointment",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "15 missing customer blocks job creation",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "16 blank title blocks job creation",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "17 missing start time blocks job creation",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "18 end time before start is rejected without a database write",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "19 zero-minute appointment is rejected at the equality boundary",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "20 valid schedule submits local date values as UTC and does not duplicate job creation",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "21 optional end date produces a null scheduled end",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "22 failed job insert preserves the form and displays a recoverable error",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "23 failed appointment insert rolls back the whole scheduled-job transaction",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "24 successful status change updates the appointment exactly once",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "25 failed status change reports an error and leaves stored status unchanged",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "merged workspace preserves schedule and separates current, upcoming, and historical jobs",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "standalone reminder creation is accessible from the merged tile at 1280px",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "standalone reminder creation is accessible from the merged tile at 390px",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "critical-dashboard-schedule.spec.mjs",
+      "name": "job action preselects the related job when creating a reminder",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "estimate-approval.spec.mjs",
+      "name": "sent estimate shows scope, terms, required agreement and an acceptance button",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "estimate-approval.spec.mjs",
+      "name": "declining an estimate does not require agreeing to its terms",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "estimate-approval.spec.mjs",
+      "name": "estimate approval and explicit consent are usable on phone-sized screens",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "google-maps.spec.mjs",
+      "name": "service location opens a valid Google Maps view and driving directions without revealing access notes",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "google-maps.spec.mjs",
+      "name": "owner assigns a matching customer property when creating a job",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "google-maps.spec.mjs",
+      "name": "schedule shows driving directions from its associated job location",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "google-maps.spec.mjs",
+      "name": "mobile primary navigation exposes Locations and route links without horizontal overflow",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "marketing-and-terms.spec.mjs",
+      "name": "public homepage explains Free 10-doc cap, Basic and Pro prices, and links to signup",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "marketing-and-terms.spec.mjs",
+      "name": "public privacy and terms pages can be read without logging in",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "marketing-and-terms.spec.mjs",
+      "name": "mobile landing page has accessible signup and no horizontal overflow",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "marketing-and-terms.spec.mjs",
+      "name": "authenticated user is blocked from workspace until AI, terms and e-record acceptance is saved",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "marketing-and-terms.spec.mjs",
+      "name": "existing accepted account proceeds without accepting a second time",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "recovery.spec.mjs",
+      "name": "lost confirmation can be retried using the same action; one mutation",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "recovery.spec.mjs",
+      "name": "lost execution response retries the same action without creating a second record",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "recovery.spec.mjs",
+      "name": "failed cancellation is visible and recoverable, never executes action",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "recovery.spec.mjs",
+      "name": "rapid confirmation attempts use an immediate in-flight guard",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "recovery.spec.mjs",
+      "name": "recorded payment is described as a payment, not a newly created invoice",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "recovery.spec.mjs",
+      "name": "job creation preserves request identity after a lost response",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "recovery.spec.mjs",
+      "name": "job status failure remains visible and makes no separate appointment write",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "service-selection.spec.mjs",
+      "name": "website shows non-billable \u00e0 la carte chooser and carries selected interests into signup",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "service-selection.spec.mjs",
+      "name": "web app installation page explains browser access with no store download",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "service-selection.spec.mjs",
+      "name": "signed-in owner saves account service interests without purchase or billing",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "service-selection.spec.mjs",
+      "name": "mobile service selector and install guide are responsive",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "service-selection.spec.mjs",
+      "name": "Basic and Pro show monthly prices for optional AI assistants; Free cannot select them",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "service-selection.spec.mjs",
+      "name": "marketing homepage shows separate assistant prices and does not imply automatic accounting",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "forgot password requests an on-site recovery link and gives a generic account message",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "expired recovery link offers a fresh link instead of a password form",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "password mismatch cannot submit an account update",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "valid password update completes and signs out",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "invoice resolves object customer relation and requires send confirmation",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "failed email retries reuse the request identifier",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "canceling the email confirmation never sends a message",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "sign-in and password recovery remain usable on a phone-sized screen",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "trial.spec.mjs",
+      "name": "repeat signup response does not imply a new account or require waiting forever",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "voice-invoice.spec.mjs",
+      "name": "dictated one-line invoice is reviewed before saving and stays draft",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "voice-invoice.spec.mjs",
+      "name": "multiple stated amounts are never silently turned into a one-line invoice",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "voice-invoice.spec.mjs",
+      "name": "Safari no-speech error shows a keyboard microphone fallback instead of a silent failure",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "voice-invoice.spec.mjs",
+      "name": "Safari retains speech for other commands and makes the user submit deliberately",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "voice-invoice.spec.mjs",
+      "name": "cloud recording uses server transcription and opens draft review, without sending an invoice",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "voice-invoice.spec.mjs",
+      "name": "microphone permission is requested directly inside the tap after a delayed cloud preflight",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "voice-invoice.spec.mjs",
+      "name": "browser dictation starts in the tap gesture after unavailable cloud preflight",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "owner creates a branded invoice atomically and it remains a draft until manually sent",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "estimate requires explicit offline acceptance before conversion to invoice",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "payments exclude draft invoices and use retry-safe server recording",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "mobile More menu exposes invoices and editable company settings",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "issued invoice preserves original company letterhead after profile changes",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "issued estimate preview shows original issuer and saved footer, not current company profile",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "technician keeps field navigation but cannot edit invoices, estimates or payments",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "issued change order cannot be reverted to draft and voiding requires confirmation",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "workflows.spec.mjs",
+      "name": "dashboard uses one tenant-scoped aggregate RPC instead of downloading invoice balances",
+      "results": [
+        {
+          "status": "passed",
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

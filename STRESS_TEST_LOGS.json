@@ -4,7 +4,7 @@
   "target": "xvybcmyoblfgzokaifsx",
   "requested_active_seconds": 28800,
   "started_at": "2026-10-28T23:41:30.834Z",
-  "status": "phase_completed",
+  "status": "smoke_completed_infrastructure_campaign_running",
   "active_seconds": 14.677955797000001,
   "phases": [
     {
@@ -188,5 +188,11 @@
       }
     }
   },
-  "updated_at": "2026-10-28T23:41:45.512Z"
+  "updated_at": "2026-10-28T23:41:45.512Z",
+  "infrastructure_campaign": {
+    "workflow_run": 40789573149,
+    "source_revision": "e6eab2cfde637953b9f5695b5126eecd2397eeac",
+    "status": "in_progress",
+    "requested_seconds": 28800
+  }
 }

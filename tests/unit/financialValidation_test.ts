@@ -14,3 +14,10 @@ Deno.test('impossible dates and malformed stored financial values are rejected',
 Deno.test('null and malformed document input gives an intentional validation error',()=>{
  for(const value of [null,{}, {customer_id:'customer',items:[null]},{customer_id:'customer',items:[{description:42,quantity:1,unit_price:2}]}]){let error:unknown;try{validateDocumentInput(value)}catch(e){error=e}assert(error instanceof Error && !(error instanceof TypeError))}
 })
+Deno.test('aggregate document bounds use exact cents before any write',()=>{
+ const base={customer_id:'customer',items:[{description:'Large supported job',quantity:100000,unit_price:10000000,tax_rate:0}]}
+ validateDocumentInput(base)
+ let rejected=false;try{validateDocumentInput({...base,items:[{...base.items[0],tax_rate:100}]})}catch{rejected=true}assert(rejected,'Unsafe aggregate was accepted')
+ for(let i=0;i<100;i++){const quantity=99999+(i%100)/100;validateDocumentInput({customer_id:'customer',items:[{description:'Boundary '+i,quantity,unit_price:10000000,tax_rate:0}]})}
+ let invalid=false;try{readFinancialNumber(1000000000000.01)}catch{invalid=true}assert(invalid,'Unsupported report aggregate was accepted')
+})
