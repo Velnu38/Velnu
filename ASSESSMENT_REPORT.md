@@ -5,7 +5,15 @@ Assessment date: October 28, 2026 (America/New_York). Repository: `Velnu38/Velnu
 ## Campaign status — automatically updated by GitHub Actions
 
 <!-- CAMPAIGN_STATUS_START -->
-The infrastructure workflow is running as [GitHub campaign 40789573149](https://github.com/Velnu38/Velnu/actions/runs/40789573149). The verified local smoke run queried all 1,000 live Supabase profiles and completed 1,000 service checks with zero unexpected failures, including 360 expected validation rejections. It also made one live unauthenticated request to each of 12 deployed Edge Functions. The run lasted approximately 15 seconds; this is not an eight-hour result. See `STRESS_TEST_LOGS.json` for the exact measurements. GitHub Actions will replace this block after each four-hour phase.
+
+Updated: 2026-10-28T23:41:45.512Z. Status: **smoke_completed_infrastructure_campaign_running**. Verified accumulated campaign duration: **15 seconds** of the required 28,800 seconds.
+
+Profiles exercised: 1000; successful service checks: 1000; failures: 0; expected input rejections: 360; live edge probes: 12.
+
+Workflow: https://github.com/Velnu38/Velnu/actions/runs/40802292269
+
+The JSON log contains every observed unexpected exception and per-function counts. A nonzero failure count remains a finding and does not become a pass when a job finishes.
+
 <!-- CAMPAIGN_STATUS_END -->
 
 ## Readiness and business value
