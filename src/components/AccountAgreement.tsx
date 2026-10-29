@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { acceptAgreement } from '../lib/userAgreement'
+import PrivateBetaNotice from './PrivateBetaNotice'
 import { AGREEMENT_EFFECTIVE_DATE, AGREEMENT_VERSION, agreementSections } from '../legal/agreement'
 import type { PlanTier } from '../lib/plans'
 
-export default function AccountAgreement({ userId, email, selectedTier, onChangeTier, onAccepted, onSignOut }: {
+export default function AccountAgreement({ userId, email, selectedTier, onAccepted, onSignOut }: {
   userId: string
   email: string
   selectedTier: PlanTier

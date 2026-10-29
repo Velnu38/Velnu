@@ -83,7 +83,7 @@ export default function App() {
       setSelectedTier(tier)
       setPlanStatus(tier ? 'selected' : 'needed')
     }).catch(err => {
-      if (active) setError(err instanceof Error ? err.message : 'Unable to load your service tier.')
+      if (active) setError(err instanceof Error ? err.message : 'Unable to load your private test account settings.')
     })
     return () => { active = false }
   }, [userId, recovery, approvalToken])
@@ -142,7 +142,7 @@ export default function App() {
     return <LandingPage />
   }
   if (error) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
-  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your service tier…</p></main>
+  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Preparing your private test workspace…</p></main>
   if (planStatus === 'needed' || planRequested) return <PlanSelection
     userId={session.user.id} email={session.user.email ?? 'your account'} currentTier={selectedTier}
     onSelected={savePlanChoice} onSignOut={() => void supabase.auth.signOut()}
