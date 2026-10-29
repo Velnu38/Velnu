@@ -49,7 +49,7 @@ const nav: { id: View; label: string; icon: string }[] = [
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'work', 'locations']
 const mobileMore: View[] = ['change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'services', 'settings']
-const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping'].includes(id))
+const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders'].includes(id))
 
 export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)

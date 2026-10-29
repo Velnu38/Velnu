@@ -263,10 +263,14 @@ test('issued change order cannot be reverted to draft and voiding requires confi
     customers: customer, jobs: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Kitchen repair' },
     schedule_impact_days: 0, schedule_note: null, sent_at: '2026-10-26T12:00:00Z',
   }
-  const state = await mockWorkspace(page, { changeOrders: [order] })
+  const issuedInvoice = { id: invoiceId, invoice_number: 'INV-CONTEXT', status: 'sent', issue_date: '2026-10-26', customer_id: customerId, job_id: order.job_id, subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100, customers: customer }
+  const state = await mockWorkspace(page, { changeOrders: [order], invoices: [issuedInvoice], invoiceItems: [{ id: 'context-item', description: 'Original work', quantity: 1, unit_price: 100, line_total: 100, tax_rate: 0, sort_order: 0 }] })
   page.on('dialog', async dialog => { await dialog.accept() })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Change Orders' }).click()
+  await expect(page.locator('.sidebar').getByRole('button', { name: 'Change Orders', exact: true })).toHaveCount(0)
+  await openWorkArea(page, 'Invoices')
+  await page.getByRole('button', { name: /INV-CONTEXT/ }).click()
+  await page.getByRole('button', { name: 'Change orders', exact: true }).click()
   await expect(page.getByText('CO-TEST')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
