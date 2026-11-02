@@ -13,7 +13,7 @@ export interface EstimateLineInput {
 export async function listEstimates(businessId: string) {
   const data = await collectBusinessRecords((from, to) => supabase
     .from('estimates')
-    .select('id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,job_id,notes,customer_message,issuer_snapshot,customers!estimates_customer_id_fkey(id,first_name,last_name,company,email,phone)', { count: 'exact' })
+    .select('id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,property_id,job_id,notes,customer_message,issuer_snapshot,customers!estimates_customer_id_fkey(id,first_name,last_name,company,email,phone)', { count: 'exact' })
     .eq('business_id', businessId)
     .order('id').range(from, to))
   data.sort((a, b) => String(b.issue_date).localeCompare(String(a.issue_date)) || b.id.localeCompare(a.id))
@@ -22,7 +22,7 @@ export async function listEstimates(businessId: string) {
 
 export async function createEstimate(
   businessId: string,
-  input: { customer_id: string; issue_date?: string; expires_on?: string; notes?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
+  input: { customer_id: string; property_id?: string; issue_date?: string; expires_on?: string; notes?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
 ) {
   validateDocumentInput(input)
 
@@ -34,6 +34,7 @@ export async function createEstimate(
     request_id: input.request_id ?? crypto.randomUUID(),
     payload: {
       customer_id: input.customer_id,
+      ...(input.property_id ? { property_id: input.property_id } : {}),
       ...(input.issue_date ? { issue_date: input.issue_date } : {}),
       expires_on: input.expires_on || null,
       notes: input.notes?.trim() || null,

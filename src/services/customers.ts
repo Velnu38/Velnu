@@ -22,12 +22,13 @@ export async function listCustomers(businessId: string) {
   return data
 }
 
-export async function createCustomer(businessId: string, input: CustomerInput) {
+export async function createCustomer(businessId: string, input: CustomerInput, retryId?: string) {
   if (!input.first_name?.trim() && !input.last_name?.trim() && !input.company?.trim()) {
     throw new Error('Enter a customer name or company')
   }
 
   const payload = {
+    ...(retryId ? { id: retryId } : {}),
     business_id: businessId,
     first_name: input.first_name?.trim() || null,
     last_name: input.last_name?.trim() || null,
@@ -39,6 +40,12 @@ export async function createCustomer(businessId: string, input: CustomerInput) {
   }
 
   const { data, error } = await supabase.from('customers').insert(payload).select().single()
+  if (error?.code==='23505'&&retryId) {
+    const previous=await supabase.from('customers').select('*').eq('business_id',businessId).eq('id',retryId).maybeSingle()
+    if(previous.error)throw previous.error
+    if(previous.data&&Object.entries(payload).every(([key,value])=>previous.data[key]===value))return previous.data
+    throw new Error('This customer retry contains different information. Refresh before trying again.')
+  }
   if (error) throw error
   return data
 }

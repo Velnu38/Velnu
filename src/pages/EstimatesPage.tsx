@@ -14,6 +14,10 @@ import { sendDocumentEmail } from '../services/communications'
 import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
+import ScheduleEstimateDialog from '../components/scheduling/ScheduleEstimateDialog'
+import { canAccess } from '../lib/workspaceAccess'
+import CustomerPropertySelect from '../components/CustomerPropertySelect'
+import QuickCustomer from '../components/scheduling/QuickCustomer'
 
 const ChangeOrdersPage = lazy(() => import('./ChangeOrdersPage'))
 
@@ -31,6 +35,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showForm, setShowForm] = useState(false)
   const [convertTarget, setConvertTarget] = useState<Estimate | null>(null)
+  const [scheduleTarget,setScheduleTarget]=useState<Estimate|null>(null)
   const [previewTarget, setPreviewTarget] = useState<Estimate | null>(null)
   const [showChangeOrders, setShowChangeOrders] = useState(false)
   const [previewItems, setPreviewItems] = useState<PreviewItem[]>([])
@@ -41,6 +46,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [customerId, setCustomerId] = useState('')
+  const [propertyId,setPropertyId]=useState('')
   const [expiresOn, setExpiresOn] = useState('')
   const [issueDate, setIssueDate] = useState(() => DateTime.now().setZone(business.timezone || 'UTC').toISODate()!)
   const [notes, setNotes] = useState('')
@@ -78,16 +84,17 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function resetForm() {
-    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
+    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId(''); setPropertyId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setNotice('')
     try {
-      const signature = JSON.stringify({ issueDate, customerId, expiresOn, notes, customerTerms, lines })
+      const signature = JSON.stringify({ issueDate, customerId, propertyId, expiresOn, notes, customerTerms, lines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       await createEstimate(business.id, { request_id: retryRef.current.requestId,
         customer_id: customerId,
+        property_id: propertyId || undefined,
         issue_date: issueDate,
         expires_on: expiresOn || undefined,
         notes,
@@ -117,7 +124,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     try {
       await updateEstimateStatus(id, status)
       await refresh()
-      setNotice(status === 'accepted' ? 'Customer acceptance recorded manually. You can now create a draft invoice.' : 'Estimate marked ' + status + '.')
+      setNotice(status === 'accepted' ? 'Customer acceptance recorded. Choose the crew and appointment times next.' : 'Estimate marked ' + status + '.')
+      if(status==='accepted'&&canAccess(business,'calendar')&&canAccess(business,'jobs'))setScheduleTarget(estimates.find(row=>row.id===id) || null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update estimate')
     } finally { setBusy(false) }
@@ -198,15 +206,19 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
             {canManageFinances(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(estimate)}>Email customer</button>}
             {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Get customer approval link</button>}
             {canManageFinances(business.role) && estimate.status === 'accepted' && <button className="conversion-button" onClick={() => { setError(''); setNotice(''); setConvertTarget(estimate) }}>Create invoice</button>}
+            {canManageFinances(business.role)&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&['accepted','converted'].includes(estimate.status)&&!estimate.job_id&&<button type="button" className="primary-button compact" onClick={()=>setScheduleTarget(estimate)}>Schedule job</button>}
+            {estimate.job_id&&canAccess(business,'jobs')&&<a className="secondary-button compact" href={`/?view=work&document=${encodeURIComponent(estimate.job_id)}`}>Open linked job</a>}
           </div>
         </article>
       })}
     </section>
+    {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
     {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} onClose={() => setResourceEstimate(null)} />}
     {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
       <div className="modal-head"><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid"><label className="full">Customer<select aria-label="Customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Expires on<input type="date" min={issueDate} value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <div className="full"><QuickCustomer businessId={business.id} onCreated={customer=>{setCustomers(rows=>[...rows,customer]);setCustomerId(customer.id)}}/><CustomerPropertySelect businessId={business.id} customerId={customerId} value={propertyId} onChange={setPropertyId} disabled={busy}/></div>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 14 days. A deposit is due before work begins." /></label></div>
         <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>

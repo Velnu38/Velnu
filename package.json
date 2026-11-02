@@ -19,7 +19,8 @@
     "build:calendar": "tsc -p tsconfig.calendar-build.json",
     "start:calendar": "node .calendar-build/run.js",
     "test:records": "node --import tsx --test tests/records/*.test.ts",
-    "test:settings": "node --import tsx --test tests/settings/*.test.ts"
+    "test:settings": "node --import tsx --test tests/settings/*.test.ts",
+    "test:scheduling": "node --import tsx --test tests/scheduling/*.test.ts"
   },
   "dependencies": {
     "@azure/msal-node": "7.1.2",

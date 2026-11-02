@@ -46,6 +46,24 @@ function runtime(db: PGlite, svc: CalendarService) {
     appOrigin: () => "https://finviant.example",
   };
 }
+test('crew calendar sync includes secondary workers, removes reassigned work, and uses the job link for field staff',async()=>{
+ const db=await setup();try{
+ const source=await readFile('supabase/migrations/20261102212737_guided_scheduling_workflow.sql','utf8')
+ const from=source.indexOf('create or replace view public.calendar_work'),to=source.indexOf('-- Recheck an invitation',from)
+ await db.exec('alter table public.jobs add column assigned_user_ids uuid[] default \'{}\';')
+ await db.exec(source.slice(from,to))
+ const lead='99999999-9999-4999-8999-999999999999'
+ await db.query('update jobs set assigned_user_ids=$1 where id=$2',[[lead,u],j])
+ await db.query("insert into appointments(id,business_id,job_id,title,starts_at,ends_at,status,assigned_user_id) values('88888888-8888-4888-8888-888888888888',$1,$2,'Work','2026-11-02T15:00Z','2026-11-02T16:00Z','scheduled',$3)",[b,j,lead])
+ await db.exec("update business_members set role='technician'")
+ const events:any[]=[];let deletes=0
+ const svc:CalendarService={calendars:async()=>[],upsert:async(_id,_remote,event)=>{events.push(event);return 'remote-crew-event'},remove:async()=>{deletes++}}
+ await runSyncBatch(runtime(db,svc))
+ assert.equal(events.length,1);assert.match(events[0].description,new RegExp('view=work&document='+j))
+ await db.query('update jobs set assigned_user_ids=$1 where id=$2',[[lead],j])
+ await runSyncBatch(runtime(db,svc));assert.equal(deletes,1);assert.equal(events.length,1)
+ }finally{await db.close()}
+})
 test("worker reconciles once, skips duplicates, reschedules, cancels and disconnects", async () => {
   const db = await setup();
   try {

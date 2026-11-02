@@ -99,7 +99,10 @@ export async function runSyncBatch(runtime: Runtime = defaultRuntime) {
         const work = active
           ? ((
               await db.query(
-                `select * from public.calendar_work where business_id=$1 and (assigned_user_id is null or assigned_user_id=$2)
+                `select w.* from public.calendar_work w where business_id=$1 and
+        (case when jsonb_array_length(coalesce(to_jsonb(w)->'assigned_user_ids','[]'::jsonb))>0
+          then (to_jsonb(w)->'assigned_user_ids') ? $2::text
+          else assigned_user_id is null or assigned_user_id=$2::uuid end)
         and ($3::boolean or document_kind='work' or source_key like 'job:%' or source_key like 'appointment:%') order by source_key`,
                 [
                   integration.business_id,
@@ -116,7 +119,7 @@ export async function runSyncBatch(runtime: Runtime = defaultRuntime) {
         )
           for (const w of work) {
             w.document_kind = "work";
-            w.document_id = w.source_key.split(":")[1];
+            w.document_id = w.job_id || w.source_key.split(":")[1];
           }
         const links = (
           await db.query(

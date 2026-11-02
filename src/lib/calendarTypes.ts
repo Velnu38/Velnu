@@ -7,6 +7,8 @@ export type AgendaWork = {
   status: string;
   document_kind: string;
   document_id: string;
+  job_id?: string | null;
+  assigned_user_ids?: string[];
 };
 export type AgendaReminder = {
   id: string;

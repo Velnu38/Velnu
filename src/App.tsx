@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { getCurrentBusiness, type CurrentBusiness } from './lib/business'
@@ -15,6 +15,7 @@ import LandingPage from './pages/LandingPage'
 import TeamInvitationPage from './pages/TeamInvitationPage'
 import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
+const CustomerBookingPage = lazy(() => import('./pages/CustomerBookingPage'))
 
 const initialQuery = new URLSearchParams(window.location.search)
 const initialHash = new URLSearchParams(window.location.hash.slice(1))
@@ -26,6 +27,7 @@ const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'sign
 export default function App() {
   const publicPath = window.location.pathname
   const approvalToken = initialQuery.get('approval')
+  const bookingToken = initialQuery.get('booking')
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [recovery, setRecovery] = useState(initialRecovery)
@@ -40,7 +42,7 @@ export default function App() {
   const userId = session?.user.id ?? null
 
   useEffect(() => {
-    if (approvalToken || ['/legal', '/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
+    if (approvalToken || bookingToken || ['/legal', '/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
     let active = true
     let eventReceived = false
     // Keep the auth callback synchronous to avoid holding the session lock.
@@ -69,7 +71,7 @@ export default function App() {
       setAuthReady(true)
     })
     return () => { active = false; data.subscription.unsubscribe() }
-  }, [approvalToken])
+  }, [approvalToken, bookingToken])
 
   // Step 1: fetch the user's plan preference. This is not a paid entitlement.
   useEffect(() => {
@@ -134,6 +136,7 @@ export default function App() {
     setRecovery(false)
   }
 
+  if (bookingToken) return <Suspense fallback={<main className="loading-page">Opening appointment…</main>}><CustomerBookingPage token={bookingToken} /></Suspense>
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
   if (['/legal', '/terms', '/privacy'].includes(publicPath)) return <LegalPage />
   if (publicPath === '/services') return <LandingPage />
