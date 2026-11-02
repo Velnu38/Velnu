@@ -685,6 +685,7 @@ for (const width of [1440, 390]) {
     await openDashboard(page, { invoices, estimates, jobs, aggregate:{open_invoices:5,outstanding_balance:2250} })
     const hub = page.getByRole('article', {name:'Estimates and invoices overview'})
     await expect(hub.getByText('$2,250.00',{exact:true})).toBeVisible()
+    expect(await hub.getByText('$2,250.00',{exact:true}).evaluate(el => el.getBoundingClientRect().height <= Number.parseFloat(getComputedStyle(el).fontSize)*1.5)).toBe(true)
     await expect(page.locator('.dashboard-work-grid>article')).toHaveCount(2)
     const attention = hub.getByRole('region',{name:'Needs attention'})
     await expect(attention.getByRole('listitem')).toHaveCount(5)

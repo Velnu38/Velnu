@@ -78,7 +78,7 @@ function FinancialPerformance({ business, onOpenWorkbook }: { business: CurrentB
             const totals = monthly.get(month.key) ?? { income: 0, expenses: 0, rows: [] }
             const isSelected = selectedMonth === month.key
             return <button type="button" key={month.key} className={`financial-month${isSelected ? ' selected' : ''}`} aria-pressed={isSelected} aria-label={`${month.label} ${month.year}: income ${usd.format(totals.income)}, expenses ${usd.format(totals.expenses)}`} onClick={() => { setSelectedMonth(month.key); setShowPostings(true) }}>
-              <span className="financial-bars"><i className="income-bar" style={{ height: `${Math.max(4, totals.income / maxAmount * 100)}%` }} /><i className="expense-bar" style={{ height: `${Math.max(4, totals.expenses / maxAmount * 100)}%` }} /></span>
+              <span className="financial-bars"><i className="income-bar" style={{ height: `${(totals.income > 0 ? Math.max(4, totals.income / maxAmount * 100) : 0)}%`, minHeight: 0 }} /><i className="expense-bar" style={{ height: `${(totals.expenses > 0 ? Math.max(4, totals.expenses / maxAmount * 100) : 0)}%`, minHeight: 0 }} /></span>
               <span className="financial-month-label">{month.label}<small>{String(month.year).slice(2)}</small></span>
             </button>
           })}
