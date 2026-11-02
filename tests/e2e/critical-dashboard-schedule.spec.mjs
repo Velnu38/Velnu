@@ -46,6 +46,7 @@ async function mockWorkspace(page, options = {}) {
     estimates: [...(options.estimates || [])],
     changeOrders: [...(options.changeOrders || [])],
     requests: [],
+    photos: [], expenses: [], storageWrites: 0,
     savedJobs: new Map(),
     aggregate: options.aggregate ?? { open_invoices: 0, outstanding_balance: 0 },
     aggregateFailures: options.aggregateFailures || 0,
@@ -147,10 +148,30 @@ async function mockWorkspace(page, options = {}) {
       const limit = Number(url.searchParams.get('limit') || 50)
       return reply(matching.slice(offset, offset + limit), 200, matching.length)
     }
-    if (path.endsWith('/invoices')) return reply(state.invoices.slice(0, 10), 200, state.invoices.length)
+    if (path.endsWith('/record_photos')) {
+      if (method === 'POST') { state.photos.push({ ...body, created_by: UID, storage_path: `${BID}/${body.id}.jpg`, created_at: new Date().toISOString() }); return reply(null, 201) }
+      if (method === 'DELETE') { const target = url.searchParams.get('id')?.replace('eq.', ''); const deleted = state.photos.filter(p => p.id === target); state.photos = state.photos.filter(p => p.id !== target); return reply(deleted) }
+      const column = ['job_id', 'estimate_id', 'invoice_id'].find(key => url.searchParams.has(key))
+      const matching = column ? state.photos.filter(p => p[column] === url.searchParams.get(column).replace('eq.', '')) : state.photos
+      return reply(matching, 200, matching.length)
+    }
+    if (path.includes('/storage/v1/object/sign/') && method === 'POST') return reply(body.paths.map(path => ({ path, signedURL: `/object/sign/finviant-record-photos/${path}?token=test`, error: null })))
+    if (path.includes('/storage/v1/object/sign/') && method === 'GET') return route.fulfill({contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfFcAAAAASUVORK5CYII=', 'base64')})
+    if (path.includes('/storage/v1/object/finviant-record-photos')) {
+      if (method === 'POST') { state.storageWrites++; return reply({ Key: path.split('/object/')[1], Id: id(999) }, 200) }
+      return reply([])
+    }
+    if (path.endsWith('/bookkeeping_entries')) {
+      if (method === 'POST') { state.expenses.push(body); return reply(null, 201) }
+      if (method === 'DELETE') { state.expenses = state.expenses.filter(p => p.id !== url.searchParams.get('id')?.replace('eq.', '')); return reply([]) }
+      const column = ['job_id', 'estimate_id', 'invoice_id'].find(key => url.searchParams.has(key))
+      const matching = column ? state.expenses.filter(p => p[column] === url.searchParams.get(column).replace('eq.', '')) : state.expenses
+      return reply(matching, 200, matching.length)
+    }
+    if (path.endsWith('/invoices')) return reply(req.headers().accept?.includes('vnd.pgrst.object') ? state.invoices.find(i => i.id === url.searchParams.get('id')?.replace('eq.', '')) : state.invoices.slice(0, 10), 200, state.invoices.length)
     if (path.endsWith('/estimates')) return reply(state.estimates.slice(0, 10), 200, state.estimates.length)
     if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10), 200, state.changeOrders.length)
-    if (path.endsWith('/messages') || path.endsWith('/bookkeeping_entries')) return reply([])
+    if (path.endsWith('/messages')) return reply([])
     return reply([])
   })
   return state
@@ -165,7 +186,7 @@ const openDashboard = async (page, options) => {
 const openSchedule = async (page, options) => {
   const state = await mockWorkspace(page, options)
   await page.goto('/')
-  await page.getByRole('article', { name: 'Jobs and schedule overview' }).getByRole('button', { name: 'Jobs & schedule', exact: true }).click()
+  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: 'Open schedule', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   return state
 }
@@ -242,7 +263,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
   const errors = noRuntimeErrors(page)
   await mockWorkspace(page, { aggregateDelay: 850 })
   await page.goto('/')
-  await page.getByRole('article', { name: 'Jobs and schedule overview' }).getByRole('button', { name: 'Jobs & schedule', exact: true }).click()
+  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: 'Open schedule', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   await page.waitForTimeout(950)
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
@@ -463,17 +484,15 @@ test('25 failed status change reports an error and leaves stored status unchange
   expect(state.appointments[0].status).toBe('scheduled')
 })
 
-test('merged workspace preserves schedule and separates current, upcoming, and historical jobs', async ({ page }) => {
+test('jobs workspace separates current, upcoming, and historical jobs', async ({ page }) => {
   const jobs = [
     { id: id(501), title: 'Current repair', status: 'in_progress', scheduled_start: localDatetime(-1) },
     { id: id(502), title: 'Future repair', status: 'scheduled', scheduled_start: localDatetime(2) },
     { id: id(503), title: 'Completed repair', status: 'completed', scheduled_start: localDatetime(-2) },
   ].map(job => ({ ...job, customer_id: CID, customers: customer }))
   await openSchedule(page, { jobs, appointments: [appointment()] })
-  await expect(page.getByRole('heading', { name: 'Jobs & schedule', exact: true })).toBeVisible()
   await expect(page.locator('.appointment-row')).toContainText('Visit 1')
-  const views = page.getByRole('navigation', { name: 'Jobs and schedule views' })
-  await views.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await page.goto('/?view=work')
   await expect(page.getByRole('region', { name: 'current jobs' })).toContainText('Current repair')
   await expect(page.getByRole('region', { name: 'current jobs' })).not.toContainText('Future repair')
   await page.getByRole('button', { name: /Upcoming/ }).click()
@@ -488,10 +507,9 @@ for (const width of [1280, 390]) test(`standalone reminder creation is accessibl
   await page.setViewportSize({ width, height: 900 })
   const state = await openDashboard(page, { reminders: Array.from({ length: 18 }, (_, n) => reminder(n)) })
   await expect(page.locator('.dashboard-shortcuts > article')).toHaveCount(3)
-  const tile = page.getByRole('article', { name: 'Jobs and schedule overview' })
-  await expect(tile).toContainText('18 due')
+  const tile = page.getByRole('region', { name: 'Daily calendar' })
   await expect(page.getByRole('heading', { name: 'Reminders due', exact: true })).toHaveCount(0)
-  await tile.getByRole('button', { name: /Reminders/ }).click()
+  await tile.getByRole('button', { name: '+ Reminder', exact: true }).click()
   await page.getByRole('button', { name: '+ New reminder' }).click()
   await page.getByLabel('What needs to be done?').fill('Order replacement parts')
   await page.getByLabel('Remind me on').fill(localDatetime(2))
@@ -504,11 +522,12 @@ for (const width of [1280, 390]) test(`standalone reminder creation is accessibl
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
 
-test('job action preselects the related job when creating a reminder', async ({ page }) => {
+test('calendar reminders can be linked to a job', async ({ page }) => {
   const job = { id: id(511), title: 'Kitchen repair', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }
   const state = await openSchedule(page, { jobs: [job] })
-  await page.getByRole('navigation', { name: 'Jobs and schedule views' }).getByRole('button', { name: 'Jobs', exact: true }).click()
-  await page.getByRole('button', { name: 'Add reminder for Kitchen repair' }).click()
+  await page.goto('/?view=reminders')
+  await page.getByRole('button', { name: '+ New reminder' }).click()
+  await page.getByLabel('Related job (optional)').selectOption(job.id)
   await expect(page.getByLabel('Related job (optional)')).toHaveValue(job.id)
   await expect(page.getByLabel('Related job (optional)')).toBeEnabled()
   await page.getByLabel('What needs to be done?').fill('Confirm customer access')
@@ -563,4 +582,71 @@ test('calendar widget fits a phone without horizontal overflow', async ({ page }
   const calendar=page.getByRole('region',{name:'Daily calendar'})
   await expect(calendar).toBeVisible()
   expect(await calendar.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
+})
+
+test('dashboard layout uses the business name, puts calendar first, and opens only jobs from the tile', async ({ page }) => {
+  await openDashboard(page)
+  await expect(page.getByText('Velnu QA · Today', { exact: true })).toBeVisible()
+  const calendar = page.getByRole('region', { name: 'Daily calendar' })
+  const workAreas = page.getByRole('region', { name: 'Work areas' })
+  expect((await calendar.boundingBox()).y).toBeLessThan((await workAreas.boundingBox()).y)
+  const jobs = page.getByRole('article', { name: 'Jobs overview' })
+  await expect(jobs).not.toContainText('Reminders')
+  await expect(jobs).not.toContainText('schedule')
+  await jobs.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Keep every job moving.' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Jobs and schedule views' })).toHaveCount(0)
+})
+
+for (const kind of ['job', 'estimate', 'invoice']) {
+  test(`record resources: ${kind} picture and expense persist, remove, and appear once in the workbook`, async ({ page }) => {
+    const recordId = id(701)
+    const record = { id: recordId, title: 'Kitchen repair', status: kind === 'job' ? 'in_progress' : 'draft', scheduled_start: null,
+      customer_id: CID, customers: customer, invoice_number: 'INV-701', estimate_number: 'EST-701',
+      issue_date: todayISO(), due_date: todayISO(), subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100 }
+    const state = await mockWorkspace(page, { jobs: [record], estimates: [record], invoices: [record] })
+    const openRecord = async () => {
+      await page.goto(kind === 'invoice' ? `/?view=invoices&document=${recordId}` : `/?view=${kind === 'job' ? 'work' : 'estimates'}`)
+      if (kind !== 'invoice') await page.getByRole('button', { name: `Photos and expenses for ${kind === 'job' ? 'Kitchen repair' : 'EST-701'}` }).click()
+    }
+    await openRecord()
+    const panel = page.getByRole('region', { name: 'Photos and expenses' })
+    await expect(panel.getByText('No pictures added yet.')).toBeVisible()
+    await panel.getByLabel('Add pictures').setInputFiles({ name: 'job-photo.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfFcAAAAASUVORK5CYII=', 'base64') })
+    await expect(panel.getByRole('img', { name: 'job-photo.png' })).toBeVisible()
+    expect(state.storageWrites).toBe(1)
+    expect(state.photos[0][`${kind}_id`]).toBe(recordId)
+    expect(state.photos[0].media_type).toBe('image/jpeg')
+    await panel.getByRole('button', { name: 'Add expense', exact: true }).click()
+    await panel.getByLabel('Amount ($)').fill('24.75')
+    await panel.getByLabel('Description', { exact: true }).fill('Replacement fittings')
+    await panel.getByRole('button', { name: 'Save expense', exact: true }).evaluate(button => { button.click(); button.click() })
+    await expect(panel.getByRole('heading', { name: 'Expenses · $24.75', exact: true })).toBeVisible()
+    expect(state.expenses).toHaveLength(1)
+    expect(state.expenses[0][`${kind}_id`]).toBe(recordId)
+    expect(state.expenses[0].business_id).toBe(BID)
+    expect(state.expenses[0].direction).toBe('expense')
+    await openRecord()
+    await expect(panel.getByRole('img', { name: 'job-photo.png' })).toBeVisible()
+    await expect(panel.getByText('Replacement fittings', { exact: true })).toBeVisible()
+    await page.setViewportSize({ width: 390, height: 844 })
+    expect(await panel.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    await page.screenshot({ path: `test-results/${kind}-resources-phone.png`, fullPage: true })
+    page.on('dialog', dialog => dialog.accept())
+    await panel.getByRole('button', { name: 'Remove picture job-photo.png' }).click()
+    await expect(panel.getByRole('img')).toHaveCount(0)
+    await page.goto('/')
+    await expect(page.locator('.financial-posting').filter({ hasText: 'Replacement fittings' })).toHaveCount(1)
+    expect(state.invoices[0].total).toBe(100)
+  })
+}
+
+test('record resources: viewer cannot upload photos or add expenses', async ({ page }) => {
+  await mockWorkspace(page, { role: 'viewer', jobs: [{ id: id(702), title: 'Read only job', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }] })
+  await page.goto('/?view=work')
+  await page.getByRole('button', { name: 'Photos and expenses for Read only job' }).click()
+  const panel = page.getByRole('region', { name: 'Photos and expenses' })
+  await expect(panel.getByLabel('Add pictures')).toHaveCount(0)
+  await expect(panel.getByRole('button', { name: 'Add expense', exact: true })).toHaveCount(0)
+  await expect(panel.getByText('Expense records are available to owners, administrators, and office staff.')).toBeVisible()
 })

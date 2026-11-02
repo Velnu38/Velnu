@@ -57,7 +57,7 @@ export default function DailyCalendar({
       .catch(() => {
         if (active)
           setError(
-            "Unable to load this day’s work. Try again or open Jobs & schedule.",
+            "Unable to load this day’s work. Try again or open the schedule.",
           );
       })
       .finally(() => {

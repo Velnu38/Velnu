@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { supabase } from '../lib/supabase'
 import WorkspaceErrorBoundary from './WorkspaceErrorBoundary'
-import type { WorkView } from '../pages/JobsSchedulePage'
+
 
 
 
@@ -22,7 +22,9 @@ import './private-beta.css'
 // Load each workspace module only when navigated to; preserve page state boundaries.
 const DashboardPage = lazy(() => import('../pages/DashboardPage'))
 const CustomersPage = lazy(() => import('../pages/CustomersPage'))
-const JobsSchedulePage = lazy(() => import('../pages/JobsSchedulePage'))
+const JobsPage = lazy(() => import('../pages/JobsPage'))
+const SchedulePage = lazy(() => import('../pages/SchedulePage'))
+const RemindersPage = lazy(() => import('../pages/RemindersPage'))
 const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
 const EstimatesPage = lazy(() => import('../pages/EstimatesPage'))
 const InvoicesPage = lazy(() => import('../pages/InvoicesPage'))
@@ -31,7 +33,7 @@ const BookkeepingPage = lazy(() => import('../pages/BookkeepingPage'))
 const SettingsPage = lazy(() => import('../pages/SettingsPage'))
 const LocationsPage = lazy(() => import('../pages/LocationsPage'))
 
-type View = 'dashboard' | 'customers' | 'work' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'payments' | 'bookkeeping' | 'settings'
+type View = 'schedule' | 'reminders' | 'dashboard' | 'customers' | 'work' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'payments' | 'bookkeeping' | 'settings'
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
@@ -39,7 +41,9 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'locations', label: 'Locations', icon: '⌖' },
   { id: 'estimates', label: 'Estimates', icon: 'E' },
   { id: 'invoices', label: 'Invoices', icon: 'I' },
-  { id: 'work', label: 'Jobs & schedule', icon: 'J' },
+  { id: 'work', label: 'Jobs', icon: 'J' },
+  { id: 'schedule', label: 'Schedule', icon: '▦' },
+  { id: 'reminders', label: 'Reminders', icon: '✓' },
   { id: 'change_orders', label: 'Change Orders', icon: 'CO' },
   { id: 'payments', label: 'Payments', icon: '$' },
   { id: 'bookkeeping', label: 'Financial performance', icon: '↗' },
@@ -48,7 +52,7 @@ const nav: { id: View; label: string; icon: string }[] = [
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'work', 'locations']
 const mobileMore: View[] = ['change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
-const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders'].includes(id))
+const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders', 'schedule', 'reminders'].includes(id))
 
 function initialView(): View {
   const query = new URLSearchParams(window.location.search)
@@ -62,19 +66,19 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [view, setView] = useState<View>(initialView())
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [showMobileMore, setShowMobileMore] = useState(false)
-  const [workView, setWorkView] = useState<WorkView>('schedule')
 
   function navigate(next: View) {
-    if (next === 'work') setWorkView('schedule')
     setView(next)
     setShowMobileMore(false)
   }
 
   function page() {
     if (view === 'settings') return <SettingsPage business={company} onSaved={(next) => { setCompany(next); setRefreshVersion(v => v + 1) }} />
-    if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} onReminders={() => { setWorkView('reminders'); setView('work') }} />
+    if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} onReminders={() => navigate('reminders')} />
     if (view === 'customers') return <CustomersPage business={company} />
-    if (view === 'work') return <JobsSchedulePage business={company} initialView={workView} />
+    if (view === 'work') return <JobsPage business={company} />
+    if (view === 'schedule') return <SchedulePage business={company} />
+    if (view === 'reminders') return <RemindersPage business={company} />
     if (view === 'locations') return <LocationsPage business={company} onCustomers={() => navigate('customers')} />
     if (view === 'change_orders') return <ChangeOrdersPage business={company} />
     if (view === 'estimates') return <EstimatesPage business={company} />

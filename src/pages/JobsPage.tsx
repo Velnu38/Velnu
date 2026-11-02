@@ -1,3 +1,4 @@
+import { RecordResourcesDialog } from '../components/RecordResources'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
@@ -15,6 +16,7 @@ type Job = ReminderJob & { status: string; scheduled_start: string | null; custo
 
 export default function JobsPage({ business, embedded = false, onCreateReminder }: { business: CurrentBusiness; embedded?: boolean; onCreateReminder?: (job: ReminderJob) => void }) {
   const Heading = embedded ? 'h2' : 'h1'
+  const [resourceJob, setResourceJob] = useState<Job | null>(null)
   const [group, setGroup] = useState<JobGroup>('current')
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -100,12 +102,13 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           return <article className="job-row" key={job.id}>
             <div className="row-main"><strong>{job.title}</strong><span>{customerName}{job.scheduled_start ? ` · ${new Date(job.scheduled_start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}` : ' · Not scheduled'}</span>{job.properties?.[0] && <div className="job-location"><span className="job-location-address">{formatServiceAddress(job.properties[0])}</span><GoogleMapTools address={job.properties[0]} compact /></div>}</div>
-            <div className="job-row-actions">{onCreateReminder && canWrite(business.role) && <button type="button" className="secondary-button small-button" aria-label={`Add reminder for ${job.title}`} onClick={() => onCreateReminder(job)}>+ Reminder</button>}<select aria-label={`Status for ${job.title}`} value={job.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(job.id, e.target.value as any)}>
+            <div className="job-row-actions"><button type="button" className="secondary-button small-button" aria-label={`Photos and expenses for ${job.title}`} onClick={() => setResourceJob(job)}>Photos &amp; expenses</button>{onCreateReminder && canWrite(business.role) && <button type="button" className="secondary-button small-button" aria-label={`Add reminder for ${job.title}`} onClick={() => onCreateReminder(job)}>+ Reminder</button>}<select aria-label={`Status for ${job.title}`} value={job.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(job.id, e.target.value as any)}>
               <option value="lead">Lead</option><option value="scheduled" disabled={!job.scheduled_start}>Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option>
             </select></div>
           </article>
         })}
       </section>
+      {resourceJob && <RecordResourcesDialog business={business} target={{ kind: 'job', id: resourceJob.id }} title={resourceJob.title} onClose={() => setResourceJob(null)} />}
       {showForm && <div className="modal-backdrop" onMouseDown={() => setShowForm(false)}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head"><div><p className="eyebrow">New job</p><h2>Create a job</h2></div><button className="icon-button" onClick={() => setShowForm(false)}>×</button></div>
         <form className="form-grid" onSubmit={submit}>

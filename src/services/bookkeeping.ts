@@ -28,6 +28,9 @@ export interface BookkeepingInput {
   category: string
   description: string
   notes?: string
+  job_id?: string
+  estimate_id?: string
+  invoice_id?: string
 }
 type PaymentRow = {
   id: string
@@ -109,6 +112,8 @@ export async function listQuickBooksWorkbook(businessId: string): Promise<Workbo
 
 export async function addManualEntry(input: BookkeepingInput) {
   if (!isRecord(input) || !validDecimal(input.amount, 0.01, 1000000000)) throw new Error('Enter a positive amount with no more than two decimal places.')
+  const links = [input.job_id, input.estimate_id, input.invoice_id].filter((id): id is string => !!id)
+  if (links.length > 1 || links.some(id => !/^[0-9a-f-]{36}$/i.test(id)) || (links.length && input.direction !== 'expense')) throw new Error('Choose one valid record for this expense.')
   const amt = input.amount
   if (!validCalendarDate(input.entry_date)) throw new Error('Choose a valid transaction date.')
   if (input.direction !== 'income' && input.direction !== 'expense') throw new Error('Choose income or expense.')
@@ -124,6 +129,9 @@ export async function addManualEntry(input: BookkeepingInput) {
     description: input.description.trim(),
     notes: input.notes?.trim() || null,
     currency: 'USD',
+    job_id: input.job_id || null,
+    estimate_id: input.estimate_id || null,
+    invoice_id: input.invoice_id || null,
   }
   const { error } = await supabase.from('bookkeeping_entries').insert(payload)
   if (!error) return
@@ -131,7 +139,7 @@ export async function addManualEntry(input: BookkeepingInput) {
   // A lost acknowledgement may cause a legitimate retry. A unique-key error
   // alone does not prove that this workspace's exact entry was saved.
   const { data: existing, error: readError } = await supabase.from('bookkeeping_entries')
-    .select('id,business_id,entry_date,direction,amount,category,description,notes,currency')
+    .select('id,business_id,entry_date,direction,amount,category,description,notes,currency,job_id,estimate_id,invoice_id')
     .eq('business_id', input.business_id).eq('id', input.id).maybeSingle()
   if (readError || !existing) {
     throw new Error('Unable to verify whether this entry was saved. Reload the workbook before trying again.')
@@ -140,7 +148,9 @@ export async function addManualEntry(input: BookkeepingInput) {
     existing.entry_date === payload.entry_date && existing.direction === payload.direction &&
     Number(existing.amount) === payload.amount && existing.currency === payload.currency &&
     existing.category === payload.category && existing.description === payload.description &&
-    (existing.notes ?? null) === payload.notes
+    (existing.notes ?? null) === payload.notes &&
+    (existing.job_id ?? null) === payload.job_id && (existing.estimate_id ?? null) === payload.estimate_id &&
+    (existing.invoice_id ?? null) === payload.invoice_id
   if (!same) {
     throw new Error('This entry was already saved with different details. Review the workbook before adding another entry.')
   }

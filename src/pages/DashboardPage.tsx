@@ -5,7 +5,7 @@ import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashbo
 import { listVelnuWorkbook, type WorkbookLine } from '../services/bookkeeping'
 import { readableError } from '../lib/errors'
 
-type DashboardDestination = 'estimates' | 'invoices' | 'work' | 'bookkeeping'
+type DashboardDestination = 'estimates' | 'invoices' | 'work' | 'schedule' | 'bookkeeping'
 const financeRoles = ['owner', 'admin', 'office']
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
@@ -175,9 +175,11 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
 
   return <div className="page-stack">
     <div className="page-heading split-heading">
-      <div><p className="eyebrow">Finviant Office · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
+      <div><p className="eyebrow">{business.name} · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
       <button className="secondary-button compact" onClick={() => void refresh(true)} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
+
+    <DailyCalendar key={business.id} business={business} onWork={() => onNavigate?.('schedule')} onReminders={() => onReminders?.()} />
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-shortcuts" aria-label="Work areas">
@@ -210,15 +212,12 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
           {snapshot.overdueInvoiceCount > snapshot.overdueInvoices.length && <p className="invoice-tile-limit">Showing the {snapshot.overdueInvoices.length} oldest. Open Invoices to see all.</p>}
         </div>}
       </article>
-      <article className="dashboard-shortcut work-shortcut" aria-label="Jobs and schedule overview">
-        <button type="button" className="work-shortcut-link" aria-label="Jobs & schedule" onClick={() => onNavigate?.('work')}><span className="shortcut-icon">J</span><span className="work-shortcut-copy"><strong>Jobs &amp; schedule</strong><small>{loading ? 'Loading work…' : error ? 'Plan your work and follow-ups' : `${snapshot.todayAppointments.length}${snapshot.todayAppointments.length === 20 ? '+' : ''} scheduled today · ${snapshot.jobsThisWeek} jobs in the next 7 days`}</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
-        <div className="work-tile-reminders"><button type="button" onClick={onReminders}><span>Reminders</span>{!loading && !error && <span className={snapshot.dueReminderCount ? 'invoice-overdue-badge' : 'quiet'}>{snapshot.dueReminderCount ? `${snapshot.dueReminderCount} due` : 'None due'}</span>}<span aria-hidden="true">→</span></button><p>View follow-ups or create a reminder.</p></div>
+      <article className="dashboard-shortcut work-shortcut" aria-label="Jobs overview">
+        <button type="button" className="work-shortcut-link" aria-label="Jobs" onClick={() => onNavigate?.('work')}><span className="shortcut-icon">J</span><span className="work-shortcut-copy"><strong>Jobs</strong><small>Manage current and upcoming jobs, photos, and expenses</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
       </article>
     </section>
 
     {error && <p role="alert" className="form-message error-text">{error}</p>}
-
-    <DailyCalendar key={business.id} business={business} onWork={() => onNavigate?.('work')} onReminders={() => onReminders?.()} />
 
     <FinancialPerformance key={`${business.id}:${business.role}`} business={business} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />
 

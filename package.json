@@ -17,7 +17,8 @@
     "typecheck:calendar": "tsc -p tsconfig.calendar.json",
     "test:calendar": "node --import tsx --test tests/calendar/*.test.ts",
     "build:calendar": "tsc -p tsconfig.calendar-build.json",
-    "start:calendar": "node .calendar-build/run.js"
+    "start:calendar": "node .calendar-build/run.js",
+    "test:records": "node --import tsx --test tests/records/*.test.ts"
   },
   "dependencies": {
     "@azure/msal-node": "7.1.2",

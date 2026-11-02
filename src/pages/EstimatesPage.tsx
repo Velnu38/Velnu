@@ -1,3 +1,4 @@
+import { RecordResourcesDialog } from '../components/RecordResources'
 import DocumentSchedule from '../components/calendar/DocumentSchedule'
 import { previewDocumentTotal } from '../lib/financialValidation'
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -22,6 +23,7 @@ type ApprovalLinkState = { url: string; title: string; expiresAt: string }
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
 
 export default function EstimatesPage({ business }: { business: CurrentBusiness }) {
+  const [resourceEstimate, setResourceEstimate] = useState<{ id: string; estimate_number: string | null } | null>(null)
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -174,6 +176,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <button type="button" className="row-main estimate-document-open" disabled={previewBusy} onClick={() => openPreview(estimate)}><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span></button>
           <strong className="money">${Number(estimate.total).toFixed(2)}</strong>
           <div className="document-actions">
+            <button type="button" className="secondary-button compact" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button>
             <button className="secondary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Preview / Print</button>
             <span className={`status-chip ${estimate.status === 'accepted' ? 'paid' : ''}`}>{estimate.status}</span>
             {canManageFinances(business.role) && estimate.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'sent')}>Mark sent manually</button>}
@@ -187,6 +190,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         </article>
       })}
     </section>
+    {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} onClose={() => setResourceEstimate(null)} />}
     {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
       <div className="modal-head"><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
