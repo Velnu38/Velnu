@@ -1,0 +1,33 @@
+name: Guided scheduling workflow
+on:
+  push:
+    branches: [feature/guided-scheduling-20261102]
+  pull_request:
+    branches: [ux/private-testing-20261029]
+permissions:
+  contents: read
+concurrency:
+  group: guided-scheduling-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:scheduling && npm run test:services && npm run test:calendar && npm run test:records && npm run test:settings && npm run test:deployment && npm run typecheck:calendar && npm run build
+      - name: Guided flow and existing critical browser regressions
+        run: npx playwright test tests/e2e/guided-scheduling.spec.mjs tests/e2e/critical-dashboard-schedule.spec.mjs
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: guided-scheduling-results
+          path: test-results/
+          retention-days: 7

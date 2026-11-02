@@ -7,6 +7,7 @@ import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashbo
 import FinancialPerformance from '../components/FinancialPerformance'
 import '../components/dashboard-interactive.css'
 import { readableError } from '../lib/errors'
+import WorkflowNextSteps from '../components/scheduling/WorkflowNextSteps'
 
 type DashboardDestination = 'estimates' | 'invoices' | 'work' | 'schedule' | 'bookkeeping'
 const empty: DashboardSnapshot = {
@@ -83,6 +84,7 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
       <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
+    <WorkflowNextSteps business={business} refreshVersion={refreshVersion} />
     {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} onReminders={() => onReminders?.()} />}
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}

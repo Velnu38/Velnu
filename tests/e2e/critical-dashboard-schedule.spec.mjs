@@ -76,12 +76,14 @@ async function mockWorkspace(page, options = {}) {
     })
     if (path.endsWith('/auth/v1/user')) return reply(user)
     if (path.endsWith('/rpc/get_membership_entry')) return reply(BID)
+    if (path.endsWith('/rpc/get_schedule_team')) return reply(state.role==='viewer'?[]:[{id:UID,label:'QA Owner',role:state.role,is_you:true}])
+    if (path.endsWith('/rpc/get_workflow_next_actions')) return reply({approved:[],completed:[]})
     if (path.endsWith('/business_settings')) return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
     if (path.endsWith('/user_plan_preferences')) return reply({ user_id: UID, selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return reply({ id: id(91), agreement_version: '2026-10-26-v2' })
     if (path.endsWith('/business_members')) return reply({ role: state.role, access_modules: options.accessModules || ['calendar','jobs','billing','finances'], business_id: BID, businesses: business })
     if (path.endsWith('/rpc/get_plan_usage')) return reply({ plan: 'free', ai_limit: 0, voice_limit: 0, logo_bytes_limit: 0 })
-    if (path.endsWith('/rpc/create_scheduled_job')) {
+    if (path.endsWith('/rpc/create_scheduled_job') || path.endsWith('/rpc/create_dispatched_job')) {
       if (state.jobError) return fail('Unable to create job')
       if (state.appointmentError) return fail('Unable to create appointment')
       const previous = state.savedJobs.get(body.request_id)
@@ -521,7 +523,7 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
   await expect(page.getByRole('region', { name: 'upcoming jobs' })).toContainText('Future repair')
   await page.getByRole('button', { name: /History/ }).click()
   await expect(page.getByRole('region', { name: 'history jobs' })).toContainText('Completed repair')
-  await views.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await page.goto('/?view=schedule')
   await expect(page.locator('.appointment-row')).toContainText('Visit 1')
 })
 

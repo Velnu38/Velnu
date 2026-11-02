@@ -33,6 +33,8 @@ export type Work = {
   document_kind: string;
   document_id: string;
   assigned_user_id: string | null;
+  assigned_user_ids?: string[];
+  job_id?: string | null;
 };
 export type EventInput = {
   key: string;

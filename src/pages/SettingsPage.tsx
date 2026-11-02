@@ -7,15 +7,17 @@ import TeamSettings from "../components/settings/TeamSettings";
 import DocumentSettings from "../components/settings/DocumentSettings";
 import PaymentSettings from "../components/settings/PaymentSettings";
 import SubscriptionSettings from "../components/settings/SubscriptionSettings";
+import SchedulingSettings from "../components/scheduling/SchedulingSettings";
 import "../components/settings/settings.css";
 
-type Section = "company" | "team" | "documents" | "payments" | "calendar" | "subscription";
+type Section = "company" | "team" | "documents" | "payments" | "calendar" | "scheduling" | "subscription";
 const options: { id: Section; title: string; description: string }[] = [
   { id: "company", title: "Company profile", description: "Business details and services." },
   { id: "team", title: "Team & access", description: "Invite your team and choose their access." },
   { id: "documents", title: "Invoice & estimate setup", description: "Document appearance, branding, and taxes." },
   { id: "payments", title: "Payment options", description: "Receive customer payments to your business accounts." },
   { id: "calendar", title: "Calendar connections", description: "Google Calendar and Microsoft Outlook." },
+  { id: "scheduling", title: "Scheduling & team availability", description: "Working hours, booking notice, travel time, and time off." },
   { id: "subscription", title: "Cancel subscription", description: "View your subscription and manage cancellation." },
 ];
 
@@ -25,7 +27,7 @@ export default function SettingsPage({ business, onSaved }: {
 }) {
   const [section, setSection] = useState<Section | null>(null);
   const owner = isPrimaryOwner(business);
-  const allowed = options.filter((option) => option.id === "calendar" ? canAccess(business, "calendar") : owner);
+  const allowed = options.filter((option) => option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
 
   function content(id: Section) {
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
@@ -33,6 +35,7 @@ export default function SettingsPage({ business, onSaved }: {
     if (id === "documents") return <DocumentSettings business={business} onSaved={onSaved} />;
     if (id === "payments") return <PaymentSettings business={business} />;
     if (id === "calendar") return <IntegrationSettings businessId={business.id} />;
+    if (id === "scheduling") return <SchedulingSettings business={business} />;
     return <SubscriptionSettings businessId={business.id} />;
   }
 

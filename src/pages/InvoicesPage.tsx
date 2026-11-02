@@ -9,6 +9,10 @@ import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { createInvoice, listInvoices } from '../services/invoices'
 import InvoiceDetail from '../components/InvoiceDetail'
+import QuickCustomer from '../components/scheduling/QuickCustomer'
+import '../components/scheduling/scheduling.css'
+import { getJob } from '../services/jobs'
+import { createJobInvoice } from '../services/schedulingWorkflow'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
 type Invoice = { id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
@@ -35,6 +39,16 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const newLine = (): Line => ({...blankLine(),tax_rate:String(defaultTax)})
   const [lines, setLines] = useState<Line[]>([blankLine()])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
+  const [sourceJob,setSourceJob]=useState<{id:string;title:string}|null>(null)
+  const openingJob=useRef(false)
+  useEffect(()=>{
+    const jobId=new URLSearchParams(window.location.search).get('job')
+    if(!jobId||openingJob.current||!defaultsReady||!canManageFinances(business.role))return
+    let active=true
+    void getJob(business.id,jobId).then(job=>{if(!active)return;openingJob.current=true;setSourceJob({id:job.id,title:job.title});setCustomerId(job.customer_id);setLines([{description:job.description || job.title,quantity:'1',unit_price:'',tax_rate:String(defaultTax)}]);setShowForm(true)})
+      .catch(e=>{if(active)setError(e.message)})
+    return()=>{active=false}
+  },[business.id,business.role,defaultsReady,defaultTax])
 
   async function refresh() {
     const [invoiceRows, customerRows] = await Promise.all([listInvoices(business.id), listCustomers(business.id)])
@@ -53,7 +67,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   }
 
   function resetForm() {
-    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId(''); setDueDate(''); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); retryRef.current = null
+    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId(''); setDueDate(''); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
@@ -61,7 +75,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
     try {
       const signature = JSON.stringify({ issueDate, customerId, dueDate, notes, lines: pricedLines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
-      const created = await createInvoice(business.id, { request_id: retryRef.current.requestId,
+      const input = { request_id: retryRef.current.requestId,
         customer_id: customerId,
         issue_date: issueDate,
         due_date: dueDate || undefined,
@@ -72,7 +86,8 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
           unit_price: Number(line.unit_price),
           tax_rate: Number(line.tax_rate || 0),
         })),
-      })
+      }
+      const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes}) : await createInvoice(business.id,input)
       resetForm(); setShowForm(false); await refresh(); setSelectedInvoiceId(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create invoice')
@@ -99,9 +114,10 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
       })}
     </section>
     {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>Create an invoice</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
+      <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
-        <div className="form-grid"><label className="full">Customer<select aria-label="Customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Due date<input type="date" min={issueDate} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
+        <div className="form-grid"><label className="full">Customer<select aria-label="Customer" disabled={!!sourceJob} value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Due date<input type="date" min={issueDate} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
+        {!sourceJob&&<QuickCustomer businessId={business.id} onCreated={customer=>{setCustomers(rows=>[...rows,customer]);setCustomerId(customer.id)}}/>}{sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
         <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" step="0.01" max="100" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
         {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>

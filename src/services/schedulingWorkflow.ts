@@ -1,0 +1,65 @@
+import { supabase } from '../lib/supabase'
+import { announceCalendarChange } from './calendar'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+
+export type Worker = {id:string;label:string;role:string;is_you:boolean}
+export type Slot = {id?:string;starts_at:string;ends_at:string}
+export type SchedulingPreferences = {work_days:number[];start_minutes:number;end_minutes:number;duration_minutes:number;buffer_minutes:number;notice_hours:number}
+export type SchedulingContext = {
+  preferences:SchedulingPreferences;team:Worker[]
+  time_off:Array<{id:string;user_id:string;starts_at:string;ends_at:string;note:string}>
+  properties?:Array<{id:string;label:string|null;address:string}>
+  estimate?:{id:string;number:string|null;customer_id:string;job_id:string|null;property_id:string|null;title:string;scope:string;customer_name:string;customer_email:string|null}
+  offer?:{id:string;status:string;expires_at:string;job_id:string|null}|null
+}
+export type OfferInput = {title:string;property_id:string|null;workers:string[];slots:Slot[];note:string;recipient_email?:string|null}
+export type BookingView = {business_name:string;business_phone:string|null;title:string;timezone:string;note:string;address:string|null;status:'approved'|'booked'|'canceled';expires_at:string;slots:Required<Slot>[];confirmed:Slot|null}
+export type Completion = {job_id:string;status:'completed';invoice_ready:boolean;invoice_id:string|null;needs_pricing:boolean;needs_review:boolean}
+export type WorkflowActions = {approved:Array<{id:string;estimate_number:string|null;customer_name:string;offer:{status:string;expires_at:string}|null}>;completed:Array<{id:string;title:string;invoice_id:string|null;invoice_status:string|null;error_code:string|null}>}
+async function rpc<T>(name:string,args:Record<string,unknown>):Promise<T> {
+  const {data,error}=await supabase.rpc(name,args)
+  if(error) throw new Error(error.message || 'This change could not be saved.')
+  return data as T
+}
+async function action<T>(body:Record<string,unknown>):Promise<T> {
+  const {data,error}=await supabase.functions.invoke('work-scheduling',{body})
+  if(error) {
+    if(error.context instanceof Response) {
+      const response=await error.context.clone().json().catch(()=>null)
+      if(response?.error) throw new Error(response.error)
+    }
+    throw new Error('The result is not confirmed. Refresh and retry the same action.')
+  }
+  if(data?.error) throw new Error(data.error)
+  return data as T
+}
+export function getSchedulingContext(business:string,estimate?:string) {return rpc<SchedulingContext>('get_scheduling_context',{p_business:business,p_estimate:estimate || null})}
+export function getScheduleTeam(business:string) {return rpc<Worker[]>('get_schedule_team',{p_business:business}).then(value=>{if(!Array.isArray(value))throw new Error('The team list is unavailable.');return value})}
+export function suggestSlots(business:string,workers:string[],duration:number,from:string) {return rpc<Slot[]>('suggest_scheduling_slots',{p_business:business,p_workers:workers,p_duration:duration,p_from:from})}
+export function workflowNextActions(business:string) {return rpc<WorkflowActions>('get_workflow_next_actions',{p_business:business})}
+export async function tokenHash(token:string) {
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token))
+  return Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('')
+}
+export function newBookingToken() {return Array.from(crypto.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join('')}
+export async function approveOffer(estimate:string,id:string,input:OfferInput,token:string) {
+  return rpc<{id:string;status:string;expires_at:string}>('approve_scheduling_offer',{p_estimate:estimate,p_request:id,p_input:input,p_hash:await tokenHash(token)})
+}
+export async function bookApprovedEstimate(estimate:string,input:Omit<OfferInput,'slots'|'note'>&Slot) {
+  const result=await rpc<{job_id:string;already_booked:boolean}>('book_approved_estimate',{p_estimate:estimate,p_input:input})
+  announceCalendarChange();return result
+}
+let publicBookingClient: SupabaseClient | undefined
+export async function customerBooking(token:string,slot?:string,name?:string) {
+  // A customer link has its own narrow authority, independent of any staff session.
+  publicBookingClient ??= createClient(import.meta.env.VITE_SUPABASE_URL,import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})
+  const {data,error}=await publicBookingClient.rpc('customer_schedule_offer',{p_token:token,p_slot:slot || null,p_name:name || null})
+  if(error) throw new Error(error.message || 'This scheduling link is unavailable.')
+  return data as BookingView
+}
+export function sendAvailability(offer:string,token:string,sendId:string) {return action<{status:string;warning?:string|null}>({action:'send_availability',offer_id:offer,token,send_id:sendId,approved:true})}
+export async function completeJob(job:string,retryOnly=false) {const result=await action<Completion>({action:retryOnly?'prepare_invoice':'complete',job_id:job});announceCalendarChange();return result}
+export async function saveSchedulingPreferences(business:string,input:SchedulingPreferences) {await rpc('save_scheduling_preferences',{p_business:business,p_input:input})}
+export function manageTimeOff(business:string,worker:string,start:string,end:string,note:string,remove?:string) {return rpc('manage_worker_time_off',{p_business:business,p_worker:worker,p_start:start,p_end:end,p_note:note,p_remove:remove || null})}
+export async function dispatchJob(job:string,workers:string[],start:string,end:string) {await rpc('dispatch_job',{p_job:job,p_workers:workers,p_start:start,p_end:end});announceCalendarChange()}
+export function createJobInvoice(job:string,request:string,items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>,due?:string,details?:{issue_date:string;notes:string}) {return rpc<{id:string;already_created:boolean}>('create_job_invoice',{p_job:job,p_request:request,p_items:items,p_due:due || null,p_details:details || {}})}

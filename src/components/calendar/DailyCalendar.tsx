@@ -4,6 +4,7 @@ import type { CurrentBusiness } from '../../lib/business'
 import { calendarRange, workOnDay, type CalendarView } from '../../lib/calendarView'
 import { loadCalendarRange } from '../../services/calendar'
 import { completeWorkReminder } from '../../services/reminders'
+import { getScheduleTeam, type Worker } from '../../services/schedulingWorkflow'
 
 type Agenda = Awaited<ReturnType<typeof loadCalendarRange>>
 export default function DailyCalendar({ business, onReminders, refreshVersion = 0 }: {
@@ -20,6 +21,8 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
   const [busy, setBusy] = useState<string | null>(null)
   const [showAllWork, setShowAllWork] = useState(false)
   const [showAllReminders, setShowAllReminders] = useState(false)
+  const [team,setTeam]=useState<Worker[]>([]),[worker,setWorker]=useState('all')
+  useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(value=>{if(!active)return;setTeam(value);if(business.role==='technician')setWorker(value.find(item=>item.is_you)?.id || 'all')}).catch(()=>{});return()=>{active=false}},[business.id,business.role])
   const previousToday = useRef(today)
   const selected = DateTime.fromISO(day, { zone })
   const range = calendarRange(day, zone, view)
@@ -50,7 +53,7 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
     return () => { active = false }
   }, [key, business.id, from, to, zone, version, refreshVersion])
   useEffect(() => { setShowAllWork(false); setShowAllReminders(false) }, [day])
-  const workByDay = useMemo(() => new Map(range.days.map(date => [date.toISODate()!, workOnDay(agenda?.work ?? [], date.toISODate()!, zone)])), [agenda, from, to, zone])
+  const workByDay = useMemo(() => new Map(range.days.map(date => [date.toISODate()!, workOnDay((agenda?.work ?? []).filter(item=>worker==='all'||item.assigned_user_ids?.includes(worker)), date.toISODate()!, zone)])), [agenda, from, to, zone,worker])
   const work = workByDay.get(day) ?? []
   const dueBefore = selected.plus({ days: 1 }).startOf('day').toMillis()
   const reminders = agenda?.reminders.filter(item => DateTime.fromISO(item.due_at).toMillis() < dueBefore) ?? []
@@ -67,6 +70,7 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
       <div><p className="eyebrow">Your schedule</p><h2>{view === 'week' ? 'Weekly schedule' : 'Monthly calendar'}</h2></div>
       <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div><button className="calendar-add" onClick={onReminders}>+ Reminder</button></div>
     </div>
+    {team.length>0&&<label className="worker-select">Show schedule for<select value={worker} onChange={e=>setWorker(e.target.value)}><option value="all">Everyone</option>{team.map(item=><option value={item.id} key={item.id}>{item.is_you?'My schedule · ':''}{item.label}</option>)}</select></label>}
     <div className="calendar-period-nav">
       <div className="calendar-period-title"><button className="calendar-arrow" aria-label={`Previous ${view}`} onClick={() => setDay(selected.minus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>‹</button><strong aria-live="polite">{periodLabel}</strong><button className="calendar-arrow" aria-label={`Next ${view}`} onClick={() => setDay(selected.plus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>›</button></div>
       <label className="calendar-date-picker">{view === 'month' ? 'Month' : 'Jump to date'}<input type={view === 'month' ? 'month' : 'date'} aria-label={view === 'month' ? 'Calendar month' : 'Calendar date'} value={view === 'month' ? day.slice(0,7) : day} onChange={event => { const next = view === 'month' ? `${event.target.value}-01` : event.target.value; if (DateTime.fromISO(next, {zone}).isValid) setDay(next) }} /></label>
@@ -89,7 +93,7 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
         <div><div className="calendar-list-heading"><h3>Scheduled work</h3><span>{work.length}</span></div>
           {!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{(showAllWork ? work : work.slice(0,3)).map(item => <li key={item.source_key}>
             <a className={`calendar-event ${item.document_kind}`} href={`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
-              <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small></span><span aria-hidden="true">↗</span>
+              <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small>{item.assigned_user_ids?.length?<small>Assigned: {item.assigned_user_ids.map(id=>team.find(person=>person.id===id)?.label || 'Team member').join(', ')}</small>:null}</span><span aria-hidden="true">↗</span>
             </a>
           </li>)}</ul>}
           {work.length > 3 && <button className="text-button calendar-show-more" aria-expanded={showAllWork} onClick={() => setShowAllWork(value => !value)}>{showAllWork ? 'Show fewer scheduled items' : `Show all ${work.length} scheduled items`}</button>}
