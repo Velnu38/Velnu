@@ -8,7 +8,7 @@ export const ids = {
   outsider: '77777777-7777-4777-8777-777777777777',
 }
 const baseline = await readFile('supabase/migrations/20261028173902_finviant_complete_application_bootstrap.sql','utf8')
-const migration = await readFile('supabase/migrations/20261102212737_guided_scheduling_workflow.sql','utf8')
+const migration = await readFile('supabase/migrations/20261102221000_guided_scheduling_workflow.sql','utf8')
 function fn(name: string) {
   const from = baseline.indexOf('CREATE OR REPLACE FUNCTION '+name+'(')
   if (from < 0) throw new Error('Missing baseline function '+name)
