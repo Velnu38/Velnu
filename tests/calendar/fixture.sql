@@ -3,7 +3,7 @@ create role anon; create role authenticated; create role service_role;
 create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 create table auth.users(id uuid primary key);
 create table public.businesses(id uuid primary key,timezone text not null default 'America/New_York');
-create table public.business_members(business_id uuid,user_id uuid,role text,primary key(business_id,user_id));
+create table public.business_members(business_id uuid,user_id uuid,role text,access_modules text[] default array['calendar','jobs','billing','finances'],primary key(business_id,user_id));
 create table public.jobs(id uuid primary key,business_id uuid,customer_id uuid,title text,scheduled_start timestamptz,scheduled_end timestamptz,status text);
 create table public.appointments(id uuid primary key,business_id uuid,job_id uuid,title text,starts_at timestamptz,ends_at timestamptz,status text,assigned_user_id uuid);
 create table public.estimates(id uuid primary key,business_id uuid,customer_id uuid,job_id uuid,status text,subtotal numeric default 0,tax_amount numeric default 0,total numeric default 0,created_at timestamptz default now(),unique(id,business_id));

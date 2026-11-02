@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 
 type Mode = 'signin' | 'signup' | 'reset'
 
-export default function AuthScreen({ initialMode = 'signin', initialMessage = '' }: { initialMode?: Mode; initialMessage?: string }) {
+export default function AuthScreen({ initialMode = 'signin', initialMessage = '', invitationToken }: { initialMode?: Mode; initialMessage?: string; invitationToken?: string }) {
   const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,7 +35,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       }
       const result = mode === 'signin'
         ? await supabase.auth.signInWithPassword({ email: address, password })
-        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: `${window.location.origin}/` } })
+        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: `${window.location.origin}/${invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : ''}` } })
       if (result.error) throw result.error
       if (mode === 'signup' && !result.data.session) {
         setAwaitingConfirmation(true)
@@ -64,7 +64,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: address,
-        options: { emailRedirectTo: `${window.location.origin}/` },
+        options: { emailRedirectTo: `${window.location.origin}/${invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : ''}` },
       })
       if (error) throw error
       setAwaitingConfirmation(true)

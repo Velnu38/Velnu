@@ -11,7 +11,8 @@ import {
 
 const stages = ['Company details', 'Document appearance', 'Your business', 'My services']
 
-export default function BusinessProfileEditor({ business, onSaved }: {
+export default function BusinessProfileEditor({ business, onSaved, companyOnly = false }: {
+  companyOnly?: boolean
   business?: CurrentBusiness
   onSaved: (business: CurrentBusiness) => void
 }) {
@@ -28,6 +29,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
   const [interests, setInterests] = useState<ServiceInterest>(getPendingServiceInterests)
   const [servicesLoading, setServicesLoading] = useState(Boolean(business))
   const editing = !!business
+  const visibleSteps = companyOnly ? [0, 2, 3] : [0, 1, 2, 3]
   const logoUrl = localLogoUrl || (business && !removeLogo ? businessLogoUrl(business) : null)
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (busy) return
-    if (step < 3) { setStep(step + 1); setError(''); return }
+    if (step < 3) { setStep(companyOnly && step === 0 ? 2 : step + 1); setError(''); return }
     if (servicesLoading) { setError('Service preferences are still loading. Please try again.'); return }
     if (logo && !logoAllowed) { setError('Hosted logo upload requires an activated paid plan. Remove the selected file to continue.'); return }
     setBusy(true); setError(''); setNotice('')
@@ -118,13 +120,13 @@ export default function BusinessProfileEditor({ business, onSaved }: {
 
   return <section className="profile-editor">
     <div className="profile-steps" role="list">
-      {stages.map((stage, i) => <div key={stage} role="listitem" className={'profile-step ' + (i === step ? 'active' : i < step ? 'complete' : '')}>
-        <strong>{i + 1}</strong><span>{stage}</span>
+      {visibleSteps.map((i, number) => <div key={stages[i]} role="listitem" className={'profile-step ' + (i === step ? 'active' : i < step ? 'complete' : '')}>
+        <strong>{number + 1}</strong><span>{stages[i]}</span>
       </div>)}
     </div>
     <form onSubmit={submit} className="profile-form">
       {step === 0 && <>
-        <h2>Make every invoice look like it comes from your company</h2>
+        <h2>{companyOnly ? 'Your business details' : 'Make every invoice look like it comes from your company'}</h2>
         <p className="quiet">The name, address, phone, and email you add here appear on your invoice and estimate documents. All fields except company name are optional.</p>
         <div className="profile-field-grid">
           {field('name', 'Company name', 'Your business name', { required: true })}
@@ -199,7 +201,7 @@ export default function BusinessProfileEditor({ business, onSaved }: {
       {error && <p role="alert" className="form-message error-text">{error}</p>}
       {notice && <p role="status" className="form-message">{notice}</p>}
       <div className="profile-actions">
-        {step > 0 && <button className="secondary-button" type="button" disabled={busy} onClick={() => { setStep(step - 1); setError('') }}>Back</button>}
+        {step > 0 && <button className="secondary-button" type="button" disabled={busy} onClick={() => { setStep(companyOnly && step === 2 ? 0 : step - 1); setError('') }}>Back</button>}
         <button className="primary-button" disabled={busy || servicesLoading}>{busy ? 'Saving…' : step < 3 ? 'Continue' : editing ? 'Save company profile & services' : 'Create my business'}</button>
       </div>
     </form>

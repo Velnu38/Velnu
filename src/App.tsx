@@ -12,11 +12,14 @@ import AppShell from './components/AppShell'
 import AccountAgreement from './components/AccountAgreement'
 import CustomerApprovalPage from './pages/CustomerApprovalPage'
 import LandingPage from './pages/LandingPage'
+import TeamInvitationPage from './pages/TeamInvitationPage'
 import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
 
 const initialQuery = new URLSearchParams(window.location.search)
 const initialHash = new URLSearchParams(window.location.hash.slice(1))
+const initialInvite = initialQuery.get('invite') || sessionStorage.getItem('finviant-team-invitation')
+if (initialInvite && /^[a-f0-9]{64}$/.test(initialInvite)) { sessionStorage.setItem('finviant-team-invitation', initialInvite); if (initialQuery.has('invite')) window.history.replaceState({}, '', '/auth') }
 const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get('type') === 'recovery'
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
 const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
@@ -77,8 +80,10 @@ export default function App() {
     setSelectedTier(null)
     setPlanStatus('checking')
     setAgreementStatus('checking')
-    if (!userId || recovery || approvalToken) return () => { active = false }
-    void getPlanPreference(userId).then(tier => {
+    if (!userId || recovery || approvalToken || initialInvite) return () => { active = false }
+    void Promise.all([getPlanPreference(userId), supabase.rpc('get_membership_entry')]).then(([tier, member]) => {
+      if (member.error) throw member.error
+      if (member.data) tier = tier || 'pro'
       if (!active) return
       setSelectedTier(tier)
       setPlanStatus(tier ? 'selected' : 'needed')
@@ -135,6 +140,7 @@ export default function App() {
   if (publicPath === '/install') return <InstallPage />
   if (!authReady) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening Finviant Office…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
+  if (initialInvite) return <TeamInvitationPage token={initialInvite} session={session} />
   if (!session) {
     if (publicPath === '/auth' || publicPath === '/plans' || invalidAuthLink) {
       return <AuthScreen initialMode={initialAuthMode} initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />

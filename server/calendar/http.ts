@@ -41,7 +41,7 @@ export async function actor(req: Request, businessId: string) {
   if (error || !data.user)
     throw new CalendarError("sign_in_required", false, 0, 401);
   const { rows } = await database().query(
-    "select role from public.business_members where business_id=$1 and user_id=$2",
+    "select role from public.business_members where business_id=$1 and user_id=$2 and 'calendar'=any(access_modules)",
     [businessId, data.user.id],
   );
   if (!rows[0])

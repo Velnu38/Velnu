@@ -87,13 +87,13 @@ export async function runSyncBatch(runtime: Runtime = defaultRuntime) {
         }
         const membership = (
           await db.query(
-            "select role from public.business_members where business_id=$1 and user_id=$2",
+            "select role,access_modules from public.business_members where business_id=$1 and user_id=$2",
             [integration.business_id, integration.user_id],
           )
         ).rows[0];
         const svc = runtime.provider(db, integration);
         const active =
-          membership &&
+          membership && membership.access_modules.includes("calendar") &&
           integration.auto_sync &&
           integration.state === "connected";
         const work = active
@@ -104,7 +104,7 @@ export async function runSyncBatch(runtime: Runtime = defaultRuntime) {
                 [
                   integration.business_id,
                   integration.user_id,
-                  ["owner", "admin", "office"].includes(membership.role),
+                  ["owner", "admin", "office"].includes(membership.role) && membership.access_modules.includes("billing"),
                 ],
               )
             ).rows as Work[])
@@ -112,7 +112,7 @@ export async function runSyncBatch(runtime: Runtime = defaultRuntime) {
         // Field staff may see work but must not receive financial document deep links.
         if (
           membership &&
-          !["owner", "admin", "office"].includes(membership.role)
+          (!["owner", "admin", "office"].includes(membership.role) || !membership.access_modules.includes("billing"))
         )
           for (const w of work) {
             w.document_kind = "work";

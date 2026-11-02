@@ -1,3 +1,6 @@
+import { adjustedPrice } from '../lib/paymentLinks'
+import { isPrimaryOwner } from '../lib/workspaceAccess'
+import { getDocumentSettings } from '../services/settings'
 import { previewDocumentTotal } from '../lib/financialValidation'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
@@ -21,6 +24,12 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const [customerId, setCustomerId] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
+  const [defaultTax, setDefaultTax] = useState(0)
+  const [pricingAdjustment,setPricingAdjustment] = useState(0)
+  const [adjustPrices,setAdjustPrices] = useState(false)
+  const [defaultsReady,setDefaultsReady] = useState(false)
+  useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setPricingAdjustment(Number(d.pricing_adjustment_percent));setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
+  const newLine = (): Line => ({...blankLine(),tax_rate:String(defaultTax)})
   const [lines, setLines] = useState<Line[]>([blankLine()])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
@@ -32,7 +41,8 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
 
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load invoices')) }, [business.id])
 
-  const previewTotal = useMemo(() => previewDocumentTotal(lines), [lines])
+  const pricedLines = useMemo(() => adjustPrices && isPrimaryOwner(business) ? lines.map(line => { try { return {...line,unit_price:line.unit_price ? adjustedPrice(line.unit_price,pricingAdjustment) : ''} } catch { return {...line,unit_price:'invalid'} } }) : lines,[lines,adjustPrices,pricingAdjustment,business.primary_owner])
+  const previewTotal = useMemo(() => previewDocumentTotal(pricedLines), [pricedLines])
 
   function customerName(customer?: Customer) {
     if (!customer) return 'Customer'
@@ -40,19 +50,19 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   }
 
   function resetForm() {
-    setCustomerId(''); setDueDate(''); setNotes(''); setLines([blankLine()]); setError(''); retryRef.current = null
+    setCustomerId(''); setDueDate(''); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('')
     try {
-      const signature = JSON.stringify({ customerId, dueDate, notes, lines })
+      const signature = JSON.stringify({ customerId, dueDate, notes, lines: pricedLines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       const created = await createInvoice(business.id, { request_id: retryRef.current.requestId,
         customer_id: customerId,
         due_date: dueDate || undefined,
         notes,
-        items: lines.map((line) => ({
+        items: pricedLines.map((line) => ({
           description: line.description,
           quantity: Number(line.quantity),
           unit_price: Number(line.unit_price),
@@ -69,7 +79,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null); refresh() }} />
 
   return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New invoice</button>}</div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" disabled={!defaultsReady} onClick={() => { resetForm(); setShowForm(true) }}>+ New invoice</button>}</div>
     <section className="list-card">
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Create your first invoice here or tell Finviant Office what to bill.</p></div> : invoices.map((invoice) => {
         const customer = invoice.customers?.[0]
@@ -84,7 +94,8 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
       <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>Create an invoice</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid"><label className="full">Customer<select aria-label="Customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Due date<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
-        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
+        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" step="0.01" max="100" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
+        {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create invoice'}</button></div>

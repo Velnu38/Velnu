@@ -116,7 +116,7 @@ async function callback(req: Request, url: URL) {
     if (
       !(
         await db.query(
-          "select 1 from public.business_members where business_id=$1 and user_id=$2",
+          "select 1 from public.business_members where business_id=$1 and user_id=$2 and 'calendar'=any(access_modules)",
           [oauth.business_id, oauth.user_id],
         )
       ).rowCount

@@ -96,8 +96,8 @@ async function checkUser(req: Request, businessId: string) {
   const { data, error } = await admin.auth.getUser(bearer);
   if (error || !data.user) return null;
   const { data: member, error: merror } = await admin.from("business_members")
-    .select("role").eq("user_id", data.user.id).eq("business_id", businessId).maybeSingle();
-  if (merror || !member || !["owner", "admin"].includes(member.role)) return null;
+    .select("role,access_modules").eq("user_id", data.user.id).eq("business_id", businessId).maybeSingle();
+  if (merror || !member || !member.access_modules?.includes("finances") || !["owner", "admin"].includes(member.role)) return null;
   return data.user.id as string;
 }
 async function callback(req: Request) {
@@ -117,9 +117,9 @@ async function callback(req: Request) {
     if (url.searchParams.has("error")) return redirectHome("cancelled");
     const realmId = url.searchParams.get("realmId") || "";
     if (!code || !/^[0-9]+$/.test(realmId) || realmId.length > 80) return redirectHome("error");
-    const { data: member } = await admin.from("business_members").select("role")
+    const { data: member } = await admin.from("business_members").select("role,access_modules")
       .eq("business_id", consumed.business_id).eq("user_id", consumed.initiated_by).maybeSingle();
-    if (!member || !["owner","admin"].includes(member.role)) return redirectHome("error");
+    if (!member || !member.access_modules?.includes("finances") || !["owner","admin"].includes(member.role)) return redirectHome("error");
     const { data: prior } = await admin.from("quickbooks_connections").select("realm_id")
       .eq("business_id", consumed.business_id).maybeSingle();
     if (prior && prior.realm_id !== realmId) return redirectHome("error");

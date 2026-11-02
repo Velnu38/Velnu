@@ -8,7 +8,7 @@ const CID = '44444444-4444-4444-8444-444444444444'
 const AID = '55555555-5555-4555-8555-555555555555'
 const user = { id: UID, email: 'qa-owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
 const customer = { id: CID, first_name: 'Jane', last_name: 'Doe', company: null }
-const business = { id: BID, name: 'Velnu QA', legal_name: null, role: 'owner', profile_completed_at: '2026-10-01T00:00:00Z', document_accent: '#2563eb', logo_path: null }
+const business = { id: BID, name: 'Velnu QA', created_by_user_id: UID, legal_name: null, role: 'owner', profile_completed_at: '2026-10-01T00:00:00Z', document_accent: '#2563eb', logo_path: null }
 const id = n => '88888888-8888-4888-8888-' + String(n).padStart(12, '0')
 const todayISO = () => new Date().toISOString().slice(0, 10)
 const localDatetime = (offsetDays = 1, hours = 10, minutes = 0) => {
@@ -74,9 +74,11 @@ async function mockWorkspace(page, options = {}) {
       status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET, POST, PATCH, DELETE' }, body: '',
     })
     if (path.endsWith('/auth/v1/user')) return reply(user)
+    if (path.endsWith('/rpc/get_membership_entry')) return reply(BID)
+    if (path.endsWith('/business_settings')) return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
     if (path.endsWith('/user_plan_preferences')) return reply({ user_id: UID, selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return reply({ id: id(91), agreement_version: '2026-10-26-v2' })
-    if (path.endsWith('/business_members')) return reply({ role: state.role, business_id: BID, businesses: business })
+    if (path.endsWith('/business_members')) return reply({ role: state.role, access_modules: options.accessModules || ['calendar','jobs','billing','finances'], business_id: BID, businesses: business })
     if (path.endsWith('/rpc/get_plan_usage')) return reply({ plan: 'free', ai_limit: 0, voice_limit: 0, logo_bytes_limit: 0 })
     if (path.endsWith('/rpc/create_scheduled_job')) {
       if (state.jobError) return fail('Unable to create job')
@@ -585,6 +587,7 @@ test('calendar settings shows connected identity, calendar choices and persists 
     return route.fulfill({contentType:'application/json',body:JSON.stringify(result)})
   })
   await page.goto('/?view=settings')
+  await page.getByRole('button',{name:/Calendar connections/}).click()
   await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
   await page.getByRole('switch').check()
   await page.getByRole('button',{name:'Save calendar settings'}).click()
@@ -722,8 +725,9 @@ test('billing hub empty state and finance restrictions stay honest', async ({pag
   await expect(hub).toContainText('No estimates or invoices yet.')
   state.role='technician';state.aggregate={open_invoices:5,outstanding_balance:98765}
   await page.reload()
-  await expect(hub).toContainText('Billing details are available to owners, administrators, and office staff.')
-  await expect(hub).not.toContainText('$98,765')
+  await expect(hub).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
+  await expect(page.locator('body')).not.toContainText('$98,765')
 })
 
 test('billing hub leaves calendar and financial detail available without long default lists', async ({page})=>{
@@ -741,4 +745,95 @@ test('billing hub leaves calendar and financial detail available without long de
   await expect(details).not.toHaveAttribute('open','')
   await page.locator('.financial-month').first().click()
   await expect(details).toHaveAttribute('open','')
+})
+
+
+for (const width of [1440,390]) test(`owner settings navigation is clear at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await mockWorkspace(page);await page.goto('/?view=settings')
+ for(const label of ['Company profile','Team & access','Invoice & estimate setup','Calendar connections','Subscription'])await expect(page.getByRole('button',{name:new RegExp(label.replace('&','&'))})).toBeVisible()
+ await expect(page.locator('.settings-options')).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+ await page.screenshot({path:`test-results/owner-settings-${width}.png`,fullPage:true})
+ await page.getByRole('button',{name:/Invoice & estimate setup/}).click()
+ await expect(page.getByRole('heading',{name:'Taxes',exact:true})).toBeVisible()
+ await expect(page.getByLabel('Default tax rate (%)')).toHaveValue('0')
+ await page.getByRole('checkbox',{name:'PayPal',exact:true}).check()
+ await page.getByLabel('PayPal payment link').fill('https://paypal.me/business')
+ await expect(page.getByRole('button',{name:'Save document setup'})).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+ await page.screenshot({path:`test-results/document-settings-${width}.png`,fullPage:true})
+})
+
+test('owner settings invites reserve a seat and permissions are editable only through team controls',async({page})=>{
+ const state=await mockWorkspace(page)
+ const team={seat_limit:5,pro:true,members:[{user_id:UID,email:'owner@example.test',role:'owner',primary_owner:true,access_modules:['calendar','jobs','billing','finances']},{user_id:id(902),email:'office@example.test',role:'office',primary_owner:false,access_modules:['calendar','billing']}],invitations:[]}
+ const changes=[]
+ await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(team)}))
+ await page.route('**/rest/v1/rpc/manage_team_member',r=>{changes.push(r.request().postDataJSON());return r.fulfill({contentType:'application/json',body:'null'})})
+ await page.route('**/functions/v1/team-management',r=>{const b=r.request().postDataJSON();changes.push(b);team.invitations.push({id:id(903),email:b.email,role:b.role,access_modules:b.modules,expires_at:'2026-11-09T12:00:00Z'});return r.fulfill({contentType:'application/json',body:JSON.stringify({url:'https://finviant.com/auth?invite='+'a'.repeat(64),email_status:'unconfirmed',expires_at:'2026-11-09'})})})
+ await page.goto('/?view=settings');await page.getByRole('button',{name:/Team & access/}).click()
+ await expect(page.getByText('2 of 5 seats')).toBeVisible()
+ await page.getByLabel('Email address',{exact:true}).fill('field@example.test')
+ await page.getByRole('button',{name:'Send invitation'}).click()
+ await expect(page.getByText('3 of 5 seats')).toBeVisible();await expect(page.getByLabel('Private invitation link')).toHaveValue(/invite=/)
+ expect(changes[0].modules).toEqual(['calendar','jobs'])
+ await page.getByRole('button',{name:'Edit access'}).click()
+ const editor=page.getByRole('region',{name:'Edit member access'})
+ await editor.getByRole('checkbox',{name:'Estimates & invoices'}).uncheck()
+ await editor.getByRole('button',{name:'Save access'}).click()
+ await expect.poll(()=>changes.some(c=>c.p_action==='update'&&!c.p_modules.includes('billing'))).toBe(true)
+ expect(state.requests.some(r=>r.method==='PATCH'&&r.path.endsWith('/business_members'))).toBe(false)
+})
+
+test('owner settings five-seat capacity blocks a sixth invitation',async({page})=>{
+ await mockWorkspace(page)
+ await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({seat_limit:5,pro:true,members:Array.from({length:5},(_,n)=>({user_id:id(n),email:`member${n}@example.test`,role:n?'office':'owner',primary_owner:n===0,access_modules:[]})),invitations:[]})}))
+ await page.goto('/?view=settings');await page.getByRole('button',{name:/Team & access/}).click()
+ await expect(page.getByText('5 of 5 seats')).toBeVisible();await expect(page.getByRole('button',{name:'Send invitation'})).toHaveCount(0)
+})
+
+test('owner settings restricted staff cannot open hidden modules or owner controls',async({page})=>{
+ const state=await mockWorkspace(page,{role:'office',accessModules:['jobs']});await page.goto('/')
+ await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
+ await expect(page.getByRole('region',{name:'Daily calendar'})).toHaveCount(0)
+ await expect(page.getByRole('article',{name:'Estimates and invoices overview'})).toHaveCount(0)
+ await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
+ expect(state.requests.some(r=>r.path.endsWith('/rpc/get_dashboard_invoice_totals'))).toBe(false)
+ await page.goto('/?view=invoices');await expect(page.getByRole('alert')).toContainText('not included in your access')
+ await page.goto('/?view=settings');await expect(page.getByRole('button',{name:/Team & access/})).toHaveCount(0);await expect(page.getByRole('button',{name:/Subscription/})).toHaveCount(0)
+})
+
+test('owner settings invoice tax defaults and optional cost pricing affect preview and saved lines',async({page})=>{
+ await mockWorkspace(page);let payload
+ await page.route('**/rest/v1/business_settings?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({default_tax_rate:5.3,pricing_adjustment_percent:3,payment_links:[],payment_instructions:''})}))
+ await page.route('**/rest/v1/rpc/create_document',r=>{payload=r.request().postDataJSON();return r.fulfill({contentType:'application/json',body:JSON.stringify({id:id(910)})})})
+ await page.goto('/?view=invoices');await page.getByRole('button',{name:'+ New invoice'}).click()
+ await page.getByLabel('Customer',{exact:true}).selectOption(CID)
+ await page.getByPlaceholder('Description',{exact:true}).fill('Service work');await page.getByPlaceholder('Unit price',{exact:true}).fill('100')
+ await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3')
+ await expect(page.locator('.estimate-total strong')).toHaveText('$105.30')
+ await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.estimate-total strong')).toHaveText('$108.46')
+ await page.getByRole('button',{name:'Create invoice',exact:true}).click();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
+ await page.goto('/?view=estimates');await page.getByRole('button',{name:'+ New estimate'}).click();await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
+})
+
+test('owner settings invoice payment buttons use saved links and do not record payments',async({page})=>{
+ const invoice={id:id(920),invoice_number:'INV-920',status:'sent',issue_date:'2026-11-02',total:100,subtotal:100,tax_amount:0,amount_paid:0,balance_due:100,customer_id:CID,customers:customer,payment_links:[{provider:'venmo',url:'https://venmo.com/business'},{provider:'paypal',url:'https://paypal.me/business'},{provider:'stripe',url:'https://buy.stripe.com/example'},{provider:'cashapp',url:'https://cash.app/$Business'}],payment_instructions:'Use invoice number INV-920.'}
+ const state=await mockWorkspace(page,{invoices:[invoice]});await page.goto('/?view=invoices&document='+invoice.id)
+ for(const name of ['Venmo','PayPal','Stripe','Cash App'])await expect(page.getByRole('link',{name:'Pay with '+name,exact:true})).toBeVisible()
+ await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveAttribute('href','https://paypal.me/business')
+ expect(state.requests.some(r=>r.path.endsWith('/payments')&&r.method==='POST')).toBe(false)
+})
+
+test('owner settings cancellation uses explicit confirmation and preserves no-subscription truth',async({page})=>{
+ await mockWorkspace(page);const actions=[];let active=true,canceled=false
+ await page.route('**/functions/v1/subscription-management',r=>{const b=r.request().postDataJSON();actions.push(b.action);if(b.action==='cancel')canceled=true;return r.fulfill({contentType:'application/json',body:JSON.stringify(active?{active:true,status:'active',can_cancel:true,cancel_at_period_end:canceled,ends_at:'2026-12-02T12:00:00Z'}:{active:false,status:'none',can_cancel:false})})})
+ await page.goto('/?view=settings');await page.getByRole('button',{name:/Subscription/}).click();await page.getByRole('button',{name:'Cancel subscription',exact:true}).click();expect(actions.every(a=>a==='status')).toBe(true);await page.getByRole('button',{name:'Confirm cancellation'}).click();await expect(page.getByRole('status')).toContainText('Cancellation scheduled');expect(actions.filter(a=>a==='cancel')).toHaveLength(1);await expect(page.getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
+ active=false;await page.reload();await page.getByRole('button',{name:/Subscription/}).click();await expect(page.getByText(/No paid subscription is active/)).toBeVisible();await expect(page.getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
+})
+
+test('owner settings invitation acceptance bypasses company creation and separate plan selection',async({page})=>{
+ await mockWorkspace(page);let accepted=false
+ await page.route('**/rest/v1/rpc/accept_team_invitation',r=>{expect(r.request().postDataJSON().p_hash).toMatch(/^[a-f0-9]{64}$/);accepted=true;return r.fulfill({contentType:'application/json',body:JSON.stringify(BID)})})
+ await page.goto('/auth?invite='+'a'.repeat(64));await page.getByRole('button',{name:'Accept invitation',exact:true}).click();await expect.poll(()=>accepted).toBe(true);await expect(page.getByRole('region',{name:'Daily calendar'})).toBeVisible();expect(await page.evaluate(uid=>localStorage.getItem('finviant-active-business:'+uid),UID)).toBe(BID)
 })

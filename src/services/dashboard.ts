@@ -54,26 +54,27 @@ export interface DashboardSnapshot {
   }>
 }
 
-export async function getDashboardSnapshot(businessId: string, timezone = 'America/New_York'): Promise<DashboardSnapshot> {
+export async function getDashboardSnapshot(businessId: string, timezone = 'America/New_York', access: Record<string,boolean> = {calendar:true,jobs:true,billing:true,finances:true}): Promise<DashboardSnapshot> {
   const now = new Date()
   const localNow = DateTime.fromJSDate(now).setZone(timezone)
   const todayStart = localNow.startOf('day').toJSDate()
   const tomorrowStart = localNow.startOf('day').plus({ days: 1 }).toJSDate()
   const todayDate = localNow.toISODate()!
 
+  const skip = { data: [] as any[], count: 0, error: null }
   const [invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting, recentEstimates, recentInvoices] = await Promise.all([
     // SECURITY INVOKER RPC calculates exact totals under the caller's existing invoice RLS.
-    supabase.rpc('get_dashboard_invoice_totals', { target_business_id: businessId }).single(),
-    supabase.from('jobs').select('id,title,status,customers!jobs_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).in('status', ['lead','scheduled','in_progress']).order('updated_at', { ascending: false }).order('id').limit(3),
-    supabase.from('invoices').select('id,invoice_number,due_date,balance_due,customers!invoices_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).lt('due_date', todayDate).gt('balance_due', 0) .not('status', 'in', '(draft,void)').order('due_date', { ascending: true }).limit(10),
-    supabase.from('reminders').select('id,kind,due_at,note,invoice_id,estimate_id,job_id,customer_id', { count: 'exact' }).eq('business_id', businessId).eq('status', 'pending').lte('due_at', now.toISOString()).order('due_at', { ascending: true }).limit(10),
-    supabase.from('appointments').select('id,title,starts_at,ends_at,status,customers!appointments_customer_id_fkey(first_name,last_name,company)').eq('business_id', businessId).gte('starts_at', todayStart.toISOString()).lt('starts_at', tomorrowStart.toISOString()).neq('status', 'canceled').order('starts_at', { ascending: true }).limit(20),
-    supabase.from('estimates').select('id,estimate_number,total,issue_date,customers!estimates_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10),
-    supabase.from('change_orders').select('id,estimate_id,change_order_number,title,total,issue_date,customers!change_orders_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10),
+    access.billing ? supabase.rpc('get_dashboard_invoice_totals', { target_business_id: businessId }).single() : {data:{open_invoices:0,outstanding_balance:0},error:null},
+    access.jobs ? supabase.from('jobs').select('id,title,status,customers!jobs_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).in('status', ['lead','scheduled','in_progress']).order('updated_at', { ascending: false }).order('id').limit(3) : skip,
+    access.billing ? supabase.from('invoices').select('id,invoice_number,due_date,balance_due,customers!invoices_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).lt('due_date', todayDate).gt('balance_due', 0) .not('status', 'in', '(draft,void)').order('due_date', { ascending: true }).limit(10) : skip,
+    access.calendar ? supabase.from('reminders').select('id,kind,due_at,note,invoice_id,estimate_id,job_id,customer_id', { count: 'exact' }).eq('business_id', businessId).eq('status', 'pending').lte('due_at', now.toISOString()).order('due_at', { ascending: true }).limit(10) : skip,
+    access.calendar ? supabase.from('appointments').select('id,title,starts_at,ends_at,status,customers!appointments_customer_id_fkey(first_name,last_name,company)').eq('business_id', businessId).gte('starts_at', todayStart.toISOString()).lt('starts_at', tomorrowStart.toISOString()).neq('status', 'canceled').order('starts_at', { ascending: true }).limit(20) : skip,
+    access.billing ? supabase.from('estimates').select('id,estimate_number,total,issue_date,customers!estimates_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10) : skip,
+    access.billing ? supabase.from('change_orders').select('id,estimate_id,change_order_number,title,total,issue_date,customers!change_orders_customer_id_fkey(first_name,last_name,company)', { count: 'exact' }).eq('business_id', businessId).eq('status', 'sent').order('issue_date', { ascending: true }).limit(10) : skip,
     // Five from each source are sufficient to find the latest five in their union.
     // Queries stay bounded and retain the caller's tenant filters and RLS.
-    supabase.from('estimates').select('id,estimate_number,status,total,created_at,customers!estimates_customer_id_fkey(first_name,last_name,company),jobs!estimates_job_id_fkey(title)').eq('business_id', businessId).order('created_at', { ascending: false }).order('id').limit(5),
-    supabase.from('invoices').select('id,invoice_number,status,total,created_at,customers!invoices_customer_id_fkey(first_name,last_name,company),jobs!invoices_job_id_fkey(title)').eq('business_id', businessId).order('created_at', { ascending: false }).order('id').limit(5),
+    access.billing ? supabase.from('estimates').select('id,estimate_number,status,total,created_at,customers!estimates_customer_id_fkey(first_name,last_name,company),jobs!estimates_job_id_fkey(title)').eq('business_id', businessId).order('created_at', { ascending: false }).order('id').limit(5) : skip,
+    access.billing ? supabase.from('invoices').select('id,invoice_number,status,total,created_at,customers!invoices_customer_id_fkey(first_name,last_name,company),jobs!invoices_job_id_fkey(title)').eq('business_id', businessId).order('created_at', { ascending: false }).order('id').limit(5) : skip,
   ])
 
   for (const result of [invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting, recentEstimates, recentInvoices]) {

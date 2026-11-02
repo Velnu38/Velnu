@@ -1,3 +1,4 @@
+import { getDocumentSettings } from '../services/settings'
 import { RecordResourcesDialog } from '../components/RecordResources'
 import DocumentSchedule from '../components/calendar/DocumentSchedule'
 import { previewDocumentTotal } from '../lib/financialValidation'
@@ -41,6 +42,10 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [expiresOn, setExpiresOn] = useState('')
   const [notes, setNotes] = useState('')
   const [customerTerms, setCustomerTerms] = useState('')
+  const [defaultTax, setDefaultTax] = useState(0)
+  const [defaultsReady,setDefaultsReady] = useState(false)
+  useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
+  const newLine = (): Line => ({...blankLine(),tax_rate:String(defaultTax)})
   const [lines, setLines] = useState<Line[]>([blankLine()])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
@@ -70,7 +75,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function resetForm() {
-    setCustomerId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
+    setCustomerId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
@@ -165,7 +170,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   if (showChangeOrders && previewTarget && offersDocumentChangeOrders('estimate', previewTarget.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType: 'estimate', documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id }} onBack={() => setShowChangeOrders(false)} /></Suspense>
 
   return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New estimate</button>}</div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" disabled={!defaultsReady} onClick={() => { resetForm(); setShowForm(true) }}>+ New estimate</button>}</div>
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured. You can preview and print estimates now.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
@@ -196,7 +201,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid"><label className="full">Customer<select aria-label="Customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Expires on<input type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 14 days. A deposit is due before work begins." /></label></div>
-        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
+        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create estimate'}</button></div>

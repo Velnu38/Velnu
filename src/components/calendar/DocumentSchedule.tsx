@@ -1,3 +1,4 @@
+import { canAccess } from '../../lib/workspaceAccess'
 import { localInstant } from "../../lib/calendarTime";
 import { useEffect, useState, type FormEvent } from "react";
 import { DateTime } from "luxon";
@@ -29,6 +30,7 @@ export default function DocumentSchedule({
     [ready, setReady] = useState(false);
   const field = kind === "estimate" ? "estimate_id" : "invoice_id";
   useEffect(() => {
+    if (!canAccess(business,"calendar")) return;
     let active = true;
     setReady(false);
     setError("");
@@ -72,7 +74,7 @@ export default function DocumentSchedule({
       active = false;
     };
   }, [business.id, id, field, zone]);
-  if (!canManageFinances(business.role)) return null;
+  if (!canManageFinances(business.role) || !canAccess(business,'calendar')) return null;
   if (jobId)
     return (
       <p className="quiet calendar-no-print">

@@ -1,5 +1,6 @@
-import { lazy, Suspense, useState } from 'react'
-import type { CurrentBusiness } from '../lib/business'
+import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
+import { lazy, Suspense, useState, useEffect } from 'react'
+import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
 import { supabase } from '../lib/supabase'
 import WorkspaceErrorBoundary from './WorkspaceErrorBoundary'
 
@@ -67,13 +68,24 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [showMobileMore, setShowMobileMore] = useState(false)
 
+  const [accessRemoved, setAccessRemoved] = useState(false)
+  useEffect(() => {
+    let active = true
+    const check = () => { void getCurrentBusiness().then(next => { if (!active) return; if (!next || next.id !== business.id) setAccessRemoved(true); else { setCompany(next); setAccessRemoved(false) } }).catch(() => { if (active) setAccessRemoved(true) }) }
+    const timer = window.setInterval(check, 30000)
+    window.addEventListener('focus', check)
+    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check) }
+  }, [business.id])
+
   function navigate(next: View) {
     setView(next)
     setShowMobileMore(false)
   }
 
   function page() {
-    if (view === 'settings') return <SettingsPage business={company} onSaved={(next) => { setCompany(next); setRefreshVersion(v => v + 1) }} />
+    if (accessRemoved) return <p role="alert">Your business access could not be verified. Contact the primary owner or reload after reconnecting.</p>
+    if (!canOpenView(company, view)) return <p role="alert">This area is not included in your access. Contact your primary business owner.</p>
+    if (view === 'settings') return <SettingsPage business={company} onSaved={setCompany} />
     if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} onReminders={() => navigate('reminders')} />
     if (view === 'customers') return <CustomersPage business={company} />
     if (view === 'work') return <JobsPage business={company} />
@@ -91,7 +103,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><span>Finviant <span className="finviant-product">Office</span></span></div>
-        <nav>{sidebarNav.map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
+        <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
         <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </aside>
       <main className="workspace">
@@ -100,7 +112,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>
       <nav className="mobile-nav">
-        {mobilePrimary.map((id) => {
+        {mobilePrimary.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span>{item.icon}</span><small>{item.label}</small></button>
         })}
@@ -109,13 +121,13 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       {showMobileMore && <div className="mobile-more-backdrop" onMouseDown={() => setShowMobileMore(false)}><section className="mobile-more-sheet" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mobile-more-handle" />
         <div className="mobile-more-head"><div><p className="eyebrow">Finviant Office</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)}>×</button></div>
-        <div className="mobile-more-grid">{mobileMore.map((id) => {
+        <div className="mobile-more-grid">{mobileMore.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon" aria-hidden="true">{item.icon}</span><strong>{item.label}</strong></button>
         })}</div>
         <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </section></div>}
-      <AiAssistantAccess business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />
+      {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />}
     </div>
   )
 }

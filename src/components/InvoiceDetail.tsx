@@ -1,3 +1,6 @@
+import { safePaymentLinks, paymentProviders } from '../lib/paymentLinks'
+import { canAccess } from '../lib/workspaceAccess'
+import './settings/settings.css'
 import RecordResources from './RecordResources'
 import DocumentSchedule from './calendar/DocumentSchedule'
 import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from 'react'
@@ -12,7 +15,7 @@ import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
 
 type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null }
-type Invoice = { issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
+type Invoice = { payment_links?: unknown; payment_instructions?: string; issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
 type Item = { id:string; description:string; quantity:number; unit_price:number; tax_rate:number; line_total:number }
 type Payment = { id:string; amount:number; method:string|null; status:string; paid_at:string; notes:string|null }
 type Message = { id:string; direction:string; channel:string; recipient:string|null; subject:string|null; body:string; status:string; sent_at:string|null; created_at:string }
@@ -88,6 +91,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
         <div className="invoice-meta"><div><span>Issued</span><strong>{new Date(invoice.issue_date+'T00:00:00').toLocaleDateString()}</strong></div><div><span>Due</span><strong>{invoice.due_date?new Date(invoice.due_date+'T00:00:00').toLocaleDateString():'—'}</strong></div></div>
         <div className="invoice-table"><div className="invoice-table-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Total</span></div>{detail.items.map(item=><div className="invoice-table-row" key={item.id}><span>{item.description}{Number(item.tax_rate)>0&&<small>{Number(item.tax_rate).toFixed(2)}% tax</small>}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><strong>${Number(item.line_total).toFixed(2)}</strong></div>)}</div>
         <div className="invoice-totals"><div><span>Subtotal</span><strong>${Number(invoice.subtotal).toFixed(2)}</strong></div><div><span>Tax</span><strong>${Number(invoice.tax_amount).toFixed(2)}</strong></div><div><span>Paid</span><strong>−${Number(invoice.amount_paid).toFixed(2)}</strong></div><div className="grand-total"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong></div></div>
+        {Number(invoice.balance_due)>0 && invoice.status!=='void' && (safePaymentLinks(invoice.payment_links).length>0 || invoice.payment_instructions) && <section className="invoice-note"><strong>Payment options</strong><div className="invoice-payment-buttons">{safePaymentLinks(invoice.payment_links).map(link=><a key={link.provider} href={link.url} target="_blank" rel="noopener noreferrer">Pay with {paymentProviders.find(p=>p.id===link.provider)?.name}</a>)}</div>{invoice.payment_instructions&&<p>{invoice.payment_instructions}</p>}<p className="quiet">Pay the balance due shown above and include {invoice.invoice_number || 'the invoice number'} with payment. Payment is handled by the business’s external provider.</p></section>}
         {invoice.customer_message&&<div className="invoice-note"><strong>Message to customer</strong><p>{invoice.customer_message}</p></div>}
         {invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}
         {issuedBrand.document_footer && <div className="document-footer">{issuedBrand.document_footer}</div>}

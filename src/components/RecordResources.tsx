@@ -1,3 +1,4 @@
+import { canAccess } from '../lib/workspaceAccess'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DateTime } from 'luxon'
 import { canManageFinances, canWrite, type CurrentBusiness } from '../lib/business'
@@ -9,7 +10,7 @@ import './record-resources.css'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function RecordResources({ business, target }: { business: CurrentBusiness; target: RecordTarget }) {
-  const finance = canManageFinances(business.role)
+  const finance = canManageFinances(business.role) && canAccess(business,'finances')
   const photoWrite = target.kind === 'job' ? canWrite(business.role) : finance
   const [photos, setPhotos] = useState<RecordPhoto[]>([])
   const [expenses, setExpenses] = useState<RecordExpense[]>([])

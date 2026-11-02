@@ -1,3 +1,4 @@
+import { canAccess, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub, { DashboardJobs } from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -132,7 +133,7 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
   const mounted = useRef(false)
   // Share concurrent first loads (including React Strict Mode's effect replay)
   // without caching financial data across users, sessions, or businesses.
-  const pendingLoad = useRef<{ businessId: string; promise: Promise<DashboardSnapshot> } | null>(null)
+  const pendingLoad = useRef<{ businessId: string; accessKey: string; promise: Promise<DashboardSnapshot> } | null>(null)
 
   async function refresh(force = false) {
     if (!mounted.current) return
@@ -140,12 +141,13 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
     setLoading(true)
     setError('')
 
-    let load = !force && pendingLoad.current?.businessId === business.id
+    const accessKey = business.role + ':' + business.access_modules?.join(',')
+    let load = !force && pendingLoad.current?.businessId === business.id && pendingLoad.current?.accessKey === accessKey
       ? pendingLoad.current.promise
       : null
     if (!load) {
-      load = getDashboardSnapshot(business.id, business.timezone)
-      pendingLoad.current = { businessId: business.id, promise: load }
+      load = getDashboardSnapshot(business.id, business.timezone, Object.fromEntries(workspaceModules.map(m => [m.id,canAccess(business,m.id)])))
+      pendingLoad.current = { businessId: business.id, accessKey, promise: load }
       const currentLoad = load
       const clearPending = () => {
         if (pendingLoad.current?.promise === currentLoad) pendingLoad.current = null
@@ -169,7 +171,7 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
     setSnapshot(empty)
     void refresh()
     return () => { mounted.current = false; currentRequest.current++ }
-  }, [business.id, business.timezone])
+  }, [business.id, business.timezone, business.access_modules?.join(','), business.role])
 
   const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount
 
@@ -179,17 +181,17 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
       <button className="secondary-button compact" onClick={() => void refresh(true)} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
-    <DailyCalendar key={business.id} business={business} onWork={() => onNavigate?.('schedule')} onReminders={() => onReminders?.()} />
+    {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} onWork={() => onNavigate?.('schedule')} onReminders={() => onReminders?.()} />}
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-work-grid" aria-label="Work areas">
-      <BillingHub business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} />
-      <DashboardJobs snapshot={snapshot} loading={loading} error={error} onOpen={() => onNavigate?.('work')} />
+      {canAccess(business,'billing') && <BillingHub business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} />}
+      {canAccess(business,'jobs') && <DashboardJobs snapshot={snapshot} loading={loading} error={error} onOpen={() => onNavigate?.('work')} />}
     </section>
 
     {error && <p role="alert" className="form-message error-text">{error}</p>}
 
-    <FinancialPerformance key={`${business.id}:${business.role}`} business={business} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />
+    {canAccess(business,'finances') && <FinancialPerformance key={`${business.id}:${business.role}`} business={business} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
 
 
   </div>

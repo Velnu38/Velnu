@@ -13,7 +13,7 @@ export async function listRecordPhotos(businessId: string, target: RecordTarget)
     .select('id,file_name,storage_path,created_by,created_at', { count: 'exact' })
     .eq('business_id', businessId).eq(recordColumn(target.kind), target.id).order('id').range(from, to))
   if (!rows.length) return []
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(rows.map(row => row.storage_path as string), 900)
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrls(rows.map(row => row.storage_path as string), 60)
   if (error) throw error
   const urls = new Map(data?.map(item => [item.path, item.signedUrl]))
   // An interrupted upload is visible and removable, not silently hidden.

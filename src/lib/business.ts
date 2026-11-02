@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 export type BusinessRole = 'owner' | 'admin' | 'office' | 'technician' | 'viewer'
 
 export interface BusinessProfile {
+  created_by_user_id?: string
   timezone?: string
   id: string
   name: string
@@ -27,6 +28,8 @@ export interface BusinessProfile {
 }
 
 export interface CurrentBusiness extends BusinessProfile {
+  primary_owner?: boolean
+  access_modules?: string[]
   role: BusinessRole
 }
 
@@ -58,7 +61,7 @@ export const emptyBusinessProfile: BusinessProfileDraft = {
   team_size: '', team_roles: '',
 }
 
-const fields = 'id,timezone,name,legal_name,email,phone,website,address_line1,address_line2,city,state,postal_code,logo_path,document_accent,document_footer,business_description,services_offered,service_area,team_size,team_roles,profile_completed_at'
+const fields = 'id,created_by_user_id,timezone,name,legal_name,email,phone,website,address_line1,address_line2,city,state,postal_code,logo_path,document_accent,document_footer,business_description,services_offered,service_area,team_size,team_roles,profile_completed_at'
 
 export function draftFromBusiness(business: BusinessProfile): BusinessProfileDraft {
   return {
@@ -103,38 +106,39 @@ export async function getCurrentBusiness(): Promise<CurrentBusiness | null> {
   if (authError) throw authError
   if (!authData.user) return null
 
-  const { data: membership, error: membershipError } = await supabase
-    .from('business_members')
-    .select('business_id,role,businesses(' + fields + ')')
-    .eq('user_id', authData.user.id).limit(1).maybeSingle()
+  let query = supabase.from('business_members')
+    .select('business_id,role,access_modules,businesses(' + fields + ')').eq('user_id', authData.user.id)
+  const selected = localStorage.getItem('finviant-active-business:' + authData.user.id)
+  if (selected) query = query.eq('business_id', selected)
+  const { data: membership, error: membershipError } = await query.order('created_at').limit(1).maybeSingle()
   if (membershipError) throw membershipError
   if (!membership) return null
   // The dynamic PostgREST projection cannot be inferred by the Supabase generic parser.
-  const row = membership as unknown as { businesses: BusinessProfile | BusinessProfile[] | null; role: BusinessRole }
+  const row = membership as unknown as { businesses: BusinessProfile | BusinessProfile[] | null; role: BusinessRole; access_modules: string[] }
   const record = Array.isArray(row.businesses) ? row.businesses[0] : row.businesses
   if (!record) return null
-  return { ...record, role: row.role }
+  return { ...record, role: row.role, access_modules: row.access_modules ?? [], primary_owner: row.role === 'owner' && record.created_by_user_id === authData.user.id }
 }
 
 export async function createBusiness(draft: BusinessProfileDraft): Promise<CurrentBusiness> {
   const { data, error } = await supabase.from('businesses')
     .insert(cleanProfile(draft)).select(fields).single()
   if (error) throw error
-  return { ...(data as BusinessProfile), role: 'owner' }
+  return { ...(data as BusinessProfile), role: 'owner', primary_owner: true, access_modules: ['calendar','jobs','billing','finances'] }
 }
 
 export async function updateBusinessProfile(business: CurrentBusiness, draft: BusinessProfileDraft, logoPath?: string | null): Promise<CurrentBusiness> {
-  if (!['owner', 'admin'].includes(business.role)) throw new Error('Only the owner or administrator can change company settings.')
+  if (!business.primary_owner) throw new Error('Only the owner or administrator can change company settings.')
   const changes: Record<string, unknown> = cleanProfile(draft)
   if (logoPath !== undefined) changes.logo_path = logoPath
   const { data, error } = await supabase.from('businesses').update(changes)
     .eq('id', business.id).select(fields).single()
   if (error) throw error
-  return { ...(data as BusinessProfile), role: business.role }
+  return { ...business, ...(data as BusinessProfile) }
 }
 
 export async function uploadBusinessLogo(business: CurrentBusiness, file: File): Promise<string> {
-  if (!['owner', 'admin'].includes(business.role)) throw new Error('Only owners and administrators can upload logos.')
+  if (!business.primary_owner) throw new Error('Only owners and administrators can upload logos.')
   const valid: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
   const extension = valid[file.type]
   if (!extension) throw new Error('Choose a PNG, JPG, or WebP logo.')
