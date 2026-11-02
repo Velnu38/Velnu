@@ -163,6 +163,12 @@ export default function TeamSettings({
         invite people, remove access, or change permissions. Pending invitations
         reserve a seat.
       </p>
+      {team?.private_preview && (
+        <p className="form-message">
+          Private team testing: five seats are available with no subscription
+          charge. Paid AI and other paid services are not activated.
+        </p>
+      )}
       {error && (
         <p role="alert" className="form-message error-text">
           {error}
@@ -346,7 +352,7 @@ export default function TeamSettings({
           ))}
         </div>
       )}
-      {team && !team.pro ? (
+      {team && !(team.team_enabled ?? team.pro) ? (
         <p className="form-message">
           Team invitations require an activated Pro plan. Selecting Pro during
           private testing does not activate a paid subscription.

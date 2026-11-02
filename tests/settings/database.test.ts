@@ -65,6 +65,12 @@ async function setup() {
     "create trigger commerce_auxiliary_limit before insert or update on business_members for each row execute function private.commerce_auxiliary_limit()",
   );
   await db.exec(migration);
+  await db.exec(
+    await readFile(
+      "supabase/migrations/20261102173504_private_team_preview.sql",
+      "utf8",
+    ),
+  );
   await db.exec(`insert into auth.users values('${owner}','owner@example.test',now()),('${employee}','employee@example.test',now()),('${outsider}','outsider@example.test',now());
  insert into businesses values('${business}','QA Company','${owner}');insert into private.business_entitlements values('${business}','pro');
  insert into business_members(business_id,user_id,role) values('${business}','${owner}','owner'),('${business}','${employee}','admin');
@@ -253,6 +259,32 @@ test("payment destinations are owner-only, links validated, and no paid subscrip
         ]),
       /primary owner/,
     );
+  } finally {
+    await db.close();
+  }
+});
+
+test("private team preview enables five seats without granting paid Pro or allowing owner flag changes", async () => {
+  const db = await setup();
+  try {
+    await db.exec(
+      "reset role;update private.business_entitlements set plan='free';set role authenticated;",
+    );
+    await assert.rejects(() => invite(db, 1), /active Pro/);
+    await assert.rejects(
+      () => db.query("update private.workspace_feature_flags set enabled=true"),
+      /permission denied/,
+    );
+    await db.exec(
+      "reset role;update private.workspace_feature_flags set enabled=true where name='team_private_preview';set role authenticated;",
+    );
+    const state = (
+      await db.query<{ s: any }>("select get_team_settings($1) s", [business])
+    ).rows[0].s;
+    assert.equal(state.seat_limit, 5);
+    assert.equal(state.pro, false);
+    assert.equal(state.private_preview, true);
+    await invite(db, 1);
   } finally {
     await db.close();
   }

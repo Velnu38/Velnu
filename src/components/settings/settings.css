@@ -175,6 +175,7 @@
   justify-self: start;
 }
 .settings-panel .quiet {
+  color: #5e727c;
   line-height: 1.65;
 }
 .settings-panel button {

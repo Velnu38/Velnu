@@ -18,6 +18,8 @@ export type Invitation = {
 export type TeamState = {
   seat_limit: number;
   pro: boolean;
+  team_enabled?: boolean;
+  private_preview?: boolean;
   members: TeamMember[];
   invitations: Invitation[];
 };
@@ -120,16 +122,14 @@ export async function saveDocumentSettings(
   businessId: string,
   value: DocumentSettings,
 ) {
-  const { error } = await supabase
-    .from("business_settings")
-    .upsert(
-      {
-        business_id: businessId,
-        ...value,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "business_id" },
-    );
+  const { error } = await supabase.from("business_settings").upsert(
+    {
+      business_id: businessId,
+      ...value,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "business_id" },
+  );
   if (error) throw error;
 }
 export type SubscriptionState = {

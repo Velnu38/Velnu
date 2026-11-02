@@ -765,6 +765,7 @@ for (const width of [1440,390]) test(`owner settings navigation is clear at ${wi
 })
 
 test('owner settings invites reserve a seat and permissions are editable only through team controls',async({page})=>{
+ await page.setViewportSize({width:390,height:844})
  const state=await mockWorkspace(page)
  const team={seat_limit:5,pro:true,members:[{user_id:UID,email:'owner@example.test',role:'owner',primary_owner:true,access_modules:['calendar','jobs','billing','finances']},{user_id:id(902),email:'office@example.test',role:'office',primary_owner:false,access_modules:['calendar','billing']}],invitations:[]}
  const changes=[]
@@ -773,6 +774,8 @@ test('owner settings invites reserve a seat and permissions are editable only th
  await page.route('**/functions/v1/team-management',r=>{const b=r.request().postDataJSON();changes.push(b);team.invitations.push({id:id(903),email:b.email,role:b.role,access_modules:b.modules,expires_at:'2026-11-09T12:00:00Z'});return r.fulfill({contentType:'application/json',body:JSON.stringify({url:'https://finviant.com/auth?invite='+'a'.repeat(64),email_status:'unconfirmed',expires_at:'2026-11-09'})})})
  await page.goto('/?view=settings');await page.getByRole('button',{name:/Team & access/}).click()
  await expect(page.getByText('2 of 5 seats')).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+ await page.screenshot({path:'test-results/team-settings-phone.png',fullPage:true})
  await page.getByLabel('Email address',{exact:true}).fill('field@example.test')
  await page.getByRole('button',{name:'Send invitation'}).click()
  await expect(page.getByText('3 of 5 seats')).toBeVisible();await expect(page.getByLabel('Private invitation link')).toHaveValue(/invite=/)
@@ -828,7 +831,7 @@ test('owner settings invoice payment buttons use saved links and do not record p
 test('owner settings cancellation uses explicit confirmation and preserves no-subscription truth',async({page})=>{
  await mockWorkspace(page);const actions=[];let active=true,canceled=false
  await page.route('**/functions/v1/subscription-management',r=>{const b=r.request().postDataJSON();actions.push(b.action);if(b.action==='cancel')canceled=true;return r.fulfill({contentType:'application/json',body:JSON.stringify(active?{active:true,status:'active',can_cancel:true,cancel_at_period_end:canceled,ends_at:'2026-12-02T12:00:00Z'}:{active:false,status:'none',can_cancel:false})})})
- await page.goto('/?view=settings');await page.getByRole('button',{name:/Subscription/}).click();await page.getByRole('button',{name:'Cancel subscription',exact:true}).click();expect(actions.every(a=>a==='status')).toBe(true);await page.getByRole('button',{name:'Confirm cancellation'}).click();await expect(page.getByRole('status')).toContainText('Cancellation scheduled');expect(actions.filter(a=>a==='cancel')).toHaveLength(1);await expect(page.getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
+ await page.goto('/?view=settings');await page.getByRole('button',{name:/Subscription/}).click();await page.getByRole('button',{name:'Cancel subscription',exact:true}).click();expect(actions.every(a=>a==='status')).toBe(true);await page.getByRole('button',{name:'Confirm cancellation'}).click();await expect(page.getByRole('status').filter({hasText:'Cancellation scheduled'})).toContainText('Cancellation scheduled');expect(actions.filter(a=>a==='cancel')).toHaveLength(1);await expect(page.getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
  active=false;await page.reload();await page.getByRole('button',{name:/Subscription/}).click();await expect(page.getByText(/No paid subscription is active/)).toBeVisible();await expect(page.getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
 })
 
