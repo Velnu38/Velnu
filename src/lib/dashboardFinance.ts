@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import type { WorkbookLine } from '../services/bookkeeping'
+import type { WorkbookLine } from './workbookTypes.js'
 export type FinancialPeriod = 1 | 3 | 6 | 12
 export type FinancialBucket = { key: string; label: string; fullLabel: string; from: string; to: string; income: number; expenses: number }
 

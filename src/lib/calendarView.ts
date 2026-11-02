@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import type { AgendaWork } from '../services/calendar'
+import type { AgendaWork } from './calendarTypes.js'
 export type CalendarView = 'week' | 'month'
 
 /** Local calendar arithmetic keeps week/month boundaries correct across DST. */

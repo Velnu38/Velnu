@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { calendarRange, workOnDay } from '../../src/lib/calendarView.js'
 import { financialRange, financialBuckets, financialTotals } from '../../src/lib/dashboardFinance.js'
-import type { WorkbookLine } from '../../src/services/bookkeeping.js'
+import type { WorkbookLine } from '../../src/lib/workbookTypes.js'
 const zone = 'America/New_York'
 test('calendar week and month cross DST and leap dates using local midnights', () => {
   const week = calendarRange('2026-11-01', zone, 'week')

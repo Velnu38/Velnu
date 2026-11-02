@@ -1,3 +1,5 @@
+import type { AgendaWork, AgendaReminder } from '../lib/calendarTypes';
+export type { AgendaWork, AgendaReminder } from '../lib/calendarTypes';
 import { collectWorkbookPages } from "../lib/workbookPages";
 import { dayBounds } from "../lib/calendarTime";
 import { supabase } from "../lib/supabase";
@@ -64,22 +66,6 @@ export async function calendarRequest<T>(
   }
   return result as T;
 }
-export type AgendaWork = {
-  source_key: string;
-  title: string;
-  description: string;
-  starts_at: string;
-  ends_at: string | null;
-  status: string;
-  document_kind: string;
-  document_id: string;
-};
-export type AgendaReminder = {
-  id: string;
-  note: string | null;
-  due_at: string;
-  job_id: string | null;
-};
 export async function loadAgenda(
   businessId: string,
   day: string,

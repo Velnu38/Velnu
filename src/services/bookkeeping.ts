@@ -4,26 +4,9 @@ import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 import { collectWorkbookPages } from '../lib/workbookPages'
 
-export type EntryDirection = 'income' | 'expense'
+import type { EntryDirection, WorkbookLine } from '../lib/workbookTypes'
+export type { EntryDirection, WorkbookLine } from '../lib/workbookTypes'
 export type WorkbookSource = 'velnu' | 'quickbooks'
-
-export interface WorkbookLine {
-  id: string
-  entry_date: string
-  direction: EntryDirection
-  description: string
-  category: string
-  amount: number
-  currency: string
-  source: 'invoice_payment' | 'manual' | 'quickbooks'
-  source_label: string
-  removable: boolean
-  source_id?: string | null
-  source_view?: 'invoices' | 'estimates' | 'work'
-  source_reference?: string
-  payment_method?: string | null
-  notes?: string | null
-}
 
 export interface BookkeepingInput {
   id: string
