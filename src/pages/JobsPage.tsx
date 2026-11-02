@@ -2,7 +2,7 @@ import { RecordResourcesDialog } from '../components/RecordResources'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
-import { createJob, listJobs, updateJobStatus } from '../services/jobs'
+import { createJob, getJob, listJobs, updateJobStatus } from '../services/jobs'
 import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
@@ -24,6 +24,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const requestedJob = useRef(new URLSearchParams(window.location.search).get('document'))
   const pendingSave = useRef<{ fingerprint: string; id: string } | null>(null)
   const saving = useRef(false)
   const mounted = useRef(false)
@@ -34,8 +35,9 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     const request = ++requestId.current
     setLoading(true)
     try {
-    const [jobRows, customerRows] = await Promise.all([listJobs(business.id), listCustomers(business.id)])
+    const [jobRows, customerRows, linkedJob] = await Promise.all([listJobs(business.id), listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
+    if (linkedJob) { setResourceJob(linkedJob as Job); setGroup(jobGroup(linkedJob)); requestedJob.current = null }
     setJobs(jobRows as Job[])
     setCustomers(customerRows as Customer[])
     setError('')

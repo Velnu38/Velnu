@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { DateTime } from 'luxon'
 
 // Mock-only integration tests. No production login, email, billing, or database writes.
 // The existing Playwright config supplies the fake Supabase URL.
@@ -108,6 +109,7 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/customers')) return reply(state.customers)
     if (path.endsWith('/properties')) return reply([])
     if (path.endsWith('/jobs')) {
+      if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.jobs.find(job => job.id === url.searchParams.get('id')?.replace('eq.','')))
       if (method === 'POST') {
         if (state.jobError) return fail('Unable to create job')
         return reply({ id: id(80), ...body }, 201)
@@ -204,7 +206,7 @@ const openDashboard = async (page, options) => {
 const openSchedule = async (page, options) => {
   const state = await mockWorkspace(page, options)
   await page.goto('/')
-  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: 'Open schedule', exact: true }).click()
+  await page.goto('/?view=schedule')
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   return state
 }
@@ -281,7 +283,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
   const errors = noRuntimeErrors(page)
   await mockWorkspace(page, { aggregateDelay: 850 })
   await page.goto('/')
-  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: 'Open schedule', exact: true }).click()
+  await page.goto('/?view=schedule')
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   await page.waitForTimeout(950)
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
@@ -325,7 +327,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
 
 test('09 completing reminder persists its status and removes it from attention list', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
+  await page.getByRole('region', { name: 'Work calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
   await expect(page.getByText('Call customer 1')).toBeVisible()
   await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Call customer 1')).toHaveCount(0)
@@ -335,7 +337,7 @@ test('09 completing reminder persists its status and removes it from attention l
 
 test('10 failing reminder update displays error and does not hide the reminder', async ({ page }) => {
   await openDashboard(page, { reminders: [reminder()], reminderError: true })
-  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
+  await page.getByRole('region', { name: 'Work calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
   await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Unable to complete reminder')).toBeVisible()
   await expect(page.getByText('Call customer 1')).toBeVisible()
@@ -343,7 +345,7 @@ test('10 failing reminder update displays error and does not hide the reminder',
 
 test('11 viewer cannot complete reminders', async ({ page }) => {
   const state = await openDashboard(page, { role: 'viewer', reminders: [reminder()] })
-  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
+  await page.getByRole('region', { name: 'Work calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
   await expect(page.getByText('Call customer 1')).toBeVisible()
   await expect(page.getByRole('button', { name: /Mark .* done/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '+ New reminder' })).toHaveCount(0)
@@ -527,7 +529,7 @@ for (const width of [1280, 390]) test(`standalone reminder creation is accessibl
   await page.setViewportSize({ width, height: 900 })
   const state = await openDashboard(page, { reminders: Array.from({ length: 18 }, (_, n) => reminder(n)) })
   await expect(page.locator('.dashboard-work-grid > article')).toHaveCount(2)
-  const tile = page.getByRole('region', { name: 'Daily calendar' })
+  const tile = page.getByRole('region', { name: 'Work calendar' })
   await expect(page.getByRole('heading', { name: 'Reminders due', exact: true })).toHaveCount(0)
   await tile.getByRole('button', { name: '+ Reminder', exact: true }).click()
   await page.getByRole('button', { name: '+ New reminder' }).click()
@@ -561,20 +563,20 @@ test('calendar reminders can be linked to a job', async ({ page }) => {
 test('calendar dashboard shows daily work, overdue reminders, completion, and another date', async ({ page }) => {
   await mockWorkspace(page)
   let completed = false
-  await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
+  await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', headers:{'content-range':'0-0/1'}, body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
   await page.route('**/rest/v1/reminders?**', route => {
     if (route.request().method() === 'PATCH') { completed = true; return route.fulfill({contentType:'application/json',body:JSON.stringify({id:id(2)})}) }
-    return route.fulfill({contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(completed?[]:[{id:id(2),note:'Confirm materials',due_at:new Date(Date.now()-3600000).toISOString(),job_id:null}])})
+    return route.fulfill({contentType:'application/json',headers:{'content-range':completed?'*/0':'0-0/1'},body:JSON.stringify(completed?[]:[{id:id(2),note:'Confirm materials',due_at:new Date(Date.now()-3600000).toISOString(),job_id:null}])})
   })
   await page.goto('/')
-  const calendar = page.getByRole('region', {name:'Daily calendar'})
-  await expect(calendar.getByRole('heading',{name:'Today’s work'})).toBeVisible()
+  const calendar = page.getByRole('region', {name:'Work calendar'})
+  await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
   await expect(calendar.getByRole('link',{name:'Roof inspection'})).toBeVisible()
   await expect(calendar.getByText('Confirm materials',{exact:true})).toBeVisible()
   await calendar.getByRole('button',{name:'Complete Confirm materials'}).click()
   await expect(calendar.getByText('Confirm materials',{exact:true})).toHaveCount(0)
   await calendar.getByLabel('Calendar date').fill('2028-02-29')
-  await expect(calendar.getByRole('heading',{name:'February 29',exact:true})).toBeVisible()
+  await expect(calendar.getByText('Tuesday, February 29', {exact:true})).toBeVisible()
 })
 
 test('calendar settings shows connected identity, calendar choices and persists toggle', async ({ page }) => {
@@ -598,9 +600,9 @@ test('calendar settings shows connected identity, calendar choices and persists 
 test('calendar widget fits a phone without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({width:390,height:844})
   await mockWorkspace(page)
-  await page.route('**/rest/v1/calendar_work?**', route=>route.fulfill({contentType:'application/json',body:'[]'}))
+  await page.route('**/rest/v1/calendar_work?**', route=>route.fulfill({contentType:'application/json',headers:{'content-range':'*/0'},body:'[]'}))
   await page.goto('/')
-  const calendar=page.getByRole('region',{name:'Daily calendar'})
+  const calendar=page.getByRole('region',{name:'Work calendar'})
   await expect(calendar).toBeVisible()
   expect(await calendar.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
 })
@@ -608,7 +610,7 @@ test('calendar widget fits a phone without horizontal overflow', async ({ page }
 test('dashboard layout uses the business name, puts calendar first, and opens only jobs from the tile', async ({ page }) => {
   await openDashboard(page)
   await expect(page.getByText('Velnu QA · Today', { exact: true })).toBeVisible()
-  const calendar = page.getByRole('region', { name: 'Daily calendar' })
+  const calendar = page.getByRole('region', { name: 'Work calendar' })
   const workAreas = page.getByRole('region', { name: 'Work areas' })
   expect((await calendar.boundingBox()).y).toBeLessThan((await workAreas.boundingBox()).y)
   const jobs = page.getByRole('article', { name: 'Jobs overview' })
@@ -699,7 +701,7 @@ for (const width of [1440, 390]) {
     await expect(hub.getByRole('button',{name:'Invoices',exact:true})).toBeVisible()
     await expect(page.getByRole('article',{name:'Jobs overview'})).toContainText('3active')
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
-    await expect(page.locator('.financial-postings-disclosure')).not.toHaveAttribute('open','')
+    await expect(page.locator('.financial-transactions')).toHaveCount(0)
     await expect(page.getByRole('heading',{name:'Tell Finviant Office what needs to get done.'})).toHaveCount(0)
     await page.screenshot({path:`test-results/dashboard-billing-${width}.png`,fullPage:true})
     await hub.getByRole('button',{name:'Recent',exact:true}).click()
@@ -733,18 +735,18 @@ test('billing hub empty state and finance restrictions stay honest', async ({pag
 test('billing hub leaves calendar and financial detail available without long default lists', async ({page})=>{
   await mockWorkspace(page)
   const items=Array.from({length:7},(_,n)=>({source_key:`job:${n}`,title:`Calendar repair ${n}`,starts_at:new Date().toISOString(),ends_at:null,status:'scheduled',document_kind:'work',document_id:id(n)}))
-  await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify(items)}))
+  await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({contentType:'application/json',headers:{'content-range':'0-6/7'},body:JSON.stringify(items)}))
   await page.goto('/')
-  const calendar=page.getByRole('region',{name:'Daily calendar'})
+  const calendar=page.getByRole('region',{name:'Work calendar'})
   await expect(calendar.getByRole('link')).toHaveCount(3)
   await calendar.getByRole('button',{name:'Show all 7 scheduled items'}).click()
   await expect(calendar.getByRole('link')).toHaveCount(7)
   await calendar.getByRole('button',{name:'Show fewer scheduled items'}).click()
   await expect(calendar.getByRole('link')).toHaveCount(3)
-  const details=page.locator('.financial-postings-disclosure')
-  await expect(details).not.toHaveAttribute('open','')
-  await page.locator('.financial-month').first().click()
-  await expect(details).toHaveAttribute('open','')
+  const details=page.locator('.financial-transactions')
+  await expect(details).toHaveCount(0)
+  await page.locator('.trend-point').first().click()
+  await expect(details).toBeVisible()
 })
 
 
@@ -827,7 +829,7 @@ test('owner settings five-seat capacity blocks a sixth invitation',async({page})
 test('owner settings restricted staff cannot open hidden modules or owner controls',async({page})=>{
  const state=await mockWorkspace(page,{role:'office',accessModules:['jobs']});await page.goto('/')
  await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
- await expect(page.getByRole('region',{name:'Daily calendar'})).toHaveCount(0)
+ await expect(page.getByRole('region',{name:'Work calendar'})).toHaveCount(0)
  await expect(page.getByRole('article',{name:'Estimates and invoices overview'})).toHaveCount(0)
  await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
  expect(state.requests.some(r=>r.path.endsWith('/rpc/get_dashboard_invoice_totals'))).toBe(false)
@@ -867,5 +869,98 @@ test('owner settings cancellation uses explicit confirmation and preserves no-su
 test('owner settings invitation acceptance bypasses company creation and separate plan selection',async({page})=>{
  await mockWorkspace(page);let accepted=false
  await page.route('**/rest/v1/rpc/accept_team_invitation',r=>{expect(r.request().postDataJSON().p_hash).toMatch(/^[a-f0-9]{64}$/);accepted=true;return r.fulfill({contentType:'application/json',body:JSON.stringify(BID)})})
- await page.goto('/auth?invite='+'a'.repeat(64));await page.getByRole('button',{name:'Accept invitation',exact:true}).click();await expect.poll(()=>accepted).toBe(true);await expect(page.getByRole('region',{name:'Daily calendar'})).toBeVisible();expect(await page.evaluate(uid=>localStorage.getItem('finviant-active-business:'+uid),UID)).toBe(BID)
+ await page.goto('/auth?invite='+'a'.repeat(64));await page.getByRole('button',{name:'Accept invitation',exact:true}).click();await expect.poll(()=>accepted).toBe(true);await expect(page.getByRole('region',{name:'Work calendar'})).toBeVisible();expect(await page.evaluate(uid=>localStorage.getItem('finviant-active-business:'+uid),UID)).toBe(BID)
+})
+
+
+for (const width of [1440,390]) test(`interactive dashboard week and month calendar selects work at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await mockWorkspace(page)
+ const day=DateTime.now().setZone('America/New_York').startOf('day')
+ const items=[0,1,2].map((offset)=>({source_key:`job:interactive-${offset}`,title:['Kitchen installation','Oak Street repair','HVAC maintenance'][offset],description:'',starts_at:day.plus({days:offset,hours:9}).toISO(),ends_at:day.plus({days:offset,hours:11}).toISO(),status:'scheduled',document_kind:'work',document_id:id(980+offset)}))
+ const calls=[]
+ await page.route('**/rest/v1/calendar_work?**',r=>{calls.push(r.request().url());return r.fulfill({contentType:'application/json',headers:{'content-range':'0-2/3'},body:JSON.stringify(items)})})
+ await page.goto('/')
+ const calendar=page.getByRole('region',{name:'Work calendar'})
+ await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
+ await expect(calendar.getByRole('link',{name:/Kitchen installation/})).toBeVisible()
+ await expect(calendar.getByRole('button',{name:'Today',exact:true})).toHaveCount(0)
+ await expect(calendar.getByRole('button',{name:/Open (calendar|schedule)/})).toHaveCount(0)
+ await calendar.getByRole('button',{name:'Month',exact:true}).click()
+ await expect(calendar.getByLabel('Calendar month')).toHaveValue(day.toFormat('yyyy-MM'))
+ await expect(calendar.getByRole('heading',{name:'Monthly calendar'})).toBeVisible()
+ await calendar.getByRole('button',{name:new RegExp(day.plus({days:1}).toLocaleString(DateTime.DATE_FULL))}).click()
+ await expect(calendar.getByRole('link',{name:/Oak Street repair/})).toBeVisible()
+ const before=calls.length
+ await calendar.getByRole('button',{name:new RegExp(day.plus({days:2}).toLocaleString(DateTime.DATE_FULL))}).click()
+ await expect(calendar.getByRole('link',{name:/HVAC maintenance/})).toBeVisible()
+ expect(calls.length).toBe(before)
+ await calendar.getByLabel('Calendar month').fill('2028-02')
+ await expect(calendar.getByRole('button',{name:/February 29, 2028/})).toBeVisible()
+ await expect(calendar.getByText('February 2028',{exact:true})).toBeVisible()
+ await calendar.getByRole('button',{name:'Next month'}).click();await expect(calendar.getByLabel('Calendar month')).toHaveValue('2028-03')
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+ await page.screenshot({path:`test-results/interactive-calendar-month-${width}.png`,fullPage:true})
+ await calendar.getByRole('button',{name:'Week',exact:true}).click();await expect(calendar.getByLabel('Calendar date')).toBeVisible()
+})
+
+async function mockInteractiveFinances(page) {
+ const now=DateTime.now().setZone('America/New_York').startOf('month')
+ const invoice={id:id(990),invoice_number:'INV-990',status:'sent',issue_date:now.toISODate(),total:100,subtotal:100,tax_amount:0,amount_paid:0,balance_due:100,customer_id:CID,customers:customer}
+ const job={id:id(991),title:'Kitchen installation',status:'in_progress',scheduled_start:null,customer_id:CID,customers:customer}
+ await mockWorkspace(page,{invoices:[invoice],jobs:[job],estimates:[{id:id(992),estimate_number:'EST-992',status:'sent',total:650,issue_date:now.toISODate(),customer_id:CID,customers:customer}]})
+ const payments=[{id:id(993),invoice_id:invoice.id,amount:100,paid_at:now.plus({hours:12}).toISO(),status:'succeeded',method:'cash',invoices:{invoice_number:'INV-990'}},{id:id(994),invoice_id:invoice.id,amount:50,paid_at:now.minus({months:2}).plus({hours:12}).toISO(),status:'succeeded',method:'paypal',invoices:{invoice_number:'INV-990'}}]
+ const manual=Array.from({length:32},(_,index)=>({id:id(1000+index),amount:1,entry_date:now.toISODate(),direction:'expense',description:index===0?'Copper fittings':`Materials ${index+1}`,category:'Materials',currency:'USD',job_id:index===0?job.id:null,jobs:index===0?{title:job.title}:null,notes:index===0?'Receipt from local hardware store':null}))
+ manual.push({id:id(1100),amount:25,entry_date:now.minus({months:5}).toISODate(),direction:'income',description:'Consultation',category:'Service',currency:'USD'},{id:id(1101),amount:10,entry_date:now.minus({months:11}).toISODate(),direction:'expense',description:'Older tools',category:'Tools',currency:'USD'})
+ for(const [table,rows,dateField] of [['payments',payments,'paid_at'],['bookkeeping_entries',manual,'entry_date']])await page.route(`**/rest/v1/${table}?**`,r=>{
+  const q=new URL(r.request().url()).searchParams
+  expect(q.get('business_id')).toBe('eq.'+BID)
+  const filtered=rows.filter(row=>q.getAll(dateField).every(filter=>filter.startsWith('gte.')?Date.parse(row[dateField])>=Date.parse(filter.slice(4)):filter.startsWith('lt.')?Date.parse(row[dateField])<Date.parse(filter.slice(3)):true))
+  const offset=Number(q.get('offset')||0),limit=Number(q.get('limit')||1000)
+  return r.fulfill({contentType:'application/json',headers:{'content-range':`${offset}-${offset+filtered.slice(offset,offset+limit).length-1}/${filtered.length}`},body:JSON.stringify(filtered.slice(offset,offset+limit))})
+ })
+ return {now,invoice,job}
+}
+for (const width of [1440,390]) test(`interactive dashboard financial periods expand complete transactions and sources at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});const {now,invoice,job}=await mockInteractiveFinances(page)
+ await page.goto('/')
+ const finance=page.getByRole('region',{name:'Financial performance',exact:true})
+ await expect(finance.getByRole('button',{name:'6 months',exact:true})).toHaveAttribute('aria-pressed','true')
+ const income=finance.locator('.performance-metric.income'),expenses=finance.locator('.performance-metric.expense'),net=finance.locator('.performance-metric.all')
+ await expect(income).toContainText('$175.00');await expect(expenses).toContainText('$32.00');await expect(net).toContainText('$143.00')
+ await page.screenshot({path:`test-results/interactive-dashboard-${width}.png`,fullPage:true})
+ await income.click();let details=finance.getByRole('region',{name:'Income transactions',exact:true})
+ await expect(details.locator('.transaction-list > li')).toHaveCount(3)
+ await expect(details.getByText(/Invoice payment · paypal/)).toBeVisible()
+ await expect(details.getByRole('link',{name:/View invoice/}).first()).toHaveAttribute('href','/?view=invoices&document='+invoice.id)
+ await expenses.click();details=finance.getByRole('region',{name:'Expense transactions',exact:true})
+ await expect(details.locator('.transaction-list > li')).toHaveCount(25)
+ await expect(details.getByText('1–25 of 32',{exact:true})).toBeVisible()
+ await details.getByRole('button',{name:'Next',exact:true}).click();await expect(details.locator('.transaction-list > li')).toHaveCount(7)
+ await expect(details.getByText('Materials 32',{exact:true})).toBeVisible()
+ await details.getByLabel('Search transactions').fill('Copper')
+ await expect(details.locator('.transaction-list > li')).toHaveCount(1)
+ await expect(details.getByText('Job expense · Kitchen installation',{exact:true})).toBeVisible()
+ await expect(details.getByRole('link',{name:/View job/})).toHaveAttribute('href','/?view=work&document='+job.id)
+ await page.screenshot({path:`test-results/interactive-financial-details-${width}.png`,fullPage:true})
+ await net.click();await expect(finance.getByRole('region',{name:'All transactions',exact:true})).toContainText('1–25 of 35')
+ for(const [period,expected] of [[1,'$68.00'],[3,'$118.00'],[12,'$133.00']]){
+  await finance.getByRole('button',{name:period+' '+(period===1?'month':'months'),exact:true}).click()
+  await expect(net).toContainText(expected)
+  await expect(finance.locator('.trend-point')).toHaveCount(period===1?now.daysInMonth:period)
+ }
+ await finance.locator('.trend-point').first().focus();await page.keyboard.press('Enter')
+ await expect(finance.getByRole('region',{name:'All transactions',exact:true})).toContainText('Older tools')
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+ await page.goto('/?view=work&document='+job.id)
+ await expect(page.getByRole('dialog')).toContainText('Kitchen installation')
+})
+test('interactive dashboard financial failure does not show invented zero totals',async({page})=>{
+ await mockWorkspace(page)
+ await page.route('**/rest/v1/payments?**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
+ await page.goto('/')
+ const finance=page.getByRole('region',{name:'Financial performance',exact:true})
+ await expect(finance.getByRole('alert')).toContainText('Payments unavailable')
+ await expect(finance.locator('.performance-metric.income')).toBeDisabled()
+ await expect(finance.locator('.performance-metrics')).not.toContainText('$0.00')
+ await expect(finance.getByRole('button',{name:'Retry financial data'})).toBeVisible()
 })

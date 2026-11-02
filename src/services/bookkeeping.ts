@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import { isRecord, validCalendarDate, validDecimal, readFinancialNumber } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
@@ -17,6 +18,11 @@ export interface WorkbookLine {
   source: 'invoice_payment' | 'manual' | 'quickbooks'
   source_label: string
   removable: boolean
+  source_id?: string | null
+  source_view?: 'invoices' | 'estimates' | 'work'
+  source_reference?: string
+  payment_method?: string | null
+  notes?: string | null
 }
 
 export interface BookkeepingInput {
@@ -33,6 +39,7 @@ export interface BookkeepingInput {
   invoice_id?: string
 }
 type PaymentRow = {
+  invoice_id?: string | null
   id: string
   amount: number
   paid_at: string
@@ -51,29 +58,48 @@ type QBRow = {
 }
 const dollars = readFinancialNumber
 
-export async function listVelnuWorkbook(businessId: string): Promise<WorkbookLine[]> {
+export type WorkbookRange = { from: string; to: string; timezone: string }
+export async function listVelnuWorkbook(businessId: string, period?: WorkbookRange): Promise<WorkbookLine[]> {
+  let fromUTC = '', toUTC = ''
+  if (period) {
+    const from = DateTime.fromISO(period.from, { zone: period.timezone }).startOf('day')
+    const to = DateTime.fromISO(period.to, { zone: period.timezone }).startOf('day')
+    if (!from.isValid || !to.isValid || from.toISODate() !== period.from || to.toISODate() !== period.to || to <= from) throw new Error('Invalid financial date range.')
+    fromUTC = from.toUTC().toISO()!; toUTC = to.toUTC().toISO()!
+  }
   const [payments, manual] = await Promise.all([
-    collectWorkbookPages((from, to) => supabase.from('payments')
-      .select('id,amount,paid_at,status,method,invoices!payments_invoice_id_fkey(invoice_number)', { count: 'exact' })
-      .eq('business_id', businessId).eq('status', 'succeeded')
-      .order('id', { ascending: true }).range(from, to)),
-    collectWorkbookPages((from, to) => supabase.from('bookkeeping_entries')
-      .select('id,entry_date,direction,amount,currency,category,description', { count: 'exact' })
-      .eq('business_id', businessId).order('id', { ascending: true }).range(from, to)),
+    collectWorkbookPages((from, to) => {
+      let query = supabase.from('payments')
+        .select('id,invoice_id,amount,paid_at,status,method,invoices!payments_invoice_id_fkey(invoice_number)', { count: 'exact' })
+        .eq('business_id', businessId).eq('status', 'succeeded')
+      if (period) query = query.gte('paid_at', fromUTC).lt('paid_at', toUTC)
+      return query.order('id', { ascending: true }).range(from, to)
+    }),
+    collectWorkbookPages((from, to) => {
+      let query = supabase.from('bookkeeping_entries')
+        .select('id,entry_date,direction,amount,currency,category,description,notes,job_id,estimate_id,invoice_id,jobs!bookkeeping_job_tenant_fk(title),estimates!bookkeeping_estimate_tenant_fk(estimate_number),invoices!bookkeeping_invoice_tenant_fk(invoice_number)', { count: 'exact' })
+        .eq('business_id', businessId)
+      if (period) query = query.gte('entry_date', period.from).lt('entry_date', period.to)
+      return query.order('id', { ascending: true }).range(from, to)
+    }),
   ])
   const received = (payments as PaymentRow[]).map(p => {
     const inv = asList(p.invoices as { invoice_number: string | null } | null)[0]
     const invoice = inv?.invoice_number || 'Invoice'
     return {
       id: p.id,
-      entry_date: p.paid_at.slice(0, 10),
+      entry_date: period ? DateTime.fromISO(p.paid_at).setZone(period.timezone).toISODate()! : p.paid_at.slice(0, 10),
       direction: 'income' as EntryDirection,
       description: 'Payment received · ' + invoice,
       category: 'Paid services',
       amount: dollars(p.amount),
       currency: 'USD',
       source: 'invoice_payment' as const,
-      source_label: 'Finviant Office payment record',
+      source_label: 'Invoice payment',
+      source_id: p.invoice_id,
+      source_view: 'invoices' as const,
+      source_reference: invoice,
+      payment_method: p.method,
       removable: false,
     }
   })
@@ -86,7 +112,11 @@ export async function listVelnuWorkbook(businessId: string): Promise<WorkbookLin
     amount: dollars(row.amount),
     currency: (row.currency as string) || 'USD',
     source: 'manual' as const,
-    source_label: 'Manual entry',
+    source_label: row.job_id ? 'Job expense' : row.estimate_id ? 'Estimate expense' : row.invoice_id ? 'Invoice expense' : 'Manual entry',
+    source_id: (row.job_id || row.estimate_id || row.invoice_id || null) as string | null,
+    source_view: row.job_id ? 'work' as const : row.estimate_id ? 'estimates' as const : row.invoice_id ? 'invoices' as const : undefined,
+    source_reference: asList(row.jobs)[0]?.title || asList(row.estimates)[0]?.estimate_number || asList(row.invoices)[0]?.invoice_number || '',
+    notes: row.notes as string | null,
     removable: true,
   }))
   return [...received, ...extra].sort((a, b) => b.entry_date.localeCompare(a.entry_date))

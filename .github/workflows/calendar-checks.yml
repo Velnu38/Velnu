@@ -19,7 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck:calendar && npm run test:calendar && npm run test:records && npm run test:settings && npm run test:services && npm run build
       - name: Calendar browser regressions with installed Chrome
-        run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --grep 'calendar dashboard|calendar settings|calendar widget|record resources|dashboard layout|billing hub|dashboard tenant|failed invoice-summary|dashboard manual refresh|absent customer|navigation during|empty dashboard|owner settings'
+        run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --grep 'calendar dashboard|calendar settings|calendar widget|record resources|dashboard layout|billing hub|dashboard tenant|failed invoice-summary|dashboard manual refresh|absent customer|navigation during|empty dashboard|owner settings|interactive dashboard'
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@v4

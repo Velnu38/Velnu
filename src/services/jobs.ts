@@ -43,3 +43,12 @@ export async function updateJobStatus(jobId: string, status: JobInput['status'])
   if (error) throw error
   if (!data?.id || data.status !== status) throw new Error('Job status could not be confirmed. Refresh before changing it again.')
 }
+
+/** Resolve a source link directly, including jobs beyond the first list page. */
+export async function getJob(businessId: string, id: string) {
+  const { data, error } = await supabase.from('jobs')
+    .select('id,title,description,status,scheduled_start,scheduled_end,customer_id,customers!jobs_customer_id_fkey(id,first_name,last_name,company)')
+    .eq('business_id', businessId).eq('id', id).single()
+  if (error) throw error
+  return { ...data, customers: asList(data.customers) }
+}

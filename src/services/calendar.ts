@@ -1,3 +1,4 @@
+import { collectWorkbookPages } from "../lib/workbookPages";
 import { dayBounds } from "../lib/calendarTime";
 import { supabase } from "../lib/supabase";
 export type CalendarProvider = "google" | "outlook";
@@ -113,4 +114,22 @@ export async function loadAgenda(
 }
 export function announceCalendarChange() {
   window.dispatchEvent(new Event("finviant-work-changed"));
+}
+
+/** Load the whole visible range. Paginate instead of silently dropping busy days. */
+export async function loadCalendarRange(businessId: string, startDay: string, endDay: string, zone: string) {
+  const from = dayBounds(startDay, zone).from, to = dayBounds(endDay, zone).from
+  const [work, reminders] = await Promise.all([
+    collectWorkbookPages(async (offset, last) => {
+      const result = await supabase.from('calendar_work')
+        .select('*', { count: 'exact' }).eq('business_id', businessId)
+        .lt('starts_at', to).or(`ends_at.gt.${from},and(ends_at.is.null,starts_at.gte.${from})`)
+        .order('source_key').range(offset, last)
+      return { ...result, data: result.data?.map(row => ({ ...row, id: row.source_key })) ?? null }
+    }),
+    collectWorkbookPages((offset, last) => supabase.from('reminders')
+      .select('id,note,due_at,job_id', { count: 'exact' }).eq('business_id', businessId)
+      .eq('status', 'pending').lt('due_at', to).order('id').range(offset, last)),
+  ])
+  return { work: work as unknown as AgendaWork[], reminders: (reminders as AgendaReminder[]).sort((a, b) => a.due_at.localeCompare(b.due_at)) }
 }

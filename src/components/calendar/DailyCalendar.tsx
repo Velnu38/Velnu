@@ -1,276 +1,104 @@
-import { useEffect, useState, useRef } from "react";
-import { DateTime } from "luxon";
-import type { CurrentBusiness } from "../../lib/business";
-import { loadAgenda } from "../../services/calendar";
-import { completeWorkReminder } from "../../services/reminders";
-type Agenda = Awaited<ReturnType<typeof loadAgenda>>;
-export default function DailyCalendar({
-  business,
-  onWork,
-  onReminders,
-}: {
-  business: CurrentBusiness;
-  onWork: () => void;
-  onReminders: () => void;
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { DateTime } from 'luxon'
+import type { CurrentBusiness } from '../../lib/business'
+import { calendarRange, workOnDay, type CalendarView } from '../../lib/calendarView'
+import { loadCalendarRange } from '../../services/calendar'
+import { completeWorkReminder } from '../../services/reminders'
+
+type Agenda = Awaited<ReturnType<typeof loadCalendarRange>>
+export default function DailyCalendar({ business, onReminders, refreshVersion = 0 }: {
+  business: CurrentBusiness; onReminders: () => void; refreshVersion?: number
 }) {
-  const zone = business.timezone || "America/New_York";
-  const [today, setToday] = useState(() =>
-    DateTime.now().setZone(zone).toISODate()!,
-  );
-  const [day, setDay] = useState(today),
-    [version, setVersion] = useState(0);
-  const [agenda, setAgenda] = useState<Agenda | null>(null),
-    [error, setError] = useState(""),
-    [loading, setLoading] = useState(true),
-    [busy, setBusy] = useState<string | null>(null);
-  const [showAllWork, setShowAllWork] = useState(false);
-  const [showAllReminders, setShowAllReminders] = useState(false);
-  const previousToday = useRef(today);
+  const zone = business.timezone || 'America/New_York'
+  const [today, setToday] = useState(() => DateTime.now().setZone(zone).toISODate()!)
+  const [day, setDay] = useState(today)
+  const [view, setView] = useState<CalendarView>('week')
+  const [version, setVersion] = useState(0)
+  const [result, setResult] = useState<{ key: string; agenda: Agenda } | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [showAllWork, setShowAllWork] = useState(false)
+  const [showAllReminders, setShowAllReminders] = useState(false)
+  const previousToday = useRef(today)
+  const selected = DateTime.fromISO(day, { zone })
+  const range = calendarRange(day, zone, view)
+  const from = range.start.toISODate()!, to = range.end.toISODate()!
+  const key = [business.id, business.role, business.access_modules?.join(','), zone, from, to].join(':')
+  const agenda = result?.key === key ? result.agenda : null
   useEffect(() => {
     const refresh = () => {
-      if (document.hidden) return;
-      const next = DateTime.now().setZone(zone).toISODate()!;
-      const previous = previousToday.current;
-      previousToday.current = next;
-      setToday(next);
-      setDay((selected) => (selected === previous ? next : selected));
-      setVersion((v) => v + 1);
-    };
-    const timer = window.setInterval(refresh, 60_000);
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    window.addEventListener("finviant-work-changed", refresh);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-      window.removeEventListener("finviant-work-changed", refresh);
-    };
-  }, [zone]);
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError("");
-    setAgenda(null);
-    void loadAgenda(business.id, day, zone)
-      .then((value) => {
-        if (active) setAgenda(value);
-      })
-      .catch(() => {
-        if (active)
-          setError(
-            "Unable to load this day’s work. Try again or open the schedule.",
-          );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [business.id, day, zone, version]);
-  useEffect(() => { setShowAllWork(false); setShowAllReminders(false); }, [day]);
-  const selected = DateTime.fromISO(day, { zone }),
-    week = selected.startOf("week");
-  async function complete(id: string) {
-    setBusy(id);
-    try {
-      await completeWorkReminder(business, id);
-      setVersion((v) => v + 1);
-    } catch {
-      setError("Unable to complete this reminder. Try again.");
-    } finally {
-      setBusy(null);
+      if (document.hidden) return
+      const next = DateTime.now().setZone(zone).toISODate()!
+      const previous = previousToday.current
+      previousToday.current = next
+      setToday(next); setDay(value => value === previous ? next : value); setVersion(value => value + 1)
     }
+    const timer = window.setInterval(refresh, 60000)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('finviant-work-changed', refresh)
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('finviant-work-changed', refresh) }
+  }, [zone])
+  useEffect(() => {
+    let active = true
+    setLoading(true); setError('')
+    void loadCalendarRange(business.id, from, to, zone).then(value => {
+      if (active) setResult({ key, agenda: value })
+    }).catch(() => { if (active) { setResult(null); setError('Unable to load the complete calendar. Please try again.') } })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [key, business.id, from, to, zone, version, refreshVersion])
+  useEffect(() => { setShowAllWork(false); setShowAllReminders(false) }, [day])
+  const workByDay = useMemo(() => new Map(range.days.map(date => [date.toISODate()!, workOnDay(agenda?.work ?? [], date.toISODate()!, zone)])), [agenda, from, to, zone])
+  const work = workByDay.get(day) ?? []
+  const dueBefore = selected.plus({ days: 1 }).startOf('day').toMillis()
+  const reminders = agenda?.reminders.filter(item => DateTime.fromISO(item.due_at).toMillis() < dueBefore) ?? []
+  async function complete(id: string) {
+    if (busy) return
+    setBusy(id)
+    try { await completeWorkReminder(business, id); setVersion(value => value + 1) }
+    catch { setError('Unable to complete this reminder. Try again.') }
+    finally { setBusy(null) }
   }
-  return (
-    <section
-      className="calendar-no-print tw:rounded-2xl tw:border tw:border-slate-200 tw:bg-white tw:p-5 tw:shadow-sm"
-      aria-label="Daily calendar"
-    >
-      <div className="tw:flex tw:flex-wrap tw:items-start tw:justify-between tw:gap-4">
-        <div>
-          <p className="eyebrow">Your day at a glance</p>
-          <h2>
-            {day === today
-              ? "Today’s work"
-              : selected.toLocaleString({ month: "long", day: "numeric" })}
-          </h2>
-          <p className="quiet">
-            Work and reminders · <span title={zone}>{DateTime.now().setZone(zone).offsetNameShort}</span>
-          </p>
-        </div>
-        <div className="tw:flex tw:flex-wrap tw:gap-2">
-          <button
-            className="secondary-button compact"
-            onClick={() => setDay(today)}
-          >
-            Today
-          </button>
-          <button className="secondary-button compact" onClick={onWork}>
-            Open schedule
-          </button>
-          <button className="secondary-button compact" onClick={onReminders}>
-            + Reminder
-          </button>
-        </div>
-      </div>
-      <div className="tw:my-4 tw:flex tw:items-center tw:justify-between tw:gap-2">
-        <button
-          className="secondary-button compact"
-          aria-label="Previous week"
-          onClick={() => setDay(selected.minus({ weeks: 1 }).toISODate()!)}
-        >
-          ←
+  const periodLabel = view === 'month' ? selected.toFormat('MMMM yyyy') : `${range.start.toFormat('MMM d')} – ${range.end.minus({ days: 1 }).toFormat('MMM d, yyyy')}`
+  return <section className="dashboard-calendar calendar-no-print" aria-label="Work calendar">
+    <div className="calendar-heading">
+      <div><p className="eyebrow">Your schedule</p><h2>{view === 'week' ? 'Weekly schedule' : 'Monthly calendar'}</h2></div>
+      <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div><button className="calendar-add" onClick={onReminders}>+ Reminder</button></div>
+    </div>
+    <div className="calendar-period-nav">
+      <div className="calendar-period-title"><button className="calendar-arrow" aria-label={`Previous ${view}`} onClick={() => setDay(selected.minus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>‹</button><strong aria-live="polite">{periodLabel}</strong><button className="calendar-arrow" aria-label={`Next ${view}`} onClick={() => setDay(selected.plus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>›</button></div>
+      <label className="calendar-date-picker">{view === 'month' ? 'Month' : 'Jump to date'}<input type={view === 'month' ? 'month' : 'date'} aria-label={view === 'month' ? 'Calendar month' : 'Calendar date'} value={view === 'month' ? day.slice(0,7) : day} onChange={event => { const next = view === 'month' ? `${event.target.value}-01` : event.target.value; if (DateTime.fromISO(next, {zone}).isValid) setDay(next) }} /></label>
+    </div>
+    <div className={`calendar-grid ${view}`} role="group" aria-label={view === 'month' ? 'Choose a day in the month' : 'Choose a day in the week'}>
+      {view === 'month' && ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(label => <span className="calendar-weekday" key={label}>{label}</span>)}
+      {range.days.map(date => {
+        const dateKey = date.toISODate()!, items = workByDay.get(dateKey) ?? [], isSelected = day === dateKey
+        return <button key={dateKey} type="button" className={`calendar-day${date.month !== selected.month ? ' outside-month' : ''}`} aria-label={`${date.toLocaleString(DateTime.DATE_FULL)}${agenda ? `, ${items.length} scheduled ${items.length === 1 ? 'item' : 'items'}` : ''}`} aria-current={dateKey === today ? 'date' : undefined} aria-pressed={isSelected} onClick={() => setDay(dateKey)}>
+          {view === 'week' && <span className="calendar-weekday">{date.toFormat('ccc')}</span>}<strong>{date.day}</strong>
+          <span className="calendar-day-count" aria-hidden="true">{items.length ? <><i />{items.length}<span className="calendar-count-word"> scheduled</span></> : <i className="calendar-empty-dot" />}</span>
         </button>
-        <label className="tw:flex tw:items-center tw:gap-2">
-          Date
-          <input
-            type="date"
-            aria-label="Calendar date"
-            value={day}
-            onChange={(e) => {
-              if (e.target.value) setDay(e.target.value);
-            }}
-          />
-        </label>
-        <button
-          className="secondary-button compact"
-          aria-label="Next week"
-          onClick={() => setDay(selected.plus({ weeks: 1 }).toISODate()!)}
-        >
-          →
-        </button>
-      </div>
-      <div className="tw:grid tw:grid-cols-7 tw:gap-1" aria-label="Choose day">
-        {Array.from({ length: 7 }, (_, index) => {
-          const date = week.plus({ days: index }),
-            key = date.toISODate()!;
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-label={date.toLocaleString(DateTime.DATE_FULL)}
-              aria-pressed={day === key}
-              onClick={() => setDay(key)}
-              className={`tw:rounded-xl tw:border tw:px-1 tw:py-3 tw:text-center ${day === key ? "tw:border-blue-700 tw:bg-blue-700 tw:text-white" : "tw:border-slate-200 tw:bg-slate-50 tw:text-slate-800"}`}
-            >
-              <span className="tw:block tw:text-xs">
-                {date.toFormat("ccc")}
-              </span>
-              <strong className="tw:text-lg">{date.day}</strong>
-              {key === today && (
-                <span className="tw:block tw:text-xs">Today</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      {loading && (
-        <p role="status" className="tw:py-4">
-          Loading daily work…
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="form-message error-text">
-          {error}{" "}
-          <button
-            className="text-button"
-            onClick={() => setVersion((v) => v + 1)}
-          >
-            Retry
-          </button>
-        </p>
-      )}
-      {agenda && (
-        <div className="tw:mt-5 tw:grid tw:gap-6 tw:lg:grid-cols-2">
-          <div>
-            <h3>
-              Scheduled work{" "}
-              <span className="quiet">({agenda.work.length})</span>
-            </h3>
-            {agenda.work.length === 0 ? (
-              <p className="quiet">No work scheduled for this day.</p>
-            ) : (
-              <ul className="tw:m-0 tw:list-none tw:p-0">
-                {(showAllWork ? agenda.work : agenda.work.slice(0, 3)).map((work) => (
-                  <li
-                    key={work.source_key}
-                    className="tw:border-b tw:border-slate-100 tw:py-3"
-                  >
-                    <a
-                      className="tw:font-semibold tw:text-blue-800"
-                      href={`/?view=${work.document_kind === "invoice" ? "invoices" : work.document_kind === "estimate" ? "estimates" : "work"}&document=${encodeURIComponent(work.document_id)}`}
-                    >
-                      {work.title}
-                    </a>
-                    <p className="quiet">
-                      {DateTime.fromISO(work.starts_at)
-                        .setZone(zone)
-                        .toLocaleString(DateTime.TIME_SIMPLE)}
-                      {work.ends_at
-                        ? ` – ${DateTime.fromISO(work.ends_at).setZone(zone).toLocaleString(DateTime.TIME_SIMPLE)}`
-                        : ""}{" "}
-                      · {work.status.replaceAll("_", " ")}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {agenda.work.length > 3 && <button type="button" className="text-button tw:mt-3 tw:text-sm" aria-expanded={showAllWork} onClick={() => setShowAllWork(value => !value)}>{showAllWork ? 'Show fewer scheduled items' : `Show all ${agenda.work.length} scheduled items`}</button>}
-          </div>
-          <div>
-            <h3>
-              To do <span className="quiet">({agenda.reminders.length})</span>
-            </h3>
-            {agenda.reminders.length === 0 ? (
-              <p className="quiet">No pending reminders due by this day.</p>
-            ) : (
-              <ul className="tw:m-0 tw:list-none tw:p-0">
-                {(showAllReminders ? agenda.reminders : agenda.reminders.slice(0, 3)).map((reminder) => {
-                  const due = DateTime.fromISO(reminder.due_at).setZone(zone),
-                    overdue = due < DateTime.now().setZone(zone);
-                  return (
-                    <li
-                      key={reminder.id}
-                      className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:border-b tw:border-slate-100 tw:py-3"
-                    >
-                      <div>
-                        <strong>{reminder.note || "Follow up"}</strong>
-                        <p
-                          className={
-                            overdue ? "tw:text-sm tw:text-amber-800" : "quiet"
-                          }
-                        >
-                          {overdue ? "Overdue · " : ""}
-                          {due.toLocaleString(DateTime.DATETIME_SHORT)}
-                        </p>
-                      </div>
-                      {business.role !== "viewer" && (
-                        <button
-                          className="secondary-button compact"
-                          disabled={busy !== null}
-                          onClick={() => void complete(reminder.id)}
-                          aria-label={`Complete ${reminder.note || "reminder"}`}
-                        >
-                          {busy === reminder.id ? "Saving…" : "Done"}
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            {agenda.reminders.length > 3 && <button type="button" className="text-button tw:mt-3 tw:text-sm" aria-expanded={showAllReminders} onClick={() => setShowAllReminders(value => !value)}>{showAllReminders ? 'Show fewer reminders' : `Show all ${agenda.reminders.length} reminders`}</button>}
-          </div>
+      })}
+    </div>
+    {loading && !agenda && <p role="status" className="calendar-status">Loading your schedule…</p>}
+    {error && <p role="alert" className="form-message error-text">{error} <button className="text-button" onClick={() => setVersion(value => value + 1)}>Retry</button></p>}
+    {agenda && <div className="calendar-agenda" aria-busy={loading}>
+      <div className="calendar-agenda-date"><strong>{selected.toFormat('cccc, MMMM d')}</strong><span>{zone.replaceAll('_',' ')} · {selected.offsetNameShort}</span></div>
+      <div className="calendar-agenda-columns">
+        <div><div className="calendar-list-heading"><h3>Scheduled work</h3><span>{work.length}</span></div>
+          {!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{(showAllWork ? work : work.slice(0,3)).map(item => <li key={item.source_key}>
+            <a className={`calendar-event ${item.document_kind}`} href={`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
+              <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small></span><span aria-hidden="true">↗</span>
+            </a>
+          </li>)}</ul>}
+          {work.length > 3 && <button className="text-button calendar-show-more" aria-expanded={showAllWork} onClick={() => setShowAllWork(value => !value)}>{showAllWork ? 'Show fewer scheduled items' : `Show all ${work.length} scheduled items`}</button>}
         </div>
-      )}
-      {agenda?.limited && (
-        <p className="quiet">
-          Showing the first 200 items in each list. Open the full schedule and
-          reminders to review more.
-        </p>
-      )}
-    </section>
-  );
+        <div><div className="calendar-list-heading"><h3>To do</h3><span>{reminders.length}</span></div>
+          {!reminders.length ? <p className="calendar-empty">No pending reminders due by this day.</p> : <ul className="calendar-reminders">{(showAllReminders ? reminders : reminders.slice(0,3)).map(item => <li key={item.id}><div><strong>{item.note || 'Follow up'}</strong><span>{DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span></div>{business.role !== 'viewer' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : '✓'}</button>}</li>)}</ul>}
+          {reminders.length > 3 && <button className="text-button calendar-show-more" aria-expanded={showAllReminders} onClick={() => setShowAllReminders(value => !value)}>{showAllReminders ? 'Show fewer reminders' : `Show all ${reminders.length} reminders`}</button>}
+        </div>
+      </div>
+    </div>}
+  </section>
 }
