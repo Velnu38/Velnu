@@ -965,3 +965,15 @@ test('interactive dashboard financial failure does not show invented zero totals
  await expect(finance.locator('.performance-metrics')).not.toContainText('$0.00')
  await expect(finance.getByRole('button',{name:'Retry financial data'})).toBeVisible()
 })
+
+
+test('interactive dashboard navigation does not treat an invoice link as a job link',async({page})=>{
+ const {invoice}=await mockInteractiveFinances(page)
+ await page.goto('/?view=invoices&document='+invoice.id)
+ await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveCount(0)
+ await page.getByRole('button',{name:'Dashboard',exact:true}).click()
+ await page.getByRole('button',{name:'Open jobs',exact:false}).click()
+ await expect(page.getByRole('heading',{name:'Keep every job moving.'})).toBeVisible()
+ await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
+ await expect(page.getByRole('dialog')).toHaveCount(0)
+})
