@@ -5,117 +5,71 @@ import { canAccess, isPrimaryOwner } from "../lib/workspaceAccess";
 import BusinessProfileEditor from "../components/BusinessProfileEditor";
 import TeamSettings from "../components/settings/TeamSettings";
 import DocumentSettings from "../components/settings/DocumentSettings";
+import PaymentSettings from "../components/settings/PaymentSettings";
 import SubscriptionSettings from "../components/settings/SubscriptionSettings";
 import "../components/settings/settings.css";
-type Section = "company" | "team" | "documents" | "calendar" | "subscription";
-const options: {
-  id: Section;
-  title: string;
-  description: string;
-  icon: string;
-}[] = [
-  {
-    id: "company",
-    title: "Company profile",
-    description: "Business identity, contact details, and services.",
-    icon: "C",
-  },
-  {
-    id: "team",
-    title: "Team & access",
-    description: "Five Pro users. Invite your team and choose their access.",
-    icon: "5",
-  },
-  {
-    id: "documents",
-    title: "Invoice & estimate setup",
-    description: "Letterhead, taxes, and invoice payment buttons.",
-    icon: "D",
-  },
-  {
-    id: "calendar",
-    title: "Calendar connections",
-    description: "Connect Google or Outlook and manage synchronization.",
-    icon: "▦",
-  },
-  {
-    id: "subscription",
-    title: "Subscription",
-    description: "View subscription status or cancel renewal.",
-    icon: "S",
-  },
+
+type Section = "company" | "team" | "documents" | "payments" | "calendar" | "subscription";
+const options: { id: Section; title: string; description: string }[] = [
+  { id: "company", title: "Company profile", description: "Business details and services." },
+  { id: "team", title: "Team & access", description: "Invite your team and choose their access." },
+  { id: "documents", title: "Invoice & estimate setup", description: "Document appearance, branding, and taxes." },
+  { id: "payments", title: "Payment options", description: "Receive customer payments to your business accounts." },
+  { id: "calendar", title: "Calendar connections", description: "Google Calendar and Microsoft Outlook." },
+  { id: "subscription", title: "Cancel subscription", description: "View your subscription and manage cancellation." },
 ];
-export default function SettingsPage({
-  business,
-  onSaved,
-}: {
+
+export default function SettingsPage({ business, onSaved }: {
   business: CurrentBusiness;
-  onSaved: (b: CurrentBusiness) => void;
+  onSaved: (business: CurrentBusiness) => void;
 }) {
   const [section, setSection] = useState<Section | null>(null);
   const owner = isPrimaryOwner(business);
-  const allowed = options.filter((o) =>
-    o.id === "calendar" ? canAccess(business, "calendar") : owner,
-  );
+  const allowed = options.filter((option) => option.id === "calendar" ? canAccess(business, "calendar") : owner);
+
+  function content(id: Section) {
+    if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
+    if (id === "team") return <TeamSettings business={business} />;
+    if (id === "documents") return <DocumentSettings business={business} onSaved={onSaved} />;
+    if (id === "payments") return <PaymentSettings business={business} />;
+    if (id === "calendar") return <IntegrationSettings businessId={business.id} />;
+    return <SubscriptionSettings businessId={business.id} />;
+  }
+
   return (
     <div className="page-stack">
       <div className="page-heading">
-        <p className="eyebrow">Settings · {business.name}</p>
-        <h1>Manage your workspace.</h1>
-        <p className="quiet">Choose an area to update.</p>
+        <p className="eyebrow">{business.name}</p>
+        <h1>Settings</h1>
+        <p className="quiet">Open an option below to make changes.</p>
       </div>
-      {section && (
-        <button
-          className="text-button settings-back"
-          onClick={() => setSection(null)}
-        >
-          ← All settings
-        </button>
-      )}
-      {!section ? (
-        <div className="settings-options">
-          {allowed.map((o) => (
-            <button
-              className="settings-option"
-              key={o.id}
-              onClick={() => setSection(o.id)}
-            >
-              <span aria-hidden="true">{o.icon}</span>
-              <div>
-                <strong>{o.title}</strong>
-                <p>{o.description}</p>
+      <div className="settings-options">
+        {allowed.map((option) => {
+          const expanded = section === option.id;
+          return (
+            <section className="settings-disclosure" key={option.id}>
+              <h2 className="settings-disclosure-heading">
+                <button
+                  type="button"
+                  id={`settings-${option.id}-trigger`}
+                  className="settings-option"
+                  aria-label={option.title}
+                  aria-expanded={expanded}
+                  aria-controls={`settings-${option.id}-content`}
+                  onClick={() => setSection(expanded ? null : option.id)}
+                >
+                  <span className="settings-option-copy"><strong>{option.title}</strong><span>{option.description}</span></span>
+                  <svg className="settings-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+                </button>
+              </h2>
+              <div id={`settings-${option.id}-content`} className="settings-disclosure-content" role="region" aria-labelledby={`settings-${option.id}-trigger`} hidden={!expanded}>
+                {expanded && content(option.id)}
               </div>
-              <b aria-hidden="true">↗</b>
-            </button>
-          ))}
-          {!owner && (
-            <p className="quiet">
-              Your primary business owner manages team access, company
-              documents, and the subscription.
-            </p>
-          )}
-        </div>
-      ) : (
-        <>
-          {section === "company" && owner && (
-            <BusinessProfileEditor
-              business={business}
-              onSaved={onSaved}
-              companyOnly
-            />
-          )}
-          {section === "team" && owner && <TeamSettings business={business} />}{" "}
-          {section === "documents" && owner && (
-            <DocumentSettings business={business} onSaved={onSaved} />
-          )}{" "}
-          {section === "calendar" && canAccess(business, "calendar") && (
-            <IntegrationSettings businessId={business.id} />
-          )}{" "}
-          {section === "subscription" && owner && (
-            <SubscriptionSettings businessId={business.id} />
-          )}
-        </>
-      )}
+            </section>
+          );
+        })}
+      </div>
+      {!owner && <p className="quiet">Your primary business owner manages team access, document setup, payment options, and the subscription.</p>}
     </div>
   );
 }

@@ -749,19 +749,48 @@ test('billing hub leaves calendar and financial detail available without long de
 
 
 for (const width of [1440,390]) test(`owner settings navigation is clear at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});await mockWorkspace(page);await page.goto('/?view=settings')
- for(const label of ['Company profile','Team & access','Invoice & estimate setup','Calendar connections','Subscription'])await expect(page.getByRole('button',{name:new RegExp(label.replace('&','&'))})).toBeVisible()
- await expect(page.locator('.settings-options')).toBeVisible()
+ await page.setViewportSize({width,height:900});await mockWorkspace(page)
+ const saved={default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''};const writes=[]
+ await page.route('**/rest/v1/business_settings?**',r=>{
+  if(r.request().method()==='POST'){const body=r.request().postDataJSON();writes.push(body);Object.assign(saved,body)}
+  return r.fulfill({contentType:'application/json',body:JSON.stringify(saved)})
+ })
+ await page.route('**/rest/v1/businesses?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({...business,...r.request().postDataJSON()})}))
+ await page.goto('/?view=settings')
+ const labels=['Company profile','Team & access','Invoice & estimate setup','Payment options','Calendar connections','Cancel subscription']
+ for(const label of labels){const trigger=page.getByRole('button',{name:label,exact:true});await expect(trigger).toBeVisible();await expect(trigger).toHaveAttribute('aria-expanded','false')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/owner-settings-${width}.png`,fullPage:true})
- await page.getByRole('button',{name:/Invoice & estimate setup/}).click()
- await expect(page.getByRole('heading',{name:'Taxes',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'Invoice & estimate setup',exact:true}).click()
  await expect(page.getByLabel('Default tax rate (%)')).toHaveValue('0')
+ await expect(page.getByRole('checkbox',{name:'PayPal',exact:true})).toHaveCount(0)
+ await expect(page.getByLabel('Payment instructions')).toHaveCount(0)
+ await expect(page.getByLabel('Optional price adjustment (%)')).toHaveCount(0)
+ await page.screenshot({path:`test-results/document-settings-${width}.png`,fullPage:true})
+ await page.getByRole('button',{name:'Payment options',exact:true}).click()
+ await expect(page.getByRole('button',{name:'Invoice & estimate setup',exact:true})).toHaveAttribute('aria-expanded','false')
+ await expect(page.getByLabel('Default tax rate (%)')).toHaveCount(0)
+ for(const provider of ['Venmo','PayPal','Stripe','Cash App'])await expect(page.getByRole('checkbox',{name:provider,exact:true})).toBeVisible()
  await page.getByRole('checkbox',{name:'PayPal',exact:true}).check()
  await page.getByLabel('PayPal payment link').fill('https://paypal.me/business')
- await expect(page.getByRole('button',{name:'Save document setup'})).toBeVisible()
+ await page.getByLabel('Payment instructions').fill('Include the invoice number.')
+ await page.getByLabel('Optional price adjustment (%)').fill('3')
+ await page.getByRole('button',{name:'Save payment options'}).click()
+ await expect(page.getByRole('status').filter({hasText:'Payment options saved'})).toBeVisible()
+ expect(writes[0]).not.toHaveProperty('default_tax_rate')
+ await page.screenshot({path:`test-results/payment-settings-${width}.png`,fullPage:true})
+ await page.getByRole('button',{name:'Invoice & estimate setup',exact:true}).click()
+ await page.getByLabel('Default tax rate (%)').fill('5.3')
+ await page.getByRole('button',{name:'Save document setup'}).click()
+ await expect(page.getByRole('status').filter({hasText:'Document setup saved'})).toBeVisible()
+ for(const field of ['payment_links','payment_instructions','pricing_adjustment_percent'])expect(writes[1]).not.toHaveProperty(field)
+ await page.getByRole('button',{name:'Payment options',exact:true}).click()
+ await expect(page.getByLabel('PayPal payment link')).toHaveValue('https://paypal.me/business')
+ await expect(page.getByLabel('Optional price adjustment (%)')).toHaveValue('3')
+ expect(saved.default_tax_rate).toBe(5.3)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
- await page.screenshot({path:`test-results/document-settings-${width}.png`,fullPage:true})
+ await page.getByRole('button',{name:'Payment options',exact:true}).click()
+ await expect(page.locator('.settings-option[aria-expanded="true"]')).toHaveCount(0)
 })
 
 test('owner settings invites reserve a seat and permissions are editable only through team controls',async({page})=>{
@@ -803,7 +832,7 @@ test('owner settings restricted staff cannot open hidden modules or owner contro
  await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
  expect(state.requests.some(r=>r.path.endsWith('/rpc/get_dashboard_invoice_totals'))).toBe(false)
  await page.goto('/?view=invoices');await expect(page.getByRole('alert')).toContainText('not included in your access')
- await page.goto('/?view=settings');await expect(page.getByRole('button',{name:/Team & access/})).toHaveCount(0);await expect(page.getByRole('button',{name:/Subscription/})).toHaveCount(0)
+ await page.goto('/?view=settings');await expect(page.getByRole('button',{name:/Team & access/})).toHaveCount(0);await expect(page.locator('#settings-subscription-trigger')).toHaveCount(0);await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
 })
 
 test('owner settings invoice tax defaults and optional cost pricing affect preview and saved lines',async({page})=>{
@@ -831,8 +860,8 @@ test('owner settings invoice payment buttons use saved links and do not record p
 test('owner settings cancellation uses explicit confirmation and preserves no-subscription truth',async({page})=>{
  await mockWorkspace(page);const actions=[];let active=true,canceled=false
  await page.route('**/functions/v1/subscription-management',r=>{const b=r.request().postDataJSON();actions.push(b.action);if(b.action==='cancel')canceled=true;return r.fulfill({contentType:'application/json',body:JSON.stringify(active?{active:true,status:'active',can_cancel:true,cancel_at_period_end:canceled,ends_at:'2026-12-02T12:00:00Z'}:{active:false,status:'none',can_cancel:false})})})
- await page.goto('/?view=settings');await page.getByRole('button',{name:/Subscription/}).click();await page.getByRole('button',{name:'Cancel subscription',exact:true}).click();expect(actions.every(a=>a==='status')).toBe(true);await page.getByRole('button',{name:'Confirm cancellation'}).click();await expect(page.getByRole('status').filter({hasText:'Cancellation scheduled'})).toContainText('Cancellation scheduled');expect(actions.filter(a=>a==='cancel')).toHaveLength(1);await expect(page.getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
- active=false;await page.reload();await page.getByRole('button',{name:/Subscription/}).click();await expect(page.getByText(/No paid subscription is active/)).toBeVisible();await expect(page.getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
+ await page.goto('/?view=settings');await page.locator('#settings-subscription-trigger').click();await page.getByRole('region',{name:'Cancel subscription',exact:true}).getByRole('button',{name:'Cancel subscription',exact:true}).click();expect(actions.every(a=>a==='status')).toBe(true);await page.getByRole('button',{name:'Confirm cancellation'}).click();await expect(page.getByRole('status').filter({hasText:'Cancellation scheduled'})).toContainText('Cancellation scheduled');expect(actions.filter(a=>a==='cancel')).toHaveLength(1);await expect(page.getByRole('region',{name:'Cancel subscription',exact:true}).getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
+ active=false;await page.reload();await page.locator('#settings-subscription-trigger').click();await expect(page.getByText(/No paid subscription is active/)).toBeVisible();await expect(page.getByRole('region',{name:'Cancel subscription',exact:true}).getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
 })
 
 test('owner settings invitation acceptance bypasses company creation and separate plan selection',async({page})=>{

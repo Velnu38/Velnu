@@ -33,6 +33,8 @@ export type DocumentSettings = {
   payment_links: PaymentLink[];
   payment_instructions: string;
 };
+export type PaymentSettings = Pick<DocumentSettings,
+  "payment_links" | "payment_instructions" | "pricing_adjustment_percent">;
 export const emptyDocumentSettings: DocumentSettings = {
   default_tax_rate: 0,
   pricing_adjustment_percent: 0,
@@ -120,12 +122,23 @@ export async function getDocumentSettings(
 }
 export async function saveDocumentSettings(
   businessId: string,
-  value: DocumentSettings,
+  value: Pick<DocumentSettings, "default_tax_rate">,
 ) {
+  return saveSettingsFields(businessId, { default_tax_rate: value.default_tax_rate });
+}
+export async function savePaymentSettings(businessId: string, value: PaymentSettings) {
+  return saveSettingsFields(businessId, {
+    payment_links: value.payment_links,
+    payment_instructions: value.payment_instructions,
+    pricing_adjustment_percent: value.pricing_adjustment_percent,
+  });
+}
+// Partial upserts keep independently edited sections from overwriting each other.
+async function saveSettingsFields(businessId: string, fields: Partial<DocumentSettings>) {
   const { error } = await supabase.from("business_settings").upsert(
     {
       business_id: businessId,
-      ...value,
+      ...fields,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "business_id" },

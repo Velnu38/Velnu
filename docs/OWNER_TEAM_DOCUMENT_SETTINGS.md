@@ -1,6 +1,6 @@
 # Owner settings, team access and invoice payment options
 
-The private testing workspace keeps five Pro seats: the primary owner and four additional named users. This release adds separate Settings destinations for Company profile, Team & access, Invoice & estimate setup, Calendar connections, and Subscription.
+The private testing workspace keeps five Pro seats: the primary owner and four additional named users. This release adds separate collapsible Settings options for Company profile, Team & access, Invoice & estimate setup, Payment options, Calendar connections, and Cancel subscription. Only one section opens at a time.
 
 ## Team and access
 
@@ -15,6 +15,8 @@ Office staff can be given Calendar & reminders, Jobs, Estimates & invoices, and 
 Invitation email is dispatched by `team-management` through the existing Resend configuration. If delivery is unconfirmed, the owner receives an expiring copyable link and the UI states that email delivery is unconfirmed. No test suite sends real emails. Private Vercel access remains enforced, so test invitees also need authorized access to the private site.
 
 ## Document setup
+
+Invoice & estimate setup contains appearance, branding, and taxes only. Payment providers, payment instructions, and optional payment-cost pricing live in the separate owner-only Payment options dropdown. Each section saves only its own fields, so updating tax defaults does not overwrite payment settings and vice versa.
 
 Tax defaults apply to new manual invoice/estimate lines and can be overridden per line, including zero for exempt items. Existing and converted documents retain their saved amounts. Calculations remain subject to the existing atomic document functions, decimal validation, and calculated-total guards.
 

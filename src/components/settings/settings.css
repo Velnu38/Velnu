@@ -1,49 +1,67 @@
 .settings-options {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
+  max-width: 960px;
+  width: 100%;
+}
+.settings-disclosure {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #dfe7e9;
+  border-radius: 14px;
+}
+.settings-disclosure-heading {
+  margin: 0;
+  font-size: inherit;
 }
 .settings-option {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
   text-align: left;
-  background: #fff;
-  border: 1px solid #dfe7e9;
-  border-radius: 16px;
-  padding: 23px;
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  padding: 20px 24px;
   cursor: pointer;
   color: #193843;
+  font: inherit;
 }
-.settings-option:hover {
-  border-color: #227d70;
-  background: #f7fbfa;
+.settings-option:hover,
+.settings-option[aria-expanded="true"] {
+  background: #f3f9f7;
 }
-.settings-option > span {
-  display: grid;
-  place-items: center;
-  background: #e9f4f0;
-  color: #246659;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  flex-shrink: 0;
-  font-weight: 800;
-}
-.settings-option div {
-  flex: 1;
-}
+.settings-option-copy { min-width: 0; }
 .settings-option strong {
   display: block;
   font-size: 16px;
-  margin-bottom: 6px;
+  font-weight: 700;
+  margin-bottom: 5px;
 }
-.settings-option p {
-  margin: 0;
+.settings-option-copy > span {
+  display: block;
   color: #5e727c;
   font-size: 13px;
   line-height: 1.5;
+  font-weight: 400;
 }
+.settings-chevron { flex-shrink: 0; }
+.settings-option[aria-expanded="true"] .settings-chevron { transform: rotate(180deg); }
+.settings-disclosure-content {
+  padding: 8px 24px 24px;
+  border-top: 1px solid #e3ece8;
+}
+.settings-disclosure-content[hidden] { display: none; }
+.settings-disclosure-content > .settings-panel {
+  padding: 12px 0 0;
+  border: 0;
+  border-radius: 0;
+}
+/* The disclosure label already provides the section heading. */
+.settings-disclosure-content > .settings-panel > h2,
+.settings-disclosure-content > .settings-panel > .eyebrow { display: none; }
 .settings-panel {
   padding: 28px;
   background: white;
@@ -171,9 +189,6 @@
   outline: 3px solid #259587;
   outline-offset: 3px;
 }
-.settings-back {
-  justify-self: start;
-}
 .settings-panel .quiet {
   color: #5e727c;
   line-height: 1.65;
@@ -182,8 +197,8 @@
   max-width: 100%;
 }
 @media (max-width: 650px) {
-  .settings-options {
-    grid-template-columns: 1fr;
+  .settings-disclosure-content {
+    padding: 6px 18px 18px;
   }
   .settings-panel {
     padding: 18px;
