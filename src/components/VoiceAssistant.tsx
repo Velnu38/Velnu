@@ -121,6 +121,11 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     return () => { active = false }
   }, [open, business.id])
 
+  useEffect(()=>{
+    const openEntry=(event:Event)=>{const text=(event as CustomEvent<{text?:string}>).detail?.text;if(typeof text!=="string"||text.length>2000)return;setOpen(true);setAction(null);setResult(null);setQuickInvoiceRequest(null);setError('');setText(text)}
+    window.addEventListener('finviant-assistant-entry',openEntry);return()=>window.removeEventListener('finviant-assistant-entry',openEntry)
+  },[])
+
   function reset() {
     setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setVoiceStatus(''); setText('')
   }

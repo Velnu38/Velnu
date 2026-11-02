@@ -1,3 +1,5 @@
+import type { DocumentPayments } from '../components/PaymentOptionsFields'
+import type { newCustomerFields } from '../components/CustomerEntry'
 import { collectBusinessRecords } from '../lib/businessRecords'
 import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
@@ -22,7 +24,7 @@ export async function listInvoices(businessId: string) {
 
 export async function createInvoice(
   businessId: string,
-  input: { customer_id: string; issue_date?: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
+  input: Partial<DocumentPayments> & { new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; issue_date?: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
 ) {
   validateDocumentInput(input)
 
@@ -34,6 +36,9 @@ export async function createInvoice(
     request_id: input.request_id ?? crypto.randomUUID(),
     payload: {
       customer_id: input.customer_id,
+      ...(input.new_customer?{new_customer:input.new_customer}:{}),
+      ...(input.payment_links?{payment_links:input.payment_links}:{}),
+      ...(input.payment_instructions!==undefined?{payment_instructions:input.payment_instructions}:{}),
       ...(input.issue_date ? { issue_date: input.issue_date } : {}),
       due_date: input.due_date || null,
       notes: input.notes?.trim() || null,

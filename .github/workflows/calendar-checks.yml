@@ -14,10 +14,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run typecheck:calendar && npm run test:calendar && npm run test:records && npm run test:settings && npm run test:services && npm run build
+      - run: npm run typecheck:calendar && npm run test:calendar && npm run test:records && npm run test:settings && npm run test:services
+      # PGlite avoids nodejs/node#66366; production builds still run on Node 24.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm run build
       - name: Calendar browser regressions with installed Chrome
         run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --grep 'calendar dashboard|calendar settings|calendar widget|record resources|dashboard layout|billing hub|dashboard tenant|failed invoice-summary|dashboard manual refresh|absent customer|navigation during|empty dashboard|owner settings|interactive dashboard'
         env:

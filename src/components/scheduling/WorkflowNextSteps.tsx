@@ -16,7 +16,7 @@ export default function WorkflowNextSteps({business,refreshVersion=0}:{business:
     return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('finviant-work-changed',refresh)}
   },[business.id,allowed,version,refreshVersion])
   async function prepare(job:string){setBusy(job);setError('');try{const result=await completeJob(job,true);if(!result.invoice_ready)throw new Error(result.needs_pricing?'Add the work and price before creating this invoice.':'The job is completed; its invoice needs review.');setVersion(v=>v+1)}catch(e){setError(e instanceof Error?e.message:'Unable to prepare the invoice.')}finally{setBusy(null)}}
-  if(!allowed || (!error&&!data?.approved.length&&!data?.completed.length))return null
+  if(!allowed || (!error&&!data?.approved.length&&!data?.completed.length&&!estimate))return null
   return <section className="workflow-next" aria-label="Guided next steps"><h2>Your next steps</h2><p>Finviant keeps the work moving. You review customer invitations and invoices before anything is sent.</p>
     {error&&<p role="alert">{error} <button type="button" className="text-button" onClick={()=>setVersion(v=>v+1)}>Retry next steps</button></p>}
     <ul>{data?.approved.slice(0,showAll?20:3).map(row=><li key={row.id}><div><strong>{row.customer_name} · {row.estimate_number || 'Approved estimate'}</strong><span>{row.offer?.status==='approved'&&Date.parse(row.offer.expires_at)>Date.now()?'Waiting for the customer to choose a time.':'Estimate approved. Choose the crew and offer appointment times.'}</span></div><button type="button" className="primary-button compact" onClick={()=>setEstimate(row.id)}>{row.offer?.status==='approved'?'Review times':'Schedule job'}</button></li>)}

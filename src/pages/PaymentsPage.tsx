@@ -1,3 +1,4 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listOpenInvoices, listPayments, recordPayment } from '../services/payments'
@@ -51,7 +52,7 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
     } finally { setBusy(false) }
   }
 
-  return <div className="page-stack">
+  return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View bookkeeping</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
     <section className="list-card">
       {payments.length === 0 ? <div className="empty-state"><div className="empty-icon">$</div><h2>No payments yet</h2><p>Record a payment here when you have actually received the funds.</p></div> : payments.map((payment) => {

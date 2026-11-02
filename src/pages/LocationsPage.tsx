@@ -1,3 +1,4 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { useEffect, useMemo, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
@@ -45,7 +46,7 @@ export default function LocationsPage({ business, onCustomers }: {
 
   const selected = visible.find(item => item.id === selectedId) || visible[0]
 
-  return <div className="page-stack">
+  return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Service locations · Google Maps</p><h1>Know where each job takes you.</h1><p className="quiet">Property addresses from customer records, ready for maps and driving directions.</p></div><button className="secondary-button compact" onClick={onCustomers}>Manage properties</button></div>
     {error && <p role="alert" className="form-message error-text">{error}</p>}
     {loading ? <p className="quiet">Loading service locations…</p> : locations.length === 0 ?

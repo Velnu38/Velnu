@@ -1,8 +1,11 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { isPrimaryOwner } from '../lib/workspaceAccess'
+import WorkspaceBack from '../components/WorkspaceBack'
+import { FormEvent, lazy,Suspense,useEffect, useMemo, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { createCustomer, listCustomers } from '../services/customers'
 import CustomerDetail from '../components/CustomerDetail'
 
+const ContactImportDialog=lazy(()=>import('../components/ContactImportDialog'))
 type Customer = {
   id: string
   first_name: string | null
@@ -16,6 +19,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [query, setQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [showImport,setShowImport]=useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -56,9 +60,10 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack"><WorkspaceBack />
       <div className="page-heading split-heading">
         <div><p className="eyebrow">Customers</p><h1>Everyone you work for, in one place.</h1></div>
+        {isPrimaryOwner(business)&&<button type="button" className="secondary-button compact" onClick={()=>setShowImport(true)}>Import contacts</button>}
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New customer</button>}
       </div>
       <div className="toolbar"><input className="search-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" /></div>
@@ -75,6 +80,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
           </button>
         })}
       </section>
+      {showImport&&<Suspense fallback={<p role="status">Opening contact import…</p>}><ContactImportDialog businessId={business.id} onClose={()=>setShowImport(false)} onImported={()=>void refresh()}/></Suspense>}
       {showForm && <div className="modal-backdrop" onMouseDown={() => setShowForm(false)}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head"><div><p className="eyebrow">New customer</p><h2>Add a customer</h2></div><button className="icon-button" onClick={() => setShowForm(false)}>×</button></div>
         <form onSubmit={submit} className="form-grid">

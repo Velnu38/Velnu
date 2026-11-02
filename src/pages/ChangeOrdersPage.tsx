@@ -1,8 +1,9 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { previewDocumentTotal } from '../lib/financialValidation'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listJobs } from '../services/jobs'
-import { createChangeOrder, listChangeOrders, updateChangeOrderStatus } from '../services/changeOrders'
+import { createChangeOrder, listChangeOrders, updateChangeOrderStatus, getDocumentChangeContext, createDocumentChangeOrder, type DocumentChangeSource } from '../services/changeOrders'
 import { createApprovalLink } from '../services/approvals'
 import { sendDocumentEmail } from '../services/communications'
 import { customerActionsEnabled } from '../lib/releaseFlags'
@@ -11,7 +12,7 @@ import { matchesChangeOrderContext, type DocumentChangeOrderContext } from '../l
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
 type Job = { id: string; title: string; status: string; customer_id: string; customers: Customer[] | Customer | null }
-type ChangeOrder = { id: string; customer_id: string; job_id: string; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
+type ChangeOrder = { id: string; customer_id: string; job_id: string|null; estimate_id?:string|null; source_invoice_id?:string|null; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
 
@@ -29,13 +30,15 @@ function jobCustomer(job: Job) {
 export default function ChangeOrdersPage({ business, context, onBack }: { business: CurrentBusiness; context?: DocumentChangeOrderContext; onBack?: () => void }) {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(!!context)
+  const [source,setSource]=useState<DocumentChangeSource|null>(null)
+  const saving=useRef(false)
   const [approvalLink, setApprovalLink] = useState<ApprovalLinkState | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [jobId, setJobId] = useState(context?.jobId || '')
-  const [title, setTitle] = useState('')
+  const [title, setTitle] = useState(context?'Change to '+context.documentNumber:'')
   const [description, setDescription] = useState('')
   const [reason, setReason] = useState('')
   const [scheduleImpactDays, setScheduleImpactDays] = useState('0')
@@ -44,35 +47,39 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
-    const [orders, jobRows] = await Promise.all([listChangeOrders(business.id), listJobs(business.id)])
+    const [orders, jobRows, source] = await Promise.all([listChangeOrders(business.id), context?Promise.resolve([]):listJobs(business.id),context?getDocumentChangeContext(context.documentType,context.documentId):Promise.resolve(null)])
+    if(context)setSource(source)
     setChangeOrders(orders as ChangeOrder[])
     setJobs((jobRows as unknown as Job[]).filter((job) => job.status !== 'canceled'))
   }
 
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load change orders')) }, [business.id])
 
-  const availableJobs = jobs.filter(job => matchesChangeOrderContext({ customer_id: job.customer_id, job_id: job.id }, context))
-  const visibleOrders = changeOrders.filter(order => matchesChangeOrderContext(order, context))
+  const availableJobs = jobs.filter(job => matchesChangeOrderContext({ customer_id: job!.customer_id, job_id: job!.id }, context))
+  const visibleOrders = changeOrders.filter(order => !context || (context.documentType==='invoice'?order.source_invoice_id===context.documentId:!order.source_invoice_id&&order.estimate_id===context.documentId) || (!!context.jobId&&!order.source_invoice_id&&!order.estimate_id&&order.job_id===context.jobId))
 
   const preview = useMemo(() => previewDocumentTotal(lines), [lines])
 
   function resetForm() {
-    setJobId(context?.jobId || ''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
+    setJobId(context?.jobId || ''); setTitle(context?'Change to '+context.documentNumber:''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); if (!canManageFinances(business.role) || busy) return; setBusy(true); setError(''); setNotice('')
+    event.preventDefault(); if (!canManageFinances(business.role) || saving.current) return;saving.current=true; setBusy(true); setError(''); setNotice('')
     try {
       const job = availableJobs.find((row) => row.id === jobId)
-      if (!job) throw new Error('Choose a job')
+      if (!context&&!job) throw new Error('Choose a job')
+      if(context&&!source?.can_change)throw new Error('This work is complete or its source document is unavailable.')
       const sourceNote = context ? `Requested from ${context.documentType} ${context.documentNumber} (${context.documentId}).` : undefined
       const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines,estimateId:context?.estimateId,sourceNote})
       if (retryRef.current?.signature !== signature) retryRef.current = {signature, requestId: crypto.randomUUID()}
-      await createChangeOrder(business.id, {
+      const additions={title,description,reason,schedule_impact_days:Number(scheduleImpactDays||0),schedule_note:scheduleNote,items:lines.map(line=>({description:line.description,quantity:Number(line.quantity),unit_price:Number(line.unit_price),tax_rate:Number(line.tax_rate||0)}))}
+      if(context)await createDocumentChangeOrder(context.documentType,context.documentId,retryRef.current.requestId,additions)
+      else await createChangeOrder(business.id, {
         request_id: retryRef.current.requestId,
-        customer_id: job.customer_id,
-        job_id: job.id,
-        estimate_id: context?.estimateId || undefined,
+        customer_id: job!.customer_id,
+        job_id: job!.id,
+        estimate_id: undefined,
         notes: sourceNote,
         title,
         description,
@@ -89,7 +96,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
       resetForm(); setShowForm(false); await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create change order')
-    } finally { setBusy(false) }
+    } finally { saving.current=false;setBusy(false) }
   }
 
   async function changeStatus(id: string, status: 'sent' | 'void') {
@@ -130,12 +137,12 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   }
 
   return <div className="page-stack">
-    {onBack && <div className="detail-top"><button type="button" className="back-button" onClick={onBack}>← Back to {context?.documentType || 'document'}</button></div>}
+    {!onBack&&<WorkspaceBack/>}{onBack && <div className="detail-top"><button type="button" className="back-button" onClick={onBack}>← Back to {context?.documentType || 'document'}</button></div>}
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Change orders</p><h1>Capture scope changes before they become lost revenue.</h1></div>
       {canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
     </div>
-    {context && <section className="document-change-context"><strong>From {context.documentNumber}</strong><p>{context.jobId ? 'Change orders for this document’s customer and linked job.' : 'Change orders for this document’s customer. Choose the relevant job when creating a change order.'}</p></section>}
+    {context && <section className="document-change-context"><strong>From {context.documentNumber}</strong><p>Changes inherit this document’s customer, service address and linked work.</p></section>}
     <section className="change-order-intro"><strong>Accuracy first.</strong><span>Added work, price, tax and schedule impact stay separate until the customer approves the change.</span></section>
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
@@ -157,12 +164,12 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
         </article>
       })}
     </section>
-    {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
+    {showForm && <div className="modal-backdrop" onMouseDown={() => { if(!saving.current){setShowForm(false); resetForm()} }}><section className="modal wide" role="dialog" aria-modal="true" aria-label="Create change order" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid">
-          <label className="full">Job<select value={jobId} onChange={(e) => setJobId(e.target.value)} required><option value="">Choose job…</option>{availableJobs.map((job) => <option value={job.id} key={job.id}>{customerName(jobCustomer(job))} — {job.title}</option>)}</select></label>
-          {context && availableJobs.length === 0 && <p className="form-message full">{context.jobId ? 'The linked job is unavailable. Review its status in Jobs before adding a change order.' : 'No available job matches this customer. Create a job for this customer in Jobs before adding a change order.'}</p>}
+          {context&&<section className="document-change-context full" aria-label="Original document">{source?<><strong>{source.number} · {source.customer_name}</strong>{(source.customer_email||source.customer_phone)&&<p>{[source.customer_email,source.customer_phone].filter(Boolean).join(' · ')}</p>}{source.address&&<p>{source.address}</p>}<p>Original total: ${Number(source.total).toFixed(2)} · Work: {source.work_status.replaceAll('_',' ')}</p><details><summary>Original scope and prices</summary><ul>{source.items.map((item,i)=><li key={i}>{item.description} · {item.quantity} × ${Number(item.unit_price).toFixed(2)}</li>)}</ul></details><p className="quiet">For reference. Add only the changed or additional charges below.</p>{!source.can_change&&<p role="alert">This work is complete or the original document is no longer active.</p>}</>:<p role="status">Loading original document…</p>}</section>}
+          {!context&&<label className="full">Job<select value={jobId} onChange={(e) => setJobId(e.target.value)} required><option value="">Choose job…</option>{availableJobs.map((job) => <option value={job.id} key={job.id}>{customerName(jobCustomer(job))} — {job.title}</option>)}</select></label>}
           <label className="full">Change order title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add two recessed lights" required /></label>
           <label className="full">Scope change<textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe exactly what is being added, removed, or changed." /></label>
           <label>Reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Customer requested" /></label>
@@ -171,8 +178,8 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
         </div>
         <div className="line-items"><div className="line-items-head"><strong>Price change</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
         <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved. Customer approval is the next workflow step.</small></div>
-        {error && <p className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create change order'}</button></div>
+        {error && <p role="alert" className="form-message error-text">{error}</p>}
+        <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change}>{busy ? 'Saving…' : 'Create change order'}</button></div>
       </form>
     </section></div>}
     {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}

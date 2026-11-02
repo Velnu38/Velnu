@@ -1,7 +1,8 @@
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
-import { lazy, Suspense, useState, useEffect } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
 import { supabase } from '../lib/supabase'
+import WorkspaceBack, { WorkspaceNavigation } from './WorkspaceBack'
 import WorkspaceErrorBoundary from './WorkspaceErrorBoundary'
 
 
@@ -45,20 +46,20 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'work', label: 'Jobs', icon: 'J' },
   { id: 'schedule', label: 'Schedule', icon: '▦' },
   { id: 'reminders', label: 'Reminders', icon: '✓' },
-  { id: 'change_orders', label: 'Change Orders', icon: 'CO' },
   { id: 'payments', label: 'Payments', icon: '$' },
   { id: 'bookkeeping', label: 'Financial performance', icon: '↗' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ]
 
 const mobilePrimary: View[] = ['dashboard', 'customers', 'work', 'locations']
-const mobileMore: View[] = ['change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
+const mobileMore: View[] = ['estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
 const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders', 'schedule', 'reminders'].includes(id))
 
 function initialView(): View {
   const query = new URLSearchParams(window.location.search)
   if (query.has('quickbooks')) return 'bookkeeping'
   const requested = query.get('view')
+  if(requested==='change_orders')return 'change_orders'
   return nav.some(item => item.id === requested) ? requested as View : 'dashboard'
 }
 
@@ -77,14 +78,27 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check) }
   }, [business.id])
 
+  const navigationIndex = useRef(0)
+  useEffect(() => {
+    window.history.replaceState({...window.history.state,finviantIndex:0},'',window.location.href)
+    const pop=()=>{navigationIndex.current=Number(window.history.state?.finviantIndex)||0;setView(initialView());setShowMobileMore(false)}
+    window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)
+  },[])
+  function back() {
+    if(navigationIndex.current>0){window.history.back();return}
+    window.history.replaceState({...window.history.state,finviantIndex:0},'','/?view=dashboard');setView('dashboard')
+  }
   function navigate(next: View) {
+    if(next===view)return
+    navigationIndex.current++
+    window.history.pushState({finviantIndex:navigationIndex.current},'','/?view='+next)
     setView(next)
     setShowMobileMore(false)
   }
 
   function page() {
-    if (accessRemoved) return <p role="alert">Your business access could not be verified. Contact the primary owner or reload after reconnecting.</p>
-    if (!canOpenView(company, view)) return <p role="alert">This area is not included in your access. Contact your primary business owner.</p>
+    if (accessRemoved) return <><WorkspaceBack/><p role="alert">Your business access could not be verified. Contact the primary owner or reload after reconnecting.</p></>
+    if (!canOpenView(company, view)) return <><WorkspaceBack/><p role="alert">This area is not included in your access. Contact your primary business owner.</p></>
     if (view === 'settings') return <SettingsPage business={company} onSaved={setCompany} />
     if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} onReminders={() => navigate('reminders')} />
     if (view === 'customers') return <CustomersPage business={company} />
@@ -92,7 +106,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     if (view === 'schedule') return <SchedulePage business={company} />
     if (view === 'reminders') return <RemindersPage business={company} />
     if (view === 'locations') return <LocationsPage business={company} onCustomers={() => navigate('customers')} />
-    if (view === 'change_orders') return <ChangeOrdersPage business={company} />
+    if (view === 'change_orders')return <ChangeOrdersPage business={company}/>
     if (view === 'estimates') return <EstimatesPage business={company} />
     if (view === 'invoices') return <InvoicesPage business={company} />
     if (view === 'bookkeeping') return <BookkeepingPage key={company.id + ':' + company.role} business={company} />
@@ -100,7 +114,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   return (
-    <div className="app-shell">
+    <WorkspaceNavigation.Provider value={back}><div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><span>Finviant <span className="finviant-product">Office</span></span></div>
         <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
@@ -128,6 +142,6 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
       </section></div>}
       {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />}
-    </div>
+    </div></WorkspaceNavigation.Provider>
   )
 }
