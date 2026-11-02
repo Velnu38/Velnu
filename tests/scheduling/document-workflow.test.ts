@@ -71,3 +71,9 @@ test('vCard import reads iPhone/Google names, folded UTF-8, escaped text and onl
 test('contact preview deduplicates cards and handles invalid or oversized exports',()=>{
  const card='BEGIN:VCARD\nVERSION:3.0\nFN:Test Person\nEMAIL:test@example.test\nEND:VCARD';const parsed=parseContactCards(card+'\n'+card,randomUUID);assert.equal(parsed.contacts.length,1);assert.equal(parsed.ignored,1);assert.throws(()=>parseContactCards('<script>alert(1)</script>',randomUUID),/No contacts/);assert.throws(()=>parseContactCards('x'.repeat(8*1024*1024+1),randomUUID),/8 MB/);assert.equal(normalizePhoneContact({email:['no-name@example.test']},randomUUID()),null)
 })
+
+test('contact cards with photo padding remain readable and malformed nested cards fail promptly',()=>{
+ const card='BEGIN:VCARD\nVERSION:3.0\nFN:Photo Contact\nPHOTO;ENCODING=b:YWJjZA==\nEND:VCARD';assert.equal(parseContactCards(card,randomUUID).contacts[0].first_name,'Photo')
+ assert.throws(()=>parseContactCards('BEGIN:VCARD\n'.repeat(10000),randomUUID),/incomplete/)
+ const qp='BEGIN:VCARD\nVERSION:2.1\nFN;ENCODING=QUOTED-PRINTABLE:Ren=C3=A9e=\n Smith\nEND:VCARD';assert.equal(parseContactCards(qp,randomUUID).contacts[0].first_name,'Renée')
+})

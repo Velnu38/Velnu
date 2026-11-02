@@ -17,9 +17,23 @@ export function normalizePhoneContact(value:{name?:string[];email?:string[];tel?
 export function parseContactCards(text:string,makeId:()=>string):{contacts:ImportContact[];ignored:number}{
   if(new TextEncoder().encode(text).length>contactFileLimit)throw new Error('Choose a contacts file smaller than 8 MB. Export a smaller list without photos if needed.')
   if(text.includes('\0'))throw new Error('This is not a supported contacts file. Choose an exported .vcf file.')
-  const input=text.replace(/^\uFEFF/,'').replace(/=\r?\n(?=[^\r\n])/g,'').replace(/\r?\n[ \t]/g,'')
-  const cards=input.match(/BEGIN:VCARD[\s\S]*?END:VCARD/gi)
-  if(!cards?.length)throw new Error('No contacts were found. Choose a vCard (.vcf) export from Contacts.')
+  // Unfold vCards and quoted-printable soft lines without touching photo padding.
+  const lines:string[]=[];let quoted=false
+  for(const line of text.replace(/^\uFEFF/,'').split(/\r?\n/)){
+    if(lines.length&&quoted&&lines[lines.length-1].endsWith('='))lines[lines.length-1]=lines[lines.length-1].slice(0,-1)+line
+    else if(lines.length&&/^[ \t]/.test(line))lines[lines.length-1]+=line.slice(1)
+    else{lines.push(line);quoted=/;ENCODING=QUOTED-PRINTABLE/i.test(line.slice(0,line.indexOf(':')))}
+  }
+  const input=lines.join('\n'),cards:string[]=[],markers=/^(BEGIN|END):VCARD[ \t]*$/gmi
+  let from=-1,match:RegExpExecArray|null
+  while((match=markers.exec(input))){
+    if(match[1].toUpperCase()==='BEGIN'){
+      if(from>=0)throw new Error('A contact card is incomplete. Export the contacts again.')
+      from=match.index
+    }else if(from>=0){cards.push(input.slice(from,markers.lastIndex));from=-1;if(cards.length>2000)throw new Error('Import up to 2,000 contacts at a time. Export a smaller contacts list.')}
+  }
+  if(from>=0)throw new Error('A contact card is incomplete. Export the contacts again.')
+  if(!cards.length)throw new Error('No contacts were found. Choose a vCard (.vcf) export from Contacts.')
   if(cards.length>2000)throw new Error('Import up to 2,000 contacts at a time. Export a smaller contacts list.')
   const contacts:ImportContact[]=[],seen=new Set<string>();let ignored=0
   for(const card of cards){const name:string[]=[],email:string[]=[],tel:string[]=[];let structured:string[]|undefined,org=''
