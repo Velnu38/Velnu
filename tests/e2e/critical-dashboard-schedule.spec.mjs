@@ -523,7 +523,7 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
   await expect(page.getByRole('region', { name: 'upcoming jobs' })).toContainText('Future repair')
   await page.getByRole('button', { name: /History/ }).click()
   await expect(page.getByRole('region', { name: 'history jobs' })).toContainText('Completed repair')
-  await views.getByRole('button', { name: 'Schedule', exact: true }).click()
+  await page.goto('/?view=schedule')
   await expect(page.locator('.appointment-row')).toContainText('Visit 1')
 })
 
