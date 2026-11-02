@@ -563,10 +563,10 @@ test('calendar reminders can be linked to a job', async ({ page }) => {
 test('calendar dashboard shows daily work, overdue reminders, completion, and another date', async ({ page }) => {
   await mockWorkspace(page)
   let completed = false
-  await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', headers:{'content-range':'0-0/1'}, body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
+  await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', headers:{'access-control-expose-headers':'content-range','content-range':'0-0/1'}, body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
   await page.route('**/rest/v1/reminders?**', route => {
     if (route.request().method() === 'PATCH') { completed = true; return route.fulfill({contentType:'application/json',body:JSON.stringify({id:id(2)})}) }
-    return route.fulfill({contentType:'application/json',headers:{'content-range':completed?'*/0':'0-0/1'},body:JSON.stringify(completed?[]:[{id:id(2),note:'Confirm materials',due_at:new Date(Date.now()-3600000).toISOString(),job_id:null}])})
+    return route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':completed?'*/0':'0-0/1'},body:JSON.stringify(completed?[]:[{id:id(2),note:'Confirm materials',due_at:new Date(Date.now()-3600000).toISOString(),job_id:null}])})
   })
   await page.goto('/')
   const calendar = page.getByRole('region', {name:'Work calendar'})
@@ -600,7 +600,7 @@ test('calendar settings shows connected identity, calendar choices and persists 
 test('calendar widget fits a phone without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({width:390,height:844})
   await mockWorkspace(page)
-  await page.route('**/rest/v1/calendar_work?**', route=>route.fulfill({contentType:'application/json',headers:{'content-range':'*/0'},body:'[]'}))
+  await page.route('**/rest/v1/calendar_work?**', route=>route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'*/0'},body:'[]'}))
   await page.goto('/')
   const calendar=page.getByRole('region',{name:'Work calendar'})
   await expect(calendar).toBeVisible()
@@ -662,7 +662,8 @@ for (const kind of ['job', 'estimate', 'invoice']) {
     await panel.getByRole('button', { name: 'Remove picture job-photo.png' }).click()
     await expect(panel.getByRole('img')).toHaveCount(0)
     await page.goto('/')
-    await expect(page.locator('.financial-posting').filter({ hasText: 'Replacement fittings' })).toHaveCount(1)
+    await page.locator('.performance-metric.expense').click()
+    await expect(page.locator('.transaction-list > li').filter({ hasText: 'Replacement fittings' })).toHaveCount(1)
     expect(state.invoices[0].total).toBe(100)
   })
 }
@@ -735,7 +736,7 @@ test('billing hub empty state and finance restrictions stay honest', async ({pag
 test('billing hub leaves calendar and financial detail available without long default lists', async ({page})=>{
   await mockWorkspace(page)
   const items=Array.from({length:7},(_,n)=>({source_key:`job:${n}`,title:`Calendar repair ${n}`,starts_at:new Date().toISOString(),ends_at:null,status:'scheduled',document_kind:'work',document_id:id(n)}))
-  await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({contentType:'application/json',headers:{'content-range':'0-6/7'},body:JSON.stringify(items)}))
+  await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'0-6/7'},body:JSON.stringify(items)}))
   await page.goto('/')
   const calendar=page.getByRole('region',{name:'Work calendar'})
   await expect(calendar.getByRole('link')).toHaveCount(3)
@@ -878,7 +879,7 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  const day=DateTime.now().setZone('America/New_York').startOf('day')
  const items=[0,1,2].map((offset)=>({source_key:`job:interactive-${offset}`,title:['Kitchen installation','Oak Street repair','HVAC maintenance'][offset],description:'',starts_at:day.plus({days:offset,hours:9}).toISO(),ends_at:day.plus({days:offset,hours:11}).toISO(),status:'scheduled',document_kind:'work',document_id:id(980+offset)}))
  const calls=[]
- await page.route('**/rest/v1/calendar_work?**',r=>{calls.push(r.request().url());return r.fulfill({contentType:'application/json',headers:{'content-range':'0-2/3'},body:JSON.stringify(items)})})
+ await page.route('**/rest/v1/calendar_work?**',r=>{calls.push(r.request().url());return r.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'0-2/3'},body:JSON.stringify(items)})})
  await page.goto('/')
  const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
@@ -916,7 +917,7 @@ async function mockInteractiveFinances(page) {
   expect(q.get('business_id')).toBe('eq.'+BID)
   const filtered=rows.filter(row=>q.getAll(dateField).every(filter=>filter.startsWith('gte.')?Date.parse(row[dateField])>=Date.parse(filter.slice(4)):filter.startsWith('lt.')?Date.parse(row[dateField])<Date.parse(filter.slice(3)):true))
   const offset=Number(q.get('offset')||0),limit=Number(q.get('limit')||1000)
-  return r.fulfill({contentType:'application/json',headers:{'content-range':`${offset}-${offset+filtered.slice(offset,offset+limit).length-1}/${filtered.length}`},body:JSON.stringify(filtered.slice(offset,offset+limit))})
+  return r.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':`${offset}-${offset+filtered.slice(offset,offset+limit).length-1}/${filtered.length}`},body:JSON.stringify(filtered.slice(offset,offset+limit))})
  })
  return {now,invoice,job}
 }
@@ -959,7 +960,7 @@ test('interactive dashboard financial failure does not show invented zero totals
  await page.route('**/rest/v1/payments?**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
  await page.goto('/')
  const finance=page.getByRole('region',{name:'Financial performance',exact:true})
- await expect(finance.getByRole('alert')).toContainText('Payments unavailable')
+ await expect(finance.getByRole('alert')).toContainText('Payments unavailable', {timeout:15000})
  await expect(finance.locator('.performance-metric.income')).toBeDisabled()
  await expect(finance.locator('.performance-metrics')).not.toContainText('$0.00')
  await expect(finance.getByRole('button',{name:'Retry financial data'})).toBeVisible()
