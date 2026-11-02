@@ -156,7 +156,7 @@ async function mockWorkspace(page, options = {}) {
       return reply(matching, 200, matching.length)
     }
     if (path.includes('/storage/v1/object/sign/') && method === 'POST') return reply(body.paths.map(path => ({ path, signedURL: `/object/sign/finviant-record-photos/${path}?token=test`, error: null })))
-    if (path.includes('/storage/v1/object/sign/') && method === 'GET') return route.fulfill({contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfFcAAAAASUVORK5CYII=', 'base64')})
+    if (path.includes('/storage/v1/object/sign/') && method === 'GET') return route.fulfill({contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGNkaGhgwAaYsIoOWgkAzIgBEFCQDcoAAAAASUVORK5CYII=', 'base64')})
     if (path.includes('/storage/v1/object/finviant-record-photos')) {
       if (method === 'POST') { state.storageWrites++; return reply({ Key: path.split('/object/')[1], Id: id(999) }, 200) }
       return reply([])
@@ -612,7 +612,10 @@ for (const kind of ['job', 'estimate', 'invoice']) {
     await openRecord()
     const panel = page.getByRole('region', { name: 'Photos and expenses' })
     await expect(panel.getByText('No pictures added yet.')).toBeVisible()
-    await panel.getByLabel('Add pictures').setInputFiles({ name: 'job-photo.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jfFcAAAAASUVORK5CYII=', 'base64') })
+    await panel.getByLabel('Add pictures').setInputFiles({ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('invalid image') })
+    await expect(panel.getByRole('alert')).toContainText('This picture could not be opened')
+    expect(state.storageWrites).toBe(0)
+    await panel.getByLabel('Add pictures').setInputFiles({ name: 'job-photo.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGNkaGhgwAaYsIoOWgkAzIgBEFCQDcoAAAAASUVORK5CYII=', 'base64') })
     await expect(panel.getByRole('img', { name: 'job-photo.png' })).toBeVisible()
     expect(state.storageWrites).toBe(1)
     expect(state.photos[0][`${kind}_id`]).toBe(recordId)
