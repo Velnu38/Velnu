@@ -218,7 +218,8 @@ const showForm = async page => {
 }
 const completeForm = async (page, start = localDatetime(), end = localDatetime(1, 11)) => {
   await showForm(page)
-  await page.locator('.modal form select').first().selectOption(CID)
+  await page.getByText('Choose from saved customers',{exact:true}).click()
+ await page.getByLabel('Customer',{exact:true}).selectOption(CID)
   await page.getByLabel('Job title', { exact: true }).fill('Replace faucet')
   await page.getByLabel('Starts').fill(start)
   if (end) await page.getByLabel('Ends').fill(end)
@@ -412,7 +413,8 @@ test('15 missing customer blocks job creation', async ({ page }) => {
 test('16 blank title blocks job creation', async ({ page }) => {
   const state = await openSchedule(page)
   await showForm(page)
-  await page.locator('.modal form select').first().selectOption(CID)
+  await page.getByText('Choose from saved customers',{exact:true}).click()
+ await page.getByLabel('Customer',{exact:true}).selectOption(CID)
   await page.getByLabel('Starts').fill(localDatetime())
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
@@ -422,7 +424,8 @@ test('16 blank title blocks job creation', async ({ page }) => {
 test('17 missing start time blocks job creation', async ({ page }) => {
   const state = await openSchedule(page)
   await showForm(page)
-  await page.locator('.modal form select').first().selectOption(CID)
+  await page.getByText('Choose from saved customers',{exact:true}).click()
+ await page.getByLabel('Customer',{exact:true}).selectOption(CID)
   await page.getByLabel('Job title', { exact: true }).fill('No time')
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
@@ -577,8 +580,9 @@ test('calendar dashboard shows daily work, overdue reminders, completion, and an
   await expect(calendar.getByText('Confirm materials',{exact:true})).toBeVisible()
   await calendar.getByRole('button',{name:'Complete Confirm materials'}).click()
   await expect(calendar.getByText('Confirm materials',{exact:true})).toHaveCount(0)
-  await calendar.getByLabel('Calendar date').fill('2028-02-29')
-  await expect(calendar.getByText('Tuesday, February 29', {exact:true})).toBeVisible()
+  await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
+  await calendar.getByRole('button',{name:'Next week'}).click()
+  await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
 })
 
 test('calendar settings shows connected identity, calendar choices and persists toggle', async ({ page }) => {
@@ -755,47 +759,20 @@ test('billing hub leaves calendar and financial detail available without long de
 
 for (const width of [1440,390]) test(`owner settings navigation is clear at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mockWorkspace(page)
- const saved={default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''};const writes=[]
- await page.route('**/rest/v1/business_settings?**',r=>{
-  if(r.request().method()==='POST'){const body=r.request().postDataJSON();writes.push(body);Object.assign(saved,body)}
-  return r.fulfill({contentType:'application/json',body:JSON.stringify(saved)})
- })
+ const writes=[]
+ await page.route('**/rest/v1/business_settings?**',r=>{if(r.request().method()==='POST')writes.push(r.request().postDataJSON());return r.fulfill({contentType:'application/json',body:JSON.stringify({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})})})
  await page.route('**/rest/v1/businesses?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({...business,...r.request().postDataJSON()})}))
  await page.goto('/?view=settings')
- const labels=['Company profile','Team & access','Invoice & estimate setup','Payment options','Calendar connections','Cancel subscription']
- for(const label of labels){const trigger=page.getByRole('button',{name:label,exact:true});await expect(trigger).toBeVisible();await expect(trigger).toHaveAttribute('aria-expanded','false')}
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
- await page.screenshot({path:`test-results/owner-settings-${width}.png`,fullPage:true})
- await page.getByRole('button',{name:'Invoice & estimate setup',exact:true}).click()
- await expect(page.getByLabel('Default tax rate (%)')).toHaveValue('0')
- await expect(page.getByRole('checkbox',{name:'PayPal',exact:true})).toHaveCount(0)
- await expect(page.getByLabel('Payment instructions')).toHaveCount(0)
- await expect(page.getByLabel('Optional price adjustment (%)')).toHaveCount(0)
- await page.screenshot({path:`test-results/document-settings-${width}.png`,fullPage:true})
- await page.getByRole('button',{name:'Payment options',exact:true}).click()
- await expect(page.getByRole('button',{name:'Invoice & estimate setup',exact:true})).toHaveAttribute('aria-expanded','false')
- await expect(page.getByLabel('Default tax rate (%)')).toHaveCount(0)
- for(const provider of ['Venmo','PayPal','Stripe','Cash App'])await expect(page.getByRole('checkbox',{name:provider,exact:true})).toBeVisible()
- await page.getByRole('checkbox',{name:'PayPal',exact:true}).check()
- await page.getByLabel('PayPal payment link').fill('https://paypal.me/business')
- await page.getByLabel('Payment instructions').fill('Include the invoice number.')
- await page.getByLabel('Optional price adjustment (%)').fill('3')
- await page.getByRole('button',{name:'Save payment options'}).click()
- await expect(page.getByRole('status').filter({hasText:'Payment options saved'})).toBeVisible()
- expect(writes[0]).not.toHaveProperty('default_tax_rate')
- await page.screenshot({path:`test-results/payment-settings-${width}.png`,fullPage:true})
+ for(const label of ['Company profile','Team & access','Invoice & estimate setup','Calendar connections','Cancel subscription'])await expect(page.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-expanded','false')
+ await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'Invoice & estimate setup',exact:true}).click()
  await page.getByLabel('Default tax rate (%)').fill('5.3')
  await page.getByRole('button',{name:'Save document setup'}).click()
  await expect(page.getByRole('status').filter({hasText:'Document setup saved'})).toBeVisible()
- for(const field of ['payment_links','payment_instructions','pricing_adjustment_percent'])expect(writes[1]).not.toHaveProperty(field)
- await page.getByRole('button',{name:'Payment options',exact:true}).click()
- await expect(page.getByLabel('PayPal payment link')).toHaveValue('https://paypal.me/business')
- await expect(page.getByLabel('Optional price adjustment (%)')).toHaveValue('3')
- expect(saved.default_tax_rate).toBe(5.3)
+ expect(writes[0].default_tax_rate).toBe(5.3)
+ for(const field of ['payment_links','payment_instructions','pricing_adjustment_percent'])expect(writes[0]).not.toHaveProperty(field)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
- await page.getByRole('button',{name:'Payment options',exact:true}).click()
- await expect(page.locator('.settings-option[aria-expanded="true"]')).toHaveCount(0)
+ await page.screenshot({path:`test-results/owner-settings-${width}.png`,fullPage:true})
 })
 
 test('owner settings invites reserve a seat and permissions are editable only through team controls',async({page})=>{
@@ -845,6 +822,7 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await page.route('**/rest/v1/business_settings?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({default_tax_rate:5.3,pricing_adjustment_percent:3,payment_links:[],payment_instructions:''})}))
  await page.route('**/rest/v1/rpc/create_document',r=>{payload=r.request().postDataJSON();return r.fulfill({contentType:'application/json',body:JSON.stringify({id:id(910)})})})
  await page.goto('/?view=invoices');await page.getByRole('button',{name:'+ New invoice'}).click()
+ await page.getByText('Choose from saved customers',{exact:true}).click()
  await page.getByLabel('Customer',{exact:true}).selectOption(CID)
  await page.getByPlaceholder('Description',{exact:true}).fill('Service work');await page.getByPlaceholder('Unit price',{exact:true}).fill('100')
  await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3')
@@ -889,21 +867,24 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  await expect(calendar.getByRole('button',{name:'Today',exact:true})).toHaveCount(0)
  await expect(calendar.getByRole('button',{name:/Open (calendar|schedule)/})).toHaveCount(0)
  await calendar.getByRole('button',{name:'Month',exact:true}).click()
- await expect(calendar.getByLabel('Calendar month')).toHaveValue(day.toFormat('yyyy-MM'))
+ await expect(calendar.getByLabel('Calendar month')).toHaveCount(0)
  await expect(calendar.getByRole('heading',{name:'Monthly calendar'})).toBeVisible()
  await calendar.getByRole('button',{name:new RegExp(day.plus({days:1}).toLocaleString(DateTime.DATE_FULL))}).click()
+ await page.getByRole('button',{name:'Close calendar entry',exact:true}).click()
  await expect(calendar.getByRole('link',{name:/Oak Street repair/})).toBeVisible()
  const before=calls.length
  await calendar.getByRole('button',{name:new RegExp(day.plus({days:2}).toLocaleString(DateTime.DATE_FULL))}).click()
+ await page.getByRole('button',{name:'Close calendar entry',exact:true}).click()
  await expect(calendar.getByRole('link',{name:/HVAC maintenance/})).toBeVisible()
  expect(calls.length).toBe(before)
- await calendar.getByLabel('Calendar month').fill('2028-02')
+ const months=Math.round(DateTime.fromISO('2028-02-01').diff(day.startOf('month'),'months').months)
+ for(let i=0;i<Math.abs(months);i++)await calendar.getByRole('button',{name:months>0?'Next month':'Previous month'}).click()
  await expect(calendar.getByRole('button',{name:/February 29, 2028/})).toBeVisible()
  await expect(calendar.getByText('February 2028',{exact:true})).toBeVisible()
- await calendar.getByRole('button',{name:'Next month'}).click();await expect(calendar.getByLabel('Calendar month')).toHaveValue('2028-03')
+ await calendar.getByRole('button',{name:'Next month'}).click();await expect(calendar.getByText('March 2028',{exact:true})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/interactive-calendar-month-${width}.png`,fullPage:true})
- await calendar.getByRole('button',{name:'Week',exact:true}).click();await expect(calendar.getByLabel('Calendar date')).toBeVisible()
+ await calendar.getByRole('button',{name:'Week',exact:true}).click();await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
 })
 
 async function mockInteractiveFinances(page) {

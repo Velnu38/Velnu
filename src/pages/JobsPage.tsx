@@ -1,3 +1,4 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { localInstant } from '../lib/calendarTime'
 import { DateTime } from 'luxon'
 import RecordListControls, { useRecordList } from '../components/RecordListControls'
@@ -108,7 +109,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const recordList = useRecordList(grouped[group], row => [row.title, row.status, ...(Array.isArray(row.customers) ? row.customers : row.customers ? [row.customers] : []).map(c => [c.first_name,c.last_name,c.company].join(' '))].join(' '))
 
   return (
-    <div className="page-stack">
+    <div className="page-stack"><WorkspaceBack />
       <div className="page-heading split-heading">
         <div><p className="eyebrow">Jobs</p><Heading>Keep every job moving.</Heading></div>
         <div className="work-heading-actions"><button type="button" className="secondary-button compact" disabled={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}>Refresh</button>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New job</button>}</div>

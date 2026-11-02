@@ -1,3 +1,4 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { useState } from "react";
 import IntegrationSettings from "../components/calendar/IntegrationSettings";
 import type { CurrentBusiness } from "../lib/business";
@@ -5,17 +6,15 @@ import { canAccess, isPrimaryOwner } from "../lib/workspaceAccess";
 import BusinessProfileEditor from "../components/BusinessProfileEditor";
 import TeamSettings from "../components/settings/TeamSettings";
 import DocumentSettings from "../components/settings/DocumentSettings";
-import PaymentSettings from "../components/settings/PaymentSettings";
 import SubscriptionSettings from "../components/settings/SubscriptionSettings";
 import SchedulingSettings from "../components/scheduling/SchedulingSettings";
 import "../components/settings/settings.css";
 
-type Section = "company" | "team" | "documents" | "payments" | "calendar" | "scheduling" | "subscription";
+type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription";
 const options: { id: Section; title: string; description: string }[] = [
   { id: "company", title: "Company profile", description: "Business details and services." },
   { id: "team", title: "Team & access", description: "Invite your team and choose their access." },
   { id: "documents", title: "Invoice & estimate setup", description: "Document appearance, branding, and taxes." },
-  { id: "payments", title: "Payment options", description: "Receive customer payments to your business accounts." },
   { id: "calendar", title: "Calendar connections", description: "Google Calendar and Microsoft Outlook." },
   { id: "scheduling", title: "Scheduling & team availability", description: "Working hours, booking notice, travel time, and time off." },
   { id: "subscription", title: "Cancel subscription", description: "View your subscription and manage cancellation." },
@@ -33,14 +32,13 @@ export default function SettingsPage({ business, onSaved }: {
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
     if (id === "team") return <TeamSettings business={business} />;
     if (id === "documents") return <DocumentSettings business={business} onSaved={onSaved} />;
-    if (id === "payments") return <PaymentSettings business={business} />;
     if (id === "calendar") return <IntegrationSettings businessId={business.id} />;
     if (id === "scheduling") return <SchedulingSettings business={business} />;
     return <SubscriptionSettings businessId={business.id} />;
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack"><WorkspaceBack />
       <div className="page-heading">
         <p className="eyebrow">{business.name}</p>
         <h1>Settings</h1>
@@ -72,7 +70,7 @@ export default function SettingsPage({ business, onSaved }: {
           );
         })}
       </div>
-      {!owner && <p className="quiet">Your primary business owner manages team access, document setup, payment options, and the subscription.</p>}
+      {!owner && <p className="quiet">Your primary business owner manages team access, document setup and the subscription.</p>}
     </div>
   );
 }

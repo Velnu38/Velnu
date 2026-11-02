@@ -1,7 +1,7 @@
 name: Guided scheduling workflow
 on:
   push:
-    branches: [feature/guided-scheduling-20261102]
+    branches: [feature/guided-scheduling-20261102, ux/document-calendar-contacts-20261102]
   pull_request:
     branches: [ux/private-testing-20261029]
 permissions:
@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run test:scheduling && npm run test:services && npm run test:calendar && npm run test:records && npm run test:settings && npm run test:deployment && npm run typecheck:calendar && npm run build
       - name: Guided flow and existing critical browser regressions
-        run: npx playwright test tests/e2e/guided-scheduling.spec.mjs tests/e2e/critical-dashboard-schedule.spec.mjs
+        run: npx playwright test tests/e2e/guided-scheduling.spec.mjs tests/e2e/critical-dashboard-schedule.spec.mjs tests/e2e/document-calendar-contacts.spec.mjs
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

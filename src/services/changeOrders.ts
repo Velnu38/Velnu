@@ -26,7 +26,7 @@ export interface ChangeOrderInput {
 export async function listChangeOrders(businessId: string) {
   const { data, error } = await supabase
     .from('change_orders')
-    .select('id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,issue_date,subtotal,tax_amount,total,sent_at,approved_at,declined_at,customer_id,job_id,customers!change_orders_customer_id_fkey(id,first_name,last_name,company),jobs!change_orders_job_id_fkey(id,title,status)')
+    .select('id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,source_invoice_id,estimate_id,issue_date,subtotal,tax_amount,total,sent_at,approved_at,declined_at,customer_id,job_id,customers!change_orders_customer_id_fkey(id,first_name,last_name,company),jobs!change_orders_job_id_fkey(id,title,status)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
 
@@ -65,4 +65,13 @@ export async function updateChangeOrderStatus(changeOrderId: string, status: 'dr
     .single()
   if (error) throw error
   return data
+}
+
+export type DocumentChangeSource={business_id:string;document_id:string;kind:'invoice'|'estimate';number:string;customer_id:string;customer_name:string;job_id:string|null;estimate_id:string|null;work_status:string;can_change:boolean;total:number;address:string|null;items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>}
+export async function getDocumentChangeContext(kind:'invoice'|'estimate',id:string):Promise<DocumentChangeSource>{
+ const {data,error}=await supabase.rpc('get_document_change_context',{p_kind:kind,p_document:id});if(error)throw error;return data
+}
+export async function createDocumentChangeOrder(kind:'invoice'|'estimate',id:string,request:string,input:{title:string;description:string;reason:string;schedule_impact_days:number;schedule_note:string;items:ChangeOrderLineInput[]}){
+ validateDocumentInput({customer_id:id,items:input.items})
+ const {data,error}=await supabase.rpc('create_document_change_order',{p_kind:kind,p_document:id,p_request:request,p_input:input});if(error)throw error;return data
 }

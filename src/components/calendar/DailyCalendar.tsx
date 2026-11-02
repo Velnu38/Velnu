@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy,Suspense } from 'react'
 import { DateTime } from 'luxon'
 import type { CurrentBusiness } from '../../lib/business'
 import { calendarRange, workOnDay, type CalendarView } from '../../lib/calendarView'
@@ -6,6 +7,7 @@ import { loadCalendarRange } from '../../services/calendar'
 import { completeWorkReminder } from '../../services/reminders'
 import { getScheduleTeam, type Worker } from '../../services/schedulingWorkflow'
 
+const CalendarEntryDialog=lazy(()=>import('./CalendarEntryDialog'))
 type Agenda = Awaited<ReturnType<typeof loadCalendarRange>>
 export default function DailyCalendar({ business, onReminders, refreshVersion = 0 }: {
   business: CurrentBusiness; onReminders: () => void; refreshVersion?: number
@@ -23,6 +25,7 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
   const [showAllReminders, setShowAllReminders] = useState(false)
   const [team,setTeam]=useState<Worker[]>([]),[worker,setWorker]=useState('all')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(value=>{if(!active)return;setTeam(value);if(business.role==='technician')setWorker(value.find(item=>item.is_you)?.id || 'all')}).catch(()=>{});return()=>{active=false}},[business.id,business.role])
+  const [entry,setEntry]=useState<{day:string;id?:string}|null>(null)
   const previousToday = useRef(today)
   const selected = DateTime.fromISO(day, { zone })
   const range = calendarRange(day, zone, view)
@@ -68,18 +71,17 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
   return <section className="dashboard-calendar calendar-no-print" aria-label="Work calendar">
     <div className="calendar-heading">
       <div><p className="eyebrow">Your schedule</p><h2>{view === 'week' ? 'Weekly schedule' : 'Monthly calendar'}</h2></div>
-      <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div><button className="calendar-add" onClick={onReminders}>+ Reminder</button></div>
+      <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div><button className="calendar-add" onClick={onReminders}>+ Reminder</button>{business.role!=='viewer'&&<button type="button" className="calendar-add" onClick={()=>setEntry({day})}>+ Add entry</button>}</div>
     </div>
     {team.length>0&&<label className="worker-select">Show schedule for<select value={worker} onChange={e=>setWorker(e.target.value)}><option value="all">Everyone</option>{team.map(item=><option value={item.id} key={item.id}>{item.is_you?'My schedule · ':''}{item.label}</option>)}</select></label>}
     <div className="calendar-period-nav">
       <div className="calendar-period-title"><button className="calendar-arrow" aria-label={`Previous ${view}`} onClick={() => setDay(selected.minus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>‹</button><strong aria-live="polite">{periodLabel}</strong><button className="calendar-arrow" aria-label={`Next ${view}`} onClick={() => setDay(selected.plus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>›</button></div>
-      <label className="calendar-date-picker">{view === 'month' ? 'Month' : 'Jump to date'}<input type={view === 'month' ? 'month' : 'date'} aria-label={view === 'month' ? 'Calendar month' : 'Calendar date'} value={view === 'month' ? day.slice(0,7) : day} onChange={event => { const next = view === 'month' ? `${event.target.value}-01` : event.target.value; if (DateTime.fromISO(next, {zone}).isValid) setDay(next) }} /></label>
     </div>
     <div className={`calendar-grid ${view}`} role="group" aria-label={view === 'month' ? 'Choose a day in the month' : 'Choose a day in the week'}>
       {view === 'month' && ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(label => <span className="calendar-weekday" key={label}>{label}</span>)}
       {range.days.map(date => {
         const dateKey = date.toISODate()!, items = workByDay.get(dateKey) ?? [], isSelected = day === dateKey
-        return <button key={dateKey} type="button" className={`calendar-day${date.month !== selected.month ? ' outside-month' : ''}`} aria-label={`${date.toLocaleString(DateTime.DATE_FULL)}${agenda ? `, ${items.length} scheduled ${items.length === 1 ? 'item' : 'items'}` : ''}`} aria-current={dateKey === today ? 'date' : undefined} aria-pressed={isSelected} onClick={() => setDay(dateKey)}>
+        return <button key={dateKey} type="button" className={`calendar-day${date.month !== selected.month ? ' outside-month' : ''}`} aria-label={`${date.toLocaleString(DateTime.DATE_FULL)}${agenda ? `, ${items.length} scheduled ${items.length === 1 ? 'item' : 'items'}` : ''}`} aria-current={dateKey === today ? 'date' : undefined} aria-pressed={isSelected} onClick={() => {setDay(dateKey);if(business.role!=='viewer')setEntry({day:dateKey})}}>
           {view === 'week' && <span className="calendar-weekday">{date.toFormat('ccc')}</span>}<strong>{date.day}</strong>
           <span className="calendar-day-count" aria-hidden="true">{items.length ? <><i />{items.length}<span className="calendar-count-word"> scheduled</span></> : <i className="calendar-empty-dot" />}</span>
         </button>
@@ -92,7 +94,7 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
       <div className="calendar-agenda-columns">
         <div><div className="calendar-list-heading"><h3>Scheduled work</h3><span>{work.length}</span></div>
           {!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{(showAllWork ? work : work.slice(0,3)).map(item => <li key={item.source_key}>
-            <a className={`calendar-event ${item.document_kind}`} href={`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
+            <a onClick={event=>{if(item.source_key.startsWith('appointment:')&&!item.job_id&&item.document_kind==='work'){event.preventDefault();setEntry({day,id:item.source_key.slice(12)})}}} className={`calendar-event ${item.document_kind}`} href={`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
               <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small>{item.assigned_user_ids?.length?<small>Assigned: {item.assigned_user_ids.map(id=>team.find(person=>person.id===id)?.label || 'Team member').join(', ')}</small>:null}</span><span aria-hidden="true">↗</span>
             </a>
           </li>)}</ul>}
@@ -104,5 +106,6 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
         </div>
       </div>
     </div>}
+    {entry&&<Suspense fallback={<p role="status">Opening calendar entry…</p>}><CalendarEntryDialog business={business} day={entry.day} entryId={entry.id} onClose={()=>setEntry(null)} onSaved={()=>setVersion(v=>v+1)}/></Suspense>}
   </section>
 }

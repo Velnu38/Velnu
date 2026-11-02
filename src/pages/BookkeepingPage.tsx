@@ -1,3 +1,4 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import {
@@ -185,12 +186,12 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     } finally { setBusy(false) }
   }
 
-  if (!canSee) return <div className="page-stack">
+  if (!canSee) return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading"><p className="eyebrow">Bookkeeping</p><h1>Company financial workbook.</h1></div>
     <p className="form-message">The Bookkeeping workbook is available to business owners, administrators, and office staff. Ask your business owner to update your access role.</p>
   </div>
 
-  return <div className="page-stack bookkeeping-page">
+  return <div className="page-stack bookkeeping-page"><WorkspaceBack />
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Bookkeeping · Money in and out</p><h1>Know what you earned. Know what you spent.</h1>
         <p className="quiet">Payments on Finviant Office invoices appear automatically. Add other expenses or income manually, or optionally connect QuickBooks Online.</p></div>

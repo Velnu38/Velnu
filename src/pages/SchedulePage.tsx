@@ -1,3 +1,4 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
@@ -109,7 +110,7 @@ export default function SchedulePage({ business, embedded = false }: { business:
     catch (err) { if (mounted.current) setError(readableError(err, 'Unable to update schedule')) }
   }
 
-  return <div className="page-stack">
+  return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><Heading>Know where you need to be next.</Heading></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Schedule work</button>}</div>
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
     <section className="schedule-card">

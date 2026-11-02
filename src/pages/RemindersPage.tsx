@@ -1,3 +1,4 @@
+import WorkspaceBack from '../components/WorkspaceBack'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { readableError } from '../lib/errors'
@@ -106,7 +107,7 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
     }
   }
 
-  return <div className="page-stack">
+  return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Reminders</p><h2>Keep the next step in sight.</h2></div><div className="work-heading-actions">
       <button type="button" className="secondary-button compact" disabled={loading || busy || !!completing} onClick={() => void refresh()}>Refresh</button>
       {canWrite(business.role) && <button type="button" className="primary-button compact" disabled={showForm} onClick={() => { setShowForm(true); setSuccess('') }}>+ New reminder</button>}

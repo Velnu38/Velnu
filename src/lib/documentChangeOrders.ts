@@ -7,10 +7,11 @@ export type DocumentChangeOrderContext = {
   estimateId?: string | null
 }
 
-export function offersDocumentChangeOrders(kind: 'invoice' | 'estimate', status: string) {
+export function offersDocumentChangeOrders(kind: 'invoice' | 'estimate', status: string, workStatus?: string) {
+  if(workStatus&&['completed','canceled'].includes(workStatus))return false
   return kind === 'invoice'
-    ? ['sent', 'viewed', 'partial', 'paid', 'overdue'].includes(status)
-    : ['sent', 'accepted', 'converted'].includes(status)
+    ? ['draft', 'sent', 'viewed', 'partial', 'paid', 'overdue'].includes(status)
+    : ['draft', 'sent', 'accepted', 'converted'].includes(status)
 }
 
 export function matchesChangeOrderContext(row: { customer_id: string; job_id?: string | null }, context?: DocumentChangeOrderContext) {

@@ -1,3 +1,4 @@
+import DocumentChangeOrderButton from './DocumentChangeOrderButton'
 import { safePaymentLinks, paymentProviders } from '../lib/paymentLinks'
 import { canAccess } from '../lib/workspaceAccess'
 import './settings/settings.css'
@@ -73,7 +74,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
     <div className="invoice-action-bar">
-      {offersDocumentChangeOrders('invoice', invoice.status)&&<button className="secondary-button" disabled={busy} onClick={()=>setShowChangeOrders(true)}>Change orders</button>}
+      {offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={refresh}/>}
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
       {canManageFinances(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
