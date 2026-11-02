@@ -67,7 +67,7 @@ export async function updateChangeOrderStatus(changeOrderId: string, status: 'dr
   return data
 }
 
-export type DocumentChangeSource={business_id:string;document_id:string;kind:'invoice'|'estimate';number:string;customer_id:string;customer_name:string;job_id:string|null;estimate_id:string|null;work_status:string;can_change:boolean;total:number;address:string|null;items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>}
+export type DocumentChangeSource={business_id:string;document_id:string;kind:'invoice'|'estimate';number:string;customer_id:string;customer_name:string;customer_email?:string|null;customer_phone?:string|null;job_id:string|null;estimate_id:string|null;work_status:string;can_change:boolean;total:number;address:string|null;items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>}
 export async function getDocumentChangeContext(kind:'invoice'|'estimate',id:string):Promise<DocumentChangeSource>{
  const {data,error}=await supabase.rpc('get_document_change_context',{p_kind:kind,p_document:id});if(error)throw error;return data
 }

@@ -11,3 +11,5 @@
 .contact-import-list>label{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border,#dce4e9)}
 .contact-import-list span{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}.contact-import-list small{color:var(--muted,#617581)}
 @media(max-width:600px){.customer-entry{padding:12px}.document-payment-options .form-grid{grid-template-columns:1fr}.guided-dialog .modal-actions{flex-wrap:wrap}}
+
+.document-change-context{overflow-wrap:anywhere}

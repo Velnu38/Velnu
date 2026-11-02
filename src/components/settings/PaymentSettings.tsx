@@ -1,3 +1,4 @@
+import './settings.css'
 import { useEffect, useState, type FormEvent } from "react";
 import type { CurrentBusiness } from "../../lib/business";
 import {
@@ -8,7 +9,7 @@ import {
 } from "../../services/settings";
 import { paymentProviders, validPaymentLink } from "../../lib/paymentLinks";
 
-export default function PaymentSettings({ business }: { business: CurrentBusiness }) {
+export default function PaymentSettings({ business, onSaved, submitLabel="Save payment options" }: { business: CurrentBusiness; onSaved?:()=>void; submitLabel?:string }) {
   const [value, setValue] = useState<Defaults>(emptyDocumentSettings);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -35,6 +36,7 @@ export default function PaymentSettings({ business }: { business: CurrentBusines
       // Save payment fields only; document tax defaults are managed separately.
       await savePaymentSettings(business.id, value);
       setNotice("Payment options saved. New invoices use these options; issued invoices keep their saved details.");
+      onSaved?.();
     } catch (e) {
       setError((e as Error).message || "Unable to save payment options.");
     } finally { setBusy(false); }
@@ -147,7 +149,7 @@ export default function PaymentSettings({ business }: { business: CurrentBusines
       </section>
       {error && <p className="form-message error-text" role="alert">{error}</p>}
       {notice && <p className="form-message" role="status">{notice}</p>}
-      <button className="primary-button" disabled={busy}>{busy ? "Saving…" : "Save payment options"}</button>
+      <button className="primary-button" disabled={busy}>{busy ? "Saving…" : submitLabel}</button>
     </form>
   );
 }

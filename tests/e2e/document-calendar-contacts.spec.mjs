@@ -83,7 +83,7 @@ for(const kind of ['invoice','estimate'])test(`${kind} change order automaticall
  expect(state.changes[0].p_kind).toBe(kind);expect(state.changes[0].p_document).toBe(E);expect(state.changes[0].p_input.items[0].description).toBe('Additional work only');expect(state.changes[0].p_input).not.toHaveProperty('customer_id')
 })
 test('completed work has no new change-order action',async({page})=>{
- await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.locator('.invoice-open').first().click();await expect(page.getByRole('button',{name:'Change order',exact:true})).toHaveCount(0)
+ await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.locator('.invoice-open').first().click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Change order',exact:true})).toHaveCount(0)
 })
 for(const width of [1440,390])test(`click a calendar date and save a manual event at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'});await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)

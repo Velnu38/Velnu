@@ -29,6 +29,7 @@ begin
  else select jsonb_agg(jsonb_build_object('description',description,'quantity',quantity,'unit_price',unit_price,'tax_rate',tax_rate) order by sort_order) into items from public.estimate_items where estimate_id=document and business_id=b;end if;
  return jsonb_build_object('business_id',b,'document_id',document,'kind',kind,'number',coalesce(d->>'invoice_number',d->>'estimate_number'),'customer_id',customer,
  'customer_name',(select coalesce(nullif(btrim(concat_ws(' ',first_name,last_name)),''),company,'Customer') from public.customers where id=customer and business_id=b),
+ 'customer_email',(select email from public.customers where id=customer and business_id=b),'customer_phone',(select phone from public.customers where id=customer and business_id=b),
  'job_id',job,'estimate_id',estimate,'work_status',coalesce(job_status,'unscheduled'),'can_change',eligible,'total',d->'total','items',coalesce(items,'[]'::jsonb),
  'address',(select concat_ws(', ',address_line1,address_line2,city,state,postal_code) from public.properties where id=site and business_id=b));
 end $$;

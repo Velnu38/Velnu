@@ -218,8 +218,7 @@ const showForm = async page => {
 }
 const completeForm = async (page, start = localDatetime(), end = localDatetime(1, 11)) => {
   await showForm(page)
-  await page.getByText('Choose from saved customers',{exact:true}).click()
- await page.getByLabel('Customer',{exact:true}).selectOption(CID)
+ await page.locator('.modal form select').first().selectOption(CID)
   await page.getByLabel('Job title', { exact: true }).fill('Replace faucet')
   await page.getByLabel('Starts').fill(start)
   if (end) await page.getByLabel('Ends').fill(end)
@@ -413,8 +412,7 @@ test('15 missing customer blocks job creation', async ({ page }) => {
 test('16 blank title blocks job creation', async ({ page }) => {
   const state = await openSchedule(page)
   await showForm(page)
-  await page.getByText('Choose from saved customers',{exact:true}).click()
- await page.getByLabel('Customer',{exact:true}).selectOption(CID)
+ await page.locator('.modal form select').first().selectOption(CID)
   await page.getByLabel('Starts').fill(localDatetime())
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
@@ -424,8 +422,7 @@ test('16 blank title blocks job creation', async ({ page }) => {
 test('17 missing start time blocks job creation', async ({ page }) => {
   const state = await openSchedule(page)
   await showForm(page)
-  await page.getByText('Choose from saved customers',{exact:true}).click()
- await page.getByLabel('Customer',{exact:true}).selectOption(CID)
+ await page.locator('.modal form select').first().selectOption(CID)
   await page.getByLabel('Job title', { exact: true }).fill('No time')
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)

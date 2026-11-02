@@ -2,7 +2,7 @@ import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
 import { lazy, Suspense, useState, useEffect, useRef } from 'react'
 import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
 import { supabase } from '../lib/supabase'
-import { WorkspaceNavigation } from './WorkspaceBack'
+import WorkspaceBack, { WorkspaceNavigation } from './WorkspaceBack'
 import WorkspaceErrorBoundary from './WorkspaceErrorBoundary'
 
 
@@ -97,8 +97,8 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   function page() {
-    if (accessRemoved) return <p role="alert">Your business access could not be verified. Contact the primary owner or reload after reconnecting.</p>
-    if (!canOpenView(company, view)) return <p role="alert">This area is not included in your access. Contact your primary business owner.</p>
+    if (accessRemoved) return <><WorkspaceBack/><p role="alert">Your business access could not be verified. Contact the primary owner or reload after reconnecting.</p></>
+    if (!canOpenView(company, view)) return <><WorkspaceBack/><p role="alert">This area is not included in your access. Contact your primary business owner.</p></>
     if (view === 'settings') return <SettingsPage business={company} onSaved={setCompany} />
     if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} onReminders={() => navigate('reminders')} />
     if (view === 'customers') return <CustomersPage business={company} />
