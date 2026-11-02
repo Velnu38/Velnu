@@ -1,3 +1,4 @@
+import { collectBusinessRecords } from '../lib/businessRecords'
 import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
@@ -10,19 +11,18 @@ export interface InvoiceLineInput {
 }
 
 export async function listInvoices(businessId: string) {
-  const { data, error } = await supabase
+  const data = await collectBusinessRecords((from, to) => supabase
     .from('invoices')
-    .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,customer_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company)')
+    .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,customer_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company)', { count: 'exact' })
     .eq('business_id', businessId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
+    .order('id').range(from, to))
+  data.sort((a, b) => String(b.issue_date).localeCompare(String(a.issue_date)) || b.id.localeCompare(a.id))
   return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
 }
 
 export async function createInvoice(
   businessId: string,
-  input: { customer_id: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
+  input: { customer_id: string; issue_date?: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
 ) {
   validateDocumentInput(input)
 
@@ -34,6 +34,7 @@ export async function createInvoice(
     request_id: input.request_id ?? crypto.randomUUID(),
     payload: {
       customer_id: input.customer_id,
+      ...(input.issue_date ? { issue_date: input.issue_date } : {}),
       due_date: input.due_date || null,
       notes: input.notes?.trim() || null,
       customer_message: input.customer_message?.trim() || null,

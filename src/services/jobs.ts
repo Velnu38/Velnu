@@ -1,3 +1,4 @@
+import { collectBusinessRecords } from '../lib/businessRecords'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 
@@ -14,14 +15,12 @@ export interface JobInput {
 }
 
 export async function listJobs(businessId: string) {
-  const { data, error } = await supabase
+  const data = await collectBusinessRecords((from, to) => supabase
     .from('jobs')
-    .select('id, title, description, status, scheduled_start, scheduled_end, customer_id, property_id, customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)')
+    .select('id, title, description, status, scheduled_start, scheduled_end, customer_id, property_id, customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)', { count: 'exact' })
     .eq('business_id', businessId)
-    .order('scheduled_start', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
+    .order('id').range(from, to))
+  data.sort((a, b) => String(a.scheduled_start || '9999').localeCompare(String(b.scheduled_start || '9999')) || a.id.localeCompare(b.id))
   return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers), properties: asList(row.properties) }))
 }
 

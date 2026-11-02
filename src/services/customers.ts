@@ -1,3 +1,4 @@
+import { collectBusinessRecords } from '../lib/businessRecords'
 import { supabase } from '../lib/supabase'
 
 export interface CustomerInput {
@@ -11,15 +12,13 @@ export interface CustomerInput {
 }
 
 export async function listCustomers(businessId: string) {
-  const { data, error } = await supabase
+  const data = await collectBusinessRecords((from, to) => supabase
     .from('customers')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('business_id', businessId)
     .eq('archived', false)
-    .order('last_name', { ascending: true })
-    .order('first_name', { ascending: true })
-
-  if (error) throw error
+    .order('id').range(from, to))
+  data.sort((a, b) => String(a.last_name || a.company || '').localeCompare(String(b.last_name || b.company || '')) || String(a.first_name || '').localeCompare(String(b.first_name || '')))
   return data
 }
 
