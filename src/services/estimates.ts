@@ -1,3 +1,4 @@
+import { collectBusinessRecords } from '../lib/businessRecords'
 import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
@@ -10,19 +11,18 @@ export interface EstimateLineInput {
 }
 
 export async function listEstimates(businessId: string) {
-  const { data, error } = await supabase
+  const data = await collectBusinessRecords((from, to) => supabase
     .from('estimates')
-    .select('id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,job_id,notes,customer_message,issuer_snapshot,customers!estimates_customer_id_fkey(id,first_name,last_name,company,email,phone)')
+    .select('id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,job_id,notes,customer_message,issuer_snapshot,customers!estimates_customer_id_fkey(id,first_name,last_name,company,email,phone)', { count: 'exact' })
     .eq('business_id', businessId)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
+    .order('id').range(from, to))
+  data.sort((a, b) => String(b.issue_date).localeCompare(String(a.issue_date)) || b.id.localeCompare(a.id))
   return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
 }
 
 export async function createEstimate(
   businessId: string,
-  input: { customer_id: string; expires_on?: string; notes?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
+  input: { customer_id: string; issue_date?: string; expires_on?: string; notes?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
 ) {
   validateDocumentInput(input)
 
@@ -34,6 +34,7 @@ export async function createEstimate(
     request_id: input.request_id ?? crypto.randomUUID(),
     payload: {
       customer_id: input.customer_id,
+      ...(input.issue_date ? { issue_date: input.issue_date } : {}),
       expires_on: input.expires_on || null,
       notes: input.notes?.trim() || null,
       customer_message: input.customer_message?.trim() || null,

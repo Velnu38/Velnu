@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+import RecordListControls, { useRecordList } from '../components/RecordListControls'
 import { getDocumentSettings } from '../services/settings'
 import { RecordResourcesDialog } from '../components/RecordResources'
 import DocumentSchedule from '../components/calendar/DocumentSchedule'
@@ -40,6 +42,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [notice, setNotice] = useState('')
   const [customerId, setCustomerId] = useState('')
   const [expiresOn, setExpiresOn] = useState('')
+  const [issueDate, setIssueDate] = useState(() => DateTime.now().setZone(business.timezone || 'UTC').toISODate()!)
   const [notes, setNotes] = useState('')
   const [customerTerms, setCustomerTerms] = useState('')
   const [defaultTax, setDefaultTax] = useState(0)
@@ -75,16 +78,17 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function resetForm() {
-    setCustomerId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
+    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setNotice('')
     try {
-      const signature = JSON.stringify({ customerId, expiresOn, notes, customerTerms, lines })
+      const signature = JSON.stringify({ issueDate, customerId, expiresOn, notes, customerTerms, lines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       await createEstimate(business.id, { request_id: retryRef.current.requestId,
         customer_id: customerId,
+        issue_date: issueDate,
         expires_on: expiresOn || undefined,
         notes,
         customer_message: customerTerms,
@@ -167,6 +171,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     } finally { setPreviewBusy(false) }
   }
 
+  const recordList = useRecordList(estimates, row => [row.estimate_number, customerName(row.customers?.[0]), row.issue_date, row.status].join(' '))
+
   if (showChangeOrders && previewTarget && offersDocumentChangeOrders('estimate', previewTarget.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType: 'estimate', documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id }} onBack={() => setShowChangeOrders(false)} /></Suspense>
 
   return <div className="page-stack">
@@ -174,8 +180,9 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured. You can preview and print estimates now.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
+    <RecordListControls label="estimates" list={recordList} />
     <section className="list-card">
-      {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Create an estimate here or tell Finviant Office what you want to quote.</p></div> : estimates.map((estimate) => {
+      {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Create an estimate here or tell Finviant Office what you want to quote.</p></div> : recordList.visible.map((estimate) => {
         const customer = estimate.customers?.[0]
         return <article className="document-row" key={estimate.id}>
           <button type="button" className="row-main estimate-document-open" disabled={previewBusy} onClick={() => openPreview(estimate)}><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span></button>
@@ -199,7 +206,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
       <div className="modal-head"><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
       <form onSubmit={submit} className="estimate-form">
-        <div className="form-grid"><label className="full">Customer<select aria-label="Customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Expires on<input type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <div className="form-grid"><label className="full">Customer<select aria-label="Customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{customerName(customer)}</option>)}</select></label><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Expires on<input type="date" min={issueDate} value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 14 days. A deposit is due before work begins." /></label></div>
         <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>

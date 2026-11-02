@@ -65,7 +65,7 @@ async function mockWorkspace(page, options = {}) {
     let body
     try { body = req.postDataJSON() } catch { body = null }
     state.requests.push({ path, method, url: url.toString(), body })
-    const reply = (value, status = 200, total = 0) => route.fulfill({
+    const reply = (value, status = 200, total = Array.isArray(value) ? value.length : 0) => route.fulfill({
       status, contentType: 'application/json',
       headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': total ? `0-${Math.min(10, total) - 1}/${total}` : '0-0/0' },
       body: JSON.stringify(value),
@@ -120,7 +120,7 @@ async function mockWorkspace(page, options = {}) {
         const active = state.jobs.filter(job => ['lead','scheduled','in_progress'].includes(job.status))
         return reply(active.slice(0,Number(url.searchParams.get('limit') || active.length)), 200, active.length)
       }
-      return reply(state.jobs)
+      return reply(state.jobs.slice(Number(url.searchParams.get('offset')||0),Number(url.searchParams.get('offset')||0)+Number(url.searchParams.get('limit')||state.jobs.length)),200,state.jobs.length)
     }
     if (path.endsWith('/appointments')) {
       if (method === 'POST') {
@@ -184,11 +184,11 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/invoices')) {
       if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.invoices.find(i => i.id === url.searchParams.get('id')?.replace('eq.', '')))
       const matches = url.searchParams.has('due_date') ? state.invoices.filter(i => i.due_date < url.searchParams.get('due_date').replace('lt.', '') && Number(i.balance_due) > 0 && !['draft','void'].includes(i.status)) : state.invoices
-      return reply(matches.slice(0, 10), 200, matches.length)
+      return reply(matches.slice(Number(url.searchParams.get('offset') || 0), Number(url.searchParams.get('offset') || 0) + Number(url.searchParams.get('limit') || 10)), 200, matches.length)
     }
     if (path.endsWith('/estimates')) {
       const matches = url.searchParams.has('status') ? state.estimates.filter(e => e.status === url.searchParams.get('status').replace('eq.', '')) : state.estimates
-      return reply(matches.slice(0, 10), 200, matches.length)
+      return reply(matches.slice(Number(url.searchParams.get('offset') || 0), Number(url.searchParams.get('offset') || 0) + Number(url.searchParams.get('limit') || 10)), 200, matches.length)
     }
     if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10), 200, state.changeOrders.length)
     if (path.endsWith('/messages')) return reply([])
@@ -976,4 +976,19 @@ test('interactive dashboard navigation does not treat an invoice link as a job l
  await expect(page.getByRole('heading',{name:'Keep every job moving.'})).toBeVisible()
  await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('volume lists reach historical invoices beyond 1000 and keep 25 rows per page',async({page})=>{
+ const invoices=Array.from({length:1100},(_,i)=>({id:id(10000+i),invoice_number:`QA-${String(i).padStart(4,'0')}`,status:'draft',issue_date:'2026-01-01',due_date:'2026-01-31',subtotal:100,tax_amount:0,total:100,amount_paid:0,balance_due:100,customer_id:CID,customers:customer}))
+ await mockWorkspace(page,{invoices})
+ await page.goto('/?view=invoices')
+ await expect(page.getByText('1100 records · Page 1 of 44')).toBeVisible()
+ await expect(page.locator('.invoice-list-row')).toHaveCount(25)
+ await page.getByRole('searchbox',{name:'Search invoices'}).fill('QA-0000')
+ await expect(page.getByText('1 records · Page 1 of 1')).toBeVisible()
+ await expect(page.getByRole('button',{name:/QA-0000/})).toBeVisible()
+ await page.getByRole('button',{name:'+ New invoice'}).click()
+ await page.getByLabel('Issue date',{exact:true}).fill('2026-01-01')
+ await page.getByLabel('Due date',{exact:true}).fill('2026-01-31')
+ await expect(page.getByLabel('Issue date',{exact:true})).toHaveValue('2026-01-01')
 })

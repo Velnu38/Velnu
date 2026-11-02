@@ -1,28 +1,25 @@
+import { collectBusinessRecords } from '../lib/businessRecords'
 import { isRecord, validDecimal } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 
 export async function listPayments(businessId: string) {
-  const { data, error } = await supabase
+  const data = await collectBusinessRecords((from, to) => supabase
     .from('payments')
-    .select('id,amount,method,status,paid_at,notes,invoice_id,invoices!payments_invoice_id_fkey(invoice_number,total,balance_due,customers!invoices_customer_id_fkey(id,first_name,last_name,company))')
+    .select('id,amount,method,status,paid_at,notes,invoice_id,invoices!payments_invoice_id_fkey(invoice_number,total,balance_due,customers!invoices_customer_id_fkey(id,first_name,last_name,company))', { count: 'exact' })
     .eq('business_id', businessId)
-    .order('paid_at', { ascending: false })
-
-  if (error) throw error
+    .order('id').range(from, to))
   return (data ?? []).map((row: any) => ({ ...row, invoices: asList(row.invoices).map((invoice: any) => ({ ...invoice, customers: asList(invoice.customers) })) }))
 }
 
 export async function listOpenInvoices(businessId: string) {
-  const { data, error } = await supabase
+  const data = await collectBusinessRecords((from, to) => supabase
     .from('invoices')
-    .select('id,invoice_number,total,amount_paid,balance_due,customers!invoices_customer_id_fkey(id,first_name,last_name,company)')
+    .select('id,invoice_number,total,amount_paid,balance_due,customers!invoices_customer_id_fkey(id,first_name,last_name,company)', { count: 'exact' })
     .eq('business_id', businessId)
     .gt('balance_due', 0)
     .not('status', 'in', '(draft,void)')
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
+    .order('id').range(from, to))
   return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) }))
 }
 

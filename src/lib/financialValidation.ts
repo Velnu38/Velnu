@@ -29,9 +29,11 @@ export function validDecimal(value: unknown, minimum: number, maximum: number): 
 export function validateDocumentInput(input: unknown): asserts input is Record<string, unknown> & { items: Array<{ description: string; quantity: number; unit_price: number; tax_rate?: number }> } {
   if (!isRecord(input) || typeof input.customer_id !== 'string' || !input.customer_id.trim()) throw new Error('Choose a customer')
   if (!Array.isArray(input.items) || input.items.length < 1 || input.items.length > 50) throw new Error('Enter 1 to 50 line items')
-  for (const field of ['due_date', 'expires_on']) {
+  for (const field of ['issue_date', 'due_date', 'expires_on']) {
     if (input[field] !== undefined && input[field] !== null && input[field] !== '' && !validCalendarDate(input[field])) throw new Error('Choose a valid document date')
   }
+  const ending = input.due_date || input.expires_on
+  if (input.issue_date && ending && String(ending) < String(input.issue_date)) throw new Error('Due or expiration date cannot precede the issue date')
   for (const field of ['notes', 'customer_message', 'description', 'reason', 'schedule_note']) {
     const value = input[field]
     if (value !== undefined && value !== null && (typeof value !== 'string' || value.length > 4000)) throw new Error('Document text must be at most 4,000 characters')
