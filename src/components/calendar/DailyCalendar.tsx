@@ -23,6 +23,8 @@ export default function DailyCalendar({
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState<string | null>(null);
+  const [showAllWork, setShowAllWork] = useState(false);
+  const [showAllReminders, setShowAllReminders] = useState(false);
   const previousToday = useRef(today);
   useEffect(() => {
     const refresh = () => {
@@ -67,6 +69,7 @@ export default function DailyCalendar({
       active = false;
     };
   }, [business.id, day, zone, version]);
+  useEffect(() => { setShowAllWork(false); setShowAllReminders(false); }, [day]);
   const selected = DateTime.fromISO(day, { zone }),
     week = selected.startOf("week");
   async function complete(id: string) {
@@ -94,7 +97,7 @@ export default function DailyCalendar({
               : selected.toLocaleString({ month: "long", day: "numeric" })}
           </h2>
           <p className="quiet">
-            Scheduled work and pending reminders · {zone.replaceAll("_", " ")}
+            Work and reminders · <span title={zone}>{DateTime.now().setZone(zone).offsetNameShort}</span>
           </p>
         </div>
         <div className="tw:flex tw:flex-wrap tw:gap-2">
@@ -190,7 +193,7 @@ export default function DailyCalendar({
               <p className="quiet">No work scheduled for this day.</p>
             ) : (
               <ul className="tw:m-0 tw:list-none tw:p-0">
-                {agenda.work.map((work) => (
+                {(showAllWork ? agenda.work : agenda.work.slice(0, 3)).map((work) => (
                   <li
                     key={work.source_key}
                     className="tw:border-b tw:border-slate-100 tw:py-3"
@@ -207,13 +210,14 @@ export default function DailyCalendar({
                         .toLocaleString(DateTime.TIME_SIMPLE)}
                       {work.ends_at
                         ? ` – ${DateTime.fromISO(work.ends_at).setZone(zone).toLocaleString(DateTime.TIME_SIMPLE)}`
-                        : " · Add an end time to sync"}{" "}
+                        : ""}{" "}
                       · {work.status.replaceAll("_", " ")}
                     </p>
                   </li>
                 ))}
               </ul>
             )}
+            {agenda.work.length > 3 && <button type="button" className="text-button tw:mt-3 tw:text-sm" aria-expanded={showAllWork} onClick={() => setShowAllWork(value => !value)}>{showAllWork ? 'Show fewer scheduled items' : `Show all ${agenda.work.length} scheduled items`}</button>}
           </div>
           <div>
             <h3>
@@ -223,7 +227,7 @@ export default function DailyCalendar({
               <p className="quiet">No pending reminders due by this day.</p>
             ) : (
               <ul className="tw:m-0 tw:list-none tw:p-0">
-                {agenda.reminders.map((reminder) => {
+                {(showAllReminders ? agenda.reminders : agenda.reminders.slice(0, 3)).map((reminder) => {
                   const due = DateTime.fromISO(reminder.due_at).setZone(zone),
                     overdue = due < DateTime.now().setZone(zone);
                   return (
@@ -257,6 +261,7 @@ export default function DailyCalendar({
                 })}
               </ul>
             )}
+            {agenda.reminders.length > 3 && <button type="button" className="text-button tw:mt-3 tw:text-sm" aria-expanded={showAllReminders} onClick={() => setShowAllReminders(value => !value)}>{showAllReminders ? 'Show fewer reminders' : `Show all ${agenda.reminders.length} reminders`}</button>}
           </div>
         </div>
       )}

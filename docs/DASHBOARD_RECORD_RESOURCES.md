@@ -1,6 +1,14 @@
 # Dashboard, job photos and expenses
 
-The dashboard leads with the daily calendar beneath the business-name heading. Its three work tiles are Estimates, Invoices and Jobs. Jobs opens the current/upcoming/history list directly. Schedule and reminders remain accessible from the daily calendar, with no duplicated tabs or reminder section in the Jobs tile.
+The dashboard leads with the daily calendar beneath the business-name heading. Its work area combines Estimates and Invoices in one billing card, with a separate Jobs card. Jobs opens the current/upcoming/history list directly. Schedule and reminders remain accessible from the daily calendar, with no duplicated tabs or reminder section in the Jobs tile.
+
+## Compact dashboard
+
+The combined **Estimates & invoices** card uses customer rows with document type, number, status and an explicitly labeled amount. **Needs attention** previews at most five overdue invoices and pending approvals; selecting the Overdue or Awaiting approval counter filters that list. Both categories stay visible in the default preview when both exist. Counters retain exact full-dataset totals. **Recent** shows the latest five documents across estimates and invoices, including drafts and paid invoices. Invoice totals are never added to estimate totals. Each document opens its existing detail/preview route.
+
+Jobs shows the exact active count and three recently updated active jobs, plus a direct Open jobs action. The daily calendar starts with three scheduled entries and three reminders, with independent Show all controls. Financial posting details are collapsed until requested; selecting a chart month expands its postings. The duplicate assistant introduction card is removed; entitled users retain the existing assistant control.
+
+Queries remain tenant filtered and bounded. The dashboard does not change document states, customer billing amounts, permissions or records.
 
 ## Using photos and expenses
 

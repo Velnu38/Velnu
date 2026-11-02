@@ -1,3 +1,4 @@
+import BillingHub, { DashboardJobs } from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
@@ -22,6 +23,7 @@ function FinancialPerformance({ business, onOpenWorkbook }: { business: CurrentB
   const [rows, setRows] = useState<WorkbookLine[]>([])
   const [loading, setLoading] = useState(canSee)
   const [error, setError] = useState('')
+  const [showPostings, setShowPostings] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -75,7 +77,7 @@ function FinancialPerformance({ business, onOpenWorkbook }: { business: CurrentB
           {months.map((month) => {
             const totals = monthly.get(month.key) ?? { income: 0, expenses: 0, rows: [] }
             const isSelected = selectedMonth === month.key
-            return <button type="button" key={month.key} className={`financial-month${isSelected ? ' selected' : ''}`} aria-pressed={isSelected} aria-label={`${month.label} ${month.year}: income ${usd.format(totals.income)}, expenses ${usd.format(totals.expenses)}`} onClick={() => setSelectedMonth(month.key)}>
+            return <button type="button" key={month.key} className={`financial-month${isSelected ? ' selected' : ''}`} aria-pressed={isSelected} aria-label={`${month.label} ${month.year}: income ${usd.format(totals.income)}, expenses ${usd.format(totals.expenses)}`} onClick={() => { setSelectedMonth(month.key); setShowPostings(true) }}>
               <span className="financial-bars"><i className="income-bar" style={{ height: `${Math.max(4, totals.income / maxAmount * 100)}%` }} /><i className="expense-bar" style={{ height: `${Math.max(4, totals.expenses / maxAmount * 100)}%` }} /></span>
               <span className="financial-month-label">{month.label}<small>{String(month.year).slice(2)}</small></span>
             </button>
@@ -90,7 +92,7 @@ function FinancialPerformance({ business, onOpenWorkbook }: { business: CurrentB
           <div><span>{monthName} · Expenses</span><strong>{loading ? '—' : usd.format(selected.expenses)}</strong></div>
           <div><span>Net recorded</span><strong>{loading ? '—' : usd.format(selected.income - selected.expenses)}</strong></div>
         </div>
-        <div className="financial-postings">
+        <details className="financial-postings-disclosure" open={showPostings} onToggle={event => setShowPostings(event.currentTarget.open)}><summary>{monthName} posting details{!loading ? ` (${selected.rows.length})` : ''}</summary><div className="financial-postings">
           <div className="financial-postings-head"><h3>{monthName} postings</h3><span>{loading ? 'Loading' : `${selected.rows.length} ${selected.rows.length === 1 ? 'posting' : 'postings'}`}</span></div>
           {!loading && selected.rows.length === 0 ? <p className="quiet">No postings recorded for this month.</p> : <div className="financial-posting-list">{selected.rows.map((row) => <article className="financial-posting" key={`${row.source}-${row.id}`}>
             <span className={`posting-kind ${row.direction}`}>{row.direction === 'income' ? 'Income' : 'Expense'}</span>
@@ -98,6 +100,7 @@ function FinancialPerformance({ business, onOpenWorkbook }: { business: CurrentB
             <strong className={`posting-amount ${row.direction}`}>{row.direction === 'expense' ? '−' : '+'}{usd.format(row.amount)}</strong>
           </article>)}</div>}
         </div>
+        </details>
         <p className="financial-footnote">Invoice income appears when payment is recorded. QuickBooks records remain separate from Finviant Office totals.</p>
       </div>
     </>}
@@ -107,7 +110,9 @@ function FinancialPerformance({ business, onOpenWorkbook }: { business: CurrentB
 const empty: DashboardSnapshot = {
   openInvoices: 0,
   outstandingBalance: 0,
-  jobsThisWeek: 0,
+  activeJobCount: 0,
+  activeJobs: [],
+  recentDocuments: [],
   overdueInvoiceCount: 0,
   pendingApprovalCount: 0,
   dueReminderCount: 0,
@@ -115,11 +120,6 @@ const empty: DashboardSnapshot = {
   dueReminders: [],
   todayAppointments: [],
   pendingApprovals: [],
-}
-
-function personName(customer?: { first_name: string | null; last_name: string | null; company: string | null }) {
-  if (!customer) return 'Customer'
-  return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
 }
 
 export default function DashboardPage({ business, onSetup, onNavigate, onReminders }: { business: CurrentBusiness; onSetup?: () => void; onNavigate?: (view: DashboardDestination) => void; onReminders?: () => void }) {
@@ -173,57 +173,24 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
 
   const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount
 
-  return <div className="page-stack">
+  return <div className="page-stack dashboard-page">
     <div className="page-heading split-heading">
-      <div><p className="eyebrow">{business.name} · Today</p><h1>{attentionCount ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need your attention.` : 'Your office is caught up.'}</h1></div>
+      <div><p className="eyebrow">{business.name} · Today</p><h1>{loading || error ? 'Your day, organized.' : attentionCount ? `${attentionCount} item${attentionCount === 1 ? ' needs' : 's need'} your attention.` : 'Your office is caught up.'}</h1></div>
       <button className="secondary-button compact" onClick={() => void refresh(true)} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
     <DailyCalendar key={business.id} business={business} onWork={() => onNavigate?.('schedule')} onReminders={() => onReminders?.()} />
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
-    <section className="dashboard-shortcuts" aria-label="Work areas">
-      <article className="dashboard-shortcut estimate-shortcut" aria-label="Estimates overview">
-        <button type="button" className="estimate-shortcut-link" aria-label="Estimates" onClick={() => onNavigate?.('estimates')}>
-          <span className="shortcut-icon">E</span>
-          <span className="estimate-shortcut-copy"><span className="estimate-shortcut-title"><strong>Estimates</strong>{!loading && !error && snapshot.pendingApprovalCount > 0 && <span className="estimate-approval-badge">{snapshot.pendingApprovalCount} awaiting approval</span>}</span><small>Prepare quotes and track customer approvals</small></span>
-          <span className="shortcut-arrow" aria-hidden="true">↗</span>
-        </button>
-        {loading ? <p className="estimate-tile-status" role="status">Checking customer approvals…</p> : error ? <p className="estimate-tile-status">Customer approvals unavailable. Select Refresh to try again.</p> : snapshot.pendingApprovalCount === 0 ? <p className="estimate-tile-status">No sent estimates or change orders are waiting for a decision.</p> : <div className="estimate-tile-approvals" role="region" aria-label="Customer approvals">
-          <ul className="estimate-approval-list">{snapshot.pendingApprovals.map((item) => <li className="estimate-approval-row" key={`${item.document_type}-${item.id}`}>
-            <div className="row-main"><strong>{item.number || item.title} · {personName(item.customers?.[0])}</strong><span>{item.document_type === 'estimate' ? 'Estimate' : `Change order · ${item.title}`} · sent {new Date(item.issue_date + 'T00:00:00').toLocaleDateString()}</span></div>
-            <strong className="approval-money">{usd.format(Number(item.total))}</strong>
-          </li>)}</ul>
-          {snapshot.pendingApprovalCount > snapshot.pendingApprovals.length && <p className="estimate-tile-limit">Showing {snapshot.pendingApprovals.length} pending approvals. Open Estimates to review requests, or open a sent document for its change orders.</p>}
-        </div>}
-      </article>
-      <article className="dashboard-shortcut invoice-shortcut" aria-label="Invoices overview">
-        <button type="button" className="invoice-shortcut-link" aria-label="Invoices" onClick={() => onNavigate?.('invoices')}>
-          <span className="shortcut-icon">I</span>
-          <span className="invoice-shortcut-copy"><span className="invoice-shortcut-title"><strong>Invoices</strong>{!loading && !error && snapshot.overdueInvoiceCount > 0 && <span className="invoice-overdue-badge">{snapshot.overdueInvoiceCount} overdue</span>}</span><small>Bill customers and track payments</small></span>
-          <span className="shortcut-arrow" aria-hidden="true">↗</span>
-        </button>
-        {!loading && !error && ['owner', 'admin', 'office'].includes(business.role) && <p className="invoice-tile-status" aria-label="Open invoice balance">{snapshot.openInvoices} open {snapshot.openInvoices === 1 ? 'invoice' : 'invoices'} · {usd.format(snapshot.outstandingBalance)} outstanding</p>}
-        {loading ? <p className="invoice-tile-status" role="status">Checking overdue invoices…</p> : error ? <p className="invoice-tile-status">Overdue invoices unavailable. Select Refresh to try again.</p> : snapshot.overdueInvoiceCount === 0 ? <p className="invoice-tile-status">No overdue balances need attention.</p> : <div className="invoice-tile-overdue" role="region" aria-label="Overdue invoices">
-          <ul className="invoice-overdue-list">{snapshot.overdueInvoices.map((invoice) => <li className="invoice-overdue-row" key={invoice.id}>
-            <div className="row-main"><strong>{invoice.invoice_number || 'Invoice'} · {personName(invoice.customers?.[0])}</strong><span>{invoice.due_date ? `Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : 'Past due'}</span></div>
-            <strong className="overdue-money">{usd.format(Number(invoice.balance_due))}</strong>
-          </li>)}</ul>
-          {snapshot.overdueInvoiceCount > snapshot.overdueInvoices.length && <p className="invoice-tile-limit">Showing the {snapshot.overdueInvoices.length} oldest. Open Invoices to see all.</p>}
-        </div>}
-      </article>
-      <article className="dashboard-shortcut work-shortcut" aria-label="Jobs overview">
-        <button type="button" className="work-shortcut-link" aria-label="Jobs" onClick={() => onNavigate?.('work')}><span className="shortcut-icon">J</span><span className="work-shortcut-copy"><strong>Jobs</strong><small>Manage current and upcoming jobs, photos, and expenses</small></span><span className="shortcut-arrow" aria-hidden="true">↗</span></button>
-      </article>
+    <section className="dashboard-work-grid" aria-label="Work areas">
+      <BillingHub business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} />
+      <DashboardJobs snapshot={snapshot} loading={loading} error={error} onOpen={() => onNavigate?.('work')} />
     </section>
 
     {error && <p role="alert" className="form-message error-text">{error}</p>}
 
     <FinancialPerformance key={`${business.id}:${business.role}`} business={business} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />
 
-    <section className="attention-card">
-      <div><p className="eyebrow">AI-assisted office manager</p><h2>Tell Finviant Office what needs to get done.</h2><p>Create customers, jobs, estimates, change orders, invoices, payments and schedule changes by voice. Anything involving money, scope or schedule is shown for confirmation first.</p></div>
-      <div className="command-examples"><span>“Who hasn’t paid me?”</span><span>“Schedule Williams Tuesday at 10.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>
-    </section>
+
   </div>
 }

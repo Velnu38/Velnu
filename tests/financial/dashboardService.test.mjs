@@ -26,6 +26,12 @@ async function fixture(options, run) {
       return reply({ open_invoices: 0, outstanding_balance: 0 })
     }
     assert.equal(url.searchParams.get('business_id'), 'eq.' + tenant)
+    if (['estimates', 'invoices'].includes(table) && url.searchParams.get('limit') === '5') {
+      assert.equal(url.searchParams.has('status'), false)
+      assert.equal(url.searchParams.get('order'), 'created_at.desc,id.asc')
+      return reply(options.empty ? [] : Array.from({ length: 5 }, (_, n) => ({ id: `${table}-recent-${n}`, estimate_number: `EST-R${n}`, invoice_number: `INV-R${n}`,
+        created_at: `2026-11-0${5-n}T${table === 'invoices' ? '12' : '10'}:00:00Z`, total: 100, status: n === 0 ? 'draft' : 'paid', customers: customer, jobs: { title: 'Kitchen work' } })))
+    }
     if (['estimates', 'change_orders', 'invoices'].includes(table)) {
       assert.match(request.headers.get('prefer') || '', /count=exact/)
       assert.equal(url.searchParams.get('limit'), '10')
@@ -49,7 +55,12 @@ async function fixture(options, run) {
       assert.match(url.searchParams.get('due_at') || '', /^lte\./)
       return reply(options.empty ? [] : Array.from({ length: 10 }, (_, n) => ({ id: `reminder-${n}` })), options.empty ? 0 : 18)
     }
-    assert.ok(['jobs', 'appointments'].includes(table))
+    if (table === 'jobs') {
+      assert.equal(url.searchParams.get('status'), 'in.(lead,scheduled,in_progress)')
+      assert.equal(url.searchParams.get('limit'), '3')
+      return reply(options.empty ? [] : [{ id: 'job-1', title: 'Active repair', status: 'in_progress', customers: customer }], options.empty ? 0 : 11)
+    }
+    assert.equal(table, 'appointments')
     return reply([])
   }
   try { await run(calls) } finally { globalThis.fetch = original }
@@ -65,7 +76,14 @@ test('dashboard counts all pending approvals and overdue invoices beyond the bou
   assert.equal(snapshot.dueReminders.length, 10)
   assert.deepEqual(new Set(snapshot.pendingApprovals.map(row => row.document_type)), new Set(['estimate', 'change_order']))
   assert.ok(snapshot.pendingApprovals.every(row => row.customers[0].first_name === 'Jane'))
-  assert.equal(calls.length, 7)
+  assert.equal(snapshot.activeJobCount, 11)
+  assert.equal(snapshot.activeJobs.length, 1)
+  assert.equal(snapshot.recentDocuments.length, 5)
+  assert.equal(snapshot.recentDocuments[0].kind, 'invoice')
+  assert.equal(snapshot.recentDocuments[1].kind, 'estimate')
+  assert.equal(snapshot.recentDocuments[0].title, 'Kitchen work')
+  assert.equal(snapshot.recentDocuments[0].status, 'draft')
+  assert.equal(calls.length, 9)
 }))
 
 test('dashboard returns zero pending approvals and an empty list when no requests are waiting', () => fixture({ empty: true }, async () => {

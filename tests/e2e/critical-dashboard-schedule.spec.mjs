@@ -112,6 +112,10 @@ async function mockWorkspace(page, options = {}) {
       }
       if (method === 'DELETE') return reply([])
       if (method === 'HEAD') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'content-range': '0-0/0' }, body: '' })
+      if (url.searchParams.has('status')) {
+        const active = state.jobs.filter(job => ['lead','scheduled','in_progress'].includes(job.status))
+        return reply(active.slice(0,Number(url.searchParams.get('limit') || active.length)), 200, active.length)
+      }
       return reply(state.jobs)
     }
     if (path.endsWith('/appointments')) {
@@ -168,8 +172,20 @@ async function mockWorkspace(page, options = {}) {
       const matching = column ? state.expenses.filter(p => p[column] === url.searchParams.get(column).replace('eq.', '')) : state.expenses
       return reply(matching, 200, matching.length)
     }
-    if (path.endsWith('/invoices')) return reply(req.headers().accept?.includes('vnd.pgrst.object') ? state.invoices.find(i => i.id === url.searchParams.get('id')?.replace('eq.', '')) : state.invoices.slice(0, 10), 200, state.invoices.length)
-    if (path.endsWith('/estimates')) return reply(state.estimates.slice(0, 10), 200, state.estimates.length)
+    if ((path.endsWith('/invoices') || path.endsWith('/estimates')) && url.searchParams.get('limit') === '5') {
+      const rows = path.endsWith('/invoices') ? state.invoices : state.estimates
+      return reply([...rows].map(row => ({ ...row, total: row.total ?? row.balance_due ?? 0, created_at: row.created_at || `${row.issue_date || '2026-11-01'}T12:00:00Z` }))
+        .sort((a,b) => b.created_at.localeCompare(a.created_at)).slice(0,5))
+    }
+    if (path.endsWith('/invoices')) {
+      if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.invoices.find(i => i.id === url.searchParams.get('id')?.replace('eq.', '')))
+      const matches = url.searchParams.has('due_date') ? state.invoices.filter(i => i.due_date < url.searchParams.get('due_date').replace('lt.', '') && Number(i.balance_due) > 0 && !['draft','void'].includes(i.status)) : state.invoices
+      return reply(matches.slice(0, 10), 200, matches.length)
+    }
+    if (path.endsWith('/estimates')) {
+      const matches = url.searchParams.has('status') ? state.estimates.filter(e => e.status === url.searchParams.get('status').replace('eq.', '')) : state.estimates
+      return reply(matches.slice(0, 10), 200, matches.length)
+    }
     if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10), 200, state.changeOrders.length)
     if (path.endsWith('/messages')) return reply([])
     return reply([])
@@ -180,7 +196,7 @@ const count = (s, suffix, method) => s.requests.filter(r => r.path.endsWith(suff
 const openDashboard = async (page, options) => {
   const state = await mockWorkspace(page, options)
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Your office is caught up|need your attention/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Your office is caught up|needs? your attention|Your day, organized/ })).toBeVisible()
   return state
 }
 const openSchedule = async (page, options) => {
@@ -212,7 +228,7 @@ const noRuntimeErrors = page => {
 test('01 empty dashboard renders without uncaught exceptions', async ({ page }) => {
   const errors = noRuntimeErrors(page)
   await openDashboard(page)
-  await expect(page.getByText('No overdue balances need attention.')).toBeVisible()
+  await expect(page.getByText('No overdue invoices or pending approvals. Your billing is up to date.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
   expect(errors).toEqual([])
 })
@@ -226,7 +242,7 @@ test('02 Strict Mode concurrent initial loads share one invoice summary call', a
 test('03 null aggregate values display zero safely', async ({ page }) => {
   await openDashboard(page, { aggregate: { open_invoices: null, outstanding_balance: null } })
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
-  await expect(page.locator('.dashboard-shortcuts')).not.toContainText('NaN')
+  await expect(page.locator('.dashboard-work-grid')).not.toContainText('NaN')
 })
 
 test('04 large financial summary stays server-side without an unbounded invoice scan', async ({ page }) => {
@@ -273,25 +289,26 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
 test('08 absent customer relations and injected invoice HTML do not crash or render executable markup', async ({ page }) => {
   const malicious = '<img src=x onerror=alert(1)>'
   await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, balance_due: 15, due_date: '2020-01-01', customers: null }] })
-  await expect(page.getByRole('region', { name: 'Overdue invoices' })).toContainText('Customer')
-  await expect(page.getByRole('region', { name: 'Overdue invoices' })).toContainText(malicious)
-  expect(await page.getByRole('region', { name: 'Overdue invoices' }).locator('img').count()).toBe(0)
+  await expect(page.getByRole('region', { name: 'Needs attention' })).toContainText('Customer')
+  await expect(page.getByRole('region', { name: 'Needs attention' })).toContainText(malicious)
+  expect(await page.getByRole('region', { name: 'Needs attention' }).locator('img').count()).toBe(0)
 })
 
 for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
-  test(`invoice tile counts all overdue invoices and keeps details together at ${viewport.width}px`, async ({ page }) => {
+  test(`billing hub counts all overdue invoices and keeps details together at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport)
     const invoices = Array.from({ length: 14 }, (_, n) => ({
       id: id(n + 300), invoice_number: `INV-${n + 1}`, balance_due: 15,
       due_date: '2020-01-01', issue_date: '2019-12-01', status: 'sent', total: 15, customers: customer,
     }))
     const state = await openDashboard(page, { invoices })
-    const tile = page.getByRole('article', { name: 'Invoices overview' })
-    await expect(tile.getByText('14 overdue', { exact: true })).toBeVisible()
-    await expect(tile.getByRole('region', { name: 'Overdue invoices' }).getByRole('listitem')).toHaveCount(10)
-    await expect(tile).toContainText('INV-1 · Jane Doe')
+    const tile = page.getByRole('article', { name: 'Estimates and invoices overview' })
+    await tile.getByRole('button', { name: /Overdue 14 Review invoices/ }).click()
+    await expect(tile.getByRole('region', { name: 'Overdue invoices' }).getByRole('listitem')).toHaveCount(5)
+    await expect(tile).toContainText('Jane Doe')
+    await expect(tile).toContainText('INV-1')
     await expect(tile).toContainText('$15.00')
-    await expect(tile).toContainText('Showing the 10 oldest')
+    await expect(tile).toContainText('Showing 5 of 14 overdue invoices')
     await expect(page.locator('.overdue-panel')).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
@@ -299,14 +316,14 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await page.getByRole('button', { name: 'Refresh', exact: true }).click()
     await expect(tile.getByText('No overdue balances need attention.')).toBeVisible()
     await expect(tile.locator('.invoice-overdue-badge')).toHaveCount(0)
-    await tile.getByRole('button', { name: 'Invoices', exact: true }).click()
+    await tile.getByRole('button', { name: /^Invoices/ }).click()
     await expect(page.getByRole('heading', { name: 'Know what’s owed and get paid faster.' })).toBeVisible()
   })
 }
 
 test('09 completing reminder persists its status and removes it from attention list', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await page.getByRole('button', { name: /Reminders.*due/ }).click()
+  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
   await expect(page.getByText('Call customer 1')).toBeVisible()
   await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Call customer 1')).toHaveCount(0)
@@ -316,7 +333,7 @@ test('09 completing reminder persists its status and removes it from attention l
 
 test('10 failing reminder update displays error and does not hide the reminder', async ({ page }) => {
   await openDashboard(page, { reminders: [reminder()], reminderError: true })
-  await page.getByRole('button', { name: /Reminders.*due/ }).click()
+  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
   await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Unable to complete reminder')).toBeVisible()
   await expect(page.getByText('Call customer 1')).toBeVisible()
@@ -324,7 +341,7 @@ test('10 failing reminder update displays error and does not hide the reminder',
 
 test('11 viewer cannot complete reminders', async ({ page }) => {
   const state = await openDashboard(page, { role: 'viewer', reminders: [reminder()] })
-  await page.getByRole('button', { name: /Reminders.*due/ }).click()
+  await page.getByRole('region', { name: 'Daily calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
   await expect(page.getByText('Call customer 1')).toBeVisible()
   await expect(page.getByRole('button', { name: /Mark .* done/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '+ New reminder' })).toHaveCount(0)
@@ -341,11 +358,12 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
     status: 'sent', total: 50, issue_date: '2026-10-02', customers: customer,
   }))
   const state = await openDashboard(page, { estimates, changeOrders })
-  const tile = page.getByRole('article', { name: 'Estimates overview' })
-  await expect(tile.getByText('20 awaiting approval', { exact: true })).toBeVisible()
-  await expect(tile.getByRole('region', { name: 'Customer approvals' }).getByRole('listitem')).toHaveCount(12)
-  await expect(tile).toContainText('EST-0 · Jane Doe')
-  await expect(tile).toContainText('CO-0 · Jane Doe')
+  const tile = page.getByRole('article', { name: 'Estimates and invoices overview' })
+  await tile.getByRole('button', { name: /Awaiting approval 20/ }).click()
+  await expect(tile.getByRole('region', { name: 'Customer approvals' }).getByRole('listitem')).toHaveCount(5)
+  await expect(tile).toContainText('EST-0')
+  await expect(tile).toContainText('Jane Doe')
+  await expect(tile).toContainText('Showing 5 of 20 pending approvals')
   await expect(page.getByRole('heading', { name: 'Approvals', exact: true })).toHaveCount(0)
   for (const request of state.requests.filter(r =>
     ['/invoices', '/jobs', '/reminders', '/appointments', '/estimates', '/change_orders'].some(p => r.path.endsWith(p)))) {
@@ -355,9 +373,9 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
   state.estimates = []
   state.changeOrders = []
   await page.getByRole('button', { name: 'Refresh', exact: true }).click()
-  await expect(tile).toContainText('No sent estimates or change orders are waiting for a decision.')
+  await expect(tile).toContainText('No estimates or change orders are waiting for approval.')
   await expect(tile.locator('.estimate-approval-badge')).toHaveCount(0)
-  await tile.getByRole('button', { name: 'Estimates', exact: true }).click()
+  await tile.getByRole('button', { name: /^Estimates/ }).click()
   await expect(page.getByRole('heading', { name: 'Quote the work without the paperwork.' })).toBeVisible()
 })
 
@@ -506,7 +524,7 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
 for (const width of [1280, 390]) test(`standalone reminder creation is accessible from the merged tile at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 })
   const state = await openDashboard(page, { reminders: Array.from({ length: 18 }, (_, n) => reminder(n)) })
-  await expect(page.locator('.dashboard-shortcuts > article')).toHaveCount(3)
+  await expect(page.locator('.dashboard-work-grid > article')).toHaveCount(2)
   const tile = page.getByRole('region', { name: 'Daily calendar' })
   await expect(page.getByRole('heading', { name: 'Reminders due', exact: true })).toHaveCount(0)
   await tile.getByRole('button', { name: '+ Reminder', exact: true }).click()
@@ -593,7 +611,7 @@ test('dashboard layout uses the business name, puts calendar first, and opens on
   const jobs = page.getByRole('article', { name: 'Jobs overview' })
   await expect(jobs).not.toContainText('Reminders')
   await expect(jobs).not.toContainText('schedule')
-  await jobs.getByRole('button', { name: 'Jobs', exact: true }).click()
+  await jobs.getByRole('button', { name: 'Open jobs', exact: false }).click()
   await expect(page.getByRole('heading', { name: 'Keep every job moving.' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Jobs and schedule views' })).toHaveCount(0)
 })
@@ -652,4 +670,74 @@ test('record resources: viewer cannot upload photos or add expenses', async ({ p
   await expect(panel.getByLabel('Add pictures')).toHaveCount(0)
   await expect(panel.getByRole('button', { name: 'Add expense', exact: true })).toHaveCount(0)
   await expect(panel.getByText('Expense records are available to owners, administrators, and office staff.')).toBeVisible()
+})
+
+for (const width of [1440, 390]) {
+  test(`billing hub combines billing without hiding actions at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 })
+    const invoices = Array.from({ length: 6 }, (_, n) => ({ id:id(800+n), invoice_number:`INV-${800+n}`, status:n === 5 ? 'paid' : 'sent',
+      issue_date:'2026-10-01', created_at:`2026-11-01T1${n}:00:00Z`, due_date:'2020-01-01', total:450, balance_due:n === 5 ? 0 : 450, amount_paid:n === 5 ? 450 : 0, customer_id:CID,
+      customers:{...customer,company:null}, jobs:{title:'Electrical wiring service'} }))
+    const estimates = Array.from({ length: 3 }, (_, n) => ({ id:id(820+n), estimate_number:`EST-${820+n}`, status:n === 2 ? 'draft' : 'sent',
+      issue_date:'2026-10-02', created_at:`2026-11-01T1${n}:30:00Z`, total:1250, customer_id:CID,
+      customers:{first_name:null,last_name:null,company:'Acme Corp'}, jobs:{title:'HVAC installation'} }))
+    const jobs = [{id:id(850),title:'Kitchen renovation',status:'in_progress',customers:customer},{id:id(851),title:'Water heater replacement',status:'scheduled',customers:customer},{id:id(852),title:'Plumbing maintenance',status:'lead',customers:customer}]
+    await openDashboard(page, { invoices, estimates, jobs, aggregate:{open_invoices:5,outstanding_balance:2250} })
+    const hub = page.getByRole('article', {name:'Estimates and invoices overview'})
+    await expect(hub.getByText('$2,250.00',{exact:true})).toBeVisible()
+    await expect(page.locator('.dashboard-work-grid>article')).toHaveCount(2)
+    const attention = hub.getByRole('region',{name:'Needs attention'})
+    await expect(attention.getByRole('listitem')).toHaveCount(5)
+    await expect(attention).toContainText('Overdue')
+    await expect(attention).toContainText('Awaiting approval')
+    await expect(hub).toContainText('Showing 5 of 7 items needing attention')
+    await expect(hub.getByRole('button',{name:'Estimates',exact:true})).toBeVisible()
+    await expect(hub.getByRole('button',{name:'Invoices',exact:true})).toBeVisible()
+    await expect(page.getByRole('article',{name:'Jobs overview'})).toContainText('3active')
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+    await expect(page.locator('.financial-postings-disclosure')).not.toHaveAttribute('open','')
+    await expect(page.getByRole('heading',{name:'Tell Finviant Office what needs to get done.'})).toHaveCount(0)
+    await page.screenshot({path:`test-results/dashboard-billing-${width}.png`,fullPage:true})
+    await hub.getByRole('button',{name:'Recent',exact:true}).click()
+    const recent=hub.getByRole('region',{name:'Recent documents'})
+    await expect(recent.getByRole('listitem')).toHaveCount(5)
+    await expect(recent.getByRole('listitem').first()).toContainText('INV-805')
+    await expect(recent.getByRole('listitem').first()).toContainText('Paid')
+    await expect(recent).toContainText('Draft')
+    await expect(recent).toContainText('HVAC installation')
+    await expect(recent.getByRole('link',{name:'Open estimate EST-822 for Acme Corp'})).toHaveAttribute('href',`/?view=estimates&document=${id(822)}`)
+    await recent.getByRole('link',{name:'Open invoice INV-805 for Jane Doe'}).click()
+    await expect(page.getByRole('heading',{name:'INV-805',exact:true}).first()).toBeVisible()
+    expect(new URL(page.url()).searchParams.get('document')).toBe(id(805))
+  })
+}
+
+test('billing hub empty state and finance restrictions stay honest', async ({page})=>{
+  const state=await openDashboard(page)
+  const hub=page.getByRole('article',{name:'Estimates and invoices overview'})
+  await expect(hub.getByText('No overdue invoices or pending approvals. Your billing is up to date.')).toBeVisible()
+  await page.screenshot({path:'test-results/dashboard-billing-empty.png',fullPage:true})
+  await hub.getByRole('button',{name:'Recent',exact:true}).click()
+  await expect(hub).toContainText('No estimates or invoices yet.')
+  state.role='technician';state.aggregate={open_invoices:5,outstanding_balance:98765}
+  await page.reload()
+  await expect(hub).toContainText('Billing details are available to owners, administrators, and office staff.')
+  await expect(hub).not.toContainText('$98,765')
+})
+
+test('billing hub leaves calendar and financial detail available without long default lists', async ({page})=>{
+  await mockWorkspace(page)
+  const items=Array.from({length:7},(_,n)=>({source_key:`job:${n}`,title:`Calendar repair ${n}`,starts_at:new Date().toISOString(),ends_at:null,status:'scheduled',document_kind:'work',document_id:id(n)}))
+  await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify(items)}))
+  await page.goto('/')
+  const calendar=page.getByRole('region',{name:'Daily calendar'})
+  await expect(calendar.getByRole('link')).toHaveCount(3)
+  await calendar.getByRole('button',{name:'Show all 7 scheduled items'}).click()
+  await expect(calendar.getByRole('link')).toHaveCount(7)
+  await calendar.getByRole('button',{name:'Show fewer scheduled items'}).click()
+  await expect(calendar.getByRole('link')).toHaveCount(3)
+  const details=page.locator('.financial-postings-disclosure')
+  await expect(details).not.toHaveAttribute('open','')
+  await page.locator('.financial-month').first().click()
+  await expect(details).toHaveAttribute('open','')
 })
