@@ -31,9 +31,9 @@ export default function RecordResources({ business, target }: { business: Curren
     return () => { active = false }
   }, [business.id, target.kind, target.id, finance, version])
   useEffect(() => {
-    // Renew private image URLs while the panel is open; no permanent public links.
+    // Renew before the one-minute URLs expire, including after a background tab returns.
     const refresh = () => { if (!document.hidden && !operation.current) setVersion(value => value + 1) }
-    const timer = window.setInterval(refresh, 600_000)
+    const timer = window.setInterval(refresh, 45_000)
     window.addEventListener('focus', refresh)
     return () => { clearInterval(timer); window.removeEventListener('focus', refresh) }
   }, [])

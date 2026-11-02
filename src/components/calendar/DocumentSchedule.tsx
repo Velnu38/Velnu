@@ -18,6 +18,7 @@ export default function DocumentSchedule({
   jobId?: string | null;
 }) {
   const zone = business.timezone || "America/New_York";
+  const calendarAccess = canAccess(business, "calendar");
   const [start, setStart] = useState(""),
     [end, setEnd] = useState(""),
     [title, setTitle] = useState(""),
@@ -30,7 +31,7 @@ export default function DocumentSchedule({
     [ready, setReady] = useState(false);
   const field = kind === "estimate" ? "estimate_id" : "invoice_id";
   useEffect(() => {
-    if (!canAccess(business,"calendar")) return;
+    if (!calendarAccess) return;
     let active = true;
     setReady(false);
     setError("");
@@ -73,8 +74,8 @@ export default function DocumentSchedule({
     return () => {
       active = false;
     };
-  }, [business.id, id, field, zone]);
-  if (!canManageFinances(business.role) || !canAccess(business,'calendar')) return null;
+  }, [business.id, id, field, zone, calendarAccess]);
+  if (!canManageFinances(business.role) || !calendarAccess) return null;
   if (jobId)
     return (
       <p className="quiet calendar-no-print">
