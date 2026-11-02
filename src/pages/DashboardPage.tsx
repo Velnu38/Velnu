@@ -1,3 +1,4 @@
+import DailyCalendar from '../components/calendar/DailyCalendar'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
@@ -143,7 +144,7 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
       ? pendingLoad.current.promise
       : null
     if (!load) {
-      load = getDashboardSnapshot(business.id)
+      load = getDashboardSnapshot(business.id, business.timezone)
       pendingLoad.current = { businessId: business.id, promise: load }
       const currentLoad = load
       const clearPending = () => {
@@ -168,7 +169,7 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
     setSnapshot(empty)
     void refresh()
     return () => { mounted.current = false; currentRequest.current++ }
-  }, [business.id])
+  }, [business.id, business.timezone])
 
   const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount
 
@@ -216,6 +217,8 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
     </section>
 
     {error && <p role="alert" className="form-message error-text">{error}</p>}
+
+    <DailyCalendar key={business.id} business={business} onWork={() => onNavigate?.('work')} onReminders={() => onReminders?.()} />
 
     <FinancialPerformance key={`${business.id}:${business.role}`} business={business} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />
 

@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 export type BusinessRole = 'owner' | 'admin' | 'office' | 'technician' | 'viewer'
 
 export interface BusinessProfile {
+  timezone?: string
   id: string
   name: string
   legal_name: string | null
@@ -57,7 +58,7 @@ export const emptyBusinessProfile: BusinessProfileDraft = {
   team_size: '', team_roles: '',
 }
 
-const fields = 'id,name,legal_name,email,phone,website,address_line1,address_line2,city,state,postal_code,logo_path,document_accent,document_footer,business_description,services_offered,service_area,team_size,team_roles,profile_completed_at'
+const fields = 'id,timezone,name,legal_name,email,phone,website,address_line1,address_line2,city,state,postal_code,logo_path,document_accent,document_footer,business_description,services_offered,service_area,team_size,team_roles,profile_completed_at'
 
 export function draftFromBusiness(business: BusinessProfile): BusinessProfileDraft {
   return {

@@ -1,3 +1,4 @@
+import IntegrationSettings from '../components/calendar/IntegrationSettings'
 import type { CurrentBusiness } from '../lib/business'
 import { canWrite } from '../lib/business'
 import BusinessProfileEditor from '../components/BusinessProfileEditor'
@@ -17,6 +18,7 @@ export default function SettingsPage({ business, onSaved }: {
     {canWrite(business.role) && ['owner','admin'].includes(business.role) ?
       <BusinessProfileEditor key={business.id} business={business} onSaved={onSaved} /> :
       <p className="form-message">Only the business owner or administrator can edit company settings.</p>}
+    <IntegrationSettings key={business.id} businessId={business.id} />
     <PrivateBetaNotice compact />
     <section className="settings-document-preview">
       <p className="eyebrow">Current invoice / estimate letterhead</p>

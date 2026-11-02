@@ -1,3 +1,4 @@
+import DocumentSchedule from '../components/calendar/DocumentSchedule'
 import { previewDocumentTotal } from '../lib/financialValidation'
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
@@ -48,6 +49,16 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates')) }, [business.id])
+
+  const linkedDocumentOpened = useRef(false)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('document')
+    const target = estimates.find(row => row.id === id)
+    if (target && !linkedDocumentOpened.current) {
+      linkedDocumentOpened.current = true
+      void openPreview(target)
+    }
+  }, [estimates])
 
   const previewTotal = useMemo(() => previewDocumentTotal(lines), [lines])
 
@@ -205,6 +216,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <button type="button" className="secondary-button" onClick={() => window.print()}>Print / Save PDF</button>
           <button type="button" className="secondary-button" onClick={() => setPreviewTarget(null)}>Close</button>
         </div>
+        <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
         <article className="estimate-preview-document print-document">
           <DocumentBrand business={previewTarget.issuer_snapshot?.name ? { ...business, ...previewTarget.issuer_snapshot, name: previewTarget.issuer_snapshot.name } : business} kind="Estimate" />
           <div className="document-bill-to"><small>Prepared for</small><strong>{customerName(previewTarget.customers?.[0])}</strong>

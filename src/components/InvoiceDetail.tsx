@@ -1,3 +1,4 @@
+import DocumentSchedule from './calendar/DocumentSchedule'
 import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { createInvoiceReminder, getInvoiceDetail } from '../services/invoiceDetail'
@@ -77,6 +78,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <button className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
     </div>
     {error&&<p className="form-message error-text" role="alert">{error}</p>}
+    <DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />
     <section className="invoice-detail-grid">
       <article className="detail-card invoice-document print-document">
         <DocumentBrand business={issuedBrand} kind="Invoice" />

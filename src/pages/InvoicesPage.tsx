@@ -15,7 +15,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('document'))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [customerId, setCustomerId] = useState('')

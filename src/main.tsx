@@ -25,3 +25,5 @@ createRoot(container).render(
     <App />
   </React.StrictMode>,
 );
+
+import './calendar.css';

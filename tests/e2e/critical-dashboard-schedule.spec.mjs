@@ -518,3 +518,49 @@ test('job action preselects the related job when creating a reminder', async ({ 
   expect(state.reminders[0].job_id).toBe(job.id)
   expect(state.reminders[0].customer_id).toBe(CID)
 })
+
+test('calendar dashboard shows daily work, overdue reminders, completion, and another date', async ({ page }) => {
+  await mockWorkspace(page)
+  let completed = false
+  await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
+  await page.route('**/rest/v1/reminders?**', route => {
+    if (route.request().method() === 'PATCH') { completed = true; return route.fulfill({contentType:'application/json',body:JSON.stringify({id:id(2)})}) }
+    return route.fulfill({contentType:'application/json',headers:{'content-range':'0-0/1'},body:JSON.stringify(completed?[]:[{id:id(2),note:'Confirm materials',due_at:new Date(Date.now()-3600000).toISOString(),job_id:null}])})
+  })
+  await page.goto('/')
+  const calendar = page.getByRole('region', {name:'Daily calendar'})
+  await expect(calendar.getByRole('heading',{name:'Today’s work'})).toBeVisible()
+  await expect(calendar.getByRole('link',{name:'Roof inspection'})).toBeVisible()
+  await expect(calendar.getByText('Confirm materials',{exact:true})).toBeVisible()
+  await calendar.getByRole('button',{name:'Complete Confirm materials'}).click()
+  await expect(calendar.getByText('Confirm materials',{exact:true})).toHaveCount(0)
+  await calendar.getByLabel('Calendar date').fill('2028-02-29')
+  await expect(calendar.getByRole('heading',{name:'February 29',exact:true})).toBeVisible()
+})
+
+test('calendar settings shows connected identity, calendar choices and persists toggle', async ({ page }) => {
+  await mockWorkspace(page)
+  let saved
+  await page.route('**/api/calendar?**', route => {
+    const action = new URL(route.request().url()).searchParams.get('action')
+    if (route.request().method()==='PATCH') {saved=route.request().postDataJSON();return route.fulfill({contentType:'application/json',body:'{"ok":true}'})}
+    const result=action==='calendars'?{calendars:[{id:'work',name:'Work Calendar'}]}:{integrations:[{id:id(3),provider:'google',email:'owner@example.test',calendar_id:'work',calendar_name:'Work Calendar',auto_sync:false,state:'connected',last_error:null,last_synced_at:null}]}
+    return route.fulfill({contentType:'application/json',body:JSON.stringify(result)})
+  })
+  await page.goto('/?view=settings')
+  await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
+  await page.getByRole('switch').check()
+  await page.getByRole('button',{name:'Save calendar settings'}).click()
+  await expect.poll(()=>saved?.autoSync).toBe(true)
+  await expect(page.getByRole('button',{name:'Connect Microsoft Outlook'})).toBeVisible()
+})
+
+test('calendar widget fits a phone without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({width:390,height:844})
+  await mockWorkspace(page)
+  await page.route('**/rest/v1/calendar_work?**', route=>route.fulfill({contentType:'application/json',body:'[]'}))
+  await page.goto('/')
+  const calendar=page.getByRole('region',{name:'Daily calendar'})
+  await expect(calendar).toBeVisible()
+  expect(await calendar.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
+})

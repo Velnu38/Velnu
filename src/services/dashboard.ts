@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import { readFinancialNumber } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
@@ -47,16 +48,13 @@ export interface DashboardSnapshot {
   }>
 }
 
-export async function getDashboardSnapshot(businessId: string): Promise<DashboardSnapshot> {
+export async function getDashboardSnapshot(businessId: string, timezone = 'America/New_York'): Promise<DashboardSnapshot> {
   const now = new Date()
-  const weekEnd = new Date(now)
-  weekEnd.setDate(now.getDate() + 7)
-
-  const todayStart = new Date(now)
-  todayStart.setHours(0, 0, 0, 0)
-  const tomorrowStart = new Date(todayStart)
-  tomorrowStart.setDate(todayStart.getDate() + 1)
-  const todayDate = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-')
+  const localNow = DateTime.fromJSDate(now).setZone(timezone)
+  const weekEnd = localNow.plus({ days: 7 }).toJSDate()
+  const todayStart = localNow.startOf('day').toJSDate()
+  const tomorrowStart = localNow.startOf('day').plus({ days: 1 }).toJSDate()
+  const todayDate = localNow.toISODate()!
 
   const [invoices, jobs, overdueInvoices, dueReminders, todayAppointments, estimatesAwaiting, changeOrdersAwaiting] = await Promise.all([
     // SECURITY INVOKER RPC calculates exact totals under the caller's existing invoice RLS.

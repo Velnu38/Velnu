@@ -1,0 +1,6 @@
+/* Scoped utilities; no Tailwind preflight or global reset of the existing UI. */
+@layer theme, utilities;
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tw);
+@source "./components/calendar";
+@media print { .calendar-no-print { display: none !important; } }

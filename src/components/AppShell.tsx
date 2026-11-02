@@ -50,9 +50,16 @@ const mobilePrimary: View[] = ['dashboard', 'customers', 'work', 'locations']
 const mobileMore: View[] = ['change_orders', 'estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
 const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders'].includes(id))
 
+function initialView(): View {
+  const query = new URLSearchParams(window.location.search)
+  if (query.has('quickbooks')) return 'bookkeeping'
+  const requested = query.get('view')
+  return nav.some(item => item.id === requested) ? requested as View : 'dashboard'
+}
+
 export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)
-  const [view, setView] = useState<View>(new URLSearchParams(window.location.search).has('quickbooks') ? 'bookkeeping' : 'dashboard')
+  const [view, setView] = useState<View>(initialView())
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [showMobileMore, setShowMobileMore] = useState(false)
   const [workView, setWorkView] = useState<WorkView>('schedule')
