@@ -48,7 +48,7 @@ function runtime(db: PGlite, svc: CalendarService) {
 }
 test('crew calendar sync includes secondary workers, removes reassigned work, and uses the job link for field staff',async()=>{
  const db=await setup();try{
- const source=await readFile('supabase/migrations/20261102212737_guided_scheduling_workflow.sql','utf8')
+ const source=await readFile('supabase/migrations/20261102221000_guided_scheduling_workflow.sql','utf8')
  const from=source.indexOf('create or replace view public.calendar_work'),to=source.indexOf('-- Recheck an invitation',from)
  await db.exec('alter table public.jobs add column assigned_user_ids uuid[] default \'{}\';')
  await db.exec(source.slice(from,to))
