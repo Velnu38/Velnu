@@ -192,7 +192,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     try {
       const invoiceId = await convertEstimateToInvoice(convertTarget.id, convertDueDate || undefined)
       setConvertTarget(null); setConvertDueDate('')
-      window.history.pushState({finviantIndex:(Number(history.state?.finviantIndex)||0)+1},'', '/?view=invoices&document='+encodeURIComponent(invoiceId));window.dispatchEvent(new PopStateEvent('popstate'))
+      window.history.pushState({finviantIndex:(Number(history.state?.finviantIndex)||0)+1},'', '/?view=invoices&document='+encodeURIComponent(invoiceId));window.dispatchEvent(new PopStateEvent('popstate',{state:{finviantConfirmedSave:true}}))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to convert estimate')
     } finally { saving.current=false;setBusy(false) }

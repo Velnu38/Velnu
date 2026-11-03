@@ -84,7 +84,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   useEffect(()=>{const remember=()=>queueMicrotask(()=>{lastLocation.current=location.href});document.addEventListener('click',remember);return()=>document.removeEventListener('click',remember)},[])
   useEffect(() => {
     window.history.replaceState({...window.history.state,finviantIndex:0},'',window.location.href)
-    const pop=()=>{if(!confirmNavigation()){history.pushState({finviantIndex:navigationIndex.current},'',lastLocation.current);return}lastLocation.current=location.href;navigationIndex.current=Number(window.history.state?.finviantIndex)||0;setView(initialView());setRefreshVersion(v=>v+1);setShowMobileMore(false)}
+    const pop=(event:PopStateEvent)=>{if(!event.state?.finviantConfirmedSave&&!confirmNavigation()){history.pushState({finviantIndex:navigationIndex.current},'',lastLocation.current);return}lastLocation.current=location.href;navigationIndex.current=Number(window.history.state?.finviantIndex)||0;setView(initialView());setRefreshVersion(v=>v+1);setShowMobileMore(false)}
     window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)
   },[])
   function back() {

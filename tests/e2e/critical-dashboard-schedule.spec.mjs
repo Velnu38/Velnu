@@ -1339,7 +1339,7 @@ for(const width of [1440,390])test(`estimate review has the same action system a
  await expect(preview.locator('.print-document')).toContainText('2026-01-15')
  await page.screenshot({path:`test-results/document-review-estimate-${width}.png`,fullPage:true})
  await page.route('**/functions/v1/create-approval-link',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({token:'mock-only',relative_url:'/?approval=mock-only',expires_at:'2026-11-17T14:00:00Z'})}))
- await preview.getByRole('button',{name:'Get / create approval link'}).click()
+ page.once('dialog',d=>d.accept());await preview.getByRole('button',{name:'Get / create approval link'}).click()
  const approval=page.getByRole('dialog',{name:'EST-4002 approval link',exact:true})
  await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(/approval=mock-only/)
  await expect(approval.getByRole('button',{name:'Copy link',exact:true})).toBeVisible()
