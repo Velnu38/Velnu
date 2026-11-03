@@ -314,13 +314,13 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await expect(tile).toContainText('Jane Doe')
     await expect(tile).toContainText('INV-1')
     await expect(tile).toContainText('$15.00')
-    await expect(tile).toContainText('Showing 5 of 14 overdue invoices')
+    await expect(tile).toContainText('Showing 5 of 14 items needing attention')
     await expect(page.locator('.overdue-panel')).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
     state.invoices = []
     await page.getByRole('button', { name: 'Refresh', exact: true }).click()
-    await expect(tile.getByText('No overdue balances need attention.')).toBeVisible()
+    await expect(tile.getByText('No overdue invoices or pending approvals.')).toBeVisible()
     await expect(tile.locator('.invoice-overdue-badge')).toHaveCount(0)
     await tile.getByRole('button', { name: /^Invoices/ }).click()
     await expect(page.getByRole('heading', { name: 'Know what’s owed and get paid faster.' })).toBeVisible()
