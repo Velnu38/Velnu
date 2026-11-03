@@ -760,39 +760,39 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 
 | Line | Control | Label/content | Handler/destination |
 | --- | --- | --- | --- |
-| 211 | button | + New estimate | {() => { resetForm(); setShowForm(true) }} |
-| 220 | button | <strong>{estimate.estimate_number // 'Draft estimate'}</strong> <span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00' | {() => openPreview(estimate)} |
-| 223 | button | {'Photos and expenses for ${estimate.estimate_number // 'estimate'}'} | {() => setResourceEstimate(estimate)} |
-| 224 | button | Preview / Print | {() => openPreview(estimate)} |
-| 226 | button | Mark sent manually | {() => changeStatus(estimate.id, 'sent')} |
-| 227 | button | Record acceptance | {() => changeStatus(estimate.id, 'accepted')} |
-| 228 | button | Record decline | {() => changeStatus(estimate.id, 'declined')} |
-| 229 | button | Expire | {() => changeStatus(estimate.id, 'expired')} |
-| 230 | button | Email customer | {() => emailForApproval(estimate)} |
-| 231 | button | Get customer approval link | {() => shareForApproval(estimate)} |
-| 232 | button | Create invoice | {() => { setError(''); setNotice(''); setConvertTarget(estimate) }} |
-| 233 | button | Schedule job | {()=>setScheduleTarget(estimate)} |
-| 234 | a | Open linked job | {'/?view=work&document=${encodeURIComponent(estimate.job_id)}'} |
-| 242 | button | "Close" | {() => { setShowForm(false); resetForm() }} |
-| 244 | input | "date" | {e => setIssueDate(e.target.value)} |
-| 244 | input | "date" | {(e) => setExpiresOn(e.target.value)} |
-| 244 | input | Associated label | {(e) => setNotes(e.target.value)} |
-| 246 | textarea | "For example: Estimate valid for 14 days. A deposit is due before work begins." | {e => setCustomerTerms(e.target.value)} |
-| 247 | button | + Add line | {() => setLines([...lines, newLine()])} |
-| 247 | input | "Description" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} |
-| 247 | input | "Qty" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} |
-| 247 | input | "Unit price" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} |
-| 247 | input | "Tax rate (%)" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} |
-| 247 | button | "Remove line item" | {() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))} |
-| 250 | button | Cancel | {() => { setShowForm(false); resetForm() }} |
-| 250 | button | {busy ? 'Saving…' : 'Create estimate'} | Form submit |
-| 254 | button | "Close" | {() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} |
-| 256 | input | "date" | {(e) => setConvertDueDate(e.target.value)} |
-| 256 | button | Cancel | {() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} |
-| 256 | button | {busy ? 'Creating…' : 'Create invoice'} | Form submit |
-| 264 | button | "Close preview" | {() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} |
-| 268 | button | Print / Save PDF | {() => window.print()} |
-| 269 | button | Close | {() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} |
+| 212 | button | + New estimate | {() => { resetForm(); setShowForm(true) }} |
+| 221 | button | <strong>{estimate.estimate_number // 'Draft estimate'}</strong> <span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00' | {() => openPreview(estimate)} |
+| 224 | button | {'Photos and expenses for ${estimate.estimate_number // 'estimate'}'} | {() => setResourceEstimate(estimate)} |
+| 225 | button | Preview / Print | {() => openPreview(estimate)} |
+| 227 | button | Mark sent manually | {() => changeStatus(estimate.id, 'sent')} |
+| 228 | button | Record acceptance | {() => changeStatus(estimate.id, 'accepted')} |
+| 229 | button | Record decline | {() => changeStatus(estimate.id, 'declined')} |
+| 230 | button | Expire | {() => changeStatus(estimate.id, 'expired')} |
+| 231 | button | Email customer | {() => emailForApproval(estimate)} |
+| 232 | button | Get customer approval link | {() => shareForApproval(estimate)} |
+| 233 | button | Create invoice | {() => { setError(''); setNotice(''); setConvertTarget(estimate) }} |
+| 234 | button | Schedule job | {()=>setScheduleTarget(estimate)} |
+| 235 | a | Open linked job | {'/?view=work&document=${encodeURIComponent(estimate.job_id)}'} |
+| 243 | button | "Close" | {() => { setShowForm(false); resetForm() }} |
+| 245 | input | "date" | {e => setIssueDate(e.target.value)} |
+| 245 | input | "date" | {(e) => setExpiresOn(e.target.value)} |
+| 245 | input | Associated label | {(e) => setNotes(e.target.value)} |
+| 247 | textarea | "For example: Estimate valid for 14 days. A deposit is due before work begins." | {e => setCustomerTerms(e.target.value)} |
+| 248 | button | + Add line | {() => setLines([...lines, newLine()])} |
+| 248 | input | "Description" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} |
+| 248 | input | "Qty" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} |
+| 248 | input | "Unit price" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} |
+| 248 | input | "Tax rate (%)" | {(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} |
+| 248 | button | "Remove line item" | {() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))} |
+| 251 | button | Cancel | {() => { setShowForm(false); resetForm() }} |
+| 251 | button | {busy ? 'Saving…' : 'Create estimate'} | Form submit |
+| 255 | button | "Close" | {() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} |
+| 257 | input | "date" | {(e) => setConvertDueDate(e.target.value)} |
+| 257 | button | Cancel | {() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} |
+| 257 | button | {busy ? 'Creating…' : 'Create invoice'} | Form submit |
+| 265 | button | "Close preview" | {() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} |
+| 269 | button | Print / Save PDF | {() => window.print()} |
+| 270 | button | Close | {() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} |
 
 ## src/pages/InstallPage.tsx
 
@@ -814,7 +814,7 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 | Line | Control | Label/content | Handler/destination |
 | --- | --- | --- | --- |
 | 123 | button | + New invoice | {() => { resetForm(); setShowForm(true) }} |
-| 130 | button | <div className="row-main"><strong>{invoice.invoice_number // 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.iss | {() => setSelectedInvoiceId(invoice.id)} |
+| 130 | button | <div className="row-main"><strong>{invoice.invoice_number // 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.iss | {() => {history.replaceState(history.state,'','/?view=invoices&document='+encodeURIComponent(invoice.id));setSelectedInvoiceId(invoice.id)}} |
 | 137 | button | "Close" | {() => { setShowForm(false); resetForm() }} |
 | 139 | input | "date" | {e => setIssueDate(e.target.value)} |
 | 139 | input | "date" | {(e) => setDueDate(e.target.value)} |
@@ -899,7 +899,7 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 | 11 | a | Privacy and data handling | "#legal-privacy" |
 | 17 | a | Business terms | "#legal-terms" |
 | 17 | a | Privacy section | "#legal-privacy" |
-| 17 | a | Sign in and choose a plan | "/auth?mode=signin&next=plans" |
+| 17 | a | Sign in to Finviant Office | "/auth?mode=signin" |
 
 ## src/pages/LocationsPage.tsx
 

@@ -158,6 +158,8 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   await page.getByRole('button', { name: 'Create invoice' }).click()
   await expect(page.getByRole('heading', { name: 'Create the invoice' })).toBeVisible()
   await page.getByRole('button', { name: 'Create invoice', exact: true }).last().click()
+  await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
+  await expect(page).toHaveURL(/view=invoices&document=/)
   expect(state.requests.some(x => x.path.endsWith('/rpc/convert_estimate_to_invoice'))).toBe(true)
   const created = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
   expect(created[0].body.document_kind).toBe('estimate')
@@ -293,7 +295,7 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
     ],
   })
   await page.goto('/')
-  await expect(page.getByLabel('Open invoice balance', { exact: true })).toContainText('$125.00')
+  await expect(page.locator('.billing-outstanding')).toContainText('$125.00')
   const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
   expect(aggregates).toHaveLength(1)
   expect(aggregates[0].body.target_business_id).toBe(businessId)

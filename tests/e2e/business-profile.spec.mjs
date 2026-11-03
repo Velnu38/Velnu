@@ -88,14 +88,14 @@ test('existing owner edits company details and context, then document branding i
   await page.getByLabel('Services offered').fill('Electrical inspections and repairs')
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByRole('button', { name: 'Save company profile & services' }).click()
-  await expect(page.getByRole('status')).toContainText('Company profile saved')
+  await expect(page.getByRole('status').filter({ hasText: 'Company profile saved' })).toBeVisible()
   await page.getByRole('button', { name: 'Invoice & estimate setup', exact: true }).click()
   await page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)').setInputFiles({
     name: 'company-logo.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
   })
   await page.getByLabel('Document footer', { exact: true }).fill('Thank you for your business.')
   await page.getByRole('button', { name: 'Save document setup' }).click()
-  await expect(page.getByRole('status')).toContainText('Document setup saved')
+  await expect(page.getByRole('status').filter({ hasText: 'Document setup saved' })).toBeVisible()
   const updates = writes.filter(x => x.method === 'PATCH' && x.path.endsWith('/businesses'))
   expect(updates.at(-1).body.logo_path).toMatch(/^11111111-1111-4111-8111-111111111111\/logo-/)
   expect(updates.at(-1).body.phone).toBe('757-555-0199')
@@ -126,6 +126,6 @@ test('activated Basic tier can upload company logo when backend grants storage q
     name: 'basic-logo.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
   })
   await page.getByRole('button', { name: 'Save document setup' }).click()
-  await expect(page.getByRole('status')).toContainText('Document setup saved')
+  await expect(page.getByRole('status').filter({ hasText: 'Document setup saved' })).toBeVisible()
   expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
 })

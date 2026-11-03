@@ -41,6 +41,7 @@ async function setup(page,options={}){
    if(options.jobLost&&s.jobAttempts===1)return json({message:'Job response lost after commit',code:'500'},500)
    return json(s.jobs[0])
   }
+  if(path.endsWith('/functions/v1/work-scheduling'))return json({error:'Unable to update linked appointment'},409)
   if(path.endsWith('/rpc/set_job_status_atomic'))return json({message:'Unable to update linked appointment',code:'23514'},409)
   return json([])
  })

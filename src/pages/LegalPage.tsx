@@ -14,7 +14,7 @@ export default function LegalPage() {
         {i === 12 && <h2 className="legal-chapter-title">Part II · Privacy and data handling</h2>}
         <h3>{section.title}</h3>{section.paragraphs.map((p,j) => <p key={j}>{p}</p>)}
       </section>)}
-      <div className="legal-bottom-links"><a href="#legal-terms">Business terms</a><a href="#legal-privacy">Privacy section</a><a href="/auth?mode=signin&next=plans">Sign in and choose a plan</a></div>
+      <div className="legal-bottom-links"><a href="#legal-terms">Business terms</a><a href="#legal-privacy">Privacy section</a><a href="/auth?mode=signin">Sign in to Finviant Office</a></div>
     </article>
   </main>
 }

@@ -63,19 +63,24 @@ for(const width of [1440,390])test(`workspace route and button audit at ${width}
  for(const view of ['dashboard','customers','locations','work','schedule','reminders','estimates','invoices','payments','bookkeeping','settings']){
   await page.goto('/?view='+view)
   await expect(page.locator('.workspace-inner')).toBeVisible()
+  await expect(page.locator('.workspace-inner h1, .workspace-inner h2').first()).toBeVisible()
+  await expect(page.locator('.workspace-inner')).not.toContainText('This page could not be opened')
   await expect(page.locator('.workspace-inner .loading-page')).toHaveCount(0)
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),view+' must fit').toBe(true)
   const unnamed=await page.locator('button:visible').evaluateAll(buttons=>buttons.filter(b=>!b.innerText.trim()&&!b.getAttribute('aria-label')&&!b.getAttribute('title')).map(b=>b.outerHTML))
   expect(unnamed,view+' visible action names').toEqual([])
   expect(errors,view+' runtime errors').toEqual([])
+  await page.screenshot({path:`test-results/audit-workspace-${view}-${width}.png`,fullPage:true})
  }
 })
-for(const kind of ['invoice','estimate','job'])test(`dashboard opens ${kind} creation in one click without reloading`,async({page})=>{
- await mock(page);await page.goto('/');await expect(page.getByRole('region',{name:'Work calendar'})).toBeVisible()
+for(const width of [1440,390])for(const kind of ['invoice','estimate','job'])test(`dashboard opens ${kind} creation in one click without reloading at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await mock(page);await page.goto('/');await expect(page.getByRole('region',{name:'Work calendar'})).toBeVisible()
  const origin=await page.evaluate(()=>performance.timeOrigin)
  await page.getByRole('navigation',{name:'Create work'}).getByRole('link',{name:'+ New '+kind,exact:true}).click()
  await expect(page.getByRole('dialog')).toBeVisible()
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin)
+ expect(await page.getByRole('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
+ await page.screenshot({path:`test-results/audit-create-${kind}-${width}.png`,fullPage:true})
  if(kind!=='job'){
   await page.getByLabel('Customer name',{exact:true}).fill('Keep my draft')
   await page.mouse.click(2,2)
@@ -99,5 +104,6 @@ for(const width of [1440,390])test(`public and account-entry route audit at ${wi
   await page.goto(url);await expect(page.locator('h1,h2').first()).toBeVisible()
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),url+' fits').toBe(true)
   expect(errors,url+' runtime errors').toEqual([])
+  await page.screenshot({path:`test-results/audit-public-${url.replaceAll(/[^a-z0-9]/gi,'_')}-${width}.png`,fullPage:true})
  }
 })

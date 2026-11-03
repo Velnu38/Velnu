@@ -68,6 +68,7 @@ test('authenticated user is blocked from workspace until AI, terms and e-record 
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/rpc/get_membership_entry')) return json(null)
     if (path.endsWith('/user_plan_preferences')) {
       if (method === 'POST') return json({ selected_tier: body.selected_tier })
       return json(null)
@@ -122,6 +123,7 @@ test('existing accepted account proceeds without accepting a second time', async
     const json = obj => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(obj) })
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/rpc/get_membership_entry')) return json(null)
     if (path.endsWith('/user_plan_preferences')) return json({ selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) { agreementsRead++; return json(acceptedRecord) }
     if (path.endsWith('/business_members')) return json(null)
