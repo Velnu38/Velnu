@@ -130,8 +130,9 @@ async function mockWorkspace(page, options = {}) {
       if (state.aggregateFailures-- > 0) return fail('Dashboard summary temporarily unavailable')
       return reply(state.aggregate)
     }
-    if (path.endsWith('/customers')) return reply(state.customers)
+    if (path.endsWith('/customers')) return reply(req.headers().accept?.includes('vnd.pgrst.object')?state.customers.find(c=>c.id===url.searchParams.get('id')?.replace('eq.','')):state.customers)
     if (path.endsWith('/properties')) return reply([])
+    if (path.endsWith('/rpc/get_document_change_context')) return reply({can_change:true})
     if (path.endsWith('/jobs')) {
       if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.jobs.find(job => job.id === url.searchParams.get('id')?.replace('eq.','')))
       if (method === 'POST') {
@@ -144,7 +145,8 @@ async function mockWorkspace(page, options = {}) {
         const active = state.jobs.filter(job => ['lead','scheduled','in_progress'].includes(job.status))
         return reply(active.slice(0,Number(url.searchParams.get('limit') || active.length)), 200, active.length)
       }
-      return reply(state.jobs.slice(Number(url.searchParams.get('offset')||0),Number(url.searchParams.get('offset')||0)+Number(url.searchParams.get('limit')||state.jobs.length)),200,state.jobs.length)
+      const matching=url.searchParams.has('customer_id')?state.jobs.filter(job=>job.customer_id===url.searchParams.get('customer_id').replace('eq.','')):state.jobs
+      return reply(matching.slice(Number(url.searchParams.get('offset')||0),Number(url.searchParams.get('offset')||0)+Number(url.searchParams.get('limit')||matching.length)),200,matching.length)
     }
     if (path.endsWith('/appointments')) {
       if (method === 'POST') {
@@ -207,11 +209,11 @@ async function mockWorkspace(page, options = {}) {
     }
     if (path.endsWith('/invoices')) {
       if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.invoices.find(i => i.id === url.searchParams.get('id')?.replace('eq.', '')))
-      const matches = url.searchParams.has('due_date') ? state.invoices.filter(i => i.due_date < url.searchParams.get('due_date').replace('lt.', '') && Number(i.balance_due) > 0 && ['sent','viewed','partial','overdue'].includes(i.status)) : state.invoices
+      const matches = url.searchParams.has('customer_id') ? state.invoices.filter(i=>i.customer_id===url.searchParams.get('customer_id').replace('eq.','')) : url.searchParams.has('due_date') ? state.invoices.filter(i => i.due_date < url.searchParams.get('due_date').replace('lt.', '') && Number(i.balance_due) > 0 && ['sent','viewed','partial','overdue'].includes(i.status)) : state.invoices
       return reply(matches.slice(Number(url.searchParams.get('offset') || 0), Number(url.searchParams.get('offset') || 0) + Number(url.searchParams.get('limit') || 10)), 200, matches.length)
     }
     if (path.endsWith('/estimates')) {
-      const matches = url.searchParams.has('status') ? state.estimates.filter(e => e.status === url.searchParams.get('status').replace('eq.', '')) : state.estimates
+      const matches = url.searchParams.has('customer_id') ? state.estimates.filter(e=>e.customer_id===url.searchParams.get('customer_id').replace('eq.','')) : url.searchParams.has('status') ? state.estimates.filter(e => e.status === url.searchParams.get('status').replace('eq.', '')) : state.estimates
       return reply(matches.slice(Number(url.searchParams.get('offset') || 0), Number(url.searchParams.get('offset') || 0) + Number(url.searchParams.get('limit') || 10)), 200, matches.length)
     }
     if (path.endsWith('/change_orders')) return reply(state.changeOrders.slice(0, 10), 200, state.changeOrders.length)
@@ -704,6 +706,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
     const openRecord = async () => {
       await page.goto(kind === 'invoice' ? `/?view=invoices&document=${recordId}` : `/?view=${kind === 'job' ? 'work' : 'estimates'}`)
       if (kind !== 'invoice') await page.getByRole('button', { name: `Photos and expenses for ${kind === 'job' ? 'Kitchen repair' : 'EST-701'}` }).click()
+      else await page.getByRole('button',{name:'Photos & expenses',exact:true}).click()
     }
     await openRecord()
     const panel = page.getByRole('region', { name: 'Photos and expenses' })
@@ -1165,4 +1168,86 @@ test('failed attention page is retryable and a delayed response cannot overwrite
  await page.waitForTimeout(650)
  await expect(hub.getByRole('region',{name:'Customer approvals'}).getByRole('listitem')).toHaveCount(1)
  await expect(pager).toContainText('Page 1 of 1')
+})
+
+const reviewCreated='2026-11-03T14:05:00Z'
+const reviewCustomer={...customer,email:'jane@example.test'}
+const reviewDocument=(n,status='sent')=>({id:id(n),invoice_number:`INV-${n}`,estimate_number:`EST-${n}`,status,issue_date:'2026-01-15',due_date:'2026-11-30',created_at:reviewCreated,updated_at:'2026-11-03T15:10:00Z',sent_at:'2026-11-03T15:10:00Z',customer_id:CID,customers:reviewCustomer,total:100,subtotal:100,tax_amount:0,amount_paid:0,balance_due:100})
+async function assertUniformDocumentActions(page){
+ await page.mouse.move(0,0)
+ const style=await page.locator('.document-action-grid>button,.document-action-grid>a,.document-action-grid>.invoice-email-control>button').evaluateAll(nodes=>nodes.map(node=>{const s=getComputedStyle(node),r=node.getBoundingClientRect();return {height:r.height,width:r.width,color:s.color,background:s.backgroundColor,font:s.fontFamily,size:s.fontSize,weight:s.fontWeight}}))
+ expect(style.length).toBeGreaterThan(3)
+ for(const value of style){expect(value.height).toBe(48);expect(Math.abs(value.width-style[0].width)).toBeLessThan(1);expect({...value,width:0}).toEqual({...style[0],width:0});expect(value.background).toBe('rgb(36, 95, 152)')}
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+}
+for(const width of [1440,390])test(`invoice review has ordered uniform actions and a persistent timestamp at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000})
+ const inv=reviewDocument(4001);await mockWorkspace(page,{invoices:[inv],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
+ await page.goto('/?view=invoices&document='+inv.id)
+ const actions=page.getByRole('group',{name:'Common actions',exact:true})
+ await expect(actions.getByRole('button').first()).toHaveText('Record payment')
+ await expect(actions.getByRole('button')).toHaveText(['Record payment','Email customer','Schedule job','Print / Save PDF','Photos & expenses','Schedule reminder'])
+ await expect(page.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'Void invoice'})).toBeVisible()
+ await assertUniformDocumentActions(page)
+ const record=page.getByRole('region',{name:'Document record'})
+ await expect(record.locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
+ await expect(record).toContainText('Last updated');await expect(record).toContainText('Sent')
+ await expect(record.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
+ await expect(page.locator('.print-document time').first()).toHaveAttribute('datetime',reviewCreated)
+ await page.screenshot({path:`test-results/document-review-invoice-${width}.png`,fullPage:true})
+ await page.emulateMedia({media:'print'});await expect(page.locator('.document-action-card')).toBeHidden();await expect(page.locator('.print-document time').first()).toBeVisible()
+})
+for(const width of [1440,390])test(`estimate review has the same action system and document record at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000})
+ const est={...reviewDocument(4002),sent_at:undefined};await mockWorkspace(page,{estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
+ await page.goto('/?view=estimates&document='+est.id)
+ const preview=page.getByRole('dialog',{name:'Estimate preview'})
+ await expect(preview).toBeVisible()
+ await expect(preview.getByRole('group',{name:'Common actions',exact:true}).getByRole('button')).toHaveText(['Email customer','Record acceptance','Print / Save PDF','Photos & expenses'])
+ await assertUniformDocumentActions(page)
+ await expect(preview.getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
+ await expect(preview.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
+ await expect(preview.locator('.print-document')).toContainText('2026-01-15')
+ await page.screenshot({path:`test-results/document-review-estimate-${width}.png`,fullPage:true})
+ await page.route('**/functions/v1/create-approval-link',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({token:'mock-only',relative_url:'/?approval=mock-only',expires_at:'2026-11-17T14:00:00Z'})}))
+ await preview.getByRole('button',{name:'Get customer approval link'}).click()
+ const approval=page.getByRole('dialog',{name:'EST-4002 approval link',exact:true})
+ await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(/approval=mock-only/)
+ await expect(approval.getByRole('button',{name:'Copy link',exact:true})).toBeVisible()
+ await page.keyboard.press('Escape');await expect(approval).toHaveCount(0);await expect(preview).toBeVisible()
+ await preview.getByRole('button',{name:'Photos & expenses',exact:true}).click()
+ const resources=page.getByRole('dialog',{name:'EST-4002 photos and expenses',exact:true});await expect(resources).toBeVisible()
+ await resources.getByRole('button',{name:'Close',exact:true}).click();await expect(preview).toBeVisible()
+ await preview.getByRole('button',{name:'Close preview'}).click()
+ await expect(page.getByRole('button',{name:'Record acceptance'})).toHaveCount(0)
+ await expect(page.getByRole('button',{name:'Preview / Print'})).toBeVisible()
+ await expect(page.locator('.document-created')).toContainText('Nov 3, 2026 · 9:05 AM EST')
+})
+test('customer records retain complete searchable document history and open the original timestamped documents',async({page})=>{
+ const invoices=Array.from({length:35},(_,n)=>({...reviewDocument(4100+n,n===0?'void':n===1?'draft':'sent'),created_at:new Date(Date.UTC(2026,10,3,14,n)).toISOString()}))
+ const estimates=Array.from({length:35},(_,n)=>({...reviewDocument(4200+n,n===0?'expired':'sent'),created_at:new Date(Date.UTC(2026,10,3,14,n)).toISOString()}))
+ await mockWorkspace(page,{customers:[reviewCustomer],invoices:[...invoices,{...reviewDocument(4199),customer_id:id(999)}],estimates:[...estimates,{...reviewDocument(4299),customer_id:id(999)}],businessProfile:{timezone:'America/New_York'}})
+ await page.goto('/?view=customers&document='+CID)
+ await expect(page.getByRole('heading',{name:'Jane Doe',exact:true})).toBeVisible()
+ await expect(page.locator('.customer-balance')).toContainText('$3300.00')
+ for(const kind of ['invoices','estimates']){
+  const section=page.getByRole('region',{name:'Customer '+kind,exact:true})
+  await expect(section).toContainText('35 records · Page 1 of 2')
+  await expect(section.locator('.history-row')).toHaveCount(25)
+  await section.getByRole('button',{name:'Next',exact:true}).click()
+  await expect(section.locator('.history-row')).toHaveCount(10)
+  await expect(section).toContainText(kind==='invoices'?'INV-4100':'EST-4200')
+  await section.getByRole('searchbox').fill(kind==='invoices'?'INV-4100':'EST-4200')
+  await expect(section.locator('.history-row')).toHaveCount(1)
+  await expect(section).toContainText('Nov 3, 2026 · 9:00 AM EST')
+ }
+ await expect(page.getByRole('link',{name:'Open invoice INV-4100',exact:true})).not.toContainText('due')
+ await page.screenshot({path:'test-results/document-customer-history.png',fullPage:true})
+ await page.getByRole('link',{name:'Open invoice INV-4100',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'INV-4100',exact:true})).toBeVisible()
+ await expect(page.getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:00 AM EST')
+ await page.getByRole('link',{name:'Customer record: Jane Doe'}).click()
+ await page.getByRole('region',{name:'Customer estimates'}).getByRole('searchbox').fill('EST-4200')
+ await page.getByRole('link',{name:'Open estimate EST-4200',exact:true}).click()
+ await expect(page.getByRole('dialog',{name:'Estimate preview'}).getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:00 AM EST')
 })

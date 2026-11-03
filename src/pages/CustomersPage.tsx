@@ -21,11 +21,13 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
   const [query, setQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showImport,setShowImport]=useState(false)
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(()=>new URLSearchParams(location.search).get('document'))
   const saving=useRef(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ first_name: '', last_name: '', company: '', phone: '', email: '' })
+
+  function openCustomer(id:string){setSelectedCustomerId(id);history.replaceState(history.state,'','/?view=customers&document='+encodeURIComponent(id))}
 
   async function refresh() {
     setCustomers((await listCustomers(business.id)) as Customer[])
@@ -51,7 +53,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
       setForm({ first_name: '', last_name: '', company: '', phone: '', email: '' })
       setShowForm(false)
       await refresh()
-      setSelectedCustomerId(created.id)
+      openCustomer(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create customer')
     } finally {
@@ -61,7 +63,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
   }
 
   if (selectedCustomerId) {
-    return <CustomerDetail business={business} customerId={selectedCustomerId} onBack={() => { setSelectedCustomerId(null); refresh() }} />
+    return <CustomerDetail business={business} customerId={selectedCustomerId} onBack={() => { setSelectedCustomerId(null);history.replaceState(history.state,'','/?view=customers');void refresh().catch(e=>setError(e.message)) }} />
   }
 
   return (
@@ -77,7 +79,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
           <div className="empty-state"><div className="empty-icon">C</div><h2>{customers.length ? 'No matches' : 'No customers yet'}</h2><p>{customers.length ? 'Try a different search.' : 'Add your first customer or tell Finviant Office to create one.'}</p></div>
         ) : visible.map((customer) => {
           const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Unnamed customer'
-          return <button className="customer-row customer-row-button" key={customer.id} onClick={() => setSelectedCustomerId(customer.id)}>
+          return <button className="customer-row customer-row-button" key={customer.id} onClick={() => openCustomer(customer.id)}>
             <div className="avatar">{name.charAt(0).toUpperCase()}</div>
             <div className="row-main"><strong>{name}</strong><span>{customer.company && name !== customer.company ? customer.company : customer.phone || customer.email || 'No contact information'}</span></div>
             <div className="row-meta"><span>{customer.phone || ''}</span><span>{customer.email || ''}</span></div>

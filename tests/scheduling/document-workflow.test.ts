@@ -77,3 +77,21 @@ test('contact cards with photo padding remain readable and malformed nested card
  assert.throws(()=>parseContactCards('BEGIN:VCARD\n'.repeat(10000),randomUUID),/incomplete/)
  const qp='BEGIN:VCARD\nVERSION:2.1\nFN;ENCODING=QUOTED-PRINTABLE:Ren=C3=A9e=\n Smith\nEND:VCARD';assert.equal(parseContactCards(qp,randomUUID).contacts[0].first_name,'Renée')
 })
+
+test('documents keep server creation time, and issued records retain their customer and backdated issue date',async()=>{
+ const db=await setup();try{
+  for(const kind of ['invoice','estimate']){
+   const before=Date.now(),d=await document(db,kind,{issue_date:'2026-01-15',created_at:'2000-01-01T00:00:00Z',updated_at:'2000-01-01T00:00:00Z'})
+   const table=kind==='invoice'?'invoices':'estimates'
+   const saved=(await db.query(`select customer_id,created_at,updated_at,issue_date from ${table} where id=$1`,[d.id])).rows[0] as any
+   assert.equal(saved.customer_id,ids.customer);assert.equal(new Date(saved.issue_date).toISOString().slice(0,10),'2026-01-15');assert.ok(new Date(saved.created_at).getTime()>=before-1000)
+   assert.ok(new Date(saved.created_at).getTime()<=Date.now()+1000)
+   await assert.rejects(db.query(`update ${table} set created_at='2000-01-01' where id=$1`,[d.id]),/creation date cannot change/)
+   await db.query(`update ${table} set status='sent' where id=$1`,[d.id])
+   await assert.rejects(db.query(`update ${table} set customer_id=$2 where id=$1`,[d.id,ids.outsider]),/ownership|customer/i)
+   await db.query(`update ${table} set status=$2 where id=$1`,[d.id,kind==='invoice'?'void':'expired'])
+   const retained=(await db.query(`select created_at,customer_id from ${table} where id=$1`,[d.id])).rows[0]
+   assert.deepEqual(retained,{created_at:saved.created_at,customer_id:ids.customer})
+  }
+ }finally{await db.close()}
+})
