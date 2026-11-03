@@ -231,3 +231,7 @@
     background: transparent;
   }
 }
+
+.integration-test-results { list-style: none; padding: 0; display: grid; gap: 12px; }
+.integration-test-results li { display: grid; gap: 6px; padding: 12px; border: 1px solid #dfe7e9; border-radius: 8px; overflow-wrap: anywhere; }
+.integration-tests .primary-button, .integration-tests .secondary-button { min-height: 44px; }
