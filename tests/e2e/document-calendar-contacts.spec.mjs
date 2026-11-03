@@ -107,11 +107,12 @@ test('non-owner cannot see bulk phone contact import',async({page})=>{await mock
 for(const width of [1440,390])test(`selected-day agenda shows every job, local reminders, and connected events at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1050});await mock(page)
  const day=DateTime.now().setZone(zone).startOf('day'),tomorrow=day.plus({days:1})
- let notes='Bring cedar boards, screws, and the approved plan',externalCalls=0
+ let notes='Bring cedar boards, screws, and the approved plan',externalCalls=0,trackingRequests=0
+ await page.route('https://calendar-tracker.invalid/**',route=>{trackingRequests++;return route.abort()})
  const jobs=Array.from({length:5},(_,n)=>({source_key:'job:day-'+n,title:'Day job '+n,job_id:J,starts_at:day.plus({hours:9+n}).toISO(),ends_at:day.plus({hours:10+n}).toISO(),status:'scheduled',document_kind:'work',document_id:J,assigned_user_ids:[U]}))
  jobs.push({source_key:'job:tomorrow',title:'Tomorrow job',job_id:J,starts_at:tomorrow.plus({hours:9}).toISO(),ends_at:tomorrow.plus({hours:10}).toISO(),status:'scheduled',document_kind:'work',document_id:J,assigned_user_ids:[U]})
  const reminders=[{id:'r1',note:'Order cedar',due_at:day.plus({hours:8}).toISO(),job_id:null,status:'pending'},{id:'r2',note:'Confirm access',due_at:day.plus({hours:10}).toISO(),job_id:null,status:'completed'},{id:'r3',note:'Previous-day reminder',due_at:day.minus({minutes:1}).toISO(),job_id:null,status:'pending'},{id:'r4',note:'Next-day reminder',due_at:tomorrow.toISO(),job_id:null,status:'pending'}]
- const base={provider:'google',email:'owner.other@example.test',calendar_name:'Personal',description:'Bring the sample finishes',location:'22 Harbor Road',url:'https://calendar.google.com/calendar/event?eid=qa',all_day:false}
+ const base={provider:'google',email:'owner.other@example.test',calendar_name:'Personal',description:'<img src="https://calendar-tracker.invalid/pixel" onerror="window.calendarInjected=true"><script>window.calendarInjected=true</script><p>Bring the sample finishes</p>',location:'22 Harbor Road',url:'https://calendar.google.com/calendar/event?eid=qa',all_day:false}
  const events=[{...base,id:'external',title:'Supplier appointment',starts_at:day.plus({hours:16}).toISO(),ends_at:day.plus({hours:17}).toISO()},{...base,id:'outlook',provider:'outlook',title:'Outlook delivery',starts_at:day.plus({hours:14}).toISO(),ends_at:day.plus({hours:15}).toISO(),url:'https://outlook.office.com/calendar/item/qa'},{...base,id:'all-day',title:'Trade show',all_day:true,start_date:day.toISODate(),end_date:tomorrow.toISODate(),starts_at:day.toISO(),ends_at:tomorrow.toISO()},{...base,id:'tomorrow',title:'Tomorrow external meeting',starts_at:tomorrow.plus({hours:12}).toISO(),ends_at:tomorrow.plus({hours:13}).toISO()}]
  const reply=(route,value)=>route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':Array.isArray(value)?`0-${Math.max(0,value.length-1)}/${value.length}`:'0-0/0'},body:JSON.stringify(value)})
  await page.route('**/rest/v1/calendar_work?**',route=>reply(route,jobs))
@@ -135,6 +136,7 @@ for(const width of [1440,390])test(`selected-day agenda shows every job, local r
  await calendar.getByRole('button',{name:new RegExp(day.toLocaleString(DateTime.DATE_FULL))}).click();await calendar.getByRole('button',{name:'Week',exact:true}).click()
  await expect(calendar.getByText('Supplier appointment',{exact:true})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ expect(trackingRequests).toBe(0);expect(await page.evaluate(()=>window.calendarInjected)).toBeUndefined();await expect(calendar.getByText('Bring the sample finishes',{exact:true})).toHaveCount(3)
  await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`test-results/selected-day-agenda-${width}.png`,fullPage:true})
 })
 test('connected calendar failure keeps local work usable and retry restores only current-day events',async({page})=>{

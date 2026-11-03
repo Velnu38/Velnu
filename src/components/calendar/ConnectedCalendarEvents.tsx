@@ -4,11 +4,14 @@ function eventUrl(value: string | null) {
   try { const url = new URL(value || ''); return url.protocol === 'https:' && ['calendar.google.com','www.google.com','outlook.office365.com','outlook.office.com','outlook.live.com'].includes(url.hostname) ? url.href : null } catch { return null }
 }
 function descriptionText(value: string) {
-  const doc = new DOMParser().parseFromString(value, 'text/html')
+  // Template contents stay inert: provider HTML cannot load images or execute code.
+  const template = document.createElement('template')
+  template.innerHTML = value
+  const doc = template.content
   doc.querySelectorAll('script,style').forEach(node => node.remove())
   doc.querySelectorAll('br').forEach(node => node.replaceWith('\n'))
   doc.querySelectorAll('p,div,li').forEach(node => node.append('\n'))
-  return doc.body.textContent?.trim() || ''
+  return doc.textContent?.trim() || ''
 }
 export default function ConnectedCalendarEvents({events,issues,connections,loading,error,zone,onRetry}:{events:ConnectedEvent[];issues:ConnectedAgenda['issues'];connections:number;loading:boolean;error:string;zone:string;onRetry:()=>void}) {
   return <section className="calendar-connected" aria-label="Your connected calendar events">
