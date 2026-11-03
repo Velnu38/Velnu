@@ -32,9 +32,10 @@ const reminder = (n = 1) => ({
 })
 
 async function mockWorkspace(page, options = {}) {
+  const sessionTTL=options.sessionTTL || 3600
   const sessionHeader = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-  const sessionBody = Buffer.from(JSON.stringify({ sub: UID, aud: 'authenticated', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url')
-  const session = { access_token: sessionHeader + '.' + sessionBody + '.test', refresh_token: 'refresh', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user }
+  const sessionBody = Buffer.from(JSON.stringify({ sub: UID, aud: 'authenticated', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + sessionTTL })).toString('base64url')
+  const session = { access_token: sessionHeader + '.' + sessionBody + '.test', refresh_token: 'refresh', expires_at: Math.floor(Date.now() / 1000) + sessionTTL, expires_in: sessionTTL, token_type: 'bearer', user }
   await page.addInitScript(s => localStorage.setItem('sb-example-auth-token', JSON.stringify(s)), session)
 
   const state = {
@@ -1046,7 +1047,7 @@ for(const width of [1440,390])test(`invoice creates one linked scheduled job wit
 test('sent invoices need attention only with an unpaid balance before the business calendar day',async({page})=>{
  await page.clock.install({time:new Date('2026-11-04T02:00:00Z')}) // November 3 in New York
  const invoices=[['FUTURE','sent','2026-11-05',100],['TODAY','sent','2026-11-03',100],['NO-DUE','sent',null,100],['OVERDUE','sent','2026-11-02',100],['PARTIAL','partial','2026-11-02',20],['PAID','paid','2026-11-02',0],['DRAFT','draft','2026-11-02',100],['VOID','void','2026-11-02',100]].map(([number,status,due,balance],n)=>({id:id(310+n),invoice_number:'INV-'+number,status,due_date:due,balance_due:balance,total:100,issue_date:'2026-11-01',customers:customer}))
- const state=await mockWorkspace(page,{invoices,aggregate:{open_invoices:5,outstanding_balance:420}});await page.goto('/')
+ const state=await mockWorkspace(page,{invoices,sessionTTL:259200,aggregate:{open_invoices:5,outstanding_balance:420}});await page.goto('/')
  const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention.getByRole('link',{name:/Open invoice INV-OVERDUE/})).toBeVisible()
  await expect(attention.getByRole('link',{name:/Open invoice INV-PARTIAL/})).toBeVisible()
