@@ -1,3 +1,4 @@
+import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
@@ -23,6 +24,7 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const submitting=useRef(false)
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
@@ -40,7 +42,7 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
   }
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError('')
+    event.preventDefault(); if(submitting.current)return;submitting.current=true;setBusy(true); setError('')
     try {
       if (!window.confirm('Confirm that you have actually received this payment? This records money received; it does not charge a card or bank account.')) return
       const signature = JSON.stringify({ invoiceId, amount, method, notes })
@@ -49,11 +51,11 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
       resetForm(); setShowForm(false); await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to record payment')
-    } finally { setBusy(false) }
+    } finally { submitting.current=false;setBusy(false) }
   }
 
   return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View bookkeeping</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View financial performance</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
     <section className="list-card">
       {payments.length === 0 ? <div className="empty-state"><div className="empty-icon">$</div><h2>No payments yet</h2><p>Record a payment here when you have actually received the funds.</p></div> : payments.map((payment) => {
         const invoice = payment.invoices?.[0]
@@ -65,8 +67,8 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
         </article>
       })}
     </section>
-    {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">Record payment</p><h2>Record a payment already received</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
+    {showForm && <FormDialog label="Record a payment already received" busy={busy} onClose={() => { setShowForm(false); resetForm() }}>
+      <div className="modal-head"><div><p className="eyebrow">Record payment</p><h2>Record a payment already received</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form className="form-grid" onSubmit={submit}>
         <label className="full">Invoice<select aria-label="Invoice" value={invoiceId} onChange={(e) => { const id = e.target.value; setInvoiceId(id); const inv = openInvoices.find((x) => x.id === id); if (inv) setAmount(String(inv.balance_due)) }} required><option value="">Choose unpaid invoice…</option>{openInvoices.map((invoice) => <option value={invoice.id} key={invoice.id}>{invoice.invoice_number || 'Invoice'} · {customerName(invoice.customers?.[0])} · ${Number(invoice.balance_due).toFixed(2)} due</option>)}</select></label>
         <label>Amount<input type="number" min="0.01" max={selected ? Number(selected.balance_due) : undefined} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></label>
@@ -76,6 +78,6 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
         {error && <p className="form-message error-text full">{error}</p>}
         <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Record payment'}</button></div>
       </form>
-    </section></div>}
+    </FormDialog>}
   </div>
 }

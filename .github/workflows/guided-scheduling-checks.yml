@@ -27,7 +27,7 @@ jobs:
           node-version: '24'
       - run: npm run build
       - name: Guided flow and existing critical browser regressions
-        run: npx playwright test tests/e2e/guided-scheduling.spec.mjs tests/e2e/critical-dashboard-schedule.spec.mjs tests/e2e/document-calendar-contacts.spec.mjs tests/e2e/unified-attention.spec.mjs
+        run: npx playwright test
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

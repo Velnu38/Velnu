@@ -1,3 +1,5 @@
+import QuickCustomer from '../components/scheduling/QuickCustomer'
+import FormDialog from '../components/FormDialog'
 import JobDetailsDialog from '../components/JobDetailsDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { localInstant } from '../lib/calendarTime'
@@ -31,7 +33,8 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(()=>new URLSearchParams(window.location.search).get('new')==='1'&&canWrite(business.role))
+  useEffect(()=>{const url=new URL(location.href);if(url.searchParams.has('new')){url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [newCrew,setNewCrew]=useState<string[]>([]),[newDuration,setNewDuration]=useState(120)
@@ -137,10 +140,11 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       {detailsJob&&<JobDetailsDialog business={business} jobId={detailsJob} onClose={()=>{setDetailsJob(null);void refresh()}}/>}
       {resourceJob && <RecordResourcesDialog business={business} target={{ kind: 'job', id: resourceJob.id }} title={resourceJob.title} onClose={() => setResourceJob(null)} />}
       {dispatch&&<DispatchJobDialog business={business} job={dispatch} onClose={()=>setDispatch(null)} onSaved={()=>{setNotice('Schedule and crew saved. Confirm any change with your customer.');void refresh()}}/>}
-      {showForm && <div className="modal-backdrop" onMouseDown={() => setShowForm(false)}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="modal-head"><div><p className="eyebrow">New job</p><h2>Create a job</h2></div><button className="icon-button" onClick={() => setShowForm(false)}>×</button></div>
+      {showForm && <FormDialog label="Create a job" busy={busy} onClose={() => setShowForm(false)}>
+        <div className="modal-head"><div><p className="eyebrow">New job</p><h2>Create a job</h2></div><button className="icon-button" onClick={() => setShowForm(false)} aria-label="Close" type="button">×</button></div>
         <form className="form-grid" onSubmit={submit}>
           <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value, property_id: '' })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{[customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company}</option>)}</select></label>
+          <QuickCustomer businessId={business.id} onCreated={customer=>{setCustomers(value=>[...value,customer]);setForm(value=>({...value,customer_id:customer.id,property_id:''}))}}/>
           <CustomerPropertySelect businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
           <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace water heater" required /></label>
           <label className="full">Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
@@ -148,7 +152,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           {form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label><fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset></>}{error && <p className="form-message error-text full">{error}</p>}
           <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy||!!form.scheduled_start&&!newCrew.length}>{busy ? 'Saving…' : 'Save job'}</button></div>
         </form>
-      </section></div>}
+      </FormDialog>}
     </div>
   )
 }

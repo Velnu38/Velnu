@@ -1,3 +1,4 @@
+import FormDialog from '../components/FormDialog'
 import DocumentChangeOrderButton from '../components/DocumentChangeOrderButton'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
@@ -64,6 +65,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [defaultTax, setDefaultTax] = useState(0)
   const [defaultsReady,setDefaultsReady] = useState(false)
   useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setDefaultPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDocumentPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
+  const quickCreate=useRef(new URLSearchParams(window.location.search).get('new')==='1')
+  useEffect(()=>{if(defaultsReady&&quickCreate.current&&canManageFinances(business.role)){quickCreate.current=false;resetForm();setShowForm(true);const url=new URL(location.href);url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[defaultsReady,business.role])
   const newLine = (): Line => ({...blankLine(),tax_rate:String(defaultTax)})
   const [lines, setLines] = useState<Line[]>([blankLine()])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
@@ -72,6 +75,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     const [estimateRows, customerRows] = await Promise.all([listEstimates(business.id), listCustomers(business.id)])
     setEstimates(estimateRows as Estimate[])
     setCustomers(customerRows as Customer[])
+    return estimateRows as Estimate[]
   }
 
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates')) }, [business.id])
@@ -111,7 +115,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       const payments=isPrimaryOwner(business)?documentPayments:{}
       const signature = JSON.stringify({ issueDate, customer, payments, propertyId, expiresOn, notes, customerTerms, lines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
-      await createEstimate(business.id, { request_id: retryRef.current.requestId,
+      const created = await createEstimate(business.id, { request_id: retryRef.current.requestId,
         ...customer,...payments,
         property_id: propertyId || undefined,
         issue_date: issueDate,
@@ -125,7 +129,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           tax_rate: Number(line.tax_rate || 0),
         })),
       })
-      resetForm(); setShowForm(false); await refresh()
+      resetForm(); setShowForm(false); const rows=await refresh(); const saved=rows.find(row=>row.id===created.id); if(saved)await openPreview(saved)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create estimate')
     } finally { saving.current=false;setBusy(false) }
@@ -178,9 +182,9 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     if (!convertTarget) return
     setBusy(true); setError(''); setNotice('')
     try {
-      await convertEstimateToInvoice(convertTarget.id, convertDueDate || undefined)
+      const invoiceId = await convertEstimateToInvoice(convertTarget.id, convertDueDate || undefined)
       setConvertTarget(null); setConvertDueDate('')
-      await refresh()
+      window.history.pushState({finviantIndex:(Number(history.state?.finviantIndex)||0)+1},'', '/?view=invoices&document='+encodeURIComponent(invoiceId));window.dispatchEvent(new PopStateEvent('popstate'))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to convert estimate')
     } finally { setBusy(false) }
@@ -193,6 +197,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       const items = await listEstimateItems(business.id, target.id)
       setPreviewItems(items as PreviewItem[])
       setPreviewTarget(target)
+      history.replaceState(history.state,'','/?view=estimates&document='+encodeURIComponent(target.id))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load the estimate preview.')
     } finally { setPreviewBusy(false) }
@@ -233,35 +238,35 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     </section>
     {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
     {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} onClose={() => setResourceEstimate(null)} />}
-    {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
+    {showForm && <FormDialog label="Create an estimate" busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
+      <div className="modal-head"><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} disabled={busy}/><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Expires on<input type="date" min={issueDate} value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
         <div className="full"><CustomerPropertySelect businessId={business.id} customerId={customerId} value={propertyId} onChange={setPropertyId} disabled={busy}/></div>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 14 days. A deposit is due before work begins." /></label></div>
-        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
+        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))} aria-label="Remove line item">×</button></div>)}</div>
         <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create estimate'}</button></div>
       </form>
-    </section></div>}
-    {convertTarget && <div className="modal-backdrop" onMouseDown={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}><section className="modal conversion-modal" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>×</button></div>
+    </FormDialog>}
+    {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
+      <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
       <div className="conversion-summary"><span>{convertTarget.estimate_number || 'Estimate'}</span><strong>${Number(convertTarget.total).toFixed(2)}</strong><p>{customerName(convertTarget.customers?.[0])}</p></div>
       <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">Finviant Office will copy every line item and tax rate into a new draft invoice. The database recalculates the final invoice total.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Create invoice'}</button></div></form>
-    </section></div>}
+    </FormDialog>}
 
 
-    {previewTarget && <div className="modal-backdrop estimate-preview-backdrop" onMouseDown={() => setPreviewTarget(null)}>
+    {previewTarget && <div className="modal-backdrop estimate-preview-backdrop" onMouseDown={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}}>
       <section className="estimate-preview-modal" role="dialog" aria-modal="true" aria-label="Estimate preview" onMouseDown={event => event.stopPropagation()}>
         <div className="modal-head">
           <div><p className="eyebrow">Customer-facing document</p><h2>Estimate preview</h2></div>
-          <button className="icon-button" onClick={() => setPreviewTarget(null)} aria-label="Close preview">×</button>
+          <button className="icon-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} aria-label="Close preview" type="button">×</button>
         </div>
         <div className="modal-actions">
           {offersDocumentChangeOrders('estimate', previewTarget.status)&&<DocumentChangeOrderButton business={business} kind="estimate" id={previewTarget.id} onClick={()=>setShowChangeOrders(true)}/>}
           <button type="button" className="secondary-button" onClick={() => window.print()}>Print / Save PDF</button>
-          <button type="button" className="secondary-button" onClick={() => setPreviewTarget(null)}>Close</button>
+          <button type="button" className="secondary-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}}>Close</button>
         </div>
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
         <article className="estimate-preview-document print-document">

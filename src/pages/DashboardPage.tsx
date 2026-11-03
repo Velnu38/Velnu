@@ -97,6 +97,7 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
   const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount + (workflowCount ?? 0)
 
   return <div className="page-stack dashboard-page">
+    <nav className="workspace-quick-actions" aria-label="Create work">{canAccess(business,'billing')&&<><a className="primary-button" href="/?view=invoices&new=1">+ New invoice</a><a className="secondary-button" href="/?view=estimates&new=1">+ New estimate</a></>}{canAccess(business,'jobs')&&business.role!=='viewer'&&<a className="secondary-button" href="/?view=work&new=1">+ New job</a>}</nav>
     <div className="page-heading split-heading">
       <div><p className="eyebrow">{business.name} · Today</p><h1 aria-live="polite">{loading || error || workflowCount === null ? 'Your day, organized.' : attentionCount ? `${attentionCount} item${attentionCount === 1 ? ' needs' : 's need'} your attention.` : 'Your office is caught up.'}</h1></div>
       <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>

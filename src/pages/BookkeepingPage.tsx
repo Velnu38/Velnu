@@ -1,3 +1,4 @@
+import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { CurrentBusiness } from '../lib/business'
@@ -256,8 +257,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <td>{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
         </tr>)}</tbody></table></div>}
     </section>
-    {newEntry && <div className="modal-backdrop" onMouseDown={() => { if (!busy) setNewEntry(false) }}>
-      <section className="modal bookkeeping-modal" role="dialog" aria-modal="true" aria-label="Add workbook entry" onMouseDown={e => e.stopPropagation()}>
+    {newEntry && <FormDialog label="Add income or expense" busy={busy} onClose={() => { if (!busy) setNewEntry(false) }}>
         <div className="modal-head"><div><p className="eyebrow">Manual bookkeeping</p><h2>Add income or expense</h2></div>
           <button type="button" className="icon-button" disabled={busy} onClick={() => setNewEntry(false)} aria-label="Close form">×</button></div>
         <p className="quiet">Use manual income only for money that isn't already recorded against a Finviant Office invoice.</p>
@@ -276,7 +276,6 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <div className="bookkeeping-entry-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={() => setNewEntry(false)}>Cancel</button>
             <button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save entry'}</button></div>
         </form>
-      </section>
-    </div>}
+      </FormDialog>}
   </div>
 }

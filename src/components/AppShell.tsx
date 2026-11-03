@@ -1,5 +1,5 @@
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
-import { lazy, Suspense, useState, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useEffect, useRef, type MouseEvent } from 'react'
 import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
 import { supabase } from '../lib/supabase'
 import WorkspaceBack, { WorkspaceNavigation } from './WorkspaceBack'
@@ -81,7 +81,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   const navigationIndex = useRef(0)
   useEffect(() => {
     window.history.replaceState({...window.history.state,finviantIndex:0},'',window.location.href)
-    const pop=()=>{navigationIndex.current=Number(window.history.state?.finviantIndex)||0;setView(initialView());setShowMobileMore(false)}
+    const pop=()=>{navigationIndex.current=Number(window.history.state?.finviantIndex)||0;setView(initialView());setRefreshVersion(v=>v+1);setShowMobileMore(false)}
     window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)
   },[])
   function back() {
@@ -94,6 +94,17 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     window.history.pushState({finviantIndex:navigationIndex.current},'','/?view='+next)
     setView(next)
     setShowMobileMore(false)
+  }
+
+  function openAppLink(event: MouseEvent) {
+    if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return
+    const link=(event.target as Element).closest('a[href]')
+    if(!(link instanceof HTMLAnchorElement)||link.target||link.hasAttribute('download'))return
+    const url=new URL(link.href)
+    if(url.origin!==location.origin||url.pathname!=='/'||!nav.some(item=>item.id===url.searchParams.get('view')))return
+    event.preventDefault();navigationIndex.current++
+    window.history.pushState({finviantIndex:navigationIndex.current},'',url.pathname+url.search)
+    setView(initialView());setRefreshVersion(v=>v+1);setShowMobileMore(false)
   }
 
   function page() {
@@ -114,7 +125,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   return (
-    <WorkspaceNavigation.Provider value={back}><div className="app-shell">
+    <WorkspaceNavigation.Provider value={back}><div className="app-shell" onClick={openAppLink}>
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><span>Finviant <span className="finviant-product">Office</span></span></div>
         <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
@@ -134,7 +145,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       </nav>
       {showMobileMore && <div className="mobile-more-backdrop" onMouseDown={() => setShowMobileMore(false)}><section className="mobile-more-sheet" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mobile-more-handle" />
-        <div className="mobile-more-head"><div><p className="eyebrow">Finviant Office</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)}>×</button></div>
+        <div className="mobile-more-head"><div><p className="eyebrow">Finviant Office</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)} type="button" aria-label="Close">×</button></div>
         <div className="mobile-more-grid">{mobileMore.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon" aria-hidden="true">{item.icon}</span><strong>{item.label}</strong></button>

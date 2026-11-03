@@ -1,3 +1,4 @@
+import FormDialog from './FormDialog'
 import { FormEvent, useEffect, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { getCustomerDetail } from '../services/customerDetail'
@@ -63,7 +64,7 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
       <article className="detail-card"><div className="detail-card-head"><div><p className="eyebrow">Billing</p><h2>Invoices</h2></div></div>{detail.invoices.length===0?<p className="quiet">No invoices yet.</p>:<div className="history-list">{detail.invoices.map((invoice)=><div className="history-row compact-history" key={invoice.id}><div className="row-main"><strong>{invoice.invoice_number||'Invoice'}</strong><span>{invoice.status} · ${Number(invoice.balance_due).toFixed(2)} due</span></div><strong>${Number(invoice.total).toFixed(2)}</strong></div>)}</div>}</article>
     </section>
 
-    {showProperty&&<div className="modal-backdrop" onMouseDown={()=>setShowProperty(false)}><section className="modal" onMouseDown={(e)=>e.stopPropagation()}><div className="modal-head"><div><p className="eyebrow">Property</p><h2>Add service location</h2></div><button className="icon-button" onClick={()=>setShowProperty(false)}>×</button></div><form className="form-grid" onSubmit={addProperty}>
+    {showProperty&&<FormDialog label="Add service location" busy={busy} onClose={()=>setShowProperty(false)}><div className="modal-head"><div><p className="eyebrow">Property</p><h2>Add service location</h2></div><button className="icon-button" onClick={()=>setShowProperty(false)} aria-label="Close" type="button">×</button></div><form className="form-grid" onSubmit={addProperty}>
       <label className="full">Label<input value={property.label} onChange={(e)=>setProperty({...property,label:e.target.value})} placeholder="Home, Rental, Shop…"/></label>
       <label className="full">Street address<input value={property.address_line1} onChange={(e)=>setProperty({...property,address_line1:e.target.value})} required/></label>
       <label className="full">Address line 2<input value={property.address_line2} onChange={(e)=>setProperty({...property,address_line2:e.target.value})}/></label>
@@ -73,6 +74,6 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
       <label className="full">Access notes<textarea value={property.access_notes} onChange={(e)=>setProperty({...property,access_notes:e.target.value})} placeholder="Gate code, parking, lockbox…"/></label>
       {error&&<p className="form-message error-text full">{error}</p>}
       <div className="modal-actions full"><button type="button" className="secondary-button" onClick={()=>setShowProperty(false)}>Cancel</button><button className="primary-button" disabled={busy}>{busy?'Saving…':'Add property'}</button></div>
-    </form></section></div>}
+    </form></FormDialog>}
   </div>
 }
