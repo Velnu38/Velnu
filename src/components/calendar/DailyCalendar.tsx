@@ -1,9 +1,11 @@
+import ConnectedCalendarEvents from './ConnectedCalendarEvents'
+import type { ConnectedAgenda } from '../../lib/calendarTypes'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { lazy,Suspense } from 'react'
 import { DateTime } from 'luxon'
 import type { CurrentBusiness } from '../../lib/business'
-import { calendarRange, workOnDay, type CalendarView } from '../../lib/calendarView'
-import { loadCalendarRange } from '../../services/calendar'
+import { calendarRange, workOnDay, remindersOnDay, connectedOnDay, type CalendarView } from '../../lib/calendarView'
+import { loadCalendarRange, loadConnectedCalendarRange } from '../../services/calendar'
 import { completeWorkReminder } from '../../services/reminders'
 import { getScheduleTeam, type Worker } from '../../services/schedulingWorkflow'
 
@@ -22,8 +24,9 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
-  const [showAllWork, setShowAllWork] = useState(false)
-  const [showAllReminders, setShowAllReminders] = useState(false)
+  const [connectedResult, setConnectedResult] = useState<{key:string;agenda:ConnectedAgenda}|null>(null)
+  const [connectedError, setConnectedError] = useState('')
+  const [connectedLoading, setConnectedLoading] = useState(true)
   const [team,setTeam]=useState<Worker[]>([]),[worker,setWorker]=useState('all')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(value=>{if(!active)return;setTeam(value);if(business.role==='technician')setWorker(value.find(item=>item.is_you)?.id || 'all')}).catch(()=>{});return()=>{active=false}},[business.id,business.role])
   const [entry,setEntry]=useState<{day:string;id?:string}|null>(null)
@@ -34,6 +37,7 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const from = range.start.toISODate()!, to = range.end.toISODate()!
   const key = [business.id, business.role, business.access_modules?.join(','), zone, from, to].join(':')
   const agenda = result?.key === key ? result.agenda : null
+  const connected = connectedResult?.key === key ? connectedResult.agenda : null
   useEffect(() => {
     const refresh = () => {
       if (document.hidden) return
@@ -57,11 +61,18 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [key, business.id, from, to, zone, version, refreshVersion])
-  useEffect(() => { setShowAllWork(false); setShowAllReminders(false) }, [day])
+  useEffect(() => {
+    let active = true
+    setConnectedLoading(true); setConnectedError('')
+    void loadConnectedCalendarRange(business.id, from, to, zone).then(agenda => { if (active) setConnectedResult({key, agenda}) })
+      .catch(error => { if (active) { setConnectedResult(null); setConnectedError(error.message || 'Unable to load connected calendar events.') } })
+      .finally(() => { if (active) setConnectedLoading(false) })
+    return () => { active = false }
+  }, [key, business.id, from, to, zone, version, refreshVersion])
   const workByDay = useMemo(() => new Map(range.days.map(date => [date.toISODate()!, workOnDay((agenda?.work ?? []).filter(item=>worker==='all'||item.assigned_user_ids?.includes(worker)), date.toISODate()!, zone)])), [agenda, from, to, zone,worker])
   const work = workByDay.get(day) ?? []
-  const dueBefore = selected.plus({ days: 1 }).startOf('day').toMillis()
-  const reminders = agenda?.reminders.filter(item => DateTime.fromISO(item.due_at).toMillis() < dueBefore) ?? []
+  const reminders = remindersOnDay(agenda?.reminders ?? [], day, zone)
+  const connectedEvents = connectedOnDay(connected?.events ?? [], day, zone)
   async function complete(id: string) {
     if (busy) return
     setBusy(id)
@@ -83,31 +94,34 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
       {view === 'month' && ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(label => <span className="calendar-weekday" key={label}>{label}</span>)}
       {range.days.map(date => {
         const dateKey = date.toISODate()!, items = workByDay.get(dateKey) ?? [], isSelected = day === dateKey
-        return <button key={dateKey} type="button" className={`calendar-day${date.month !== selected.month ? ' outside-month' : ''}`} aria-label={`${date.toLocaleString(DateTime.DATE_FULL)}${agenda ? `, ${items.length} scheduled ${items.length === 1 ? 'item' : 'items'}` : ''}`} aria-current={dateKey === today ? 'date' : undefined} aria-pressed={isSelected} onClick={() => {setDay(dateKey);if(business.role!=='viewer')setEntry({day:dateKey})}}>
+        const reminderCount = showReminders ? remindersOnDay(agenda?.reminders ?? [], dateKey, zone).length : 0
+        const eventCount = connectedOnDay(connected?.events ?? [], dateKey, zone).length
+        const total = items.length + reminderCount + eventCount
+        return <button key={dateKey} type="button" className={`calendar-day${date.month !== selected.month ? ' outside-month' : ''}`} aria-label={`${date.toLocaleString(DateTime.DATE_FULL)}${agenda ? `, ${items.length} scheduled ${items.length === 1 ? 'item' : 'items'}, ${reminderCount} reminders, ${eventCount} connected events` : ''}`} aria-current={dateKey === today ? 'date' : undefined} aria-pressed={isSelected} onClick={() => setDay(dateKey)}>
           {view === 'week' && <span className="calendar-weekday">{date.toFormat('ccc')}</span>}<strong>{date.day}</strong>
-          <span className="calendar-day-count" aria-hidden="true">{items.length ? <><i />{items.length}<span className="calendar-count-word"> scheduled</span></> : <i className="calendar-empty-dot" />}</span>
+          <span className="calendar-day-count" aria-hidden="true">{total ? <><i />{total}<span className="calendar-count-word"> {total === 1 ? 'item' : 'items'}</span></> : <i className="calendar-empty-dot" />}</span>
         </button>
       })}
     </div>
     {loading && !agenda && <p role="status" className="calendar-status">Loading your schedule…</p>}
     {error && <p role="alert" className="form-message error-text">{error} <button className="text-button" onClick={() => setVersion(value => value + 1)}>Retry</button></p>}
     {agenda && <div className="calendar-agenda" aria-busy={loading}>
-      <div className="calendar-agenda-date"><strong>{selected.toFormat('cccc, MMMM d')}</strong><span>{zone.replaceAll('_',' ')} · {selected.offsetNameShort}</span></div>
+      <div className="calendar-agenda-date"><strong aria-live="polite">{selected.toFormat('cccc, MMMM d')}</strong><span>{zone.replaceAll('_',' ')} · {selected.offsetNameShort}</span></div>
       <div className="calendar-agenda-columns">
         <div><div className="calendar-list-heading"><h3>Scheduled work</h3><span>{work.length}</span></div>
-          {!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{(showAllWork ? work : work.slice(0,3)).map(item => <li key={item.source_key}>
+          {!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{work.map(item => <li key={item.source_key}>
             <a onClick={event=>{if(item.job_id){event.preventDefault();setJobId(item.job_id);return}if(item.source_key.startsWith('appointment:')&&!item.job_id&&item.document_kind==='work'){event.preventDefault();setEntry({day,id:item.source_key.slice(12)})}}} className={`calendar-event ${item.document_kind}`} href={`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
-              <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small>{item.assigned_user_ids?.length?<small>Assigned: {item.assigned_user_ids.map(id=>team.find(person=>person.id===id)?.label || 'Team member').join(', ')}</small>:null}</span><span aria-hidden="true">↗</span>
+              <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small>{item.customer_name && <small>{item.customer_name}</small>}{item.address && <small className="calendar-address">{item.address}</small>}{item.description && <small className="calendar-description">{item.description}</small>}{item.assigned_user_ids?.length?<small>Assigned: {item.assigned_user_ids.map(id=>team.find(person=>person.id===id)?.label || 'Team member').join(', ')}</small>:null}</span><span aria-hidden="true">↗</span>
             </a>
           </li>)}</ul>}
-          {work.length > 3 && <button className="text-button calendar-show-more" aria-expanded={showAllWork} onClick={() => setShowAllWork(value => !value)}>{showAllWork ? 'Show fewer scheduled items' : `Show all ${work.length} scheduled items`}</button>}
         </div>
-        {showReminders && <div><div className="calendar-list-heading"><h3>To do</h3><span>{reminders.length}</span></div>
-          {!reminders.length ? <p className="calendar-empty">No pending reminders due by this day.</p> : <ul className="calendar-reminders">{(showAllReminders ? reminders : reminders.slice(0,3)).map(item => <li key={item.id}><div><strong>{item.note || 'Follow up'}</strong><span>{DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span></div>{business.role !== 'viewer' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : '✓'}</button>}</li>)}</ul>}
-          {reminders.length > 3 && <button className="text-button calendar-show-more" aria-expanded={showAllReminders} onClick={() => setShowAllReminders(value => !value)}>{showAllReminders ? 'Show fewer reminders' : `Show all ${reminders.length} reminders`}</button>}
+        {showReminders && <div><div className="calendar-list-heading"><h3>Reminders for this day</h3><span>{reminders.length}</span></div>
+          {!reminders.length ? <p className="calendar-empty">No reminders for this day.</p> : <ul className="calendar-reminders">{reminders.map(item => <li key={item.id} className={item.status === 'completed' ? 'completed' : undefined}><div><strong>{item.note || 'Follow up'}</strong><span>{item.status === 'completed' ? 'Completed · ' : DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span></div>{business.role !== 'viewer' && item.status !== 'completed' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : '✓'}</button>}</li>)}</ul>}
         </div>}
       </div>
+      {agenda.detailsUnavailable && <p role="status">Some job details could not be loaded. Open a job to try again.</p>}
     </div>}
+    <ConnectedCalendarEvents events={connectedEvents} issues={connected?.issues ?? []} connections={connected?.connections ?? 0} loading={connectedLoading && !connected} error={connectedError} zone={zone} onRetry={()=>setVersion(value=>value+1)}/>
     {jobId&&<Suspense fallback={<p role="status">Opening job…</p>}><JobDetailsDialog business={business} jobId={jobId} onClose={()=>setJobId(null)}/></Suspense>}
     {entry&&<Suspense fallback={<p role="status">Opening calendar entry…</p>}><CalendarEntryDialog business={business} day={entry.day} entryId={entry.id} onClose={()=>setEntry(null)} onSaved={()=>setVersion(v=>v+1)}/></Suspense>}
   </section>

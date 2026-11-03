@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import type { AgendaWork } from './calendarTypes.js'
+import type { AgendaWork, AgendaReminder, ConnectedEvent } from './calendarTypes.js'
 export type CalendarView = 'week' | 'month'
 
 /** Local calendar arithmetic keeps week/month boundaries correct across DST. */
@@ -17,4 +17,15 @@ export function workOnDay(work: AgendaWork[], day: string, zone: string) {
     const start = DateTime.fromISO(item.starts_at).toMillis()
     return start < to && (item.ends_at ? DateTime.fromISO(item.ends_at).toMillis() > from : start >= from)
   }).sort((a, b) => a.starts_at.localeCompare(b.starts_at) || a.source_key.localeCompare(b.source_key))
+}
+
+export function remindersOnDay(reminders: AgendaReminder[], day: string, zone: string) {
+  return reminders.filter(item => DateTime.fromISO(item.due_at).setZone(zone).toISODate() === day)
+}
+export function connectedOnDay(events: ConnectedEvent[], day: string, zone: string) {
+  const from = DateTime.fromISO(day, { zone }).startOf('day'), to = from.plus({ days: 1 })
+  return events.filter(item => item.all_day && item.start_date && item.end_date
+    ? item.start_date <= day && item.end_date > day
+    : DateTime.fromISO(item.starts_at) < to && DateTime.fromISO(item.ends_at) > from)
+    .sort((a, b) => Number(b.all_day) - Number(a.all_day) || a.starts_at.localeCompare(b.starts_at) || a.id.localeCompare(b.id))
 }

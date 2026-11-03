@@ -57,7 +57,7 @@ test('crew calendar sync includes secondary workers, removes reassigned work, an
  await db.query("insert into appointments(id,business_id,job_id,title,starts_at,ends_at,status,assigned_user_id) values('88888888-8888-4888-8888-888888888888',$1,$2,'Work','2026-11-02T15:00Z','2026-11-02T16:00Z','scheduled',$3)",[b,j,lead])
  await db.exec("update business_members set role='technician'")
  const events:any[]=[];let deletes=0
- const svc:CalendarService={calendars:async()=>[],upsert:async(_id,_remote,event)=>{events.push(event);return 'remote-crew-event'},remove:async()=>{deletes++}}
+ const svc:CalendarService={calendars:async()=>[],events:async()=>[],upsert:async(_id,_remote,event)=>{events.push(event);return 'remote-crew-event'},remove:async()=>{deletes++}}
  await runSyncBatch(runtime(db,svc))
  assert.equal(events.length,1);assert.match(events[0].description,new RegExp('view=work&document='+j))
  await db.query('update jobs set assigned_user_ids=$1 where id=$2',[[lead],j])
@@ -71,6 +71,7 @@ test("worker reconciles once, skips duplicates, reschedules, cancels and disconn
       deletes = 0;
     const svc: CalendarService = {
       calendars: async () => [],
+      events: async () => [],
       upsert: async () => {
         creates++;
         return "remote-id";
@@ -115,6 +116,7 @@ test("rate limits retry later; revoked authorization stops retry storm", async (
     let reason = "rate";
     const svc: CalendarService = {
       calendars: async () => [],
+      events: async () => [],
       upsert: async () => {
         throw reason === "rate"
           ? new CalendarError("provider_rate_limited", true, 120, 429)
@@ -160,6 +162,7 @@ test("removed membership causes remote cleanup; incomplete schedules remove stal
     let deletes = 0;
     const svc: CalendarService = {
       calendars: async () => [],
+      events: async () => [],
       upsert: async () => "remote-id",
       remove: async () => {
         deletes++;

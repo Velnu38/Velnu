@@ -209,3 +209,13 @@
 @media(prefers-reduced-motion:reduce) {
   .dashboard-page *, .dashboard-page *::before, .dashboard-page *::after { animation: none!important; transition: none!important; scroll-behavior: auto!important; }
 }
+
+.calendar-connected { margin-top: 0; padding: 18px 24px 24px; border-top: 1px solid #e2e8f0; }
+.calendar-description { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; font-size: 12px; line-height: 1.6; }
+.calendar-event .calendar-address { font-weight: 600; }
+.calendar-event.connected { align-items: flex-start; }
+.calendar-event.connected > span { min-width: 0; flex: 1; }
+.calendar-event.connected .text-button { display: inline-block; margin-top: 8px; }
+
+.calendar-reminders li.completed span { color: #56677b; }
+@media(max-width:650px) { .calendar-connected { padding-inline: 16px; } }

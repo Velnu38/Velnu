@@ -33,3 +33,24 @@ test('financial periods cross years and daily buckets include leap day; cents re
   assert.equal(days.length,29);assert.equal(days.at(-1)?.income,.3)
   for (const n of [3,6,12] as const) assert.equal(financialBuckets(rows,n,'2028-02-29',zone).length,n)
 })
+
+test('selected-day reminders respect local midnight and keep completed records on their date', async () => {
+  const { remindersOnDay } = await import('../../src/lib/calendarView.js')
+  const reminders = [
+    {id:'before',note:'Yesterday',due_at:'2026-11-02T04:59:59Z',job_id:null},
+    {id:'first',note:'Midnight',due_at:'2026-11-02T05:00:00Z',job_id:null},
+    {id:'done',note:'Completed',due_at:'2026-11-03T04:59:59Z',job_id:null,status:'completed'},
+    {id:'next',note:'Tomorrow',due_at:'2026-11-03T05:00:00Z',job_id:null},
+  ]
+  assert.deepEqual(remindersOnDay(reminders,'2026-11-02',zone).map(item=>item.id),['first','done'])
+})
+test('connected events preserve floating all-day dates and overnight events without an end-date duplicate', async () => {
+  const { connectedOnDay } = await import('../../src/lib/calendarView.js')
+  const base = {title:'Event',description:'',location:'',provider:'google' as const,email:'qa@example.test',calendar_name:'Work',url:null}
+  const items = [
+    {...base,id:'all-day',starts_at:'2026-11-01T00:00:00Z',ends_at:'2026-11-03T00:00:00Z',all_day:true,start_date:'2026-11-01',end_date:'2026-11-03'},
+    {...base,id:'overnight',starts_at:'2026-11-02T04:00:00Z',ends_at:'2026-11-02T06:00:00Z',all_day:false},
+  ]
+  assert.deepEqual(connectedOnDay(items,'2026-11-02',zone).map(item=>item.id),['all-day','overnight'])
+  assert.equal(connectedOnDay(items,'2026-11-03',zone).length,0)
+})

@@ -1,3 +1,4 @@
+import { connectedAgenda, externalRange } from './external.js';
 import { randomUUID } from "node:crypto";
 import { CodeChallengeMethod } from "google-auth-library";
 import { actor, body, checkOrigin, errorResponse, json, uuid } from "./http.js";
@@ -265,6 +266,8 @@ export async function calendarApi(req: Request): Promise<Response> {
           ).rows,
         }),
       );
+    if (action === 'events' && req.method === 'GET')
+      return json(await connectedAgenda(bid, user.id, externalRange(input.startDay, input.endDay, input.timezone)));
     const id = uuid(input.integrationId);
     return await transaction(async (db) => {
       const integration = (

@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+import type { ProviderEvent } from '../../src/lib/calendarTypes.js';
 import { Client, RetryHandlerOptions } from "@microsoft/microsoft-graph-client";
 import {
   ConfidentialClientApplication,
@@ -145,6 +147,30 @@ export class OutlookCalendarService implements CalendarService {
     return calendarId === "primary"
       ? "/me/events"
       : `/me/calendars/${encodeURIComponent(calendarId)}/events`;
+  }
+  async events(calendarId: string, from: string, to: string, timezone: string): Promise<ProviderEvent[]> {
+    const collection = calendarId === 'primary' ? '/me/calendar/calendarView' : `/me/calendars/${encodeURIComponent(calendarId)}/calendarView`;
+    const query = new URLSearchParams({ startDateTime: from, endDateTime: to, '$top': '1000', '$expand': `singleValueExtendedProperties($filter=id eq '${propertyId}')` });
+    let path: string | undefined = `${collection}?${query}`;
+    const seen = new Set<string>(), events: ProviderEvent[] = [];
+    try {
+      do {
+        const page = await this.request(path).header('Prefer', `IdType="ImmutableId", outlook.timezone="${timezone}", outlook.body-content-type="text"`).get();
+        for (const item of page.value || []) {
+          if (!item.id || item.isCancelled || item.singleValueExtendedProperties?.some((p: { id: string }) => p.id === propertyId)) continue;
+          const start = DateTime.fromISO(item.start?.dateTime || '', { zone: timezone }), end = DateTime.fromISO(item.end?.dateTime || '', { zone: timezone });
+          if (!start.isValid || !end.isValid) continue;
+          events.push({ id: item.id, title: item.subject || 'Untitled event', description: item.body?.content || item.bodyPreview || '', location: item.location?.displayName || '', starts_at: start.toISO()!, ends_at: end.toISO()!, all_day: !!item.isAllDay, ...(item.isAllDay ? { start_date: start.toISODate()!, end_date: end.toISODate()! } : {}), url: item.webLink || null });
+        }
+        const next = page['@odata.nextLink'] as string | undefined;
+        if (next) {
+          const url = new URL(next);
+          if (url.origin !== 'https://graph.microsoft.com' || url.pathname !== `/v1.0${collection}` || seen.has(next) || seen.size >= 10) throw new CalendarError('invalid_provider_pagination');
+          seen.add(next); path = url.pathname.slice(5) + url.search;
+        } else path = undefined;
+      } while (path);
+      return events;
+    } catch (error) { throw classify(error); }
   }
   async upsert(
     calendarId: string,

@@ -86,9 +86,9 @@ for(const kind of ['invoice','estimate'])test(`${kind} change order automaticall
 test('completed work has no new change-order action',async({page})=>{
  await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.locator('.invoice-open').first().click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Change order',exact:true})).toHaveCount(0)
 })
-for(const width of [1440,390])test(`click a calendar date and save a manual event at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`select a calendar date then use Add entry to save a manual event at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'});await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
- const date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first();await date.click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await expect(dialog).toBeVisible();await dialog.getByLabel('Title',{exact:true}).fill('Pick up materials');await dialog.getByLabel('Details',{exact:true}).fill('Collect the order before the job');await expect(dialog.getByRole('button',{name:'Use OpenAI assistant'})).toBeDisabled()
+ const date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first();await date.click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await expect(dialog).toHaveCount(0);await calendar.getByRole('button',{name:'+ Add entry',exact:true}).click();await expect(dialog).toBeVisible();await dialog.getByLabel('Title',{exact:true}).fill('Pick up materials');await dialog.getByLabel('Details',{exact:true}).fill('Collect the order before the job');await expect(dialog.getByRole('button',{name:'Use OpenAI assistant'})).toBeDisabled()
  await dialog.getByRole('button',{name:'Add event',exact:true}).click();await expect.poll(()=>state.entries.length).toBe(1);expect(state.entries[0].notes).toBe('Collect the order before the job');expect(state.entries[0].assigned_user_id).toBe(U);await expect(dialog).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
@@ -103,3 +103,55 @@ for(const width of [1440,390])test(`owner reviews phone contact cards before imp
  expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
 })
 test('non-owner cannot see bulk phone contact import',async({page})=>{await mock(page,{owner:false});await page.goto('/?view=customers');await expect(page.getByRole('button',{name:'Import contacts',exact:true})).toHaveCount(0)})
+
+for(const width of [1440,390])test(`selected-day agenda shows every job, local reminders, and connected events at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1050});await mock(page)
+ const day=DateTime.now().setZone(zone).startOf('day'),tomorrow=day.plus({days:1})
+ let notes='Bring cedar boards, screws, and the approved plan',externalCalls=0,trackingRequests=0
+ await page.route('https://calendar-tracker.invalid/**',route=>{trackingRequests++;return route.abort()})
+ const jobs=Array.from({length:5},(_,n)=>({source_key:'job:day-'+n,title:'Day job '+n,job_id:J,starts_at:day.plus({hours:9+n}).toISO(),ends_at:day.plus({hours:10+n}).toISO(),status:'scheduled',document_kind:'work',document_id:J,assigned_user_ids:[U]}))
+ jobs.push({source_key:'job:tomorrow',title:'Tomorrow job',job_id:J,starts_at:tomorrow.plus({hours:9}).toISO(),ends_at:tomorrow.plus({hours:10}).toISO(),status:'scheduled',document_kind:'work',document_id:J,assigned_user_ids:[U]})
+ const reminders=[{id:'r1',note:'Order cedar',due_at:day.plus({hours:8}).toISO(),job_id:null,status:'pending'},{id:'r2',note:'Confirm access',due_at:day.plus({hours:10}).toISO(),job_id:null,status:'completed'},{id:'r3',note:'Previous-day reminder',due_at:day.minus({minutes:1}).toISO(),job_id:null,status:'pending'},{id:'r4',note:'Next-day reminder',due_at:tomorrow.toISO(),job_id:null,status:'pending'}]
+ const base={provider:'google',email:'owner.other@example.test',calendar_name:'Personal',description:'<img src="https://calendar-tracker.invalid/pixel" onerror="window.calendarInjected=true"><script>window.calendarInjected=true</script><p>Bring the sample finishes</p>',location:'22 Harbor Road',url:'https://calendar.google.com/calendar/event?eid=qa',all_day:false}
+ const events=[{...base,id:'external',title:'Supplier appointment',starts_at:day.plus({hours:16}).toISO(),ends_at:day.plus({hours:17}).toISO()},{...base,id:'outlook',provider:'outlook',title:'Outlook delivery',starts_at:day.plus({hours:14}).toISO(),ends_at:day.plus({hours:15}).toISO(),url:'https://outlook.office.com/calendar/item/qa'},{...base,id:'all-day',title:'Trade show',all_day:true,start_date:day.toISODate(),end_date:tomorrow.toISODate(),starts_at:day.toISO(),ends_at:tomorrow.toISO()},{...base,id:'tomorrow',title:'Tomorrow external meeting',starts_at:tomorrow.plus({hours:12}).toISO(),ends_at:tomorrow.plus({hours:13}).toISO()}]
+ const reply=(route,value)=>route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':Array.isArray(value)?`0-${Math.max(0,value.length-1)}/${value.length}`:'0-0/0'},body:JSON.stringify(value)})
+ await page.route('**/rest/v1/calendar_work?**',route=>reply(route,jobs))
+ await page.route('**/rest/v1/reminders?**',route=>{if(route.request().method()==='PATCH'){const r=reminders.find(row=>new URL(route.request().url()).searchParams.get('id')==='eq.'+row.id);r.status='completed';return reply(route,{id:r.id})}return reply(route,reminders)})
+ await page.route('**/rest/v1/jobs?**',route=>{if(route.request().method()==='PATCH'){notes=route.request().postDataJSON().description;return reply(route,{id:J})}const job={id:J,title:'Day job 0',description:notes,status:'scheduled',scheduled_start:jobs[0].starts_at,scheduled_end:jobs[0].ends_at,assigned_user_ids:[U],customers:customer,properties:[{address_line1:'1 Test Street',city:'Chesapeake',state:'VA',postal_code:'23322'}]};return reply(route,route.request().headers().accept?.includes('vnd.pgrst.object')?job:[job])})
+ await page.route('**/api/calendar?**',route=>{externalCalls++;return reply(route,{events,issues:[],connections:2})})
+ await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'})
+ await expect(calendar.locator('a.calendar-event')).toHaveCount(5)
+ await expect(calendar).toContainText('1 Test Street, Chesapeake, VA 23322');await expect(calendar).toContainText(notes)
+ await expect(calendar.getByText('Order cedar',{exact:true})).toBeVisible();await expect(calendar.getByText('Confirm access',{exact:true})).toBeVisible()
+ await expect(calendar.getByRole('button',{name:'Complete Confirm access'})).toHaveCount(0)
+ await expect(calendar.getByText('Previous-day reminder',{exact:true})).toHaveCount(0);await expect(calendar.getByText('Next-day reminder',{exact:true})).toHaveCount(0)
+ await expect(calendar.getByText('Supplier appointment',{exact:true})).toBeVisible();await expect(calendar.getByText('Outlook delivery',{exact:true})).toBeVisible();await expect(calendar.getByText('Trade show',{exact:true})).toBeVisible()
+ await expect(calendar).toContainText('22 Harbor Road');await expect(calendar).toContainText('owner.other@example.test');await expect(calendar.getByText('Tomorrow external meeting',{exact:true})).toHaveCount(0)
+ await calendar.getByRole('button',{name:'Complete Order cedar',exact:true}).click();await expect(calendar.getByRole('button',{name:'Complete Order cedar',exact:true})).toHaveCount(0)
+ await calendar.locator('a.calendar-event').first().click();const dialog=page.getByRole('dialog',{name:'Job details'});await expect(dialog).toContainText('1 Test Street');await dialog.getByLabel('Job notes and materials needed').fill('Bring the updated material list');await dialog.getByRole('button',{name:'Save job details'}).click();await expect(dialog.getByRole('status')).toContainText('Job details saved');await dialog.getByRole('button',{name:'Close',exact:true}).click();await expect(calendar).toContainText('Bring the updated material list')
+ await calendar.getByRole('button',{name:'Month',exact:true}).click();await expect(calendar.getByText('Supplier appointment',{exact:true})).toBeVisible()
+ const before=externalCalls;await calendar.getByRole('button',{name:new RegExp(tomorrow.toLocaleString(DateTime.DATE_FULL))}).click()
+ await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.locator('a.calendar-event')).toHaveCount(1);await expect(calendar.getByText('Tomorrow job',{exact:true})).toBeVisible();await expect(calendar.getByText('Next-day reminder',{exact:true})).toBeVisible();await expect(calendar.getByText('Tomorrow external meeting',{exact:true})).toBeVisible();await expect(calendar.getByText('Trade show',{exact:true})).toHaveCount(0);await expect(calendar.getByText('Order cedar',{exact:true})).toHaveCount(0)
+ expect(externalCalls).toBe(before)
+ await calendar.getByRole('button',{name:new RegExp(day.toLocaleString(DateTime.DATE_FULL))}).click();await calendar.getByRole('button',{name:'Week',exact:true}).click()
+ await expect(calendar.getByText('Supplier appointment',{exact:true})).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ expect(trackingRequests).toBe(0);expect(await page.evaluate(()=>window.calendarInjected)).toBeUndefined();await expect(calendar.getByText('Bring the sample finishes',{exact:true})).toHaveCount(3)
+ await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`test-results/selected-day-agenda-${width}.png`,fullPage:true})
+})
+test('connected calendar failure keeps local work usable and retry restores only current-day events',async({page})=>{
+ const state=await mock(page);let fail=true
+ const start=DateTime.now().setZone(zone).set({hour:9,minute:0});state.entries.push({id:J,title:'Local visit',starts_at:start.toISO(),ends_at:start.plus({hours:1}).toISO()})
+ await page.route('**/api/calendar?**',route=>route.fulfill({status:fail?503:200,contentType:'application/json',body:JSON.stringify(fail?{error:'provider_rate_limited'}:{events:[],issues:[],connections:1})}))
+ await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'})
+ await expect(calendar.getByText('Local visit',{exact:true})).toBeVisible();await expect(calendar).toContainText('Your calendar provider is busy')
+ fail=false;await calendar.getByRole('button',{name:'Retry connected calendars'}).click();await expect(calendar).toContainText('No connected-calendar events for this day.');await expect(calendar.getByText('Local visit',{exact:true})).toBeVisible()
+})
+test('viewer selects dates with the keyboard and sees that day without creation controls',async({page})=>{
+ const state=await mock(page);const start=DateTime.now().setZone(zone).startOf('week').plus({hours:9})
+ state.entries.push({id:J,title:'Read-only scheduled visit',starts_at:start.toISO(),ends_at:start.plus({hours:1}).toISO()})
+ await page.route('**/rest/v1/business_members?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({business_id:B,role:'viewer',access_modules:['calendar','jobs','billing','finances'],businesses:business})}))
+ await page.route('**/api/calendar?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({events:[],issues:[],connections:0})}))
+ await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'}),date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first()
+ await date.focus();await page.keyboard.press('Enter');await expect(date).toHaveAttribute('aria-pressed','true');await expect(calendar.getByText('Read-only scheduled visit',{exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.getByRole('button',{name:'+ Add entry'})).toHaveCount(0)
+})
