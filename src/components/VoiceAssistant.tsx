@@ -347,7 +347,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   return <>
     <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Finviant Office"><span className="mic-dot">●</span><span>Talk to Finviant Office</span></button>
     {open && <div className="assistant-backdrop" onMouseDown={() => !recording && setOpen(false)}><section className="assistant-panel" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="assistant-head"><div><p className="eyebrow">Finviant Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)}>×</button></div>
+      <div className="assistant-head"><div><p className="eyebrow">Finviant Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)} type="button" aria-label="Close">×</button></div>
       <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy || voiceMode === 'checking'}><span className="record-orb">●</span>{recording ? 'Tap to stop' : voiceMode === 'checking' ? 'Checking voice…' : busy ? 'Working…' : 'Tap and speak'}</button>
       {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
       <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your iPhone keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use iPhone keyboard microphone</button>

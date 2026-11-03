@@ -1,3 +1,4 @@
+import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
 import RecordListControls, { useRecordList } from '../components/RecordListControls'
@@ -44,6 +45,8 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const [adjustPrices,setAdjustPrices] = useState(false)
   const [defaultsReady,setDefaultsReady] = useState(false)
   useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setDefaultPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDocumentPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setPricingAdjustment(Number(d.pricing_adjustment_percent));setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
+  const quickCreate=useRef(new URLSearchParams(window.location.search).get('new')==='1')
+  useEffect(()=>{if(defaultsReady&&quickCreate.current&&canManageFinances(business.role)){quickCreate.current=false;resetForm();setShowForm(true);const url=new URL(location.href);url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[defaultsReady,business.role])
   const newLine = (): Line => ({...blankLine(),tax_rate:String(defaultTax)})
   const [lines, setLines] = useState<Line[]>([blankLine()])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
@@ -105,7 +108,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
         })),
       }
       const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,...payments}) : await createInvoice(business.id,input)
-      resetForm(); setShowForm(false); await refresh(); setSelectedInvoiceId(created.id)
+      resetForm(); setShowForm(false); await refresh(); history.replaceState(history.state,'','/?view=invoices&document='+encodeURIComponent(created.id));setSelectedInvoiceId(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create invoice')
     } finally { saving.current=false;setBusy(false) }
@@ -114,7 +117,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
 
   const recordList = useRecordList(invoices, row => [row.invoice_number, customerName(row.customers?.[0]), row.issue_date, row.status].join(' '))
 
-  if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null); refresh() }} />
+  if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);history.replaceState(history.state,'','/?view=invoices');void refresh().catch(e=>setError(e.message)) }} />
 
   return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" disabled={!defaultsReady} onClick={() => { resetForm(); setShowForm(true) }}>+ New invoice</button>}</div>
@@ -124,23 +127,23 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Create your first invoice here or tell Finviant Office what to bill.</p></div> : recordList.visible.map((invoice) => {
         const customer = invoice.customers?.[0]
         return <article className="document-row invoice-list-row" key={invoice.id}>
-          <button className="invoice-open" onClick={() => setSelectedInvoiceId(invoice.id)}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span></div></button>
+          <button className="invoice-open" onClick={() => {history.replaceState(history.state,'','/?view=invoices&document='+encodeURIComponent(invoice.id));setSelectedInvoiceId(invoice.id)}}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span></div></button>
           <div className="invoice-money"><strong className="money">${Number(invoice.balance_due).toFixed(2)}</strong><span>of ${Number(invoice.total).toFixed(2)} due</span></div>
           <span className={`status-chip ${invoice.status === 'paid' ? 'paid' : ''}`}>{invoice.status.replaceAll('_', ' ')}</span>
         </article>
       })}
     </section>
-    {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
+    {showForm && <FormDialog label="Invoices form" busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
+      <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} disabled={busy||!!sourceJob}/><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Due date<input type="date" min={issueDate} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
         {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
-        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" step="0.01" max="100" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
+        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" step="0.01" max="100" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))} aria-label="Remove line item">×</button></div>)}</div>
         {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
         <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create invoice'}</button></div>
       </form>
-    </section></div>}
+    </FormDialog>}
   </div>
 }

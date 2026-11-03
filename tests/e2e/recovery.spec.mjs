@@ -11,12 +11,12 @@ async function setup(page,options={}){
  await page.route('https://example.supabase.co/**',async route=>{
   const r=route.request(),path=new URL(r.url()).pathname,method=r.method(); let body=null; try{body=r.postDataJSON()}catch{}
   s.requests.push({path,method,body})
-  const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(value)})
+  const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(value) ? `0-${Math.max(0,value.length-1)}/${value.length}` : '0-0/1' },body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:''})
   if(path.endsWith('/user'))return json(user)
   if(path.endsWith('/user_plan_preferences'))return json({user_id:U,selected_tier:'pro'})
   if(path.endsWith('/user_agreement_acceptances'))return json({id:A,agreement_version:'2026-10-27-v3'})
-  if(path.endsWith('/business_members'))return json({role:'owner',business_id:B,businesses:{id:B,name:'Recovery Test',profile_completed_at:'2026-01-01T00:00:00Z'}})
+  if(path.endsWith('/business_members'))return json({role:'owner',business_id:B,businesses:{id:B,created_by_user_id:U,name:'Recovery Test',profile_completed_at:'2026-01-01T00:00:00Z'}})
   if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',ai_limit:50,voice_limit:50,logo_bytes_limit:131072})
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return json({open_invoices:0,outstanding_balance:0})
   if(path.endsWith('/customers'))return json([customer])
@@ -41,6 +41,7 @@ async function setup(page,options={}){
    if(options.jobLost&&s.jobAttempts===1)return json({message:'Job response lost after commit',code:'500'},500)
    return json(s.jobs[0])
   }
+  if(path.endsWith('/functions/v1/work-scheduling'))return json({error:'Unable to update linked appointment'},409)
   if(path.endsWith('/rpc/set_job_status_atomic'))return json({message:'Unable to update linked appointment',code:'23514'},409)
   return json([])
  })

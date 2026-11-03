@@ -1,6 +1,7 @@
+import FormDialog from '../components/FormDialog'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import WorkspaceBack from '../components/WorkspaceBack'
-import { FormEvent, lazy,Suspense,useEffect, useMemo, useState } from 'react'
+import { FormEvent, lazy,Suspense,useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { createCustomer, listCustomers } from '../services/customers'
 import CustomerDetail from '../components/CustomerDetail'
@@ -21,6 +22,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
   const [showForm, setShowForm] = useState(false)
   const [showImport,setShowImport]=useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+  const saving=useRef(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ first_name: '', last_name: '', company: '', phone: '', email: '' })
@@ -40,6 +42,8 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if(saving.current)return
+    saving.current=true
     setBusy(true)
     setError('')
     try {
@@ -51,6 +55,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create customer')
     } finally {
+      saving.current=false
       setBusy(false)
     }
   }
@@ -66,7 +71,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
         {isPrimaryOwner(business)&&<button type="button" className="secondary-button compact" onClick={()=>setShowImport(true)}>Import contacts</button>}
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New customer</button>}
       </div>
-      <div className="toolbar"><input className="search-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" /></div>
+      <div className="toolbar"><input className="search-input" aria-label="Search customers" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" /></div>
       <section className="list-card">
         {visible.length === 0 ? (
           <div className="empty-state"><div className="empty-icon">C</div><h2>{customers.length ? 'No matches' : 'No customers yet'}</h2><p>{customers.length ? 'Try a different search.' : 'Add your first customer or tell Finviant Office to create one.'}</p></div>
@@ -81,8 +86,8 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
         })}
       </section>
       {showImport&&<Suspense fallback={<p role="status">Opening contact import…</p>}><ContactImportDialog businessId={business.id} onClose={()=>setShowImport(false)} onImported={()=>void refresh()}/></Suspense>}
-      {showForm && <div className="modal-backdrop" onMouseDown={() => setShowForm(false)}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="modal-head"><div><p className="eyebrow">New customer</p><h2>Add a customer</h2></div><button className="icon-button" onClick={() => setShowForm(false)}>×</button></div>
+      {showForm && <FormDialog label="Add a customer" busy={busy} onClose={() => setShowForm(false)}>
+        <div className="modal-head"><div><p className="eyebrow">New customer</p><h2>Add a customer</h2></div><button className="icon-button" onClick={() => setShowForm(false)} aria-label="Close" type="button">×</button></div>
         <form onSubmit={submit} className="form-grid">
           <label>First name<input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} /></label>
           <label>Last name<input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} /></label>
@@ -92,7 +97,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
           {error && <p className="form-message error-text full">{error}</p>}
           <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save customer'}</button></div>
         </form>
-      </section></div>}
+      </FormDialog>}
     </div>
   )
 }

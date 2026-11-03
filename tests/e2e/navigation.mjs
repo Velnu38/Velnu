@@ -1,12 +1,12 @@
-/** Follow the current dashboard work-area navigation; never bypass UI via app state. */
+/** Use the dashboard entry points; legacy Schedule remains a supported deep link. */
 export async function openWorkArea(page, area) {
+  if (area === 'Schedule') { await page.goto('/?view=schedule'); return }
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
   if (area === 'Bookkeeping') {
-    await page.getByRole('button', { name: 'Open financial workbook', exact: true }).click()
-  } else if (area === 'Jobs' || area === 'Schedule') {
-    await page.getByRole('article', { name: 'Jobs and schedule overview' }).getByRole('button', { name: 'Jobs & schedule', exact: true }).click()
-    await page.getByRole('navigation', { name: 'Jobs and schedule views' }).getByRole('button', { name: area, exact: true }).click()
+    await page.getByRole('button', { name: 'Full workbook', exact: true }).click()
+  } else if (area === 'Jobs') {
+    await page.getByRole('article', { name: 'Jobs overview' }).getByRole('button', { name: 'Open jobs', exact: true }).click()
   } else {
-    await page.getByRole('button', { name: area, exact: true }).click()
+    await page.getByRole('article', { name: 'Estimates and invoices overview' }).getByRole('button', { name: area, exact: true }).click()
   }
 }

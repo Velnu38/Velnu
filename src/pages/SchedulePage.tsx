@@ -1,3 +1,4 @@
+import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
@@ -7,7 +8,8 @@ import { listAppointments, updateAppointmentStatus } from '../services/schedule'
 import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
-import { validateScheduleWindow } from '../lib/scheduleTime'
+import { localInstant } from '../lib/calendarTime'
+import { DateTime } from 'luxon'
 import { readableError } from '../lib/errors'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
@@ -20,6 +22,7 @@ function name(customer?: Customer) {
 }
 
 export default function SchedulePage({ business, embedded = false }: { business: CurrentBusiness; embedded?: boolean }) {
+  const zone=business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
   const Heading = embedded ? 'h2' : 'h1'
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -37,11 +40,11 @@ export default function SchedulePage({ business, embedded = false }: { business:
   async function refresh() {
     if (!mounted.current) return
     const request = ++currentRequest.current
-    const from = new Date(); from.setHours(0, 0, 0, 0)
-    const to = new Date(from); to.setDate(to.getDate() + 45)
+    const from = DateTime.now().setZone(zone).startOf('day')
+    const to = from.plus({days:45})
     try {
       const [rows, customerRows] = await Promise.all([
-        listAppointments(business.id, from.toISOString(), to.toISOString()),
+        listAppointments(business.id, from.toISO()!, to.toISO()!),
         listCustomers(business.id),
       ])
       if (!mounted.current || request !== currentRequest.current) return
@@ -59,12 +62,12 @@ export default function SchedulePage({ business, embedded = false }: { business:
     setCustomers([])
     void refresh()
     return () => { mounted.current = false; currentRequest.current++ }
-  }, [business.id])
+  }, [business.id,zone])
 
   const grouped = useMemo(() => {
     const groups = new Map<string, Appointment[]>()
     appointments.forEach((appointment) => {
-      const key = new Date(appointment.starts_at).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })
+      const key = new Date(appointment.starts_at).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric', timeZone:zone })
       groups.set(key, [...(groups.get(key) ?? []), appointment])
     })
     return [...groups.entries()]
@@ -80,7 +83,8 @@ export default function SchedulePage({ business, embedded = false }: { business:
     submitting.current = true
     setBusy(true); setError('')
     try {
-      const { startsAt, endsAt } = validateScheduleWindow(form.starts_at, form.ends_at)
+      const startsAt = localInstant(form.starts_at,zone), endsAt = form.ends_at ? localInstant(form.ends_at,zone) : null
+      if(endsAt && Date.parse(endsAt)<=Date.parse(startsAt))throw new Error('End time must be after the start time')
       const signature = JSON.stringify({
         businessId: business.id, ...form, startsAt, endsAt,
       })
@@ -116,8 +120,8 @@ export default function SchedulePage({ business, embedded = false }: { business:
     <section className="schedule-card">
       {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Finviant Office when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{name(appointment.customers?.[0])}</span>{appointment.jobs?.[0]?.properties?.[0] && <div className="schedule-location"><span>{formatServiceAddress(appointment.jobs[0].properties![0])}</span><GoogleMapTools address={appointment.jobs[0].properties![0]} compact /></div>}</div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
     </section>
-    {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">Schedule work</p><h2>Add a job to the calendar</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
+    {showForm && <FormDialog label="Add a job to the calendar" busy={busy} onClose={() => { setShowForm(false); resetForm() }}>
+      <div className="modal-head"><div><p className="eyebrow">Schedule work</p><h2>Add a job to the calendar</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form className="form-grid" onSubmit={submit}>
         <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value, property_id: '' })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{name(customer)}</option>)}</select></label>
         <CustomerPropertySelect businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
@@ -128,6 +132,6 @@ export default function SchedulePage({ business, embedded = false }: { business:
         {error && <p className="form-message error-text full">{error}</p>}
         <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Schedule job'}</button></div>
       </form>
-    </section></div>}
+    </FormDialog>}
   </div>
 }

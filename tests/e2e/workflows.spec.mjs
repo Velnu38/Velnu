@@ -11,7 +11,7 @@ const estimateId = '55555555-5555-4555-8555-555555555555'
 const paymentId = '66666666-6666-4666-8666-666666666666'
 const user = { id: userId, email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
 const customer = { id: customerId, first_name: 'Jane', last_name: 'Doe', company: null, phone: '757-555-0100', email: 'jane@example.test' }
-const company = { id: businessId, name: 'Test Plumbing', role: 'owner', phone: '757-555-0188', email: 'office@example.test', address_line1: '100 Main Street', city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', profile_completed_at: '2026-10-01T00:00:00Z' }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Test Plumbing', role: 'owner', phone: '757-555-0188', email: 'office@example.test', address_line1: '100 Main Street', city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', profile_completed_at: '2026-10-01T00:00:00Z' }
 
 async function installSession(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -40,14 +40,14 @@ async function mockWorkspace(page, seed = {}) {
     state.requests.push({ path, method, url: request.url(), body })
     const fulfill = (obj, status = 200) => route.fulfill({
       status, contentType: 'application/json',
-      headers: { 'access-control-allow-origin': '*', 'content-range': '0-0/0' },
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(obj) ? `0-${Math.max(0,obj.length-1)}/${obj.length}` : '0-0/1' },
       body: JSON.stringify(obj),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return fulfill(user)
     if (path.endsWith('/user_plan_preferences')) return fulfill({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return fulfill({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
-    if (path.endsWith('/business_members')) return fulfill({ role: seed.role || 'owner', business_id: businessId, businesses: company })
+    if (path.endsWith('/business_members')) return fulfill({ role: seed.role || 'owner', business_id: businessId, access_modules: ['calendar','jobs','billing','finances'], businesses: company })
     if (path.endsWith('/rpc/get_dashboard_invoice_totals')) {
       const open = state.invoices.filter(i => Number(i.balance_due || 0) > 0 && !['draft', 'void'].includes(i.status))
       return fulfill({
@@ -55,6 +55,8 @@ async function mockWorkspace(page, seed = {}) {
         outstanding_balance: open.reduce((sum, i) => sum + Number(i.balance_due || 0), 0),
       })
     }
+    if (path.endsWith('/rpc/get_scheduling_context')) return fulfill({ preferences: { work_days: [1,2,3,4,5], start_minutes: 480, end_minutes: 1020, duration_minutes: 120, buffer_minutes: 30, notice_hours: 24 }, team: [{id:userId,label:'Owner',role:'owner',is_you:true}], time_off: [], properties: [], estimate: { id: estimateId, number: 'EST-1001', customer_id: customerId, job_id: null, property_id: null, title: 'Faucet repair', scope: 'Faucet repair', customer_name: 'Jane Doe', customer_email: customer.email }, offer: null })
+    if (path.endsWith('/rpc/get_document_change_context')) return fulfill({business_id:businessId,document_id:body.p_document,kind:body.p_kind,number:'INV-CONTEXT',customer_id:customerId,customer_name:'Jane Doe',job_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',estimate_id:null,work_status:'scheduled',can_change:true,total:100,address:'100 Main Street',items:[{description:'Original work',quantity:1,unit_price:100,tax_rate:0}]})
     if (path.endsWith('/rpc/create_document')) {
       const isInvoice = body.document_kind === 'invoice'
       const items = body.payload.items
@@ -74,7 +76,7 @@ async function mockWorkspace(page, seed = {}) {
     }
     if (path.endsWith('/rpc/convert_estimate_to_invoice')) {
       const e = state.estimates.find(row => row.id === body.target_estimate_id)
-      if (e) e.status = 'converted'
+      if (e) { e.status = 'converted'; state.invoices.push({ ...e, id: invoiceId, invoice_number: 'INV-1001', status: 'draft', amount_paid: 0, balance_due: e.total }) }
       return fulfill(invoiceId)
     }
     if (path.endsWith('/rpc/record_manual_payment')) {
@@ -118,6 +120,7 @@ test('owner creates a branded invoice atomically and it remains a draft until ma
   await page.goto('/')
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: '+ New invoice' }).click()
+  await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
   await page.getByPlaceholder('Unit price').fill('150')
@@ -142,18 +145,23 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   await page.goto('/')
   await openWorkArea(page, 'Estimates')
   await page.getByRole('button', { name: '+ New estimate' }).click()
+  await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
   await page.getByPlaceholder('Unit price').fill('150')
   await page.getByRole('button', { name: 'Create estimate' }).click()
+  await page.getByRole('button', { name: 'Close preview', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Create invoice' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Mark sent manually' }).click()
   await page.getByRole('button', { name: 'Record acceptance' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Close scheduling', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Create invoice' })).toBeVisible()
   await page.getByRole('button', { name: 'Create invoice' }).click()
   await expect(page.getByRole('heading', { name: 'Create the invoice' })).toBeVisible()
   await page.getByRole('button', { name: 'Create invoice', exact: true }).last().click()
+  await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
+  await expect(page).toHaveURL(/view=invoices&document=/)
   expect(state.requests.some(x => x.path.endsWith('/rpc/convert_estimate_to_invoice'))).toBe(true)
   const created = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
   expect(created[0].body.document_kind).toBe('estimate')
@@ -187,7 +195,7 @@ test('mobile More menu exposes invoices and editable company settings', async ({
   await page.goto('/')
   await page.getByRole('button', { name: 'More' }).click()
   await page.locator('.mobile-more-grid').getByRole('button', { name: 'Settings', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible()
 })
 
 
@@ -244,19 +252,18 @@ test('technician keeps field navigation but cannot edit invoices, estimates or p
   await page.goto('/')
   await openWorkArea(page, 'Jobs')
   await expect(page.getByRole('button', { name: '+ New job' })).toBeVisible()
-  await openWorkArea(page, 'Invoices')
-  await expect(page.getByRole('button', { name: '+ New invoice' })).toHaveCount(0)
-  await openWorkArea(page, 'Estimates')
-  await expect(page.getByRole('button', { name: '+ New estimate' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Payments', exact: true }).click()
-  await expect(page.getByRole('button', { name: '+ Record payment' })).toHaveCount(0)
+  for (const view of ['invoices', 'estimates', 'payments']) {
+    await page.goto('/?view=' + view)
+    await expect(page.getByText('This area is not included in your access. Contact your primary business owner.')).toBeVisible()
+    await expect(page.getByRole('button', { name: /New invoice|New estimate|Record payment/ })).toHaveCount(0)
+  }
 })
 
 
 test('issued change order cannot be reverted to draft and voiding requires confirmation', async ({ page }) => {
   const changeOrderId = '99999999-9999-4999-8999-999999999999'
   const order = {
-    id: changeOrderId, change_order_number: 'CO-TEST', status: 'sent',
+    id: changeOrderId, invoice_id: invoiceId, change_order_number: 'CO-TEST', status: 'sent',
     title: 'Extra plumbing work', description: 'Install valve', reason: 'Customer request',
     issue_date: '2026-10-26', subtotal: 80, tax_amount: 0, total: 80,
     customer_id: customerId, job_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -270,7 +277,8 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   await expect(page.locator('.sidebar').getByRole('button', { name: 'Change Orders', exact: true })).toHaveCount(0)
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-CONTEXT/ }).click()
-  await page.getByRole('button', { name: 'Change orders', exact: true }).click()
+  await page.getByRole('button', { name: 'Change order', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Create change order', exact: true }).getByRole('button', { name: 'Close', exact: true }).click()
   await expect(page.getByText('CO-TEST')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
@@ -285,12 +293,12 @@ test('issued change order cannot be reverted to draft and voiding requires confi
 test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invoice balances', async ({ page }) => {
   const state = await mockWorkspace(page, {
     invoices: [
-      { id: invoiceId, status: 'sent', balance_due: 125, due_date: '2026-10-31' },
-      { id: '77777777-7777-4777-8777-777777777777', status: 'draft', balance_due: 900 },
+      { id: invoiceId, status: 'sent', total: 125, balance_due: 125, due_date: '2026-10-31' },
+      { id: '77777777-7777-4777-8777-777777777777', status: 'draft', total: 900, balance_due: 900 },
     ],
   })
   await page.goto('/')
-  await expect(page.getByLabel('Open invoice balance', { exact: true })).toContainText('$125.00')
+  await expect(page.locator('.billing-outstanding')).toContainText('$125.00')
   const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
   expect(aggregates).toHaveLength(1)
   expect(aggregates[0].body.target_business_id).toBe(businessId)
@@ -305,6 +313,7 @@ test('fractional invoice preview and saved draft retain database per-line roundi
   await page.goto('/')
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: '+ New invoice' }).click()
+  await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('First fractional service')
   await page.getByPlaceholder('Qty').fill('1.5')

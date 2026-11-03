@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
 const user = { id: '33333333-3333-4333-8333-333333333333', email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
-const company = { id: businessId, name: 'Test Service Company', role: 'owner', phone: '757-555-0100', email: 'test@example.test', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z' }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Test Service Company', role: 'owner', phone: '757-555-0100', email: 'test@example.test', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z' }
 const payment = { id: '22222222-2222-4222-8222-222222222222', amount: 150, status: 'succeeded', method: 'cash', paid_at: '2026-10-26T13:40:00Z', invoices: { invoice_number: 'INV-101' } }
 const manual = { id: '44444444-4444-4444-8444-444444444444', entry_date: '2026-10-26', direction: 'expense', amount: 35, currency: 'USD', category: 'Materials & supplies', description: 'Replacement parts' }
 const qbIncome = { id: '55555555-5555-4555-8555-555555555555', txn_date: '2026-10-26', direction: 'income', amount: 150, currency: 'USD', description: 'QuickBooks payment', source_type: 'Payment' }

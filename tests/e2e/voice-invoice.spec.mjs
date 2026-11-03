@@ -22,12 +22,12 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
     let body = null
     try { body = request.postDataJSON() } catch {}
     requests.push({ path, method, body })
-    const json = (obj, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(obj) })
+    const json = (obj, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(obj) ? `0-${Math.max(0,obj.length-1)}/${obj.length}` : '0-0/1' }, body: JSON.stringify(obj) })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
-    if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Finviant Test Services' } })
+    if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Test Services' } })
     if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: 'pro', ai_limit: 50, voice_limit: 50, logo_bytes_limit: 131072 })
     if (path.endsWith('/customers') && method === 'POST') return json({ id: newCustomerId, company: 'Bob Smith', first_name: null, last_name: null, email: null, phone: null }, 201)
     if (path.endsWith('/rpc/create_document')) return json({ id: invoiceId, invoice_number: 'INV-TEST-1', status: 'draft', subtotal: 150, tax_amount: 0, total: 150, amount_paid: 0, balance_due: 150, due_date: null })
@@ -72,8 +72,8 @@ test('multiple stated amounts are never silently turned into a one-line invoice'
   await page.route('https://example.supabase.co/**', route => {
     const path = new URL(route.request().url()).pathname
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Finviant Office Test Services' } } : []
-    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
+    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } } : []
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body: JSON.stringify(body) })
   })
   await page.goto('/')
   await page.getByRole('button', { name: 'Talk to Finviant Office' }).click()
@@ -89,8 +89,8 @@ test('Safari no-speech error shows a keyboard microphone fallback instead of a s
   await page.route('https://example.supabase.co/**', route => {
     const path = new URL(route.request().url()).pathname
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Finviant Office Test Services' } } : []
-    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
+    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } } : []
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body: JSON.stringify(body) })
   })
   await page.addInitScript(() => {
     window.SpeechRecognition = window.webkitSpeechRecognition = class {
@@ -117,8 +117,8 @@ test('Safari retains speech for other commands and makes the user submit deliber
     const path = new URL(route.request().url()).pathname
     invoked.push(path)
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Finviant Office Test Services' } } : []
-    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) })
+    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } } : []
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body: JSON.stringify(body) })
   })
   await page.addInitScript(() => {
     window.SpeechRecognition = window.webkitSpeechRecognition = class {
@@ -149,14 +149,14 @@ test('cloud recording uses server transcription and opens draft review, without 
     calls.push({ path, method, type: request.headers()['content-type'] || '' })
     const json = (body, status = 200) => route.fulfill({
       status, contentType: 'application/json',
-      headers: { 'access-control-allow-origin': '*' },
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' },
       body: JSON.stringify(body),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
-    if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, name: 'Finviant Office Test Services' } })
+    if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } })
     if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: 'pro', ai_limit: 50, voice_limit: 50, logo_bytes_limit: 131072 })
     if (path.endsWith('/functions/v1/transcribe-voice')) {
       return request.headers()['content-type']?.includes('application/json')
@@ -203,12 +203,12 @@ test('microphone permission is requested directly inside the tap after a delayed
   let uploads = 0
   await page.route('https://example.supabase.co/**', async route => {
     const request = route.request(), path = new URL(request.url()).pathname
-    const json = (body, status=200) => route.fulfill({ status, contentType:'application/json', headers:{'access-control-allow-origin':'*'}, body:JSON.stringify(body) })
+    const json = (body, status=200) => route.fulfill({ status, contentType:'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body:JSON.stringify(body) })
     if (request.method() === 'OPTIONS') return route.fulfill({ status:200, headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'}, body:'' })
     if(path.endsWith('/user'))return json(user)
     if(path.endsWith('/user_plan_preferences'))return json({selected_tier:'free'})
     if(path.endsWith('/user_agreement_acceptances'))return json({id:'88888888-8888-4888-8888-888888888888',agreement_version:'2026-10-27-v3'})
-    if(path.endsWith('/business_members'))return json({business_id:businessId,role:'owner',businesses:{id:businessId,name:'Testing Services'}})
+    if(path.endsWith('/business_members'))return json({business_id:businessId,role:'owner',businesses:{id:businessId,created_by_user_id:user.id,name:'Testing Services'}})
     if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',voice_limit:50,ai_limit:50})
     if(path.endsWith('/functions/v1/transcribe-voice')) {
       if(request.headers()['content-type']?.includes('application/json')) {
@@ -256,12 +256,12 @@ test('browser dictation starts in the tap gesture after unavailable cloud prefli
   await signedIn(page)
   await page.route('https://example.supabase.co/**', async route => {
     const request=route.request(), path=new URL(request.url()).pathname
-    const json=body=>route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(body)})
+    const json=body=>route.fulfill({status:200,contentType:'application/json',headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' },body:JSON.stringify(body)})
     if(request.method()==='OPTIONS')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:''})
     if(path.endsWith('/user'))return json(user)
     if(path.endsWith('/user_plan_preferences'))return json({selected_tier:'free'})
     if(path.endsWith('/user_agreement_acceptances'))return json({id:'88888888-8888-4888-8888-888888888888',agreement_version:'2026-10-27-v3'})
-    if(path.endsWith('/business_members'))return json({business_id:businessId,role:'owner',businesses:{id:businessId,name:'Testing Services'}})
+    if(path.endsWith('/business_members'))return json({business_id:businessId,role:'owner',businesses:{id:businessId,created_by_user_id:user.id,name:'Testing Services'}})
     if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',ai_limit:50,voice_limit:50})
     if(path.endsWith('/functions/v1/transcribe-voice'))return json({configured:false,model:null})
     return json([])
