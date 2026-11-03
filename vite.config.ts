@@ -4,6 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Pre-bundle lazy-route dependencies before concurrent browser sessions start.
+  // Late dependency discovery otherwise reloads active forms in the dev server.
+  optimizeDeps: {
+    include: ['react', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@supabase/supabase-js', 'luxon', 'posthog-js'],
+  },
   build: {
     rollupOptions: {
       output: {

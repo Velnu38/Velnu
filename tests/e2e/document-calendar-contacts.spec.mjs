@@ -135,7 +135,7 @@ for(const width of [1440,390])test(`selected-day agenda shows every job, local r
  await calendar.getByRole('button',{name:new RegExp(day.toLocaleString(DateTime.DATE_FULL))}).click();await calendar.getByRole('button',{name:'Week',exact:true}).click()
  await expect(calendar.getByText('Supplier appointment',{exact:true})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
- await calendar.screenshot({path:`test-results/selected-day-agenda-${width}.png`})
+ await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`test-results/selected-day-agenda-${width}.png`,fullPage:true})
 })
 test('connected calendar failure keeps local work usable and retry restores only current-day events',async({page})=>{
  const state=await mock(page);let fail=true

@@ -63,9 +63,9 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   }, [key, business.id, from, to, zone, version, refreshVersion])
   useEffect(() => {
     let active = true
-    setConnectedLoading(true); setConnectedError(''); setConnectedResult(null)
+    setConnectedLoading(true); setConnectedError('')
     void loadConnectedCalendarRange(business.id, from, to, zone).then(agenda => { if (active) setConnectedResult({key, agenda}) })
-      .catch(error => { if (active) setConnectedError(error.message || 'Unable to load connected calendar events.') })
+      .catch(error => { if (active) { setConnectedResult(null); setConnectedError(error.message || 'Unable to load connected calendar events.') } })
       .finally(() => { if (active) setConnectedLoading(false) })
     return () => { active = false }
   }, [key, business.id, from, to, zone, version, refreshVersion])
@@ -99,7 +99,7 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
         const total = items.length + reminderCount + eventCount
         return <button key={dateKey} type="button" className={`calendar-day${date.month !== selected.month ? ' outside-month' : ''}`} aria-label={`${date.toLocaleString(DateTime.DATE_FULL)}${agenda ? `, ${items.length} scheduled ${items.length === 1 ? 'item' : 'items'}, ${reminderCount} reminders, ${eventCount} connected events` : ''}`} aria-current={dateKey === today ? 'date' : undefined} aria-pressed={isSelected} onClick={() => setDay(dateKey)}>
           {view === 'week' && <span className="calendar-weekday">{date.toFormat('ccc')}</span>}<strong>{date.day}</strong>
-          <span className="calendar-day-count" aria-hidden="true">{total ? <><i />{total}<span className="calendar-count-word"> items</span></> : <i className="calendar-empty-dot" />}</span>
+          <span className="calendar-day-count" aria-hidden="true">{total ? <><i />{total}<span className="calendar-count-word"> {total === 1 ? 'item' : 'items'}</span></> : <i className="calendar-empty-dot" />}</span>
         </button>
       })}
     </div>
@@ -116,12 +116,12 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
           </li>)}</ul>}
         </div>
         {showReminders && <div><div className="calendar-list-heading"><h3>Reminders for this day</h3><span>{reminders.length}</span></div>
-          {!reminders.length ? <p className="calendar-empty">No reminders for this day.</p> : <ul className="calendar-reminders">{reminders.map(item => <li key={item.id}><div><strong>{item.note || 'Follow up'}</strong><span>{item.status === 'completed' ? 'Completed · ' : DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span></div>{business.role !== 'viewer' && item.status !== 'completed' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : '✓'}</button>}</li>)}</ul>}
+          {!reminders.length ? <p className="calendar-empty">No reminders for this day.</p> : <ul className="calendar-reminders">{reminders.map(item => <li key={item.id} className={item.status === 'completed' ? 'completed' : undefined}><div><strong>{item.note || 'Follow up'}</strong><span>{item.status === 'completed' ? 'Completed · ' : DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span></div>{business.role !== 'viewer' && item.status !== 'completed' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : '✓'}</button>}</li>)}</ul>}
         </div>}
       </div>
       {agenda.detailsUnavailable && <p role="status">Some job details could not be loaded. Open a job to try again.</p>}
     </div>}
-    <ConnectedCalendarEvents events={connectedEvents} issues={connected?.issues ?? []} connections={connected?.connections ?? 0} loading={connectedLoading} error={connectedError} zone={zone} onRetry={()=>setVersion(value=>value+1)}/>
+    <ConnectedCalendarEvents events={connectedEvents} issues={connected?.issues ?? []} connections={connected?.connections ?? 0} loading={connectedLoading && !connected} error={connectedError} zone={zone} onRetry={()=>setVersion(value=>value+1)}/>
     {jobId&&<Suspense fallback={<p role="status">Opening job…</p>}><JobDetailsDialog business={business} jobId={jobId} onClose={()=>setJobId(null)}/></Suspense>}
     {entry&&<Suspense fallback={<p role="status">Opening calendar entry…</p>}><CalendarEntryDialog business={business} day={entry.day} entryId={entry.id} onClose={()=>setEntry(null)} onSaved={()=>setVersion(v=>v+1)}/></Suspense>}
   </section>
