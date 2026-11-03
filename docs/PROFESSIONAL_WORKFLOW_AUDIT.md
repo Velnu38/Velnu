@@ -18,6 +18,7 @@ Source review is distinct from runtime verification. The new audit exercises ele
 | Control styles differed across modules | Shared screen-only workspace styles align primary/secondary buttons, card borders, heading scale, focus rings and icon hit areas. Mobile inputs use 16 px text to avoid forced iOS input zoom. Existing print-document styling remains separate. |
 | Timezone behavior differed in older screens | Legacy Schedule entry/ranges and invoice follow-up entry use the business timezone. Reminder dates display in that same timezone. Impossible local times still fail validation. |
 | Repeated submits could open duplicate attempts | Same-tick guards protect customer creation and both payment-recording forms. Existing atomic financial/idempotency safeguards remain unchanged. |
+| Document settings offered logo uploads without checking plan access | Hosted uploads now follow the same backend entitlement check as onboarding; free company-name branding, color and footer editing remain available. Settings saves prevent same-tick duplicate submissions. |
 | Terminology differed | Payments links to Financial performance using the workspace's existing product terminology. |
 
 ## Page-by-page disposition
