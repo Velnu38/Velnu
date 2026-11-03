@@ -51,11 +51,11 @@ export default function ReminderDetailsDialog({ business, reminderId, onClose, o
     finally { saving.current = false; setBusy(false) }
   }
   function submit(event: FormEvent) { event.preventDefault(); void apply('save') }
-  return <FormDialog label="Reminder details" busy={busy} onClose={onClose}>
+  return <FormDialog label="Manage reminder" busy={busy} onClose={onClose}>
     <div className="modal-head"><div><p className="eyebrow">{record?.status === 'completed' ? 'Completed reminder' : 'Reminder'}</p><h2>Manage reminder</h2></div><button type="button" className="icon-button" aria-label="Close reminder" onClick={onClose}>×</button></div>
     {loading ? <p role="status">Loading reminder…</p> : <>
       {record?.status === 'canceled' ? <p role="status">This reminder has been deleted.</p> : record && <form className="form-grid reminder-details-form" onSubmit={submit}>
-        <label className="full">Reminder details<textarea required maxLength={2000} rows={4} disabled={!writable} value={note} onChange={e => setNote(e.target.value)} /></label>
+        <label className="full">What needs to be done?<textarea required maxLength={2000} rows={4} disabled={!writable} value={note} onChange={e => setNote(e.target.value)} /></label>
         <label className="full">Remind me on<input type="datetime-local" required disabled={!writable || record.status === 'completed'} value={due} onChange={e => setDue(e.target.value)} /></label>
         <p className="quiet full">Times use {zone.replaceAll('_', ' ')}.{record.status === 'completed' ? ' Reopen this reminder to reschedule it. An overdue reminder will return to Needs Attention.' : ' Rescheduling moves this reminder to its new date and updates Needs Attention.'}</p>
         {record.jobs[0]?.title && <p className="quiet full">Related job: {record.jobs[0].title}</p>}

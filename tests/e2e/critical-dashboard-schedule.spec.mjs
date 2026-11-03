@@ -254,15 +254,15 @@ async function managedReminders(page, options = {}) {
     return route.fallback()
   })
   await page.goto('/')
-  return {state,row,zone,calendar:page.getByRole('region',{name:'Work calendar'}),dialog:page.getByRole('dialog',{name:'Reminder details',exact:true})}
+  return {state,row,zone,calendar:page.getByRole('region',{name:'Work calendar'}),dialog:page.getByRole('dialog',{name:'Manage reminder',exact:true})}
 }
 
 for(const width of [1440,390])test(`calendar reminder management edits and reschedules one shared record at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:950})
   const {state,row,zone,calendar,dialog}=await managedReminders(page)
   await calendar.getByRole('button',{name:'Open reminder Check supply order',exact:true}).click()
-  await expect(dialog.getByLabel('Reminder details',{exact:true})).toHaveValue('Check supply order')
-  await dialog.getByLabel('Reminder details',{exact:true}).fill('Collect materials at the supplier')
+  await expect(dialog.getByRole('textbox',{name:'What needs to be done?',exact:true})).toHaveValue('Check supply order')
+  await dialog.getByRole('textbox',{name:'What needs to be done?',exact:true}).fill('Collect materials at the supplier')
   const date=DateTime.now().setZone(zone).plus({days:1}).set({hour:10,minute:15,second:0,millisecond:0})
   await dialog.getByLabel('Remind me on',{exact:true}).fill(date.toFormat("yyyy-MM-dd'T'HH:mm"))
   await page.screenshot({path:`test-results/reminder-editor-${width}.png`,fullPage:true})
@@ -304,18 +304,18 @@ test('calendar reminder management completes, reopens and confirms deletion acro
 test('calendar reminder management keeps failed edits and rejects a stale concurrent save',async({page})=>{
   const {state,row,calendar,dialog}=await managedReminders(page)
   await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
-  await dialog.getByLabel('Reminder details',{exact:true}).fill('My retained changes')
+  await dialog.getByRole('textbox',{name:'What needs to be done?',exact:true}).fill('My retained changes')
   state.patchFailure=true
   await dialog.getByRole('button',{name:'Save changes',exact:true}).click()
   await expect(dialog.getByRole('alert')).toContainText('Reminder update failed')
-  await expect(dialog.getByLabel('Reminder details',{exact:true})).toHaveValue('My retained changes')
+  await expect(dialog.getByRole('textbox',{name:'What needs to be done?',exact:true})).toHaveValue('My retained changes')
   state.patchFailure=false;row.note='Office changed this reminder'
   await dialog.getByRole('button',{name:'Save changes',exact:true}).click()
   await expect(dialog.getByRole('alert')).toContainText('changed elsewhere')
   expect(row.note).toBe('Office changed this reminder')
   await dialog.getByRole('button',{name:'Reload reminder',exact:true}).click()
-  await expect(dialog.getByLabel('Reminder details',{exact:true})).toHaveValue('Office changed this reminder')
-  await dialog.getByLabel('Reminder details',{exact:true}).fill('Reviewed final wording')
+  await expect(dialog.getByRole('textbox',{name:'What needs to be done?',exact:true})).toHaveValue('Office changed this reminder')
+  await dialog.getByRole('textbox',{name:'What needs to be done?',exact:true}).fill('Reviewed final wording')
   state.lostResponse=true;state.patchDelay=150
   await dialog.getByRole('button',{name:'Save changes',exact:true}).dblclick()
   await expect(dialog).toHaveCount(0);expect(row.note).toBe('Reviewed final wording')
@@ -325,7 +325,7 @@ test('calendar reminder management keeps failed edits and rejects a stale concur
 test('calendar reminder management viewers have read-only access and cannot mutate reminders',async({page})=>{
   const {state,calendar,dialog}=await managedReminders(page,{role:'viewer'})
   await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
-  await expect(dialog.getByLabel('Reminder details',{exact:true})).toBeDisabled()
+  await expect(dialog.getByRole('textbox',{name:'What needs to be done?',exact:true})).toBeDisabled()
   await expect(dialog.getByLabel('Remind me on',{exact:true})).toBeDisabled()
   await expect(dialog.getByRole('button',{name:/Save changes|Delete reminder|Mark complete|Reopen reminder/})).toHaveCount(0)
   expect(count(state,'/reminders','PATCH')).toBe(0)
