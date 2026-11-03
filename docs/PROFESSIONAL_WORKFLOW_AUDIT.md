@@ -31,7 +31,7 @@ Source review is distinct from runtime verification. The new audit exercises ele
 | Invoices and detail | Creation, totals, payment destinations, status, notes, reminders, change orders, print and payment recording inventoried. Existing document review after creation preserved; payment/follow-up forms aligned. |
 | Jobs and shared detail | Timing groups, search, crew dispatch, notes/materials, photos and expenses inventoried. Quick entry and inline contact creation added. Shared calendar/Jobs editor retained. |
 | Schedule and calendar | Week/month, dates, manual entries, crew filters, resource availability and legacy appointment actions reviewed. Business-zone consistency corrected. |
-| Reminders | Creation, association, completion, status filter and paging reviewed; business-zone display aligned. |
+| Reminders | Creation, association, completion, status filter and paging reviewed; business-zone display aligned. The standalone page uses the same primary heading level and scale as other work areas. |
 | Customers and detail | Search, import review, creation, detail, properties and maps reviewed. Search naming, submit guard and property dialog improved. |
 | Locations | Search, selected location, maps/directions and customer management controls reviewed. Address sharing remains explicit; embedded maps still require provider setup. |
 | Payments | Invoice selection, default balance, amounts, methods, recording confirmation and workbook destination reviewed. Double-submit and form behavior improved. |
