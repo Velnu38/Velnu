@@ -1,3 +1,6 @@
+import { asList } from './relations';
+import { formatServiceAddress } from '../lib/googleMaps';
+import type { ConnectedAgenda } from '../lib/calendarTypes';
 import type { AgendaWork, AgendaReminder } from '../lib/calendarTypes';
 export type { AgendaWork, AgendaReminder } from '../lib/calendarTypes';
 import { collectWorkbookPages } from "../lib/workbookPages";
@@ -112,8 +115,28 @@ export async function loadCalendarRange(businessId: string, startDay: string, en
       return { ...result, data: result.data?.map(row => ({ ...row, id: row.source_key })) ?? null }
     }),
     collectWorkbookPages((offset, last) => supabase.from('reminders')
-      .select('id,note,due_at,job_id', { count: 'exact' }).eq('business_id', businessId)
-      .eq('status', 'pending').lt('due_at', to).order('id').range(offset, last)),
+      .select('id,note,due_at,job_id,status', { count: 'exact' }).eq('business_id', businessId)
+      .in('status', ['pending', 'completed']).gte('due_at', from).lt('due_at', to).order('id').range(offset, last)),
   ])
-  return { work: work as unknown as AgendaWork[], reminders: (reminders as AgendaReminder[]).sort((a, b) => a.due_at.localeCompare(b.due_at)) }
+  const ids = [...new Set(work.map(row => row.job_id).filter(Boolean))]
+  const jobs: Record<string, any> = {}
+  let detailsUnavailable = false
+  for (let start = 0; start < ids.length; start += 100) {
+    try {
+      const rows = await collectWorkbookPages((offset, last) => supabase.from('jobs')
+        .select('id,description,customers!jobs_customer_id_fkey(first_name,last_name,company),properties!jobs_property_id_fkey(address_line1,address_line2,city,state,postal_code)', { count: 'exact' })
+        .eq('business_id', businessId).in('id', ids.slice(start, start + 100)).order('id').range(offset, last))
+      for (const row of rows) jobs[row.id] = row
+    } catch { detailsUnavailable = true }
+  }
+  const detailed = work.map(item => {
+    const job = jobs[item.job_id]
+    if (!job) return item
+    return { ...item, description: job.description || '', address: asList(job.properties).map(formatServiceAddress).join('; '), customer_name: asList(job.customers).map(customer => [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || '').join(', ') }
+  })
+  return { detailsUnavailable, work: detailed as unknown as AgendaWork[], reminders: (reminders as AgendaReminder[]).sort((a, b) => a.due_at.localeCompare(b.due_at)) }
+}
+
+export function loadConnectedCalendarRange(businessId: string, startDay: string, endDay: string, timezone: string) {
+  return calendarRequest<ConnectedAgenda>('events', businessId, 'GET', { startDay, endDay, timezone })
 }

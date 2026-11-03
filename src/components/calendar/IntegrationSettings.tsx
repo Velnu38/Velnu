@@ -274,8 +274,8 @@ export default function IntegrationSettings({
       <h2>Take your work schedule with you.</h2>
       <p className="quiet">
         These connections belong to your account in this business. Changes
-        publish from Finviant; external calendar edits do not change jobs or
-        invoices.
+        publish from Finviant. Events from your selected calendars appear in your
+        schedule for reference; external edits do not change jobs or invoices.
       </p>
       {loading && <p role="status">Checking connections…</p>}
       {error ? (

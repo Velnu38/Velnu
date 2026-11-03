@@ -98,7 +98,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     </header>
     <nav className="workspace-quick-actions" aria-label="Create work">{canAccess(business,'billing')&&<><a className="primary-button" href="/?view=invoices&new=1">+ New invoice</a><a className="secondary-button" href="/?view=estimates&new=1">+ New estimate</a></>}{canAccess(business,'jobs')&&business.role!=='viewer'&&<a className="secondary-button" href="/?view=work&new=1">+ New job</a>}</nav>
 
-    {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} showReminders={false} />}
+    {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} />}
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-work-grid" aria-label="Work areas">

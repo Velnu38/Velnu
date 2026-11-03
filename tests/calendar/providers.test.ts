@@ -142,3 +142,20 @@ test("Outlook recovers uncertain creations using a correlation property; UTC pay
   assert(first.transactionId);
   assert.equal(first.attendees, undefined);
 });
+
+test('Google day agenda follows pagination, expands recurrence, keeps all-day dates, and excludes canceled/exported entries',async()=>{
+ const svc=new GoogleCalendarService({access_token:'test',refresh_token:'test',expiry_date:Date.now()+3600000},async()=>{})
+ const calls:any[]=[]
+ ;(svc as unknown as {api:unknown}).api={events:{list:async(args:any)=>{calls.push(args);return {data:args.pageToken?{items:[{id:'timed',summary:'Recurrence occurrence',start:{dateTime:input.start},end:{dateTime:input.end}}]}:{items:[{id:'all',summary:'All day',start:{date:'2026-11-02'},end:{date:'2026-11-03'}},{id:'exported',extendedProperties:{private:{finviantKey:'key'}}},{id:'canceled',status:'cancelled'}],nextPageToken:'next'}}}}}
+ const events=await svc.events('primary',input.start,input.end,'America/New_York')
+ assert.equal(calls.length,2);assert.equal(calls[0].singleEvents,true);assert.equal(calls[0].showDeleted,false);assert.equal(calls[1].pageToken,'next');assert.deepEqual(events.map(item=>item.id),['all','timed']);assert.equal(events[0].start_date,'2026-11-02');assert.equal(events[0].starts_at,'2026-11-02T00:00:00.000-05:00')
+})
+test('Outlook day agenda expands calendarView, follows only its own pagination, and requests text bodies in the business timezone',async()=>{
+ const svc=new OutlookCalendarService({},async()=>{}),paths:string[]=[],headers:string[]=[]
+ let unsafe=false
+ const chain={header:(_name:string,value:string)=>{headers.push(value);return chain},option:()=>chain,middlewareOptions:()=>chain,get:async()=>({value:[{id:'event-'+paths.length,subject:'Meeting',body:{content:'Bring plans'},start:{dateTime:'2026-11-02T09:00:00',timeZone:'America/New_York'},end:{dateTime:'2026-11-02T10:00:00',timeZone:'America/New_York'}},{id:'canceled',isCancelled:true},{id:'exported',singleValueExtendedProperties:[{id:'String {5bc5c0eb-9a89-4fdc-b98f-0fb641a0f463} Name FinviantKey'}]}],...(unsafe?{'@odata.nextLink':'https://attacker.example/events'}:paths.length===1?{'@odata.nextLink':'https://graph.microsoft.com/v1.0/me/calendar/calendarView?$skip=1'}:{})})}
+ ;(svc as unknown as {client:unknown}).client={api:(path:string)=>{paths.push(path);return chain}}
+ const events=await svc.events('primary',input.start,input.end,'America/New_York')
+ assert.equal(events.length,2);assert.equal(events[0].starts_at,'2026-11-02T09:00:00.000-05:00');assert.match(paths[0],/^\/me\/calendar\/calendarView\?/);assert.ok(headers.some(value=>value.includes('outlook.timezone="America/New_York"')&&value.includes('outlook.body-content-type="text"')))
+ unsafe=true;await assert.rejects(()=>svc.events('primary',input.start,input.end,'America/New_York'),/invalid_provider_pagination/)
+})

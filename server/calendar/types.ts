@@ -1,3 +1,4 @@
+import type { ProviderEvent } from '../../src/lib/calendarTypes.js';
 export type Provider = "google" | "outlook";
 export type Calendar = { id: string; name: string };
 export type Tokens = {
@@ -46,6 +47,7 @@ export type EventInput = {
 };
 export interface CalendarService {
   calendars(): Promise<Calendar[]>;
+  events(calendarId: string, from: string, to: string, timezone: string): Promise<ProviderEvent[]>;
   upsert(
     calendarId: string,
     eventId: string | null,
