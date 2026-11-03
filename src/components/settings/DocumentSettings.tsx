@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   draftFromBusiness,
   updateBusinessProfile,
@@ -9,6 +9,7 @@ import {
   getDocumentSettings,
   saveDocumentSettings,
 } from "../../services/settings";
+import { supabase } from "../../lib/supabase";
 import DocumentBrand from "../DocumentBrand";
 export default function DocumentSettings({
   business,
@@ -17,6 +18,16 @@ export default function DocumentSettings({
   business: CurrentBusiness;
   onSaved: (b: CurrentBusiness) => void;
 }) {
+  const saving = useRef(false);
+  const [logoAllowed, setLogoAllowed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setLogoAllowed(false);
+    void Promise.resolve(supabase.rpc("get_plan_usage", { target_business_id: business.id })).then(({ data, error }) => {
+      if (active) setLogoAllowed(!error && ["basic", "pro"].includes(data?.plan) && Number(data?.logo_bytes_limit || 0) > 0);
+    }).catch(() => { if (active) setLogoAllowed(false) });
+    return () => { active = false };
+  }, [business.id]);
   const [defaultTax, setDefaultTax] = useState(0),
     [brand, setBrand] = useState(() => draftFromBusiness(business)),
     [logo, setLogo] = useState<File | null>(null),
@@ -46,6 +57,9 @@ export default function DocumentSettings({
   }, [business.id]);
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (saving.current) return;
+    if (logo && !logoAllowed) { setError("Hosted logos require an activated paid plan."); return }
+    saving.current = true;
     setBusy(true);
     setError("");
     setNotice("");
@@ -61,6 +75,7 @@ export default function DocumentSettings({
     } catch (e) {
       setError((e as Error).message || "Unable to save settings.");
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
@@ -79,6 +94,7 @@ export default function DocumentSettings({
   if (loading) return <p role="status">Loading document setup…</p>;
   return (
     <form className="settings-panel" onSubmit={submit}>
+      <fieldset className="form-dialog-fields" disabled={busy}>
       <p className="quiet">
         Set the appearance and default taxes for your invoices and estimates.
       </p>
@@ -95,14 +111,14 @@ export default function DocumentSettings({
               }
             />
           </label>
-          <label>
+          {logoAllowed ? <label>
             Company logo (PNG, JPG or WebP, up to 2 MB)
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
               onChange={(e) => setLogo(e.target.files?.[0] || null)}
             />
-          </label>
+          </label> : <p className="form-message">Hosted logo uploads require an activated paid plan. Company-name branding, accent colors and document footers remain available.</p>}
           <label className="full">
             Document footer
             <textarea
@@ -161,6 +177,7 @@ export default function DocumentSettings({
       <button className="primary-button" disabled={busy}>
         {busy ? "Saving…" : "Save document setup"}
       </button>
+      </fieldset>
     </form>
   );
 }

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
 const user = { id: '33333333-3333-4333-8333-333333333333', email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
-const company = { id: businessId, name: 'Test Electric', legal_name: null, phone: '757-555-0100', email: 'info@example.test', website: null, address_line1: '101 Main Street', address_line2: null, city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', document_footer: null, business_description: null, services_offered: null, service_area: null, team_size: null, team_roles: null, profile_completed_at: '2026-10-26T00:00:00Z' }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Test Electric', legal_name: null, phone: '757-555-0100', email: 'info@example.test', website: null, address_line1: '101 Main Street', address_line2: null, city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', document_footer: null, business_description: null, services_offered: null, service_area: null, team_size: null, team_roles: null, profile_completed_at: '2026-10-26T00:00:00Z' }
 
 async function signedIn(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -63,6 +63,7 @@ test('new owner can enter company branding and business context during onboardin
   await page.getByRole('radio', { name: /À la carte/ }).check()
   await page.getByRole('checkbox', { name: /Voice-to-document assistant/ }).check()
   await page.getByRole('button', { name: 'Create my business' }).click()
+  await page.getByRole('button', { name: 'Skip payment setup for now' }).click()
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible()
   const save = writes.find(x => x.method === 'POST' && x.path.endsWith('/businesses'))
   expect(save).toBeTruthy()
@@ -76,31 +77,31 @@ test('new owner can enter company branding and business context during onboardin
   expect(preferences?.body.selected_services).toContain('voice_drafts')
 })
 
-test('existing owner can update letterhead, upload a logo and retain business context', async ({ page }) => {
+test('existing owner edits company details and context, then document branding in their settings sections', async ({ page }) => {
   await signedIn(page)
   const writes = await mockBusiness(page, true)
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Company profile', exact: true }).click()
   await page.getByLabel('Business phone').fill('757-555-0199')
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByLabel('Company logo (optional, up to 2 MB)').setInputFiles({
-    name: 'company-logo.png', mimeType: 'image/png',
-    buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
-  })
-  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByLabel('Services offered').fill('Electrical inspections and repairs')
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByRole('heading', { name: 'Choose your optional Finviant Office services' })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByRole('button', { name: 'Save company profile & services' }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
-  await expect(page.getByText('757-555-0199')).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('Company profile saved')
+  await page.getByRole('button', { name: 'Invoice & estimate setup', exact: true }).click()
+  await page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)').setInputFiles({
+    name: 'company-logo.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
+  })
+  await page.getByLabel('Document footer', { exact: true }).fill('Thank you for your business.')
+  await page.getByRole('button', { name: 'Save document setup' }).click()
+  await expect(page.getByRole('status')).toContainText('Document setup saved')
   const updates = writes.filter(x => x.method === 'PATCH' && x.path.endsWith('/businesses'))
-  expect(updates.length).toBeGreaterThanOrEqual(2)
   expect(updates.at(-1).body.logo_path).toMatch(/^11111111-1111-4111-8111-111111111111\/logo-/)
-  await expect.poll(() => writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  expect(updates.at(-1).body.phone).toBe('757-555-0199')
+  expect(updates.at(-1).body.services_offered).toContain('Electrical inspections')
+  expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
 })
-
 
 test('free owner has manual branding but no hosted logo uploads or paid AI assistant', async ({ page }) => {
   await signedIn(page)
@@ -108,28 +109,23 @@ test('free owner has manual branding but no hosted logo uploads or paid AI assis
   await page.goto('/')
   await expect(page.getByRole('button', { name: 'Talk to Finviant Office' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByText(/Logo uploads are unavailable on Free/)).toBeVisible()
-  await expect(page.getByLabel('Company logo (optional, up to 2 MB)')).toHaveCount(0)
-  await expect(page.getByLabel('Document accent color')).toBeVisible()
+  await page.getByRole('button', { name: 'Invoice & estimate setup', exact: true }).click()
+  await expect(page.getByText(/Hosted logo uploads require an activated paid plan/)).toBeVisible()
+  await expect(page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)')).toHaveCount(0)
+  await expect(page.getByLabel('Accent color', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Document footer', { exact: true })).toBeVisible()
 })
-
 
 test('activated Basic tier can upload company logo when backend grants storage quota', async ({ page }) => {
   await signedIn(page)
   const writes = await mockBusiness(page, true, 'basic')
   await page.goto('/')
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByLabel('Company logo (optional, up to 2 MB)')).toBeVisible()
-  await page.getByLabel('Company logo (optional, up to 2 MB)').setInputFiles({
-    name: 'basic-logo.png', mimeType: 'image/png',
-    buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
+  await page.getByRole('button', { name: 'Invoice & estimate setup', exact: true }).click()
+  await page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)').setInputFiles({
+    name: 'basic-logo.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
   })
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByRole('button', { name: 'Save company profile & services' }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
-  await expect.poll(() => writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  await page.getByRole('button', { name: 'Save document setup' }).click()
+  await expect(page.getByRole('status')).toContainText('Document setup saved')
+  expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
 })

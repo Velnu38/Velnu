@@ -165,7 +165,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
         </article>
       })}
     </section>
-    {showForm && <FormDialog label="Document added or changed work" busy={busy} onClose={() => { if(!saving.current){setShowForm(false); resetForm()} }} wide>
+    {showForm && <FormDialog label="Create change order" busy={busy} onClose={() => { if(!saving.current){setShowForm(false); resetForm()} }} wide>
       <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }} aria-label="Close" type="button">×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid">

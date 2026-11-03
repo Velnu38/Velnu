@@ -16,7 +16,7 @@ async function setup(page,options={}){
   if(path.endsWith('/user'))return json(user)
   if(path.endsWith('/user_plan_preferences'))return json({user_id:U,selected_tier:'pro'})
   if(path.endsWith('/user_agreement_acceptances'))return json({id:A,agreement_version:'2026-10-27-v3'})
-  if(path.endsWith('/business_members'))return json({role:'owner',business_id:B,businesses:{id:B,name:'Recovery Test',profile_completed_at:'2026-01-01T00:00:00Z'}})
+  if(path.endsWith('/business_members'))return json({role:'owner',business_id:B,businesses:{id:B,created_by_user_id:U,name:'Recovery Test',profile_completed_at:'2026-01-01T00:00:00Z'}})
   if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',ai_limit:50,voice_limit:50,logo_bytes_limit:131072})
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return json({open_invoices:0,outstanding_balance:0})
   if(path.endsWith('/customers'))return json([customer])

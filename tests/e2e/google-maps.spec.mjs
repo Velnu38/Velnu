@@ -6,7 +6,7 @@ const userId = '33333333-3333-4333-8333-333333333333'
 const customerId = '44444444-4444-4444-8444-444444444444'
 const propertyId = '55555555-5555-4555-8555-555555555555'
 const user = { id: userId, email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
-const company = { id: businessId, name: 'Velnu Test Plumbing', role: 'owner', profile_completed_at: '2026-10-26T00:00:00Z' }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Velnu Test Plumbing', role: 'owner', profile_completed_at: '2026-10-26T00:00:00Z' }
 const customer = { id: customerId, first_name: 'Jane', last_name: 'Doe', company: null }
 const property = { id: propertyId, customer_id: customerId, label: 'Service address', address_line1: '123 Example Street', address_line2: null, city: 'Chesapeake', state: 'VA', postal_code: '23320', access_notes: 'Private gate code 98765' }
 
@@ -36,7 +36,7 @@ async function mockBusinessData(page) {
     if (path.endsWith('/get_dashboard_invoice_totals')) return json({open_invoices:0,outstanding_balance:0})
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
-    if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-26-v2' })
+    if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
     if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: company })
     if (path.endsWith('/properties')) {
       const filters = new URL(request.url()).searchParams

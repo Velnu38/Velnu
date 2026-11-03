@@ -257,7 +257,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <td>{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
         </tr>)}</tbody></table></div>}
     </section>
-    {newEntry && <FormDialog label="Add income or expense" busy={busy} onClose={() => { if (!busy) setNewEntry(false) }}>
+    {newEntry && <FormDialog label="Add workbook entry" busy={busy} onClose={() => { if (!busy) setNewEntry(false) }}>
         <div className="modal-head"><div><p className="eyebrow">Manual bookkeeping</p><h2>Add income or expense</h2></div>
           <button type="button" className="icon-button" disabled={busy} onClick={() => setNewEntry(false)} aria-label="Close form">×</button></div>
         <p className="quiet">Use manual income only for money that isn't already recorded against a Finviant Office invoice.</p>

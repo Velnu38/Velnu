@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 const businessId = '11111111-1111-4111-8111-111111111111'
 const userId = '33333333-3333-4333-8333-333333333333'
 const user = { id: userId, email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
-const company = { id: businessId, name: 'Finviant Test Services', role: 'owner', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z', logo_path: null }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Finviant Test Services', role: 'owner', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z', logo_path: null }
 const agreement = { id:'88888888-8888-4888-8888-888888888888', agreement_version:'2026-10-27-v3' }
 
 async function signedIn(page) {

@@ -2422,7 +2422,7 @@
     "file": "src/components/settings/DocumentSettings.tsx",
     "controls": [
       {
-        "line": 71,
+        "line": 86,
         "tag": "button",
         "label": "Reload settings ",
         "action": "{() => window.location.reload()}",
@@ -2430,7 +2430,7 @@
         "source": "<button className=\"text-button\" onClick={() => window.location.reload()} >"
       },
       {
-        "line": 90,
+        "line": 106,
         "tag": "input",
         "label": "\"color\"",
         "action": "{(e) =>\n                setBrand({ ...brand, document_accent: e.target.value })\n              }",
@@ -2438,7 +2438,7 @@
         "source": "<input type=\"color\" value={brand.document_accent} onChange={(e) => setBrand({ ...brand, document_accent: e.target.value }) } />"
       },
       {
-        "line": 100,
+        "line": 116,
         "tag": "input",
         "label": "\"file\"",
         "action": "{(e) => setLogo(e.target.files?.[0] || null)}",
@@ -2446,7 +2446,7 @@
         "source": "<input type=\"file\" accept=\"image/png,image/jpeg,image/webp\" onChange={(e) => setLogo(e.target.files?.[0] || null)} />"
       },
       {
-        "line": 108,
+        "line": 124,
         "tag": "textarea",
         "label": "Associated label",
         "action": "{(e) =>\n                setBrand({ ...brand, document_footer: e.target.value })\n              }",
@@ -2454,7 +2454,7 @@
         "source": "<textarea maxLength={500} value={brand.document_footer} onChange={(e) => setBrand({ ...brand, document_footer: e.target.value }) } />"
       },
       {
-        "line": 133,
+        "line": 149,
         "tag": "input",
         "label": "\"number\"",
         "action": "{(e) =>\n              setDefaultTax(Number(e.target.value))\n            }",
@@ -2462,7 +2462,7 @@
         "source": "<input type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" required value={defaultTax} onChange={(e) => setDefaultTax(Number(e.target.value)) } />"
       },
       {
-        "line": 161,
+        "line": 177,
         "tag": "button",
         "label": " {busy ? \"Saving…\" : \"Save document setup\"} ",
         "action": "Form submit",

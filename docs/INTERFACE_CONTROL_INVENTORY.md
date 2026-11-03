@@ -585,12 +585,12 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 
 | Line | Control | Label/content | Handler/destination |
 | --- | --- | --- | --- |
-| 71 | button | Reload settings  | {() => window.location.reload()} |
-| 90 | input | "color" | {(e) =>                 setBrand({ ...brand, document_accent: e.target.value })               } |
-| 100 | input | "file" | {(e) => setLogo(e.target.files?.[0] // null)} |
-| 108 | textarea | Associated label | {(e) =>                 setBrand({ ...brand, document_footer: e.target.value })               } |
-| 133 | input | "number" | {(e) =>               setDefaultTax(Number(e.target.value))             } |
-| 161 | button |  {busy ? "Saving…" : "Save document setup"}  | Form submit |
+| 86 | button | Reload settings  | {() => window.location.reload()} |
+| 106 | input | "color" | {(e) =>                 setBrand({ ...brand, document_accent: e.target.value })               } |
+| 116 | input | "file" | {(e) => setLogo(e.target.files?.[0] // null)} |
+| 124 | textarea | Associated label | {(e) =>                 setBrand({ ...brand, document_footer: e.target.value })               } |
+| 149 | input | "number" | {(e) =>               setDefaultTax(Number(e.target.value))             } |
+| 177 | button |  {busy ? "Saving…" : "Save document setup"}  | Form submit |
 
 ## src/components/settings/PaymentSettings.tsx
 

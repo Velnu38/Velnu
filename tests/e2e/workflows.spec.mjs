@@ -11,7 +11,7 @@ const estimateId = '55555555-5555-4555-8555-555555555555'
 const paymentId = '66666666-6666-4666-8666-666666666666'
 const user = { id: userId, email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
 const customer = { id: customerId, first_name: 'Jane', last_name: 'Doe', company: null, phone: '757-555-0100', email: 'jane@example.test' }
-const company = { id: businessId, name: 'Test Plumbing', role: 'owner', phone: '757-555-0188', email: 'office@example.test', address_line1: '100 Main Street', city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', profile_completed_at: '2026-10-01T00:00:00Z' }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Test Plumbing', role: 'owner', phone: '757-555-0188', email: 'office@example.test', address_line1: '100 Main Street', city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', profile_completed_at: '2026-10-01T00:00:00Z' }
 
 async function installSession(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -47,7 +47,7 @@ async function mockWorkspace(page, seed = {}) {
     if (path.endsWith('/user')) return fulfill(user)
     if (path.endsWith('/user_plan_preferences')) return fulfill({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return fulfill({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
-    if (path.endsWith('/business_members')) return fulfill({ role: seed.role || 'owner', business_id: businessId, businesses: company })
+    if (path.endsWith('/business_members')) return fulfill({ role: seed.role || 'owner', business_id: businessId, access_modules: ['calendar','jobs','billing','finances'], businesses: company })
     if (path.endsWith('/rpc/get_dashboard_invoice_totals')) {
       const open = state.invoices.filter(i => Number(i.balance_due || 0) > 0 && !['draft', 'void'].includes(i.status))
       return fulfill({
@@ -74,7 +74,7 @@ async function mockWorkspace(page, seed = {}) {
     }
     if (path.endsWith('/rpc/convert_estimate_to_invoice')) {
       const e = state.estimates.find(row => row.id === body.target_estimate_id)
-      if (e) e.status = 'converted'
+      if (e) { e.status = 'converted'; state.invoices.push({ ...e, id: invoiceId, invoice_number: 'INV-1001', status: 'draft', amount_paid: 0, balance_due: e.total }) }
       return fulfill(invoiceId)
     }
     if (path.endsWith('/rpc/record_manual_payment')) {
@@ -118,6 +118,7 @@ test('owner creates a branded invoice atomically and it remains a draft until ma
   await page.goto('/')
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: '+ New invoice' }).click()
+  await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
   await page.getByPlaceholder('Unit price').fill('150')
@@ -142,14 +143,17 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   await page.goto('/')
   await openWorkArea(page, 'Estimates')
   await page.getByRole('button', { name: '+ New estimate' }).click()
+  await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
   await page.getByPlaceholder('Unit price').fill('150')
   await page.getByRole('button', { name: 'Create estimate' }).click()
+  await page.getByRole('button', { name: 'Close preview', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Create invoice' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Mark sent manually' }).click()
   await page.getByRole('button', { name: 'Record acceptance' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Close scheduling', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Create invoice' })).toBeVisible()
   await page.getByRole('button', { name: 'Create invoice' }).click()
   await expect(page.getByRole('heading', { name: 'Create the invoice' })).toBeVisible()
@@ -187,7 +191,7 @@ test('mobile More menu exposes invoices and editable company settings', async ({
   await page.goto('/')
   await page.getByRole('button', { name: 'More' }).click()
   await page.locator('.mobile-more-grid').getByRole('button', { name: 'Settings', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible()
 })
 
 
@@ -244,12 +248,11 @@ test('technician keeps field navigation but cannot edit invoices, estimates or p
   await page.goto('/')
   await openWorkArea(page, 'Jobs')
   await expect(page.getByRole('button', { name: '+ New job' })).toBeVisible()
-  await openWorkArea(page, 'Invoices')
-  await expect(page.getByRole('button', { name: '+ New invoice' })).toHaveCount(0)
-  await openWorkArea(page, 'Estimates')
-  await expect(page.getByRole('button', { name: '+ New estimate' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Payments', exact: true }).click()
-  await expect(page.getByRole('button', { name: '+ Record payment' })).toHaveCount(0)
+  for (const view of ['invoices', 'estimates', 'payments']) {
+    await page.goto('/?view=' + view)
+    await expect(page.getByText('This area is not included in your access. Contact your primary business owner.')).toBeVisible()
+    await expect(page.getByRole('button', { name: /New invoice|New estimate|Record payment/ })).toHaveCount(0)
+  }
 })
 
 
@@ -305,6 +308,7 @@ test('fractional invoice preview and saved draft retain database per-line roundi
   await page.goto('/')
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: '+ New invoice' }).click()
+  await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('First fractional service')
   await page.getByPlaceholder('Qty').fill('1.5')
