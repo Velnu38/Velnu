@@ -63,3 +63,14 @@ export async function saveSchedulingPreferences(business:string,input:Scheduling
 export function manageTimeOff(business:string,worker:string,start:string,end:string,note:string,remove?:string) {return rpc('manage_worker_time_off',{p_business:business,p_worker:worker,p_start:start,p_end:end,p_note:note,p_remove:remove || null})}
 export async function dispatchJob(job:string,workers:string[],start:string,end:string) {await rpc('dispatch_job',{p_job:job,p_workers:workers,p_start:start,p_end:end});announceCalendarChange()}
 export function createJobInvoice(job:string,request:string,items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>,due?:string,details?:{issue_date:string;notes:string;payment_links?:import('./settings').PaymentLink[];payment_instructions?:string}) {return rpc<{id:string;already_created:boolean}>('create_job_invoice',{p_job:job,p_request:request,p_items:items,p_due:due || null,p_details:details || {}})}
+
+export type InvoiceJobContext = SchedulingContext & {
+ invoice:{id:string;number:string|null;customer_id:string;customer_name:string;job_id:string|null;property_id:string|null;title:string;scope:string};
+ schedule:{starts_at:string;ends_at:string}|null;
+}
+export function getInvoiceJobContext(invoice:string) {return rpc<InvoiceJobContext>('get_invoice_job_context',{p_invoice:invoice})}
+export async function bookInvoiceJob(invoice:string,request:string,input:{title:string;property_id:string|null;workers:string[];starts_at:string;ends_at:string}) {
+ const result=await rpc<{job_id:string;already_created:boolean}>('book_invoice_job',{p_invoice:invoice,p_request:request,p_input:input});
+ if(!result?.job_id)throw new Error('The job result could not be confirmed. Retry the same scheduling request.');
+ announceCalendarChange();return result
+}

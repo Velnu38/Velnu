@@ -1,3 +1,5 @@
+import {DateTime} from 'luxon'
+import {announceCalendarChange} from '../services/calendar'
 import FormDialog from './FormDialog'
 import { localInstant } from '../lib/calendarTime'
 import DocumentChangeOrderButton from './DocumentChangeOrderButton'
@@ -15,6 +17,7 @@ import InvoiceEmailButton from './InvoiceEmailButton'
 import DocumentBrand from './DocumentBrand'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 
+const InvoiceJobDialog=lazy(()=>import('./scheduling/InvoiceJobDialog'))
 const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
 
 type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null }
@@ -34,6 +37,8 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
+  const [showJob,setShowJob]=useState(false)
+  const [jobNotice,setJobNotice]=useState('')
   const [showPayment,setShowPayment]=useState(false)
   const [showReminder,setShowReminder]=useState(false)
   const [showChangeOrders,setShowChangeOrders]=useState(false)
@@ -66,6 +71,8 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   if(!detail)return <div className="empty-state"><h2>Invoice unavailable</h2>{error&&<p role="alert">{error}</p>}<button className="secondary-button" onClick={onBack}>Back to invoices</button></div>
   const invoice=detail.invoice
   const customer=Array.isArray(invoice.customers)?invoice.customers[0]:invoice.customers
+  const canScheduleJob=canManageFinances(business.role)&&canAccess(business,'jobs')&&canAccess(business,'calendar')
+  const overdue=Number(invoice.balance_due)>0&&!!invoice.due_date&&invoice.due_date<DateTime.now().setZone(business.timezone || 'America/New_York').toISODate()!
   const issuedBrand=invoice.issuer_snapshot?.name ? { ...business, ...invoice.issuer_snapshot, name: invoice.issuer_snapshot.name } : business
 
   if(showChangeOrders && offersDocumentChangeOrders('invoice', invoice.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType:'invoice', documentId:invoice.id, documentNumber:invoice.invoice_number || 'Invoice', customerId:invoice.customer_id, jobId:invoice.job_id, estimateId:invoice.estimate_id }} onBack={()=>setShowChangeOrders(false)} /></Suspense>
@@ -77,17 +84,22 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
     <div className="invoice-action-bar">
+      {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a className="secondary-button" href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" className="primary-button attention-action" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
       {offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
-      {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={refresh}/>}
+      {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={async()=>{await refresh();announceCalendarChange()}}/>}
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
       {canManageFinances(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button className="secondary-button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
       <button className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
     </div>
+    {jobNotice&&<p className="form-message" role="status">{jobNotice}</p>}
     {error&&<p className="form-message error-text" role="alert">{error}</p>}
     <RecordResources key={invoice.id} business={business} target={{ kind: 'invoice', id: invoice.id }} />
-    <DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />
+    {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
+    {!canScheduleJob&&<DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />}
+    {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
+
     <section className="invoice-detail-grid">
       <article className="detail-card invoice-document print-document">
         <DocumentBrand business={issuedBrand} kind="Invoice" />

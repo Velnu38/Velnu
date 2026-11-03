@@ -38,7 +38,7 @@ async function fixture(options, run) {
       if (table !== 'invoices') assert.equal(url.searchParams.get('status'), 'eq.sent')
       else {
         assert.equal(url.searchParams.get('balance_due'), 'gt.0')
-        assert.equal(url.searchParams.get('status'), 'not.in.(draft,void)')
+        assert.equal(url.searchParams.get('status'), 'in.(sent,viewed,partial,overdue)')
         assert.match(url.searchParams.get('due_date') || '', /^lt\.\d{4}-\d{2}-\d{2}$/)
       }
       if (options.fail === table) return new Response(JSON.stringify({ message: 'Approval records unavailable' }), { status: 400, headers: { 'content-type': 'application/json' } })

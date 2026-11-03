@@ -32,9 +32,10 @@ const reminder = (n = 1) => ({
 })
 
 async function mockWorkspace(page, options = {}) {
+  const sessionTTL=options.sessionTTL || 3600
   const sessionHeader = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-  const sessionBody = Buffer.from(JSON.stringify({ sub: UID, aud: 'authenticated', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url')
-  const session = { access_token: sessionHeader + '.' + sessionBody + '.test', refresh_token: 'refresh', expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600, token_type: 'bearer', user }
+  const sessionBody = Buffer.from(JSON.stringify({ sub: UID, aud: 'authenticated', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + sessionTTL })).toString('base64url')
+  const session = { access_token: sessionHeader + '.' + sessionBody + '.test', refresh_token: 'refresh', expires_at: Math.floor(Date.now() / 1000) + sessionTTL, expires_in: sessionTTL, token_type: 'bearer', user }
   await page.addInitScript(s => localStorage.setItem('sb-example-auth-token', JSON.stringify(s)), session)
 
   const state = {
@@ -77,12 +78,25 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/auth/v1/user')) return reply(user)
     if (path.endsWith('/rpc/get_membership_entry')) return reply(BID)
     if (path.endsWith('/rpc/get_schedule_team')) return reply(state.role==='viewer'?[]:[{id:UID,label:'QA Owner',role:state.role,is_you:true}])
-    if (path.endsWith('/rpc/get_workflow_next_actions')) return reply({approved:[],completed:[]})
+    if (path.endsWith('/rpc/get_workflow_next_actions')) return reply(options.workflow || {approved:[],completed:[]})
     if (path.endsWith('/business_settings')) return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
     if (path.endsWith('/user_plan_preferences')) return reply({ user_id: UID, selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return reply({ id: id(91), agreement_version: '2026-10-26-v2' })
     if (path.endsWith('/business_members')) return reply({ role: state.role, access_modules: options.accessModules || ['calendar','jobs','billing','finances'], business_id: BID, businesses: business })
     if (path.endsWith('/rpc/get_plan_usage')) return reply({ plan: 'free', ai_limit: 0, voice_limit: 0, logo_bytes_limit: 0 })
+    if (path.endsWith('/rpc/get_invoice_job_context')) {
+      const invoice=state.invoices.find(i=>i.id===body.p_invoice)
+      return reply({preferences:{duration_minutes:120,buffer_minutes:30,notice_hours:24,work_days:[1,2,3,4,5],start_minutes:480,end_minutes:1020},team:[{id:UID,label:'Owner',role:'owner',is_you:true}],time_off:[],properties:[{id:id(77),label:'Service site',address:'1 Test Street'}],invoice:{id:invoice.id,number:invoice.invoice_number,customer_id:CID,customer_name:'Jane Doe',job_id:invoice.job_id||null,property_id:null,title:'Faucet repair',scope:'Faucet repair × 1'},schedule:null})
+    }
+    if (path.endsWith('/rpc/book_invoice_job')) {
+      const invoice=state.invoices.find(i=>i.id===body.p_invoice)
+      if(options.invoiceBookingError)return fail('The selected crew is already booked.')
+      const previous=state.savedJobs.get(body.p_request)
+      if(previous)return reply({...previous,already_created:true})
+      const row={id:id(80),customer_id:CID,title:body.p_input.title,description:'Faucet repair × 1',status:'scheduled',scheduled_start:body.p_input.starts_at,scheduled_end:body.p_input.ends_at,assigned_user_ids:body.p_input.workers,customers:customer,properties:[]}
+      state.jobs.push(row);invoice.job_id=row.id;state.appointments.push({id:id(81),job_id:row.id,title:row.title,starts_at:row.scheduled_start,ends_at:row.scheduled_end,status:'confirmed',customers:customer,jobs:row})
+      const result={job_id:row.id,already_created:false};state.savedJobs.set(body.p_request,result);if(options.invoiceBookingLost)return reply({message:'Response lost after scheduling',code:'500'},504);return reply(result)
+    }
     if (path.endsWith('/rpc/create_scheduled_job') || path.endsWith('/rpc/create_dispatched_job')) {
       if (state.jobError) return fail('Unable to create job')
       if (state.appointmentError) return fail('Unable to create appointment')
@@ -185,7 +199,7 @@ async function mockWorkspace(page, options = {}) {
     }
     if (path.endsWith('/invoices')) {
       if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.invoices.find(i => i.id === url.searchParams.get('id')?.replace('eq.', '')))
-      const matches = url.searchParams.has('due_date') ? state.invoices.filter(i => i.due_date < url.searchParams.get('due_date').replace('lt.', '') && Number(i.balance_due) > 0 && !['draft','void'].includes(i.status)) : state.invoices
+      const matches = url.searchParams.has('due_date') ? state.invoices.filter(i => i.due_date < url.searchParams.get('due_date').replace('lt.', '') && Number(i.balance_due) > 0 && ['sent','viewed','partial','overdue'].includes(i.status)) : state.invoices
       return reply(matches.slice(Number(url.searchParams.get('offset') || 0), Number(url.searchParams.get('offset') || 0) + Number(url.searchParams.get('limit') || 10)), 200, matches.length)
     }
     if (path.endsWith('/estimates')) {
@@ -294,7 +308,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
 
 test('08 absent customer relations and injected invoice HTML do not crash or render executable markup', async ({ page }) => {
   const malicious = '<img src=x onerror=alert(1)>'
-  await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, balance_due: 15, due_date: '2020-01-01', customers: null }] })
+  await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, status: 'sent', balance_due: 15, due_date: '2020-01-01', customers: null }] })
   await expect(page.getByRole('region', { name: 'Needs Attention' })).toContainText('Customer')
   await expect(page.getByRole('region', { name: 'Needs Attention' })).toContainText(malicious)
   expect(await page.getByRole('region', { name: 'Needs Attention' }).locator('img').count()).toBe(0)
@@ -1009,4 +1023,61 @@ test('volume lists reach historical invoices beyond 1000 and keep 25 rows per pa
  await page.getByLabel('Issue date',{exact:true}).fill('2026-01-01')
  await page.getByLabel('Due date',{exact:true}).fill('2026-01-31')
  await expect(page.getByLabel('Issue date',{exact:true})).toHaveValue('2026-01-01')
+})
+
+
+for(const width of [1440,390])test(`invoice creates one linked scheduled job with minimal input at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900})
+ const inv={id:id(300),invoice_number:'INV-JOB',status:'sent',issue_date:'2026-11-01',due_date:'2099-01-01',subtotal:100,tax_amount:0,total:100,balance_due:100,amount_paid:0,customer_id:CID,customers:customer,job_id:null}
+ const state=await mockWorkspace(page,{invoices:[inv]});await page.goto('/?view=invoices&document='+inv.id)
+ await page.getByRole('button',{name:'Schedule job',exact:true}).click()
+ const dialog=page.getByRole('dialog',{name:'Schedule job from invoice'})
+ await expect(dialog).toContainText('Jane Doe');await expect(dialog).toContainText('Faucet repair × 1')
+ await expect(dialog.getByLabel('Service address',{exact:true})).toHaveValue(id(77))
+ await dialog.getByLabel(/Agreed start/).fill('2026-12-07T10:00')
+ await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
+ await expect(dialog).toHaveCount(0);await expect(page.getByRole('link',{name:'Open linked job'})).toBeVisible()
+ const calls=state.requests.filter(r=>r.path.endsWith('/rpc/book_invoice_job'));expect(calls).toHaveLength(1)
+ expect(calls[0].body.p_input.workers).toEqual([UID]);expect(calls[0].body.p_input.property_id).toBe(id(77))
+ expect(Date.parse(calls[0].body.p_input.ends_at)-Date.parse(calls[0].body.p_input.starts_at)).toBe(7200000)
+ expect(state.jobs).toHaveLength(1);expect(state.appointments).toHaveLength(1);expect(state.invoices[0].status).toBe('sent')
+ await page.screenshot({path:'test-results/invoice-job-'+width+'.png',fullPage:true})
+})
+
+test('sent invoices need attention only with an unpaid balance before the business calendar day',async({page})=>{
+ await page.clock.install({time:new Date('2026-11-04T02:00:00Z')}) // November 3 in New York
+ const invoices=[['FUTURE','sent','2026-11-05',100],['TODAY','sent','2026-11-03',100],['NO-DUE','sent',null,100],['OVERDUE','sent','2026-11-02',100],['PARTIAL','partial','2026-11-02',20],['PAID','paid','2026-11-02',0],['DRAFT','draft','2026-11-02',100],['VOID','void','2026-11-02',100]].map(([number,status,due,balance],n)=>({id:id(310+n),invoice_number:'INV-'+number,status,due_date:due,balance_due:balance,total:100,issue_date:'2026-11-01',customers:customer}))
+ const state=await mockWorkspace(page,{invoices,sessionTTL:259200,aggregate:{open_invoices:5,outstanding_balance:420}});await page.goto('/')
+ const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
+ await expect(attention.getByRole('link',{name:/Open invoice INV-OVERDUE/})).toBeVisible()
+ await expect(attention.getByRole('link',{name:/Open invoice INV-PARTIAL/})).toBeVisible()
+ for(const number of ['FUTURE','TODAY','NO-DUE','PAID','DRAFT','VOID'])await expect(attention.getByRole('link',{name:new RegExp('Open invoice INV-'+number)})).toHaveCount(0)
+ const query=state.requests.find(r=>r.path.endsWith('/invoices')&&new URL(r.url).searchParams.has('due_date'))
+ expect(new URL(query.url).searchParams.get('due_date')).toBe('lt.2026-11-03')
+ await expect(page.locator('.billing-outstanding')).toContainText('$420.00')
+})
+
+for(const width of [1440,390])test(`all attention actions use one color and size at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900})
+ await mockWorkspace(page,{reminders:[reminder(700)],invoices:[{id:id(701),invoice_number:'INV-OLD',status:'sent',issue_date:'2020-01-01',due_date:'2020-01-02',total:100,balance_due:100,customers:customer}],workflow:{approved:[{id:id(702),estimate_number:'EST-READY',customer_name:'Jane Doe',offer:null}],completed:[{id:id(703),title:'Finished work',invoice_id:id(704),invoice_status:'draft'}]}})
+ await page.goto('/');const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
+ await expect(attention.locator('.attention-action')).toHaveCount(4)
+ const styles=await attention.locator('.attention-action').evaluateAll(elements=>elements.map(e=>{const s=getComputedStyle(e);return [s.backgroundColor,s.color,s.fontFamily,s.fontSize,s.fontWeight,e.getBoundingClientRect().height,e.getBoundingClientRect().width]}))
+ for(const style of styles){expect(style.slice(0,6)).toEqual(styles[0].slice(0,6));expect(style[0]).toBe('rgb(36, 95, 152)');expect(style[5]).toBe(44);if(width>700)expect(style[6]).toBe(176)}
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await page.screenshot({path:'test-results/attention-actions-'+width+'.png',fullPage:true})
+})
+
+
+test('lost invoice scheduling response reuses the job and reports its saved schedule on retry',async({page})=>{
+ const inv={id:id(390),invoice_number:'INV-RETRY',status:'sent',issue_date:'2026-11-01',due_date:'2099-01-01',subtotal:100,tax_amount:0,total:100,balance_due:100,amount_paid:0,customer_id:CID,customers:customer,job_id:null}
+ const state=await mockWorkspace(page,{invoices:[inv],invoiceBookingLost:true});await page.goto('/?view=invoices&document='+inv.id)
+ await page.getByRole('button',{name:'Schedule job',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Schedule job from invoice'})
+ await dialog.getByLabel(/Agreed start/).fill('2026-12-07T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
+ await expect(dialog.getByRole('alert')).toContainText('Response lost')
+ await dialog.getByLabel(/Agreed start/).fill('2026-12-08T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
+ await expect(dialog).toHaveCount(0);await expect(page.getByText('This invoice already has a job. Open linked job to review its saved schedule.')).toBeVisible()
+ expect(state.jobs).toHaveLength(1);expect(state.appointments).toHaveLength(1)
+ expect(state.jobs[0].scheduled_start).toBe('2026-12-07T15:00:00.000Z')
+ const calls=state.requests.filter(r=>r.path.endsWith('/rpc/book_invoice_job'));expect(calls).toHaveLength(2);expect(calls[0].body.p_request).toBe(calls[1].body.p_request)
 })

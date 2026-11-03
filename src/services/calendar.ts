@@ -98,9 +98,7 @@ export async function loadAgenda(
     limited: (work.count || 0) > 200 || (reminders.count || 0) > 200,
   };
 }
-export function announceCalendarChange() {
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event("finviant-work-changed"));
-}
+export {announceCalendarChange} from '../lib/workEvents'
 
 /** Load the whole visible range. Paginate instead of silently dropping busy days. */
 export async function loadCalendarRange(businessId: string, startDay: string, endDay: string, zone: string) {

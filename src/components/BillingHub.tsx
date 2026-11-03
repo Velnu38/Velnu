@@ -56,7 +56,7 @@ export default function BillingHub({ business, snapshot, loading, error, onNavig
           <span className={`billing-document-icon ${row.kind === 'Invoice' ? 'invoice' : 'estimate'}`} aria-hidden="true">{row.kind === 'Invoice' ? 'I' : row.kind === 'Estimate' ? 'E' : 'C'}</span>
           <span className="billing-row-copy"><strong>{row.customer}</strong><span>{row.kind} · {row.number}</span><small>{row.detail}</small></span>
           <span className={`billing-status ${row.tone}`}>{row.status}</span>
-          <span className="billing-row-amount"><strong>{usd.format(row.amount)}</strong><small>{row.amountLabel}</small></span><span className="billing-row-arrow" aria-hidden="true">↗</span>
+          <span className="billing-row-amount"><strong>{usd.format(row.amount)}</strong><small>{row.amountLabel}</small></span>{filter==='recent'?<span className="billing-row-arrow" aria-hidden="true">↗</span>:<span className="attention-action billing-attention-action">{row.kind==='Invoice'?'Review invoice':'Review approval'}</span>}
         </a></li>)}</ul>}
         {rows.length > 0 && <p className="billing-list-note">{filter === 'recent' ? `Latest ${rows.length} ${rows.length === 1 ? 'document' : 'documents'}.` : `Showing ${rows.length} of ${total} ${filter === 'overdue' ? 'overdue invoices' : filter === 'approvals' ? 'pending approvals' : 'billing follow-ups'}.`} Open Estimates or Invoices to see all.</p>}
       </div>}

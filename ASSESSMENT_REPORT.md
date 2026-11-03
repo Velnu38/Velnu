@@ -1,5 +1,9 @@
 # Finviant Comprehensive Assessment Report
 
+## Invoice handoff and overdue-only attention — November 3, 2026
+
+Sent invoices qualify for Needs Attention only with a positive unpaid balance and a due date before the business calendar day. Invoice-first scheduling now carries customer/scope/site/crew into one linked job and calendar event through an atomic, authorized RPC. Uniform attention actions share color, typography and dimensions. See [the complete flow and minimum-input assessment](docs/LOW_FRICTION_DOCUMENT_WORKFLOW.md) for invoice-first, estimate-led, scheduling, completion and payment paths, plus the distinction between document attention and explicit reminders. Validation evidence and deployment are recorded in the change request and ongoing assessment.
+
 ## Professional interface audit — November 3, 2026
 
 The interface pass adds one-click dashboard creation, inline job contacts, consistent native form dialogs, accessible icon names, mobile-safe input sizes, business-zone scheduling/follow-ups and direct document handoffs. The complete page disposition and individual control inventory are in [docs/PROFESSIONAL_WORKFLOW_AUDIT.md](docs/PROFESSIONAL_WORKFLOW_AUDIT.md). Source inventory: 70 TSX modules and 516 control definitions. Runtime/provider limitations are explicit; source coverage is not a claim that every provider action was clicked live. The full browser suite is enabled for the change request.
