@@ -1,3 +1,4 @@
+import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
 
@@ -24,8 +25,8 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'free',ai_limit:0,voice_limit:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
-  if(path.endsWith('/rpc/get_workflow_next_actions')){
-   const value={approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}
+  if(path.endsWith('/rpc/get_dashboard_attention_page')){
+   const value=attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}})
    const delay=state.workflowDelay;state.workflowDelay=0;state.pendingWorkflow++
    try{if(delay)await new Promise(resolve=>setTimeout(resolve,delay));return await reply(value)}finally{state.pendingWorkflow--}
   }
@@ -61,7 +62,7 @@ for(const width of [1440,390])test(`one attention area below billing and shared 
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/')
  const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention).toContainText('Test Customer')
- await expect(attention.getByText('No overdue invoices or pending approvals.')).toHaveCount(0)
+ await expect(attention.getByText('No items need attention.')).toHaveCount(0)
  const billing=page.getByRole('article',{name:'Estimates and invoices overview'})
  await billing.getByRole('button',{name:/Awaiting approval/}).click()
  await expect(billing.getByRole('button',{name:'Schedule job',exact:true})).toHaveCount(0)

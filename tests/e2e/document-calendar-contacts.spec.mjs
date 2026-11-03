@@ -1,3 +1,4 @@
+import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
 
@@ -31,7 +32,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/functions/v1/transcribe-voice'))return reply({configured:false})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:ai?'pro':'free',ai_limit:ai?100:0,ai_used:0,voice_limit:ai?100:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
-  if(path.endsWith('/rpc/get_workflow_next_actions'))return reply({approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[]})
+  if(path.endsWith('/rpc/get_dashboard_attention_page'))return reply(attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[]}}))
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return reply({open_invoices:0,outstanding_balance:0})
   if(path.endsWith('/rpc/get_scheduling_context'))return reply({preferences:{work_days:[1,2,3,4,5],start_minutes:480,end_minutes:1020,duration_minutes:120,buffer_minutes:30,notice_hours:24},team,time_off:[],properties:[{id:P,label:'Job site',address:'1 Test Street'}],estimate:body.p_estimate?{id:E,number:'EST-QA',customer_id:C,job_id:null,property_id:P,title:'Mow and trim',scope:'Mow and trim × 2',customer_name:'Test Customer',customer_email:'customer@example.test'}:undefined,offer:null})
   if(path.endsWith('/rpc/suggest_scheduling_slots'))return reply(slots.map(({starts_at,ends_at})=>({starts_at,ends_at})))
