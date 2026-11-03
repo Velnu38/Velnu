@@ -258,27 +258,27 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 
 | Line | Control | Label/content | Handler/destination |
 | --- | --- | --- | --- |
-| 70 | button | Back to invoices | {onBack} |
-| 80 | button | ← Invoices | {onBack} |
-| 86 | a | Open linked job | {'/?view=work&document='+encodeURIComponent(invoice.job_id)} |
-| 86 | button | Schedule job | {()=>setShowJob(true)} |
-| 89 | button | Mark sent manually | {markSent} |
-| 90 | button | Void invoice | {voidInvoice} |
-| 91 | button | Schedule reminder | {()=>setShowReminder(true)} |
-| 92 | button | Record payment | {()=>setShowPayment(true)} |
-| 93 | button | Print / Save PDF | {()=>window.print()} |
-| 108 | a | Pay with {paymentProviders.find(p=>p.id===link.provider)?.name} | {link.url} |
-| 118 | button | "Close" | {()=>setShowPayment(false)} |
-| 118 | input | "number" | {e=>setAmount(e.target.value)} |
-| 118 | select | <option value="cash">Cash</option> <option value="check">Check</option> <option value="card">Card</option> <option value="ach">ACH</option>  | {e=>setMethod(e.target.value as typeof method)} |
-| 118 | input | Associated label | {e=>setPaymentNote(e.target.value)} |
-| 118 | button | Cancel | {()=>setShowPayment(false)} |
-| 118 | button | {busy?'Saving…':'Record payment'} | Form submit |
-| 119 | button | "Close" | {()=>setShowReminder(false)} |
-| 119 | input | "datetime-local" | {e=>setReminderAt(e.target.value)} |
-| 119 | textarea | Associated label | {e=>setReminderNote(e.target.value)} |
-| 119 | button | Cancel | {()=>setShowReminder(false)} |
-| 119 | button | {busy?'Saving…':'Schedule reminder'} | Form submit |
+| 71 | button | Back to invoices | {onBack} |
+| 81 | button | ← Invoices | {onBack} |
+| 87 | a | Open linked job | {'/?view=work&document='+encodeURIComponent(invoice.job_id)} |
+| 87 | button | Schedule job | {()=>setShowJob(true)} |
+| 90 | button | Mark sent manually | {markSent} |
+| 91 | button | Void invoice | {voidInvoice} |
+| 92 | button | Schedule reminder | {()=>setShowReminder(true)} |
+| 93 | button | Record payment | {()=>setShowPayment(true)} |
+| 94 | button | Print / Save PDF | {()=>window.print()} |
+| 110 | a | Pay with {paymentProviders.find(p=>p.id===link.provider)?.name} | {link.url} |
+| 120 | button | "Close" | {()=>setShowPayment(false)} |
+| 120 | input | "number" | {e=>setAmount(e.target.value)} |
+| 120 | select | <option value="cash">Cash</option> <option value="check">Check</option> <option value="card">Card</option> <option value="ach">ACH</option>  | {e=>setMethod(e.target.value as typeof method)} |
+| 120 | input | Associated label | {e=>setPaymentNote(e.target.value)} |
+| 120 | button | Cancel | {()=>setShowPayment(false)} |
+| 120 | button | {busy?'Saving…':'Record payment'} | Form submit |
+| 121 | button | "Close" | {()=>setShowReminder(false)} |
+| 121 | input | "datetime-local" | {e=>setReminderAt(e.target.value)} |
+| 121 | textarea | Associated label | {e=>setReminderNote(e.target.value)} |
+| 121 | button | Cancel | {()=>setShowReminder(false)} |
+| 121 | button | {busy?'Saving…':'Schedule reminder'} | Form submit |
 
 ## src/components/InvoiceEmailButton.tsx
 

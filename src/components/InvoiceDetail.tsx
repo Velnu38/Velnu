@@ -38,6 +38,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [showJob,setShowJob]=useState(false)
+  const [jobNotice,setJobNotice]=useState('')
   const [showPayment,setShowPayment]=useState(false)
   const [showReminder,setShowReminder]=useState(false)
   const [showChangeOrders,setShowChangeOrders]=useState(false)
@@ -92,11 +93,12 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
       <button className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
     </div>
+    {jobNotice&&<p className="form-message" role="status">{jobNotice}</p>}
     {error&&<p className="form-message error-text" role="alert">{error}</p>}
     <RecordResources key={invoice.id} business={business} target={{ kind: 'invoice', id: invoice.id }} />
     {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
     {!canScheduleJob&&<DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />}
-    {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={()=>void refresh()}/></Suspense>}
+    {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
 
     <section className="invoice-detail-grid">
       <article className="detail-card invoice-document print-document">

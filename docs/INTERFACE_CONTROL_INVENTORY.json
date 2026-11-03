@@ -980,7 +980,7 @@
     "file": "src/components/InvoiceDetail.tsx",
     "controls": [
       {
-        "line": 70,
+        "line": 71,
         "tag": "button",
         "label": "Back to invoices",
         "action": "{onBack}",
@@ -988,7 +988,7 @@
         "source": "<button className=\"secondary-button\" onClick={onBack}>"
       },
       {
-        "line": 80,
+        "line": 81,
         "tag": "button",
         "label": "← Invoices",
         "action": "{onBack}",
@@ -996,7 +996,7 @@
         "source": "<button className=\"back-button\" onClick={onBack}>"
       },
       {
-        "line": 86,
+        "line": 87,
         "tag": "a",
         "label": "Open linked job",
         "action": "{'/?view=work&document='+encodeURIComponent(invoice.job_id)}",
@@ -1004,7 +1004,7 @@
         "source": "<a className=\"secondary-button\" href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>"
       },
       {
-        "line": 86,
+        "line": 87,
         "tag": "button",
         "label": "Schedule job",
         "action": "{()=>setShowJob(true)}",
@@ -1012,7 +1012,7 @@
         "source": "<button type=\"button\" className=\"primary-button attention-action\" disabled={busy} onClick={()=>setShowJob(true)}>"
       },
       {
-        "line": 89,
+        "line": 90,
         "tag": "button",
         "label": "Mark sent manually",
         "action": "{markSent}",
@@ -1020,7 +1020,7 @@
         "source": "<button className=\"secondary-button\" onClick={markSent} disabled={busy}>"
       },
       {
-        "line": 90,
+        "line": 91,
         "tag": "button",
         "label": "Void invoice",
         "action": "{voidInvoice}",
@@ -1028,7 +1028,7 @@
         "source": "<button className=\"secondary-button\" onClick={voidInvoice} disabled={busy}>"
       },
       {
-        "line": 91,
+        "line": 92,
         "tag": "button",
         "label": "Schedule reminder",
         "action": "{()=>setShowReminder(true)}",
@@ -1036,7 +1036,7 @@
         "source": "<button className=\"secondary-button\" disabled={busy} onClick={()=>setShowReminder(true)}>"
       },
       {
-        "line": 92,
+        "line": 93,
         "tag": "button",
         "label": "Record payment",
         "action": "{()=>setShowPayment(true)}",
@@ -1044,7 +1044,7 @@
         "source": "<button className=\"primary-button\" disabled={busy} onClick={()=>setShowPayment(true)}>"
       },
       {
-        "line": 93,
+        "line": 94,
         "tag": "button",
         "label": "Print / Save PDF",
         "action": "{()=>window.print()}",
@@ -1052,7 +1052,7 @@
         "source": "<button className=\"secondary-button\" onClick={()=>window.print()}>"
       },
       {
-        "line": 108,
+        "line": 110,
         "tag": "a",
         "label": "Pay with {paymentProviders.find(p=>p.id===link.provider)?.name}",
         "action": "{link.url}",
@@ -1060,7 +1060,7 @@
         "source": "<a key={link.provider} href={link.url} target=\"_blank\" rel=\"noopener noreferrer\">"
       },
       {
-        "line": 118,
+        "line": 120,
         "tag": "button",
         "label": "\"Close\"",
         "action": "{()=>setShowPayment(false)}",
@@ -1068,7 +1068,7 @@
         "source": "<button className=\"icon-button\" disabled={busy} onClick={()=>setShowPayment(false)} type=\"button\" aria-label=\"Close\">"
       },
       {
-        "line": 118,
+        "line": 120,
         "tag": "input",
         "label": "\"number\"",
         "action": "{e=>setAmount(e.target.value)}",
@@ -1076,7 +1076,7 @@
         "source": "<input type=\"number\" min=\"0.01\" max={Number(invoice.balance_due)} step=\"0.01\" value={amount} onChange={e=>setAmount(e.target.value)} required/>"
       },
       {
-        "line": 118,
+        "line": 120,
         "tag": "select",
         "label": "<option value=\"cash\">Cash</option> <option value=\"check\">Check</option> <option value=\"card\">Card</option> <option value=\"ach\">ACH</option> ",
         "action": "{e=>setMethod(e.target.value as typeof method)}",
@@ -1084,7 +1084,7 @@
         "source": "<select value={method} onChange={e=>setMethod(e.target.value as typeof method)}>"
       },
       {
-        "line": 118,
+        "line": 120,
         "tag": "input",
         "label": "Associated label",
         "action": "{e=>setPaymentNote(e.target.value)}",
@@ -1092,7 +1092,7 @@
         "source": "<input value={paymentNote} onChange={e=>setPaymentNote(e.target.value)}/>"
       },
       {
-        "line": 118,
+        "line": 120,
         "tag": "button",
         "label": "Cancel",
         "action": "{()=>setShowPayment(false)}",
@@ -1100,7 +1100,7 @@
         "source": "<button type=\"button\" className=\"secondary-button\" disabled={busy} onClick={()=>setShowPayment(false)}>"
       },
       {
-        "line": 118,
+        "line": 120,
         "tag": "button",
         "label": "{busy?'Saving…':'Record payment'}",
         "action": "Form submit",
@@ -1108,7 +1108,7 @@
         "source": "<button className=\"primary-button\" disabled={busy}>"
       },
       {
-        "line": 119,
+        "line": 121,
         "tag": "button",
         "label": "\"Close\"",
         "action": "{()=>setShowReminder(false)}",
@@ -1116,7 +1116,7 @@
         "source": "<button className=\"icon-button\" disabled={busy} onClick={()=>setShowReminder(false)} aria-label=\"Close\" type=\"button\">"
       },
       {
-        "line": 119,
+        "line": 121,
         "tag": "input",
         "label": "\"datetime-local\"",
         "action": "{e=>setReminderAt(e.target.value)}",
@@ -1124,7 +1124,7 @@
         "source": "<input type=\"datetime-local\" value={reminderAt} onChange={e=>setReminderAt(e.target.value)} required/>"
       },
       {
-        "line": 119,
+        "line": 121,
         "tag": "textarea",
         "label": "Associated label",
         "action": "{e=>setReminderNote(e.target.value)}",
@@ -1132,7 +1132,7 @@
         "source": "<textarea value={reminderNote} onChange={e=>setReminderNote(e.target.value)}/>"
       },
       {
-        "line": 119,
+        "line": 121,
         "tag": "button",
         "label": "Cancel",
         "action": "{()=>setShowReminder(false)}",
@@ -1140,7 +1140,7 @@
         "source": "<button type=\"button\" className=\"secondary-button\" disabled={busy} onClick={()=>setShowReminder(false)}>"
       },
       {
-        "line": 119,
+        "line": 121,
         "tag": "button",
         "label": "{busy?'Saving…':'Schedule reminder'}",
         "action": "Form submit",

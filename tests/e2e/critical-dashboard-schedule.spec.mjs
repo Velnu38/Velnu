@@ -92,10 +92,10 @@ async function mockWorkspace(page, options = {}) {
       const invoice=state.invoices.find(i=>i.id===body.p_invoice)
       if(options.invoiceBookingError)return fail('The selected crew is already booked.')
       const previous=state.savedJobs.get(body.p_request)
-      if(previous)return reply(previous)
+      if(previous)return reply({...previous,already_created:true})
       const row={id:id(80),customer_id:CID,title:body.p_input.title,description:'Faucet repair × 1',status:'scheduled',scheduled_start:body.p_input.starts_at,scheduled_end:body.p_input.ends_at,assigned_user_ids:body.p_input.workers,customers:customer,properties:[]}
       state.jobs.push(row);invoice.job_id=row.id;state.appointments.push({id:id(81),job_id:row.id,title:row.title,starts_at:row.scheduled_start,ends_at:row.scheduled_end,status:'confirmed',customers:customer,jobs:row})
-      const result={job_id:row.id,already_created:false};state.savedJobs.set(body.p_request,result);return reply(result)
+      const result={job_id:row.id,already_created:false};state.savedJobs.set(body.p_request,result);if(options.invoiceBookingLost)return reply({message:'Response lost after scheduling',code:'500'},504);return reply(result)
     }
     if (path.endsWith('/rpc/create_scheduled_job') || path.endsWith('/rpc/create_dispatched_job')) {
       if (state.jobError) return fail('Unable to create job')
@@ -1066,4 +1066,18 @@ for(const width of [1440,390])test(`all attention actions use one color and size
  for(const style of styles){expect(style.slice(0,6)).toEqual(styles[0].slice(0,6));expect(style[0]).toBe('rgb(36, 95, 152)');expect(style[5]).toBe(44);if(width>700)expect(style[6]).toBe(176)}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:'test-results/attention-actions-'+width+'.png',fullPage:true})
+})
+
+
+test('lost invoice scheduling response reuses the job and reports its saved schedule on retry',async({page})=>{
+ const inv={id:id(390),invoice_number:'INV-RETRY',status:'sent',issue_date:'2026-11-01',due_date:'2099-01-01',subtotal:100,tax_amount:0,total:100,balance_due:100,amount_paid:0,customer_id:CID,customers:customer,job_id:null}
+ const state=await mockWorkspace(page,{invoices:[inv],invoiceBookingLost:true});await page.goto('/?view=invoices&document='+inv.id)
+ await page.getByRole('button',{name:'Schedule job',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Schedule job from invoice'})
+ await dialog.getByLabel(/Agreed start/).fill('2026-12-07T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
+ await expect(dialog.getByRole('alert')).toContainText('Response lost')
+ await dialog.getByLabel(/Agreed start/).fill('2026-12-08T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
+ await expect(dialog).toHaveCount(0);await expect(page.getByText('This invoice already has a job. Open linked job to review its saved schedule.')).toBeVisible()
+ expect(state.jobs).toHaveLength(1);expect(state.appointments).toHaveLength(1)
+ expect(state.jobs[0].scheduled_start).toBe('2026-12-07T15:00:00.000Z')
+ const calls=state.requests.filter(r=>r.path.endsWith('/rpc/book_invoice_job'));expect(calls).toHaveLength(2);expect(calls[0].body.p_request).toBe(calls[1].body.p_request)
 })
