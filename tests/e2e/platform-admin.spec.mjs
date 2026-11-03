@@ -21,12 +21,12 @@ for(const width of [1440,390]){
    if(b.p_action==='overview')return{checked_at:sample.created_at,accounts:1,account_limit:10,pro_workspaces:1,open_cases:1,database:'Connected',email_queue:0,email_failures:0,billing:'Live billing not activated',provider_note:'Provider configuration requires verification.'}
    if(b.p_action==='cases')return{total:1,rows:[current]}
    if(b.p_action==='case')return{case:current,messages}
-   if(b.p_action==='update_case'){writes++;current={...current,status:b.p_input.status,version:2};messages.push({id:'1',body:b.p_input.body,audience:b.p_input.audience,created_at:sample.created_at});return{case:current,messages}}
+   if(b.p_action==='update_case'){writes++;if(writes===1){current={...current,version:2};return{error:'This case changed. Reload it; your note has been preserved.',conflict:true}}current={...current,status:b.p_input.status,version:3};messages.push({id:'1',body:b.p_input.body,audience:b.p_input.audience,created_at:sample.created_at});return{case:current,messages}}
    return{rows:[],total:0}
   })
   await page.goto('/admin');await expect(page.getByText('1 / 10')).toBeVisible();await page.getByRole('button',{name:'Customer issues',exact:true}).click();await page.getByRole('button',{name:'Calendar issue',exact:true}).click()
   const dialog=page.getByRole('dialog',{name:'Manage support case'});await dialog.getByLabel('Status',{exact:true}).selectOption('in_progress');await dialog.getByLabel('Internal note',{exact:true}).fill('Checking the reminder handler.')
-  await dialog.getByRole('button',{name:'Save case update'}).dblclick();await expect(dialog.getByText('Checking the reminder handler.')).toBeVisible();expect(writes).toBe(1)
+  await dialog.getByRole('button',{name:'Save case update'}).click();await expect(dialog.getByRole('alert')).toContainText('This case changed');await dialog.getByRole('button',{name:'Reload case'}).click();await expect(dialog.getByLabel('Internal note',{exact:true})).toHaveValue('Checking the reminder handler.');page.once('dialog',d=>d.dismiss());await dialog.getByRole('button',{name:'Close',exact:true}).click();await expect(dialog).toBeVisible();await dialog.getByRole('button',{name:'Save case update'}).dblclick();await expect(dialog.getByText('Checking the reminder handler.')).toBeVisible();expect(writes).toBe(2)
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  })
  test(`customer support preserves a failed submission and retries without duplicating its request at ${width}px`,async({page})=>{
