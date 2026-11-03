@@ -5,6 +5,7 @@ import {previewDocumentTotal} from '../../src/lib/financialValidation'
 const sum=(s:ReturnType<typeof parseVoiceDocument>)=>previewDocumentTotal(s.lines.map(l=>({quantity:Number(l.quantity),unit_price:l.amount===''?NaN:Number(l.amount),tax_rate:Number(s.taxRate||0)})))
 test('voice invoices and estimates retain each separate service charge and never add the spoken total as a line',()=>{
  for(const kind of ['invoice','estimate']){const s=parseVoiceDocument(`Create an ${kind} for Bob Smith for mowing $100 and edging $40, total $140`);assert.equal(s.kind,kind);assert.equal(s.customerName,'Bob Smith');assert.deepEqual(s.lines.map(l=>[l.description,l.amount,l.quantity]),[['mowing','100','1'],['edging','40','1']]);assert.equal(s.statedTotal,'140');assert.equal(sum(s),140)}
+ const colon=parseVoiceDocument('Create an estimate for Bob Smith: mowing $100 and edging $40, total $140');assert.equal(colon.customerName,'Bob Smith');assert.equal(sum(colon),140)
  assert.equal(parseVoiceDocument('Create invoice for One Dollar Services for mowing $100').customerName,'One Dollar Services')
  const s=parseVoiceDocument('Make an invoice for Bob Smith for $300 labor and $200 materials');assert.deepEqual(s.lines.map(l=>[l.description,l.amount]),[['labor','300'],['materials','200']]);assert.equal(sum(s),500)
 })

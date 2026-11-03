@@ -38,7 +38,7 @@ export function parseVoiceDocument(input:string):VoiceSeed{
  const normalized=command.replace(/\b(?:estimate|quote)\b/i,'invoice'),legacy=parseQuickInvoice(normalized)
  const warnings:string[]=[];const unsafe=/\b(?:refund|credit|discount|minus|negative|deposit|paid|deduct|less|payment)\b/i.test(command)
  if(unsafe)warnings.push('Payments, deposits, discounts or negative amounts need manual review. Enter each service charge below.')
- const customerMatch=raw.match(/\b(?:invoice|bill|estimate|quote)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|due|total|amount|at|with|including|on|description|service|work|to)\b|\s+\$|[,.;!?]|$)/i)
+ const customerMatch=raw.match(/\b(?:invoice|bill|estimate|quote)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|due|total|amount|at|with|including|on|description|service|work|to)\b|\s+\$|[,.;:!?]|$)/i)
  const customerName=customerMatch?.[1]?.trim()||legacy.customerName
  const headerEnd=customerMatch?customerMatch.index!+customerMatch[0].length:0
  let body=headerEnd?normalizeWords(raw.slice(headerEnd)):command.replace(/^.*?\b(?:invoice|estimate|quote|bill)\b\s*/i,'')
