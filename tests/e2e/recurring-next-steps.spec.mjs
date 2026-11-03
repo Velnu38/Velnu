@@ -29,5 +29,5 @@ test('office staff see business contacts but cannot set destinations or recurrin
 })
 
 test('a rejected work-completion save restores its checkbox and offers the original change action',async({page})=>{
- const state=await mock(page,{workSaveFails:true});await page.goto('/?view=invoices&document='+E);const box=page.getByRole('checkbox',{name:'Work completed (optional)',exact:true});await box.click();await expect(page.getByRole('alert')).toContainText('Unable to save work completion.');await expect(box).not.toBeChecked();await expect(page.getByRole('button',{name:'Change order',exact:true})).toBeVisible();expect(state.workCompleted).toBe(false)
+ const state=await mock(page,{workSaveFails:true});await page.goto('/?view=invoices&document='+E);const box=page.getByRole('checkbox',{name:'Work completed (optional)',exact:true});await box.click();await expect(page.getByRole('alert')).toContainText('Unable to update work completion.');await expect(box).not.toBeChecked();await expect(page.getByRole('button',{name:'Change order',exact:true})).toBeVisible();expect(state.workCompleted).toBe(false)
 })
