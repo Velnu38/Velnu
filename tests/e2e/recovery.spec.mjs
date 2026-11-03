@@ -11,7 +11,7 @@ async function setup(page,options={}){
  await page.route('https://example.supabase.co/**',async route=>{
   const r=route.request(),path=new URL(r.url()).pathname,method=r.method(); let body=null; try{body=r.postDataJSON()}catch{}
   s.requests.push({path,method,body})
-  const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(value)})
+  const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(value) ? `0-${Math.max(0,value.length-1)}/${value.length}` : '0-0/1' },body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:''})
   if(path.endsWith('/user'))return json(user)
   if(path.endsWith('/user_plan_preferences'))return json({user_id:U,selected_tier:'pro'})

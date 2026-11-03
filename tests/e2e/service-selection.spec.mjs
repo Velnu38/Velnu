@@ -61,7 +61,7 @@ test('signed-in owner saves account service interests without purchase or billin
     try { body = req.postDataJSON() } catch {}
     if (method !== 'OPTIONS') requests.push({ path, method, body })
     const json = (value,status=200) => route.fulfill({
-      status,contentType:'application/json',headers:{'access-control-allow-origin':'*'},
+      status,contentType:'application/json',headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(value) ? `0-${Math.max(0,value.length-1)}/${value.length}` : '0-0/1' },
       body:JSON.stringify(value),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: {'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'' })

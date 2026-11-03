@@ -40,7 +40,7 @@ async function mockWorkspace(page, seed = {}) {
     state.requests.push({ path, method, url: request.url(), body })
     const fulfill = (obj, status = 200) => route.fulfill({
       status, contentType: 'application/json',
-      headers: { 'access-control-allow-origin': '*', 'content-range': '0-0/0' },
+      headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(obj) ? `0-${Math.max(0,obj.length-1)}/${obj.length}` : '0-0/1' },
       body: JSON.stringify(obj),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })

@@ -21,7 +21,7 @@ async function mockBusiness(page, existing = false, paid = existing) {
     let body = null
     try { body = req.postDataJSON() } catch {}
     if (method !== 'OPTIONS') writes.push({ path, method, body })
-    const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(payload) })
+    const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(payload) ? `0-${Math.max(0,payload.length-1)}/${payload.length}` : '0-0/1' }, body: JSON.stringify(payload) })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
