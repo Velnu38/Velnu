@@ -1,4 +1,4 @@
-import {announceCalendarChange} from './calendar'
+import {announceCalendarChange} from '../lib/workEvents'
 import type { DocumentPayments } from '../components/PaymentOptionsFields'
 import type { newCustomerFields } from '../components/CustomerEntry'
 import { collectBusinessRecords } from '../lib/businessRecords'

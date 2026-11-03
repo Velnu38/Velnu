@@ -1,6 +1,5 @@
 import {DateTime} from 'luxon'
 import {announceCalendarChange} from '../services/calendar'
-import InvoiceJobDialog from './scheduling/InvoiceJobDialog'
 import FormDialog from './FormDialog'
 import { localInstant } from '../lib/calendarTime'
 import DocumentChangeOrderButton from './DocumentChangeOrderButton'
@@ -18,6 +17,7 @@ import InvoiceEmailButton from './InvoiceEmailButton'
 import DocumentBrand from './DocumentBrand'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 
+const InvoiceJobDialog=lazy(()=>import('./scheduling/InvoiceJobDialog'))
 const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
 
 type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null }
@@ -96,7 +96,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
     <RecordResources key={invoice.id} business={business} target={{ kind: 'invoice', id: invoice.id }} />
     {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
     {!canScheduleJob&&<DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />}
-    {showJob&&<InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={()=>void refresh()}/>}
+    {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={()=>void refresh()}/></Suspense>}
 
     <section className="invoice-detail-grid">
       <article className="detail-card invoice-document print-document">
