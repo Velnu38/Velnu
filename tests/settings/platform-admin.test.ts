@@ -10,7 +10,7 @@ create role authenticated;create role anon;create role service_role;create schem
 create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;
 create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,created_at timestamptz default now(),last_sign_in_at timestamptz);
-create table auth.sessions(id uuid primary key,user_id uuid);
+create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);
 create table auth.mfa_factors(id uuid primary key,user_id uuid,status text);
 create table public.businesses(id uuid primary key,name text);
 create table public.business_members(business_id uuid,user_id uuid,role text);
@@ -21,7 +21,7 @@ create function private.is_business_member(b uuid) returns boolean language sql 
 create function private.is_pro(b uuid) returns boolean language sql stable as $$select false$$;
 grant usage on schema private,public,auth to authenticated;
 insert into auth.users(id,email,email_confirmed_at) values('${OP}','owner@example.test',now()),('${CUSTOMER}','customer@example.test',now()),('${OTHER}','other@example.test',now());
-insert into auth.sessions values('${SID}','${OP}');insert into auth.mfa_factors values('${id(21)}','${OP}','verified');insert into businesses values('${B}','Test business'),('${X}','Other business');
+insert into auth.sessions(id,user_id) values('${SID}','${OP}');insert into auth.mfa_factors values('${id(21)}','${OP}','verified');insert into businesses values('${B}','Test business'),('${X}','Other business');
 insert into business_members values('${B}','${CUSTOMER}','owner'),('${X}','${OTHER}','owner');
 `);await db.exec(sql);await db.exec(`insert into private.platform_operators(user_id) values('${OP}');update private.workspace_feature_flags set enabled=true;`);return db}
 async function actor(db:PGlite,who:string,aal:string|null='aal2',session=SID){await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[who,JSON.stringify({aal,session_id:session})])}
@@ -35,6 +35,8 @@ test('operator role, confirmed identity, live session and MFA are independently 
   await actor(db,OP,null);assert.match((await admin(db,'overview')).error,/authenticator/)
   await actor(db,OP,'aal2',id(21));assert.match((await admin(db,'overview')).error,/restricted/)
   await actor(db,OP);assert.equal((await admin(db,'overview')).accounts,3)
+  await db.exec("update auth.sessions set not_after=now()-interval '1 second'");assert.match((await admin(db,'overview')).error,/restricted/);await db.exec('update auth.sessions set not_after=null')
+  await db.exec("update auth.mfa_factors set status='unverified'");assert.match((await admin(db,'overview')).error,/authenticator/);await db.exec("update auth.mfa_factors set status='verified'")
   await db.exec(`update private.platform_operators set active=false`);assert.match((await admin(db,'cases')).error,/restricted/)
   await db.exec('set role authenticated');await assert.rejects(db.query('select * from private.platform_operators'),/permission denied/);await assert.rejects(db.query("update private.platform_operators set active=true"),/permission denied/)
  }finally{await db.close()}

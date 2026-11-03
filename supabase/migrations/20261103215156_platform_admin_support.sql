@@ -34,7 +34,7 @@ begin
  if (select count(*) from private.platform_admin_audit a where a.actor=request_ctx.actor and a.created_at>now()-interval '1 minute')>=120 then return jsonb_build_object('error','Too many admin requests. Wait a minute and retry.');end if;
  operator:=coalesce((select enabled from private.workspace_feature_flags where name='platform_console'),false)
  and exists(select 1 from private.platform_operators o join auth.users u on u.id=o.user_id where o.user_id=actor and o.active and u.email_confirmed_at is not null);
- session_ok:=exists(select 1 from auth.sessions where id::text=auth.jwt()->>'session_id' and user_id=actor);
+ session_ok:=exists(select 1 from auth.sessions where id::text=auth.jwt()->>'session_id' and user_id=actor and (not_after is null or not_after>now()));
  if not operator or not session_ok then
   insert into private.platform_admin_audit(actor,action,outcome) values(actor,left(p_action,40),'denied');
   return jsonb_build_object('error','Finviant administrator access is restricted.');
