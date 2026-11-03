@@ -88,7 +88,7 @@ for(const width of [1440,390])for(const kind of ['invoice','estimate','job'])tes
   await page.mouse.click(2,2)
   await expect(page.getByLabel('Customer name',{exact:true})).toHaveValue('Keep my draft')
  }
- await page.getByRole('dialog').press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0)
+ page.once('dialog',d=>d.accept());await page.getByRole('dialog').press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 test('job adds a customer inline while retaining entered work',async({page})=>{
  const state=await mock(page);await page.goto('/?view=work&new=1');const dialog=page.getByRole('dialog')

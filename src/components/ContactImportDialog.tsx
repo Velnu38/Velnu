@@ -1,14 +1,14 @@
+import FormDialog from './FormDialog'
 import './scheduling/scheduling.css'
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { contactFileLimit,normalizePhoneContact,parseContactCards,type ImportContact } from '../lib/contactImport'
 type PhonePicker={select:(properties:string[],options:{multiple:boolean})=>Promise<Array<{name?:string[];email?:string[];tel?:string[]}>>}
 export default function ContactImportDialog({businessId,onClose,onImported}:{businessId:string;onClose:()=>void;onImported:()=>void}) {
-  const dialog=useRef<HTMLDialogElement>(null),saving=useRef(false),pending=useRef<ImportContact[]|null>(null)
+  const saving=useRef(false),pending=useRef<ImportContact[]|null>(null)
   const [rows,setRows]=useState<ImportContact[]>([]),[selected,setSelected]=useState<string[]>([]),[page,setPage]=useState(0),[ignored,setIgnored]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[imported,setImported]=useState(0),[skipped,setSkipped]=useState(0)
   const picker=(navigator as Navigator&{contacts?:PhonePicker}).contacts
   const supported=!!picker?.select&&'ContactsManager' in window
-  useEffect(()=>{dialog.current?.showModal();return()=>dialog.current?.close()},[])
   function accept(contacts:ImportContact[],ignored=0){setRows(contacts);setSelected(contacts.map(c=>c.id));setIgnored(ignored);setPage(0);setError('');setNotice('');pending.current=null;setImported(0);setSkipped(0)}
   async function choosePhone(){if(!picker||busy)return;setError('');try{const chosen=await picker.select(['name','email','tel'],{multiple:true});if(chosen.length>2000)throw new Error('Select up to 2,000 contacts at a time.');const contacts=chosen.map(c=>normalizePhoneContact(c,crypto.randomUUID())).filter((c):c is ImportContact=>!!c);accept(contacts,chosen.length-contacts.length)}catch(e){if(e instanceof DOMException&&e.name==='AbortError')return;setError('Contacts could not be opened. You can import an exported .vcf contacts file below.')}}
   async function file(file?:File){if(!file||busy)return;setError('');try{if(file.size>contactFileLimit)throw new Error('Choose a contacts file smaller than 8 MB. Export a smaller list without photos if needed.');const parsed=parseContactCards(await file.text(),()=>crypto.randomUUID());accept(parsed.contacts,parsed.ignored)}catch(e){setError(e instanceof Error?e.message:'Unable to read this contacts file.')}}
@@ -22,7 +22,7 @@ export default function ContactImportDialog({businessId,onClose,onImported}:{bus
     finally{saving.current=false;setBusy(false)}
   }
   const close=()=>{if(!saving.current)onClose()}
-  return <dialog ref={dialog} className="guided-dialog" aria-labelledby="contact-import-title" onCancel={e=>{e.preventDefault();close()}}><header className="guided-dialog-head"><div><p className="eyebrow">Primary account owner</p><h2 id="contact-import-title">Import phone contacts</h2></div><button type="button" className="calendar-arrow" disabled={busy} aria-label="Close contact import" onClick={close}>×</button></header>
+  return <FormDialog label="Import phone contacts" cleanVersion={notice} busy={busy} onClose={onClose} wide><header className="guided-dialog-head"><div><p className="eyebrow">Primary account owner</p><h2 id="contact-import-title">Import phone contacts</h2></div><button type="button" className="calendar-arrow" disabled={busy} aria-label="Close contact import" onClick={close}>×</button></header>
     <p>Choose contacts from the owner’s phone or import an exported contacts file. Review the names below before saving them as customers. No messages are sent.</p>
     {supported&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>void choosePhone()}>Choose phone contacts</button>}
     <label>Contacts file (.vcf)<input type="file" accept=".vcf,text/vcard,text/x-vcard" disabled={busy} onChange={e=>void file(e.target.files?.[0])}/></label>
@@ -32,5 +32,5 @@ export default function ContactImportDialog({businessId,onClose,onImported}:{bus
     {(imported>0||skipped>0)&&<p role="status">{imported} imported · {skipped} existing matches skipped.</p>}
     {error&&<p role="alert" className="form-message error-text">{error}</p>}{notice&&<p role="status">{notice}</p>}
     <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={close}>Back to customers</button><button type="button" className="primary-button" disabled={busy||(!selection.length&&!pending.current?.length)} onClick={()=>void save()}>{busy?'Importing…':pending.current?.length?'Retry remaining contacts':'Import selected contacts'}</button></div>
-  </dialog>
+  </FormDialog>
 }

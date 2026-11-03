@@ -1,3 +1,4 @@
+import {useUnsavedChanges} from '../../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from "react";
 import type { CurrentBusiness } from "../../lib/business";
 import {
@@ -73,6 +74,7 @@ export default function TeamSettings({
     [modules, setModules] = useState<WorkspaceModule[]>(defaults),
     [inviteUrl, setInviteUrl] = useState(""),
     [editing, setEditing] = useState<TeamMember | null>(null);
+  const guard=useUnsavedChanges(busy)
   async function refresh() {
     setTeam(await getTeam(business.id));
   }
@@ -102,7 +104,7 @@ export default function TeamSettings({
     setInviteUrl("");
     try {
       const r = await inviteMember(business.id, email, role, modules);
-      setInviteUrl(r.url);
+      guard.markClean();setInviteUrl(r.url);
       setNotice(
         r.email_status === "accepted"
           ? "Invitation email accepted for delivery. The link expires in seven days."
@@ -133,7 +135,7 @@ export default function TeamSettings({
     setError("");
     try {
       await manageMember(business.id, target, action, r, m);
-      setEditing(null);
+      guard.markClean();setEditing(null);
       await refresh();
       setNotice(
         action === "remove"
@@ -148,7 +150,7 @@ export default function TeamSettings({
   }
   const used = (team?.members.length || 0) + (team?.invitations.length || 0);
   return (
-    <section className="settings-panel">
+    <section className="settings-panel" onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
       <div className="split-heading">
         <div>
           <p className="eyebrow">Owner controls</p>
@@ -226,7 +228,7 @@ export default function TeamSettings({
                 onClick={() =>
                   setEditing({
                     ...m,
-                    role: m.role === "admin" ? "office" : m.role,
+                    role: m.role,
                   })
                 }
               >
@@ -263,7 +265,7 @@ export default function TeamSettings({
                 })
               }
             >
-              <option value="office">Office staff</option>
+              {editing.role === "admin" && <option value="admin">Administrator (current role)</option>}<option value="office">Office staff</option>
               <option value="technician">Field staff</option>
               <option value="viewer">Read-only staff</option>
             </select>
@@ -279,7 +281,7 @@ export default function TeamSettings({
               className="primary-button"
               disabled={busy}
               onClick={() =>
-                void manage(
+                (!team?.members.some(m=>m.user_id===editing.user_id&&m.role!==editing.role)||window.confirm(`Change ${editing.email} from ${team?.members.find(m=>m.user_id===editing.user_id)?.role} to ${editing.role}?`)) && void manage(
                   editing.user_id,
                   "update",
                   editing.role as TeamRole,
@@ -324,7 +326,7 @@ export default function TeamSettings({
                         i.access_modules,
                         i.id,
                       );
-                      setInviteUrl(r.url);
+                      guard.markClean();setInviteUrl(r.url);
                       setNotice(
                         r.email_status === "accepted"
                           ? "New invitation email accepted. The previous link is no longer valid."

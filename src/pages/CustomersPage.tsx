@@ -1,7 +1,10 @@
+import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {readableError} from '../lib/errors'
+import RecordListControls,{useRecordList} from '../components/RecordListControls'
 import FormDialog from '../components/FormDialog'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import WorkspaceBack from '../components/WorkspaceBack'
-import { FormEvent, lazy,Suspense,useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, lazy,Suspense,useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { createCustomer, listCustomers } from '../services/customers'
 import CustomerDetail from '../components/CustomerDetail'
@@ -18,11 +21,10 @@ type Customer = {
 
 export default function CustomersPage({ business }: { business: CurrentBusiness }) {
   const [customers, setCustomers] = useState<Customer[]>([])
-  const [query, setQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showImport,setShowImport]=useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(()=>new URLSearchParams(location.search).get('document'))
-  const saving=useRef(false)
+  const saving=useRef(false),customerRetry=useRef<{signature:string;id:string}|null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ first_name: '', last_name: '', company: '', phone: '', email: '' })
@@ -33,14 +35,8 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     setCustomers((await listCustomers(business.id)) as Customer[])
   }
 
+  useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load customers')) }, [business.id])
-
-  const visible = useMemo(() => {
-    const term = query.trim().toLowerCase()
-    if (!term) return customers
-    return customers.filter((customer) => [customer.first_name, customer.last_name, customer.company, customer.phone, customer.email]
-      .filter(Boolean).join(' ').toLowerCase().includes(term))
-  }, [customers, query])
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -49,7 +45,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     setBusy(true)
     setError('')
     try {
-      const created = await createCustomer(business.id, form)
+      const signature=JSON.stringify(form);if(customerRetry.current?.signature!==signature)customerRetry.current={signature,id:crypto.randomUUID()};const created = await createCustomer(business.id, form,customerRetry.current.id);customerRetry.current=null
       setForm({ first_name: '', last_name: '', company: '', phone: '', email: '' })
       setShowForm(false)
       await refresh()
@@ -62,6 +58,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     }
   }
 
+  const records=useRecordList(customers,row=>[row.first_name,row.last_name,row.email,row.phone,row.company].join(' '))
   if (selectedCustomerId) {
     return <CustomerDetail business={business} customerId={selectedCustomerId} onBack={() => { setSelectedCustomerId(null);history.replaceState(history.state,'','/?view=customers');void refresh().catch(e=>setError(e.message)) }} />
   }
@@ -73,11 +70,11 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
         {isPrimaryOwner(business)&&<button type="button" className="secondary-button compact" onClick={()=>setShowImport(true)}>Import contacts</button>}
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New customer</button>}
       </div>
-      <div className="toolbar"><input className="search-input" aria-label="Search customers" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" /></div>
+      <RecordListControls label="customers" list={records}/>
       <section className="list-card">
-        {visible.length === 0 ? (
+        {records.total === 0 ? (
           <div className="empty-state"><div className="empty-icon">C</div><h2>{customers.length ? 'No matches' : 'No customers yet'}</h2><p>{customers.length ? 'Try a different search.' : 'Add your first customer or tell Finviant Office to create one.'}</p></div>
-        ) : visible.map((customer) => {
+        ) : records.visible.map((customer) => {
           const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Unnamed customer'
           return <button className="customer-row customer-row-button" key={customer.id} onClick={() => openCustomer(customer.id)}>
             <div className="avatar">{name.charAt(0).toUpperCase()}</div>

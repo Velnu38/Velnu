@@ -68,7 +68,7 @@ export default function BillingHub({ business, snapshot, loading, error, onNavig
     href:documentHref(row.kind === 'invoice' ? 'invoices' : 'estimates',row.id) }))
   const rows=filter==='recent'?recent:[...overdue,...approvals]
   const heading=filter==='recent'?'Recent documents':filter==='approvals'?'Customer approvals':'Needs Attention'
-  const empty=filter==='recent'?'No estimates or invoices yet. Open either list to create your first document.':filter==='approvals'?'No estimates or change orders are waiting for approval.':'No items need attention.'
+  const empty=filter==='recent'?'No estimates or invoices yet. Use New invoice or New estimate at the top of the dashboard.':filter==='approvals'?'No estimates or change orders are waiting for approval.':'No items need attention.'
   const total=attentionPage?.total??0
   const currentPage=attentionPage?.page??1
   const pageCount=Math.max(1,Math.ceil(total/5))
@@ -81,7 +81,7 @@ export default function BillingHub({ business, snapshot, loading, error, onNavig
 
         <button type="button" className={`billing-metric approval${!loading && !error && !countsUnavailable && approvalCount>0?' has-attention':''}`} disabled={loading || !!error} aria-pressed={filter === 'approvals'} onClick={() => changeFilter('approvals')}><span>Awaiting approval</span><strong>{loading || error || countsUnavailable ? '—' : approvalCount}</strong><small>Estimates &amp; changes <span aria-hidden="true">→</span></small></button>
       </div>
-      <div className="billing-filter-bar"><div className="billing-filters" role="group" aria-label="Billing view"><button type="button" aria-pressed={filter !== 'recent'} onClick={() => changeFilter('attention')}>Needs Attention</button><button type="button" aria-pressed={filter === 'recent'} onClick={() => changeFilter('recent')}>Recent</button></div>{filter === 'approvals' ? <span className="billing-filter-label">{heading}</span> : null}</div>
+      <div className="billing-filter-bar"><div className="billing-filters" role="group" aria-label="Billing view">{filter==='recent'&&<button type="button" onClick={()=>changeFilter('attention')}>Back to attention items</button>}<button type="button" aria-pressed={filter === 'recent'} onClick={() => changeFilter('recent')}>Recent</button></div>{filter === 'approvals' ? <span className="billing-filter-label">{heading}</span> : null}</div>
       {loading ? <p role="status" className="work-card-empty">Loading estimates and invoices…</p> : error ? <p className="work-card-empty">Billing information is unavailable. Select Refresh above to try again.</p> : <div role="region" aria-label={heading} aria-busy={filter!=='recent'&&pageLoading}>
         {filter!=='recent' && pageError ? <p role="alert">{pageError} <button type="button" className="text-button" onClick={()=>setRetry(value=>value+1)}>Retry attention</button></p> : null}
         {filter!=='recent' && pageLoading ? <p role="status" className="work-card-empty">Loading attention items…</p> : <>

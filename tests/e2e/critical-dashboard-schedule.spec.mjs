@@ -1025,7 +1025,7 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3')
  await expect(page.locator('.estimate-total strong')).toHaveText('$105.30')
  await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.estimate-total strong')).toHaveText('$108.46')
- await page.getByRole('button',{name:'Create invoice',exact:true}).click();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
+ await page.getByRole('button',{name:'Save draft invoice',exact:true}).click();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
  await page.goto('/?view=estimates');await createWork(page, 'estimate');await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
 })
 
@@ -1302,8 +1302,9 @@ const reviewCustomer={...customer,email:'jane@example.test'}
 const reviewDocument=(n,status='sent')=>({id:id(n),invoice_number:`INV-${n}`,estimate_number:`EST-${n}`,status,issue_date:'2026-01-15',due_date:'2026-11-30',created_at:reviewCreated,updated_at:'2026-11-03T15:10:00Z',sent_at:'2026-11-03T15:10:00Z',customer_id:CID,customers:reviewCustomer,total:100,subtotal:100,tax_amount:0,amount_paid:0,balance_due:100})
 async function assertUniformDocumentActions(page){
  await page.mouse.move(0,0)
- const style=await page.locator('.document-action-grid>button,.document-action-grid>a,.document-action-grid>.invoice-email-control>button').evaluateAll(nodes=>nodes.map(node=>{const s=getComputedStyle(node),r=node.getBoundingClientRect();return {height:r.height,width:r.width,color:s.color,background:s.backgroundColor,font:s.fontFamily,size:s.fontSize,weight:s.fontWeight}}))
+ const style=await page.locator('.document-action-grid>button:not(.danger-action),.document-action-grid>a,.document-action-grid>.invoice-email-control>button').evaluateAll(nodes=>nodes.map(node=>{const s=getComputedStyle(node),r=node.getBoundingClientRect();return {height:r.height,width:r.width,color:s.color,background:s.backgroundColor,font:s.fontFamily,size:s.fontSize,weight:s.fontWeight}}))
  expect(style.length).toBeGreaterThan(3)
+ const clipped=await page.locator('.document-action-grid>button').evaluateAll(nodes=>nodes.filter(n=>n.scrollHeight>n.clientHeight+1).map(n=>n.textContent));expect(clipped).toEqual([])
  for(const value of style){expect(value.height).toBe(48);expect(Math.abs(value.width-style[0].width)).toBeLessThan(1);expect({...value,width:0}).toEqual({...style[0],width:0});expect(value.background).toBe('rgb(36, 95, 152)')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 }
@@ -1316,6 +1317,7 @@ for(const width of [1440,390])test(`invoice review has ordered uniform actions a
  await expect(actions.getByRole('button')).toHaveText(['Record payment','Email customer','Schedule job','Print / Save PDF','Photos & expenses','Schedule reminder'])
  await expect(page.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'Void invoice'})).toBeVisible()
  await assertUniformDocumentActions(page)
+ const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
  const record=page.getByRole('region',{name:'Document record'})
  await expect(record.locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
  await expect(record).toContainText('Last updated');await expect(record).toContainText('Sent')
@@ -1332,12 +1334,13 @@ for(const width of [1440,390])test(`estimate review has the same action system a
  await expect(preview).toBeVisible()
  await expect(preview.getByRole('group',{name:'Common actions',exact:true}).getByRole('button')).toHaveText(['Email customer','Record acceptance','Print / Save PDF','Photos & expenses'])
  await assertUniformDocumentActions(page)
+ const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
  await expect(preview.getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
  await expect(preview.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
  await expect(preview.locator('.print-document')).toContainText('2026-01-15')
  await page.screenshot({path:`test-results/document-review-estimate-${width}.png`,fullPage:true})
  await page.route('**/functions/v1/create-approval-link',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({token:'mock-only',relative_url:'/?approval=mock-only',expires_at:'2026-11-17T14:00:00Z'})}))
- await preview.getByRole('button',{name:'Get customer approval link'}).click()
+ page.once('dialog',d=>d.accept());await preview.getByRole('button',{name:'Approval link'}).click()
  const approval=page.getByRole('dialog',{name:'EST-4002 approval link',exact:true})
  await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(/approval=mock-only/)
  await expect(approval.getByRole('button',{name:'Copy link',exact:true})).toBeVisible()

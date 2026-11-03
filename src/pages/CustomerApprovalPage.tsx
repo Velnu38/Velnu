@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getCustomerApproval, submitCustomerApproval } from '../services/approvals'
 import DocumentBrand from '../components/DocumentBrand'
 import type { BusinessProfile } from '../lib/business'
@@ -20,6 +20,8 @@ function customerName(customer: ApprovalData['customer']) {
 }
 
 export default function CustomerApprovalPage({ token }: { token: string }) {
+  const submitting=useRef(false)
+  const [loading,setLoading]=useState(false)
   const [data, setData] = useState<ApprovalData | null>(null)
   const [typedName, setTypedName] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -27,17 +29,18 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
   const [error, setError] = useState('')
 
   async function load() {
-    setError('')
+    setError('');setLoading(true)
     try {
       setData(await getCustomerApproval(token) as ApprovalData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'This approval link is unavailable.')
-    }
+    } finally {setLoading(false)}
   }
 
   useEffect(() => { load() }, [token])
 
   async function submit(action: 'approved' | 'declined') {
+    if(submitting.current)return
     if (typedName.trim().length < 2) {
       setError('Enter your name before recording your decision.')
       return
@@ -46,16 +49,17 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
       setError('Please review the estimate and check the agreement box before accepting.')
       return
     }
-    setBusy(true); setError('')
+    if(action==='declined'&&!window.confirm(`Decline this ${data?.document_type==='estimate'?'estimate':'change order'}? This records your decision. Contact the business if you only need a revision.`))return
+    submitting.current=true;setBusy(true); setError('')
     try {
       await submitCustomerApproval(token, action, typedName, action === 'approved' && data?.document_type === 'estimate' && agreedToTerms)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Your decision could not be recorded.')
-    } finally { setBusy(false) }
+    } finally { submitting.current=false;setBusy(false) }
   }
 
-  if (error && !data) return <main className="approval-page"><section className="approval-card approval-error"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p className="eyebrow">Finviant Office</p><h1>Approval link unavailable</h1><p>{error}</p></section></main>
+  if (error && !data) return <main className="approval-page"><section className="approval-card approval-error"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p className="eyebrow">Finviant Office</p><h1>Approval link unavailable</h1><p role="alert">{error}</p><button type="button" className="primary-button" disabled={loading} onClick={()=>void load()}>{loading?'Retrying…':'Retry loading document'}</button><p>If this link has expired or been replaced, reply to the business’s original email or message to request a new link.</p></section></main>
   if (!data) return <main className="approval-page"><section className="approval-card"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Loading document…</p></section></main>
 
   const doc = data.document
@@ -92,7 +96,7 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
           <span>I have reviewed the estimate, including the scope of work, prices, taxes, total amount, validity date, and any additional terms shown above. I agree to these terms and authorize {data.business_name} to proceed with the quoted work.</span>
         </label>}
         {error && <p className="form-message error-text" role="alert">{error}</p>}
-        <div className="approval-actions"><button className="secondary-button" disabled={busy} onClick={() => submit('declined')}>Decline</button><button className="primary-button" disabled={busy || (data.document_type === 'estimate' && !agreedToTerms)} onClick={() => submit('approved')}>{busy ? 'Recording…' : data.document_type === 'estimate' ? 'Accept estimate and agree to terms' : 'Approve change order'}</button></div>
+        <div className="approval-actions"><button className="secondary-button" disabled={busy} onClick={() => submit('declined')}>{data.document_type==='estimate'?'Decline estimate':'Decline change order'}</button><button className="primary-button" disabled={busy || (data.document_type === 'estimate' && !agreedToTerms)} onClick={() => submit('approved')}>{busy ? 'Recording…' : data.document_type === 'estimate' ? 'Accept estimate and agree to terms' : 'Approve change order'}</button></div>
         <small className="approval-disclaimer">Accepting records your name, decision, time, and a snapshot of the quoted work and agreement. This is not a payment. Finviant Office does not provide legal advice or guarantee legal enforceability.</small>
       </section>}
     </section>

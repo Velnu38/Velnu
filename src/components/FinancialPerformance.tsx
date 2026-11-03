@@ -98,6 +98,6 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
       </li>)}</ul>}
       <div className="transaction-pagination"><span>{filtered.length ? `${currentPage * 25 + 1}–${Math.min((currentPage + 1) * 25, filtered.length)} of ${filtered.length}` : '0 transactions'}</span>{pages > 1 && <div><button className="secondary-button compact" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button><button className="secondary-button compact" disabled={currentPage === pages - 1} onClick={() => setPage(currentPage + 1)}>Next</button></div>}</div>
     </div>}
-    <div className="performance-footer"><p>Income includes recorded payments. Expenses include recorded costs. QuickBooks and non-USD entries stay separate.</p>{onOpenWorkbook && <button className="text-button" onClick={onOpenWorkbook}>Full workbook <span aria-hidden="true">↗</span></button>}</div>
+    <div className="performance-footer"><p>Income includes recorded payments. Expenses include recorded costs. QuickBooks and non-USD entries stay separate.</p>{onOpenWorkbook && <button className="text-button" onClick={onOpenWorkbook}>View all income &amp; expenses <span aria-hidden="true">↗</span></button>}</div>
   </section>
 }

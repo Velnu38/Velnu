@@ -9,7 +9,7 @@ export type WorkReminder = {
   status: 'pending' | 'completed' | 'canceled'; job_id: string | null; customer_id: string | null
   jobs: Array<{ title: string }>
 }
-type ReminderInput = { id: string; note: string; dueAt: string; jobId?: string; customerId?: string | null }
+type ReminderInput = { id: string; note: string; dueAt: string; jobId?: string; invoiceId?: string; customerId?: string | null }
 type Workspace = Pick<CurrentBusiness, 'id' | 'role'>
 const fields = 'id,business_id,kind,due_at,note,status,job_id,customer_id,jobs!reminders_job_id_fkey(title)'
 export const REMINDER_PAGE_SIZE = 50
@@ -31,8 +31,9 @@ export async function createReminder(business: Workspace, input: ReminderInput) 
   if (!Number.isFinite(due.getTime()) || due.getTime() <= Date.now()) throw new Error('Choose a future reminder date and time.')
   const payload = {
     id: input.id, business_id: business.id, note, due_at: due.toISOString(),
-    kind: input.jobId ? 'job_follow_up' : 'general', job_id: input.jobId || null,
-    customer_id: input.jobId ? input.customerId || null : null, status: 'pending',
+    kind: input.invoiceId ? 'invoice_follow_up' : input.jobId ? 'job_follow_up' : 'general', job_id: input.jobId || null,
+    ...(input.invoiceId ? {invoice_id:input.invoiceId} : {}),
+    customer_id: input.invoiceId || input.jobId ? input.customerId || null : null, status: 'pending',
   }
   const { data, error } = await supabase.from('reminders').insert(payload).select('id').single()
   if (!error) {
@@ -42,13 +43,13 @@ export async function createReminder(business: Workspace, input: ReminderInput) 
   }
   // Reuse the same ID after an uncertain network result; never overwrite a reminder.
   if (error.code !== '23505') throw error
-  const previous = await supabase.from('reminders').select('id,business_id,note,due_at,kind,job_id,customer_id')
+  const previous = await supabase.from('reminders').select('id,business_id,note,due_at,kind,job_id,customer_id,invoice_id')
     .eq('business_id', business.id).eq('id', input.id).maybeSingle()
   if (previous.error) throw previous.error
   if (!previous.data) throw new Error('Unable to verify the saved reminder. Try again.')
   const saved = previous.data
   if (saved.note !== payload.note || new Date(saved.due_at).getTime() !== due.getTime()
-    || saved.kind !== payload.kind || saved.job_id !== payload.job_id || saved.customer_id !== payload.customer_id) {
+    || saved.kind !== payload.kind || saved.job_id !== payload.job_id || saved.customer_id !== payload.customer_id || (saved.invoice_id || null) !== (input.invoiceId || null)) {
     throw new Error('This reminder was already saved with different details. Start a new reminder.')
   }
   announceCalendarChange()

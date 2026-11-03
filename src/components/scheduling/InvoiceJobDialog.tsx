@@ -15,7 +15,7 @@ export default function InvoiceJobDialog({business,invoiceId,onClose,onSaved}:{b
   <div className="modal-head"><div><p className="eyebrow">Invoice to job</p><h2>Schedule the work</h2></div><button type="button" className="icon-button" aria-label="Close scheduling" onClick={onClose}>×</button></div>
   {!context&&!error&&<p role="status">Loading the customer, work and team…</p>}
   {context&&<><div className="guided-summary"><strong>{context.invoice.customer_name} · {context.invoice.number || 'Invoice'}</strong><p>{context.invoice.scope}</p></div>
-   {context.invoice.job_id?<p>This invoice already has a job. Open it from Jobs to change the schedule.</p>:<form onSubmit={e=>{e.preventDefault();void save()}} className="form-grid">
+   {context.invoice.job_id?<p>This invoice already has a job. <a href={'/?view=work&document='+encodeURIComponent(context.invoice.job_id)}>Open linked job</a> to review its details and schedule.</p>:<form onSubmit={e=>{e.preventDefault();void save()}} className="form-grid">
     <label>Agreed start ({zone})<input type="datetime-local" required autoFocus value={start} onChange={e=>setStart(e.target.value)}/></label>
     <label>Job length<select value={duration} onChange={e=>setDuration(Number(e.target.value))}>{[...new Set([15,30,45,60,90,120,180,240,360,480,600,720,duration])].sort((a,b)=>a-b).map(n=><option key={n} value={n}>{n<60?n+' minutes':n/60+' hours'}</option>)}</select></label>
     <label className="full">Service address<select aria-label="Service address" value={site} onChange={e=>setSite(e.target.value)}><option value="">No saved service address</option>{context.properties?.map(p=><option key={p.id} value={p.id}>{p.label?p.label+' · ':''}{p.address}</option>)}</select></label>

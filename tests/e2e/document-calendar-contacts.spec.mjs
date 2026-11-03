@@ -70,7 +70,7 @@ for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typ
  await page.getByLabel('Customer name',{exact:true}).fill('New Typed Customer')
  await page.getByPlaceholder('Description',{exact:true}).fill('Only this work');await page.getByPlaceholder('Unit price',{exact:true}).fill('250')
  await page.getByText('How customers can pay',{exact:true}).click();await page.getByRole('checkbox',{name:'Stripe',exact:true}).check();await page.getByLabel('Stripe payment link',{exact:true}).fill('https://buy.stripe.com/owner-link');await page.getByLabel('Payment instructions',{exact:true}).fill('Use your invoice number')
- await page.getByRole('button',{name:'Create '+kind,exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1)
+ await page.getByRole('button',{name:'Save draft '+kind,exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1)
  const input=state.documents[0].payload;expect(input.new_customer.first_name).toBe('New');expect(input.new_customer.last_name).toBe('Typed Customer');expect(input.payment_links).toEqual([{provider:'stripe',url:'https://buy.stripe.com/owner-link'}]);expect(input.items[0].description).toBe('Only this work')
  expect(state.calls.filter(c=>c.path.endsWith('/customers')&&c.method==='POST')).toHaveLength(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
@@ -95,7 +95,7 @@ for(const width of [1440,390])test(`select a calendar date then use Add entry to
 })
 test('activated calendar AI opens the existing assistant with the selected date for review',async({page})=>{
  await mock(page,{ai:true});await page.goto('/');await page.getByRole('button',{name:'+ Add entry',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await dialog.getByLabel('Title',{exact:true}).fill('Mow the lawn');await dialog.getByRole('button',{name:'Use OpenAI assistant',exact:true}).click()
- await expect(page.locator('.assistant-panel')).toBeVisible();await expect(page.locator('.assistant-panel textarea')).toHaveValue(/Schedule a job on \d{4}-\d{2}-\d{2} in America\/New_York.*Mow the lawn/)
+ await expect(page.locator('.assistant-panel')).toBeVisible();await expect(page.locator('.assistant-panel textarea')).toHaveValue(/Create a event titled Mow the lawn on \d{4}-\d{2}-\d{2}T09:00 until .*America\/New_York/)
 })
 for(const width of [1440,390])test(`owner reviews phone contact cards before importing at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=customers');await page.getByRole('button',{name:'Import contacts',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Import phone contacts'});const card=(name,email)=>'BEGIN:VCARD\nVERSION:3.0\nFN:'+name+'\nEMAIL:'+email+'\nEND:VCARD\n'

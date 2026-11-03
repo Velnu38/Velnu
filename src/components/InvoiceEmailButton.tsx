@@ -1,3 +1,4 @@
+import FormDialog from './FormDialog'
 import { useRef, useState } from 'react'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
@@ -63,13 +64,13 @@ export default function InvoiceEmailButton({ businessId, invoiceId, recipient, d
     {!recipient && <p className="quiet">Add a customer email address to send this invoice.</p>}
     {!customerActionsEnabled && <p className="quiet">Customer emails are disabled in this private preview until the sender domain is verified. Use Print / Save PDF for testing.</p>}
     {!confirm && message && <p className="form-message" role="status">{message}</p>}
-    {confirm && <div className="modal-backdrop"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="email-invoice-title">
+    {confirm && <FormDialog label="Email this invoice?" busy={busy} onClose={()=>setConfirm(false)}>
       <h2 id="email-invoice-title">Email this invoice?</h2>
       <p>Send the invoice and line items to <strong>{recipient}</strong>.</p>
       <p>Internal notes are not included. Payment is arranged directly with your business; this does not charge the customer.</p>
       {message && <p className="form-message" role="status">{message}</p>}
       <div className="modal-actions"><button className="secondary-button" disabled={busy} onClick={() => setConfirm(false)}>Cancel</button><button className="primary-button" disabled={busy} onClick={send}>{busy ? 'Sending…' : 'Send invoice'}</button></div>
       {message && <button className="text-button" disabled={busy} onClick={startSeparateSend}>Start a separate send instead</button>}
-    </section></div>}
+    </FormDialog>}
   </div>
 }

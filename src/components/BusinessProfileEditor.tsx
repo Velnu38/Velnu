@@ -1,3 +1,4 @@
+import {useUnsavedChanges} from '../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import ServicePicker from './ServicePicker'
@@ -28,8 +29,9 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
   const [notice, setNotice] = useState('')
   const [interests, setInterests] = useState<ServiceInterest>(getPendingServiceInterests)
   const [servicesLoading, setServicesLoading] = useState(Boolean(business))
+  const guard=useUnsavedChanges(busy),serviceGuard=useUnsavedChanges(busy)
   const editing = !!business
-  const visibleSteps = companyOnly ? [0, 2, 3] : [0, 1, 2, 3]
+  const visibleSteps = companyOnly ? [0] : [0, 1, 2, 3]
   const logoUrl = localLogoUrl || (business && !removeLogo ? businessLogoUrl(business) : null)
 
   useEffect(() => {
@@ -87,8 +89,8 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (busy) return
-    if (step < 3) { setStep(companyOnly && step === 0 ? 2 : step + 1); setError(''); return }
-    if (servicesLoading) { setError('Service preferences are still loading. Please try again.'); return }
+    if (!companyOnly && step < 3) { setStep(companyOnly && step === 0 ? 2 : step + 1); setError(''); return }
+    if (!companyOnly && servicesLoading) { setError('Service preferences are still loading. Please try again.'); return }
     if (logo && !logoAllowed) { setError('Hosted logo upload requires an activated paid plan. Remove the selected file to continue.'); return }
     setBusy(true); setError(''); setNotice('')
     try {
@@ -104,10 +106,9 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
         setCreated(saved)
         setLogo(null)
       }
-      await saveBusinessServiceInterests(saved.id, interests)
-      clearPendingServiceInterests()
+      if(!companyOnly){await saveBusinessServiceInterests(saved.id, interests);clearPendingServiceInterests()}
       setCreated(null)
-      onSaved(saved)
+      guard.markClean();onSaved(saved)
       if (editing) setNotice('Company profile saved. Future invoice and estimate previews will use these details.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to save your business details. Try again.')
@@ -124,7 +125,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
         <strong>{number + 1}</strong><span>{stages[i]}</span>
       </div>)}
     </div>
-    <form onSubmit={submit} className="profile-form">
+    <form onSubmit={submit} className="profile-form" onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
       {step === 0 && <>
         <h2>{companyOnly ? 'Your business details' : 'Make every invoice look like it comes from your company'}</h2>
         <p className="quiet">The name, address, phone, and email you add here appear on your invoice and estimate documents. All fields except company name are optional.</p>
@@ -170,7 +171,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
           {draft.document_footer && <small>{draft.document_footer}</small>}
         </div>
       </>}
-      {step === 2 && <>
+      {(step === 2 || companyOnly) && <>
         <h2>Help Finviant Office understand your business</h2>
         <p className="quiet">This optional context is saved to your business profile. If advanced AI is enabled later, relevant details may be sent to the configured AI provider to interpret your requests; Finviant Office does not fine-tune a model on this profile. The assistant must still ask before deciding prices, dates, or staffing.</p>
         <label>What does your business do?
@@ -202,8 +203,9 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
       {notice && <p role="status" className="form-message">{notice}</p>}
       <div className="profile-actions">
         {step > 0 && <button className="secondary-button" type="button" disabled={busy} onClick={() => { setStep(companyOnly && step === 2 ? 0 : step - 1); setError('') }}>Back</button>}
-        <button className="primary-button" disabled={busy || servicesLoading}>{busy ? 'Saving…' : step < 3 ? 'Continue' : editing ? 'Save company profile & services' : 'Create my business'}</button>
+        <button className="primary-button" disabled={busy || (!companyOnly&&servicesLoading)}>{busy ? 'Saving…' : companyOnly ? 'Save company profile' : step < 3 ? 'Continue' : editing ? 'Save company profile & services' : 'Create my business'}</button>
       </div>
     </form>
+    {companyOnly&&business&&<details className="settings-inset" onInputCapture={serviceGuard.markDirty} onChangeCapture={serviceGuard.markDirty}><summary>Optional Finviant services</summary><p className="quiet">Save these preferences separately from your company details. Selections do not activate or purchase a service.</p>{servicesLoading?<p role="status">Loading service preferences…</p>:<ServicePicker compact value={interests} onChange={setInterests}/>}<button type="button" className="secondary-button" disabled={busy||servicesLoading} onClick={async()=>{if(busy)return;setBusy(true);setError('');try{await saveBusinessServiceInterests(business.id,interests);clearPendingServiceInterests();serviceGuard.markClean();setNotice('Service preferences saved. No services were purchased or activated.')}catch(e){setError(e instanceof Error?e.message:'Unable to save service preferences.')}finally{setBusy(false)}}}>Save service preferences</button></details>}
   </section>
 }

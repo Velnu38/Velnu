@@ -289,3 +289,18 @@ test("private team preview enables five seats without granting paid Pro or allow
     await db.close();
   }
 });
+
+
+test("audit: preserve existing administrator while editing modules; deny promotion and nonowner changes",async()=>{
+ const db=await setup();try{
+  await db.exec('reset role');
+  await db.exec(await readFile('supabase/migrations/20261103182409_audit_flow_recovery.sql','utf8'));
+  await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false)`);
+  await db.query("select manage_team_member($1,$2,'update','admin',array['calendar','jobs'])",[business,employee]);
+  assert.equal((await db.query<{role:string}>('select role from business_members where user_id=$1',[employee])).rows[0].role,'admin');
+  await db.query("select manage_team_member($1,$2,'update','office',array['calendar','jobs'])",[business,employee]);
+  await assert.rejects(()=>db.query("select manage_team_member($1,$2,'update','admin',array['calendar'])",[business,employee]),/Invalid team permissions/);
+  await db.exec(`select set_config('request.jwt.claim.sub','${employee}',false)`);
+  await assert.rejects(()=>db.query("select manage_team_member($1,$2,'update','office',array['calendar'])",[business,outsider]),/Only the primary owner/);
+ }finally{await db.close()}
+});

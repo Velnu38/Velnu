@@ -65,8 +65,7 @@ async function openServicePreferences(page) {
   await page.goto('/auth?mode=signin')
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Company profile', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.getByText('Optional Finviant services',{exact:true}).click()
   return requests
 }
 
@@ -74,8 +73,8 @@ test('signed-in owner saves account service interests without purchase or billin
   const requests = await openServicePreferences(page)
   await page.getByRole('radio', { name: /À la carte/ }).check()
   await page.getByRole('checkbox', { name: /Online estimate approvals/ }).check()
-  await page.getByRole('button', { name: 'Save company profile & services' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Company profile saved' })).toBeVisible()
+  await page.getByRole('button', { name: 'Save service preferences' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Service preferences saved' })).toBeVisible()
   const writes = requests.filter(x=>x.path.endsWith('/business_service_interests') && x.method==='POST')
   expect(writes).toHaveLength(1)
   expect(writes[0].body).toMatchObject({
