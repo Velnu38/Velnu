@@ -191,7 +191,7 @@ test('workbook text stays inert in HTML and formula prefixes are escaped in CSV'
 
 test('a failed workspace module preserves navigation and offers recovery', async ({page}) => {
   await mockFinance(page)
-  await page.route('**/src/pages/BookkeepingPage.tsx*', route => route.abort('failed'))
+  await page.route(/\/(?:src\/pages\/BookkeepingPage\.tsx|assets\/BookkeepingPage-[^/]+\.js)(?:\?.*)?$/, route => route.abort('failed'))
   await page.goto('/')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('heading',{name:'This page could not be opened'})).toBeVisible()
