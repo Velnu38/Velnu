@@ -67,7 +67,7 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
   expect(requests.filter(item => item.path.includes('/send-invoice-email'))).toHaveLength(0)
 })
 
-test('multiple stated amounts are never silently turned into a one-line invoice', async ({ page }) => {
+test('multiple stated amounts become separate editable invoice lines', async ({ page }) => {
   await signedIn(page)
   await page.route('https://example.supabase.co/**', route => {
     const path = new URL(route.request().url()).pathname
@@ -79,8 +79,12 @@ test('multiple stated amounts are never silently turned into a one-line invoice'
   await page.getByRole('button', { name: 'Talk to Finviant Office' }).click()
   await page.getByRole('textbox', { name: 'Describe your invoice or request' }).fill('Make an invoice for Bob Smith for $300 labor and $200 materials')
   await page.getByRole('button', { name: 'Review invoice' }).click()
-  await expect(page.getByText(/multiple amounts/)).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Save draft invoice' })).toBeDisabled()
+  await expect(page.getByRole('textbox',{name:'Line 1 description',exact:true})).toHaveValue('labor')
+  await expect(page.getByRole('spinbutton',{name:'Line 1 amount ($)',exact:true})).toHaveValue('300')
+  await expect(page.getByRole('textbox',{name:'Line 2 description',exact:true})).toHaveValue('materials')
+  await expect(page.getByRole('spinbutton',{name:'Line 2 amount ($)',exact:true})).toHaveValue('200')
+  await expect(page.getByText('Preview total: $500.00',{exact:true})).toBeVisible()
+  await expect(page.getByRole('spinbutton',{name:/quantity/i})).toHaveCount(0)
 })
 
 

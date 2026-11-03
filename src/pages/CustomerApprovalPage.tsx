@@ -78,7 +78,7 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
         <div className="approval-row approval-row-head"><span>Description</span><span>Qty</span><span>Price</span><span>Total</span></div>
         {data.items.map((item, index) => <div className="approval-row" key={`${item.description}-${index}`}><span>{item.description}{Number(item.tax_rate) ? <small>{Number(item.tax_rate)}% tax</small> : null}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><span>${Number(item.line_total).toFixed(2)}</span></div>)}
       </section>
-      <section className="approval-totals"><div><span>Subtotal</span><strong>${Number(doc.subtotal).toFixed(2)}</strong></div><div><span>Tax</span><strong>${Number(doc.tax_amount).toFixed(2)}</strong></div><div className="approval-grand-total"><span>Total</span><strong>${Number(doc.total).toFixed(2)}</strong></div></section>
+      <section className="approval-totals"><div><span>Subtotal</span><strong>${Number(doc.subtotal).toFixed(2)}</strong></div>{Number(doc.tax_amount)>0&&<div><span>Tax</span><strong>${Number(doc.tax_amount).toFixed(2)}</strong></div>}<div className="approval-grand-total"><span>Total</span><strong>${Number(doc.total).toFixed(2)}</strong></div></section>
       {data.document_type === 'estimate' && <section className="estimate-terms" aria-label="Estimate terms">
         <h2>Estimate terms</h2>
         <p>The services, quantities, prices, tax, and total shown above describe the work being offered.</p>

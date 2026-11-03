@@ -308,7 +308,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           </div>)}
           <div className="document-summary">
             <div><span>Subtotal</span><strong>{'$' + Number(previewTarget.subtotal).toFixed(2)}</strong></div>
-            <div><span>Tax</span><strong>{'$' + Number(previewTarget.tax_amount).toFixed(2)}</strong></div>
+            {Number(previewTarget.tax_amount)>0&&<div><span>Tax</span><strong>{'$' + Number(previewTarget.tax_amount).toFixed(2)}</strong></div>}
             <div className="total"><span>Total</span><strong>{'$' + Number(previewTarget.total).toFixed(2)}</strong></div>
           </div>
           {previewTarget.customer_message && <div className="document-customer-message"><strong>Estimate terms</strong><p>{previewTarget.customer_message}</p></div>}

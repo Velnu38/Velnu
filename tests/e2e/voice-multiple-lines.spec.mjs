@@ -1,0 +1,16 @@
+import {test,expect} from '@playwright/test'
+import {mock} from './audit-fixture.mjs'
+for(const width of [1440,390])for(const kind of ['invoice','estimate'])test(`voice ${kind} saves multiple charges at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await mock(page,{ai:true});const writes=[]
+ await page.route('https://example.supabase.co/rest/v1/rpc/create_document',async route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'},body:''})
+  writes.push(route.request().postDataJSON());await new Promise(r=>setTimeout(r,80));await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({id:'99999999-9999-4999-8999-999999999999',invoice_number:'INV-VOICE',estimate_number:'EST-VOICE',total:140,balance_due:140,status:'draft'})})
+ })
+ await page.goto('/');await page.getByRole('button',{name:'Talk to Finviant Office'}).click();await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(`Create an ${kind} for Test Customer for mowing $100 and edging $40, total $140`);await page.getByRole('button',{name:`Review ${kind}`,exact:true}).click()
+ const review=page.getByRole('region',{name:`Review ${kind} draft`});await expect(review.getByRole('textbox',{name:'Line 1 description',exact:true})).toHaveValue('mowing');await expect(review.getByRole('textbox',{name:'Line 2 description',exact:true})).toHaveValue('edging');await expect(review.getByText('Preview total: $140.00',{exact:true})).toBeVisible();await expect(review.getByRole('spinbutton',{name:/quantity/i})).toHaveCount(0);await expect(review.getByRole('spinbutton',{name:'Tax (%)',exact:true})).toHaveCount(0)
+ await review.getByRole('button',{name:`Save draft ${kind}`,exact:true}).dblclick();await expect.poll(()=>writes.length).toBe(1);expect(writes[0].document_kind).toBe(kind);expect(writes[0].payload.items).toEqual([{description:'mowing',quantity:1,unit_price:100,tax_rate:0},{description:'edging',quantity:1,unit_price:40,tax_rate:0}]);expect(writes[0].request_id).toBeTruthy();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+})
+test('spoken totals are checked and explicit unit pricing retains quantities',async({page})=>{
+ await mock(page,{ai:true});await page.goto('/');await page.getByRole('button',{name:'Talk to Finviant Office'}).click();await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill('Create estimate for Test Customer for 3 shrubs at $25 each and planting $30, total $150');await page.getByRole('button',{name:'Review estimate',exact:true}).click()
+ const review=page.getByRole('region',{name:'Review estimate draft'});await expect(review.getByRole('spinbutton',{name:'Line 1 quantity',exact:true})).toHaveValue('3');await expect(review.getByText('Preview total: $105.00',{exact:true})).toBeVisible();await expect(review.getByRole('button',{name:'Save draft estimate'})).toBeDisabled();await review.getByRole('button',{name:'Use calculated total'}).click();await expect(review.getByRole('button',{name:'Save draft estimate'})).toBeEnabled()
+})
