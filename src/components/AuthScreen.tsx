@@ -1,6 +1,8 @@
 import { type FormEvent, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+const limitedProTesting = import.meta.env.VITE_SUPABASE_URL === 'https://xvybcmyoblfgzokaifsx.supabase.co'
+
 type Mode = 'signin' | 'signup' | 'reset'
 
 export default function AuthScreen({ initialMode = 'signin', initialMessage = '', invitationToken }: { initialMode?: Mode; initialMessage?: string; invitationToken?: string }) {
@@ -43,6 +45,10 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       }
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unable to connect. Please try again.'
+      if (mode === 'signup' && limitedProTesting && /database error saving new user/i.test(detail)) {
+        setMessage('Your account could not be created. Private testing is limited to 10 login accounts. Contact the test administrator to check available access.')
+        return
+      }
       setMessage(mode === 'signin' && /invalid login credentials/i.test(detail)
         ? 'Sign-in failed. If you just registered, confirm your email first. Otherwise, check your email and password.'
         : detail)
@@ -88,6 +94,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
     </section>
     <section className="auth-card">
       <div><p className="eyebrow">Welcome to Finviant Office</p><h2>{mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create your account' : 'Reset your password'}</h2></div>
+      {limitedProTesting && <p className="form-message">Private testing is limited to 10 login accounts, including the administrator. Each test workspace receives Pro access with no expiration or subscription charge.</p>}
       <form onSubmit={submit}>
         <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" disabled={busy} required /></label>
         {mode !== 'reset' && <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} minLength={mode === 'signup' ? 8 : undefined} disabled={busy} required /></label>}
