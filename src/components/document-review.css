@@ -28,3 +28,6 @@
 @media(max-width:680px){.line-item{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.line-item label:first-of-type{grid-column:1/-1}.line-item .remove-line{justify-self:end}.locations-toolbar,.record-list-controls{max-width:100%}.record-list-controls input{max-width:100%}}
 dialog.form-dialog:has(.assistant-panel){padding:0}dialog.form-dialog .assistant-panel{position:static;max-height:none;width:100%;border:0;box-shadow:none;transform:none}
 @media(max-width:900px){dialog.form-dialog:has(.mobile-more-sheet){margin:auto 0 0;width:100%;max-width:none;border-radius:22px 22px 0 0;padding:0}.mobile-more-sheet{width:100%;box-sizing:border-box}.mobile-more-account{flex-wrap:wrap}}
+
+.form-dialog .estimate-preview-modal{width:100%;max-height:none;overflow:visible;border:0;border-radius:0;padding:0;box-shadow:none}
+.form-dialog:focus{outline:none}

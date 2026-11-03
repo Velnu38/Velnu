@@ -279,7 +279,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <button type="button" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button>
         </>} secondary={canManageFinances(business.role)?<>
           {previewTarget.customers?.[0]?.email&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer</button>}
-          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Get / create approval link</button>}
+          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Approval link</button>}
           {offersDocumentChangeOrders('estimate',previewTarget.status)&&<DocumentChangeOrderButton business={business} kind="estimate" id={previewTarget.id} onClick={()=>setShowChangeOrders(true)}/>}
           {previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
           {previewTarget.status==='sent'&&<><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'expired')}>Expire</button></>}

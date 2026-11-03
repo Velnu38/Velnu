@@ -161,7 +161,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
             {canManageFinances(business.role) && order.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'sent')}>Mark sent manually</button>}
             {canManageFinances(business.role) && ['draft','sent'].includes(order.status) && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'void')}>Void</button>}
             {canManageFinances(business.role) && order.status === 'draft' && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
-            {canManageFinances(business.role) && order.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Get / create approval link</button>}
+            {canManageFinances(business.role) && order.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Approval link</button>}
           </div>
         </article>
       })}

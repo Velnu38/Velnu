@@ -1304,6 +1304,7 @@ async function assertUniformDocumentActions(page){
  await page.mouse.move(0,0)
  const style=await page.locator('.document-action-grid>button:not(.danger-action),.document-action-grid>a,.document-action-grid>.invoice-email-control>button').evaluateAll(nodes=>nodes.map(node=>{const s=getComputedStyle(node),r=node.getBoundingClientRect();return {height:r.height,width:r.width,color:s.color,background:s.backgroundColor,font:s.fontFamily,size:s.fontSize,weight:s.fontWeight}}))
  expect(style.length).toBeGreaterThan(3)
+ const clipped=await page.locator('.document-action-grid>button').evaluateAll(nodes=>nodes.filter(n=>n.scrollHeight>n.clientHeight+1).map(n=>n.textContent));expect(clipped).toEqual([])
  for(const value of style){expect(value.height).toBe(48);expect(Math.abs(value.width-style[0].width)).toBeLessThan(1);expect({...value,width:0}).toEqual({...style[0],width:0});expect(value.background).toBe('rgb(36, 95, 152)')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 }
@@ -1339,7 +1340,7 @@ for(const width of [1440,390])test(`estimate review has the same action system a
  await expect(preview.locator('.print-document')).toContainText('2026-01-15')
  await page.screenshot({path:`test-results/document-review-estimate-${width}.png`,fullPage:true})
  await page.route('**/functions/v1/create-approval-link',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({token:'mock-only',relative_url:'/?approval=mock-only',expires_at:'2026-11-17T14:00:00Z'})}))
- page.once('dialog',d=>d.accept());await preview.getByRole('button',{name:'Get / create approval link'}).click()
+ page.once('dialog',d=>d.accept());await preview.getByRole('button',{name:'Approval link'}).click()
  const approval=page.getByRole('dialog',{name:'EST-4002 approval link',exact:true})
  await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(/approval=mock-only/)
  await expect(approval.getByRole('button',{name:'Copy link',exact:true})).toBeVisible()
