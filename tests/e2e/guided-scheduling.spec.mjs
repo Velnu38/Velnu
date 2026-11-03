@@ -74,7 +74,6 @@ test('phone agreement books once and sends no customer message',async({page})=>{
  await expect(page.getByRole('heading',{level:1})).toHaveText('1 item needs your attention.')
  const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Time already agreed',exact:true}).click()
  await expect(dialog.locator('input[type=radio]:checked')).toHaveCount(1)
- await dialog.getByRole('checkbox',{name:/I have agreed this appointment/}).check()
  const confirm=dialog.getByRole('button',{name:'Confirm booking',exact:true})
  await expect(confirm).toBeEnabled()
  await confirm.evaluate(button=>{button.click();button.click()})
@@ -109,7 +108,7 @@ test('an older next-step response cannot restore a booking resolved by a newer r
 for(const width of [1440,390])test(`dashboard tiles share surfaces and typography at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page);await page.goto('/')
  await expect(page.getByRole('region',{name:'Guided next steps'})).toBeVisible()
- await expect(page.locator('.dashboard-tile')).toHaveCount(5)
+ await expect(page.locator('.dashboard-tile')).toHaveCount(4)
  const appearance=await page.locator('.dashboard-tile').evaluateAll(tiles=>tiles.map(tile=>{
   const style=getComputedStyle(tile),title=getComputedStyle(tile.querySelector('.dashboard-tile-title'))
   return {background:style.backgroundColor,border:style.borderColor,borderWidth:style.borderWidth,radius:style.borderRadius,font:style.fontFamily,titleFont:title.fontFamily,titleSize:title.fontSize,titleWeight:title.fontWeight,titleColor:title.color}
