@@ -82,7 +82,7 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/business_settings')) return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
     if (path.endsWith('/user_plan_preferences')) return reply({ user_id: UID, selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return reply({ id: id(91), agreement_version: '2026-10-26-v2' })
-    if (path.endsWith('/business_members')) return reply({ role: state.role, access_modules: options.accessModules || ['calendar','jobs','billing','finances'], business_id: BID, businesses: business })
+    if (path.endsWith('/business_members')) return reply({ role: state.role, access_modules: options.accessModules || ['calendar','jobs','billing','finances'], business_id: BID, businesses: {...business,...options.businessProfile} })
     if (path.endsWith('/rpc/get_plan_usage')) return reply({ plan: 'free', ai_limit: 0, voice_limit: 0, logo_bytes_limit: 0 })
     if (path.endsWith('/rpc/get_invoice_job_context')) {
       const invoice=state.invoices.find(i=>i.id===body.p_invoice)
@@ -216,7 +216,7 @@ const count = (s, suffix, method) => s.requests.filter(r => r.path.endsWith(suff
 const openDashboard = async (page, options) => {
   const state = await mockWorkspace(page, options)
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Your office is caught up|needs? your attention|Your day, organized/ })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: options?.businessProfile?.name || 'Velnu QA', exact: true })).toBeVisible()
   return state
 }
 const openSchedule = async (page, options) => {
@@ -353,40 +353,40 @@ test('09 completing reminder persists its status and removes it from attention l
 
 test('dashboard attention updates immediately when a calendar reminder is completed', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
   const calendar = page.getByRole('region', { name: 'Work calendar' })
   await page.getByRole('region', { name: 'Needs Attention', exact: true }).getByRole('button', { name: 'Complete Call customer 1', exact: true }).click()
   await expect(calendar.getByText('Call customer 1', { exact: true })).toHaveCount(0)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your office is caught up.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
   expect(count(state, '/reminders', 'PATCH')).toBe(1)
 })
 
 test('a failed calendar reminder update keeps the attention count and retry action', async ({ page }) => {
   await openDashboard(page, { reminders: [reminder()], reminderError: true })
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
   const calendar = page.getByRole('region', { name: 'Work calendar' })
   await page.getByRole('region', { name: 'Needs Attention', exact: true }).getByRole('button', { name: 'Complete Call customer 1', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Needs Attention', exact: true }).getByRole('alert')).toContainText('Unable to complete this reminder')
   await expect(page.getByRole('region', { name: 'Needs Attention', exact: true }).getByText('Call customer 1', { exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
 })
 
 test('returning to the dashboard refreshes attention after another worker resolves a reminder', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
   state.reminders[0].status = 'completed'
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your office is caught up.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
   await expect(page.getByRole('region', { name: 'Work calendar' }).getByText('Call customer 1', { exact: true })).toHaveCount(0)
 })
 
 test('the visible dashboard refreshes attention in the background without a reload', async ({ page }) => {
   await page.clock.install()
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
   state.reminders[0].status = 'completed'
   await page.clock.fastForward('00:31')
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your office is caught up.')
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
 })
 
 test('10 failing reminder update displays error and does not hide the reminder', async ({ page }) => {
@@ -654,17 +654,29 @@ test('calendar settings shows connected identity, calendar choices and persists 
 
 test('calendar widget fits a phone without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({width:390,height:844})
-  await mockWorkspace(page)
+  await mockWorkspace(page,{businessProfile:{name:'Barone Landscaping and Property Maintenance',logo_path:BID+'/logo.png'}})
+  await page.route('**/storage/v1/object/public/velnu-business-logos/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR1sAAAAASUVORK5CYII=','base64')}))
   await page.route('**/rest/v1/calendar_work?**', route=>route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'*/0'},body:'[]'}))
   await page.goto('/')
   const calendar=page.getByRole('region',{name:'Work calendar'})
   await expect(calendar).toBeVisible()
   expect(await calendar.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
+  const heading=page.getByRole('heading',{level:1,name:'Barone Landscaping and Property Maintenance'})
+  await expect(heading).toBeVisible()
+  const logo=page.locator('.dashboard-business-header').getByRole('img',{name:'Barone Landscaping and Property Maintenance logo'})
+  await expect(logo).toBeVisible()
+  await expect.poll(()=>logo.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0)
+  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('navigation',{name:'Create work'}).boundingBox()).y)
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 
 test('dashboard layout uses the business name, puts calendar first, and opens only jobs from the tile', async ({ page }) => {
   await openDashboard(page)
-  await expect(page.getByText('Velnu QA · Today', { exact: true })).toBeVisible()
+  const heading=page.getByRole('heading',{level:1,name:'Velnu QA',exact:true})
+  await expect(heading).toBeVisible()
+  await expect(page.locator('.dashboard-business-header')).not.toContainText(/your attention|caught up|organized/i)
+  await expect(page.locator('.dashboard-business-header img')).toHaveCount(0)
+  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('navigation',{name:'Create work'}).boundingBox()).y)
   const calendar = page.getByRole('region', { name: 'Work calendar' })
   const workAreas = page.getByRole('region', { name: 'Work areas' })
   expect((await calendar.boundingBox()).y).toBeLessThan((await workAreas.boundingBox()).y)

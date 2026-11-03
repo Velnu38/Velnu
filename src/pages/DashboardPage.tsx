@@ -2,7 +2,7 @@ import { canAccess, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub, { DashboardJobs } from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CurrentBusiness } from '../lib/business'
+import { businessLogoUrl, type CurrentBusiness } from '../lib/business'
 import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 import FinancialPerformance from '../components/FinancialPerformance'
 import '../components/dashboard-interactive.css'
@@ -94,14 +94,14 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
 
   const workflowAllowed = ['owner','admin','office'].includes(business.role) && ['jobs','calendar','billing'].every(m=>canAccess(business,m as 'jobs'|'calendar'|'billing'))
   const workflowCount = !workflowAllowed ? 0 : workflowAttention?.key === workspaceKey ? workflowAttention.count : null
-  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount + (workflowCount ?? 0)
+  const logo = businessLogoUrl(business)
 
   return <div className="page-stack dashboard-page">
-    <nav className="workspace-quick-actions" aria-label="Create work">{canAccess(business,'billing')&&<><a className="primary-button" href="/?view=invoices&new=1">+ New invoice</a><a className="secondary-button" href="/?view=estimates&new=1">+ New estimate</a></>}{canAccess(business,'jobs')&&business.role!=='viewer'&&<a className="secondary-button" href="/?view=work&new=1">+ New job</a>}</nav>
-    <div className="page-heading split-heading">
-      <div><p className="eyebrow">{business.name} · Today</p><h1 aria-live="polite">{loading || error || workflowCount === null ? 'Your day, organized.' : attentionCount ? `${attentionCount} item${attentionCount === 1 ? ' needs' : 's need'} your attention.` : 'Your office is caught up.'}</h1></div>
+    <header className="page-heading split-heading dashboard-business-header">
+      <div className="dashboard-business-identity">{logo && <img className="dashboard-business-logo" src={logo} alt={business.name + ' logo'} />}<h1>{business.name}</h1></div>
       <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
-    </div>
+    </header>
+    <nav className="workspace-quick-actions" aria-label="Create work">{canAccess(business,'billing')&&<><a className="primary-button" href="/?view=invoices&new=1">+ New invoice</a><a className="secondary-button" href="/?view=estimates&new=1">+ New estimate</a></>}{canAccess(business,'jobs')&&business.role!=='viewer'&&<a className="secondary-button" href="/?view=work&new=1">+ New job</a>}</nav>
 
     {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} onReminders={() => onReminders?.()} showReminders={false} />}
 

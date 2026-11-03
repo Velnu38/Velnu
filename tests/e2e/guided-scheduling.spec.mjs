@@ -71,7 +71,7 @@ for(const width of [1440,390])test(`guided booking proposes crew availability an
 })
 test('phone agreement books once and sends no customer message',async({page})=>{
  const state=await mock(page);await page.goto('/');await page.getByRole('region',{name:'Guided next steps'}).getByRole('button',{name:'Schedule job',exact:true}).click()
- await expect(page.getByRole('heading',{level:1})).toHaveText('1 item needs your attention.')
+ await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
  const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Time already agreed',exact:true}).click()
  await expect(dialog.locator('input[type=radio]:checked')).toHaveCount(1)
  const confirm=dialog.getByRole('button',{name:'Confirm booking',exact:true})
@@ -82,7 +82,7 @@ test('phone agreement books once and sends no customer message',async({page})=>{
  expect(state.calls.filter(c=>c.path.endsWith('/functions/v1/work-scheduling'))).toHaveLength(0)
  await dialog.getByRole('button',{name:'Close scheduling'}).click()
  await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
- await expect(page.getByRole('heading',{level:1})).toHaveText('Your office is caught up.')
+ await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
  const calendar=page.getByRole('region',{name:'Work calendar'})
  await calendar.getByRole('button',{name:'Next week',exact:true}).click()
  await calendar.getByRole('button',{name:'Next week',exact:true}).click()
@@ -91,7 +91,7 @@ test('phone agreement books once and sends no customer message',async({page})=>{
 
 test('an older next-step response cannot restore a booking resolved by a newer refresh',async({page})=>{
  const state=await mock(page);await page.goto('/')
- await expect(page.getByRole('heading',{level:1})).toHaveText('1 item needs your attention.')
+ await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
  await expect.poll(()=>state.pendingWorkflow).toBe(0)
  state.workflowDelay=800
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
@@ -99,10 +99,10 @@ test('an older next-step response cannot restore a booking resolved by a newer r
  state.booked=true
  await page.evaluate(()=>window.dispatchEvent(new Event('finviant-work-changed')))
  await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
- await expect(page.getByRole('heading',{level:1})).toHaveText('Your office is caught up.')
+ await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
  await expect.poll(()=>state.pendingWorkflow).toBe(0)
  await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
- await expect(page.getByRole('heading',{level:1})).toHaveText('Your office is caught up.')
+ await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
 })
 
 for(const width of [1440,390])test(`dashboard tiles share surfaces and typography at ${width}px`,async({page})=>{

@@ -85,3 +85,11 @@
 .dashboard-page .attention-workflow{border:0;border-radius:0;box-shadow:none;padding:16px 22px;background:transparent}
 .dashboard-page .attention-reminders{padding:0 22px}.attention-reminders ul{list-style:none;padding:0}
 .dashboard-page .calendar-agenda-columns:has(>div:only-child){grid-template-columns:1fr}
+
+/* Business identity stays above creation shortcuts and dashboard tiles. */
+.dashboard-page .dashboard-business-header{align-items:center;gap:16px}
+.dashboard-business-identity{display:flex;align-items:center;gap:16px;min-width:0}
+.dashboard-business-identity h1{min-width:0;overflow-wrap:anywhere;margin:0}
+.dashboard-business-logo{width:64px;height:64px;object-fit:contain;flex:0 0 64px;border-radius:8px}
+.dashboard-business-header>button{flex-shrink:0}
+@media(max-width:650px){.dashboard-page .dashboard-business-header{align-items:flex-start}.dashboard-business-logo{width:48px;height:48px;flex-basis:48px}.dashboard-business-identity{gap:12px}}
