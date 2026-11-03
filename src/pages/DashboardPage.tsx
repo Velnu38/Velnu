@@ -9,6 +9,7 @@ import '../components/dashboard-interactive.css'
 import { readableError } from '../lib/errors'
 import WorkflowNextSteps from '../components/scheduling/WorkflowNextSteps'
 import '../components/dashboard-tiles.css'
+import AttentionReminders from '../components/AttentionReminders'
 
 type DashboardDestination = 'estimates' | 'invoices' | 'work' | 'schedule' | 'bookkeeping'
 const empty: DashboardSnapshot = {
@@ -91,7 +92,8 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
     }
   }, [business.id, business.timezone, business.access_modules?.join(','), business.role])
 
-  const workflowCount = workflowAttention?.key === workspaceKey ? workflowAttention.count : null
+  const workflowAllowed = ['owner','admin','office'].includes(business.role) && ['jobs','calendar','billing'].every(m=>canAccess(business,m as 'jobs'|'calendar'|'billing'))
+  const workflowCount = !workflowAllowed ? 0 : workflowAttention?.key === workspaceKey ? workflowAttention.count : null
   const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount + (workflowCount ?? 0)
 
   return <div className="page-stack dashboard-page">
@@ -100,15 +102,15 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
       <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
-    <WorkflowNextSteps key={workspaceKey} business={business} refreshVersion={refreshVersion} onCountChange={onWorkflowCount} />
-    {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} onReminders={() => onReminders?.()} />}
+    {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} onReminders={() => onReminders?.()} showReminders={false} />}
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-work-grid" aria-label="Work areas">
-      {canAccess(business,'billing') && <BillingHub business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} />}
+      {canAccess(business,'billing') && <BillingHub business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} extraAttention={(workflowCount ?? 0) + snapshot.dueReminderCount}><WorkflowNextSteps key={workspaceKey} business={business} refreshVersion={refreshVersion} onCountChange={onWorkflowCount} embedded /><AttentionReminders business={business} reminders={snapshot.dueReminders} /></BillingHub>}
       {canAccess(business,'jobs') && <DashboardJobs snapshot={snapshot} loading={loading} error={error} onOpen={() => onNavigate?.('work')} />}
     </section>
 
+    {!canAccess(business,'billing')&&canAccess(business,'calendar')&&<section className="dashboard-tile" aria-label="Needs Attention"><h2 className="dashboard-tile-title">Needs Attention</h2><AttentionReminders business={business} reminders={snapshot.dueReminders}/></section>}
     {error && <p role="alert" className="form-message error-text">{error}</p>}
 
     {canAccess(business,'finances') && <FinancialPerformance key={`${business.id}:${business.role}`} business={business} refreshVersion={refreshVersion} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}

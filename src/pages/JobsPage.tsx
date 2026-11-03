@@ -1,3 +1,4 @@
+import JobDetailsDialog from '../components/JobDetailsDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { localInstant } from '../lib/calendarTime'
 import { DateTime } from 'luxon'
@@ -24,6 +25,7 @@ type Job = ReminderJob & { status: string; scheduled_start: string | null; sched
 export default function JobsPage({ business, embedded = false, onCreateReminder }: { business: CurrentBusiness; embedded?: boolean; onCreateReminder?: (job: ReminderJob) => void }) {
   const timezone = business.timezone || 'UTC'
   const Heading = embedded ? 'h2' : 'h1'
+  const [detailsJob,setDetailsJob]=useState<string|null>(null)
   const [resourceJob, setResourceJob] = useState<Job | null>(null)
   const [group, setGroup] = useState<JobGroup>('current')
   const [loading, setLoading] = useState(true)
@@ -50,7 +52,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     try {
     const [jobRows, customerRows, linkedJob] = await Promise.all([listJobs(business.id), listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
-    if (linkedJob) { setResourceJob(linkedJob as Job); setGroup(jobGroup(linkedJob, new Date(), timezone)); requestedJob.current = null }
+    if (linkedJob) { setDetailsJob(linkedJob.id); setGroup(jobGroup(linkedJob, new Date(), timezone)); requestedJob.current = null }
     setJobs(jobRows as Job[])
     setCustomers(customerRows as Customer[])
     setError('')
@@ -125,13 +127,14 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           return <article className="job-row" key={job.id}>
-            <div className="row-main"><strong>{job.title}</strong><span>{customerName}{job.scheduled_start ? ` · ${new Date(job.scheduled_start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone })}` : ' · Not scheduled'}</span>{job.properties?.[0] && <div className="job-location"><span className="job-location-address">{formatServiceAddress(job.properties[0])}</span><GoogleMapTools address={job.properties[0]} compact /></div>}</div>
-            <div className="job-row-actions">{canDispatch&&!['completed','canceled'].includes(job.status)&&<button type="button" className="primary-button compact" aria-label={`Schedule and crew for ${job.title}`} onClick={()=>setDispatch(job)}>Schedule & crew</button>}<button type="button" className="secondary-button small-button" aria-label={`Photos and expenses for ${job.title}`} onClick={() => setResourceJob(job)}>Photos &amp; expenses</button>{onCreateReminder && canWrite(business.role) && <button type="button" className="secondary-button small-button" aria-label={`Add reminder for ${job.title}`} onClick={() => onCreateReminder(job)}>+ Reminder</button>}<select aria-label={`Status for ${job.title}`} value={job.status} disabled={busy||!canWrite(business.role)} onChange={(e) => changeStatus(job.id, e.target.value as any)}>
+            <div className="row-main"><button type="button" className="text-button" onClick={()=>setDetailsJob(job.id)}>{job.title}</button><span>{customerName}{job.scheduled_start ? ` · ${new Date(job.scheduled_start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone })}` : ' · Not scheduled'}</span>{job.properties?.[0] && <div className="job-location"><span className="job-location-address">{formatServiceAddress(job.properties[0])}</span><GoogleMapTools address={job.properties[0]} compact /></div>}</div>
+            <div className="job-row-actions"><button type="button" className="secondary-button compact" onClick={()=>setDetailsJob(job.id)}>Job details</button>{canDispatch&&!['completed','canceled'].includes(job.status)&&<button type="button" className="primary-button compact" aria-label={`Schedule and crew for ${job.title}`} onClick={()=>setDispatch(job)}>Schedule & crew</button>}<button type="button" className="secondary-button small-button" aria-label={`Photos and expenses for ${job.title}`} onClick={() => setResourceJob(job)}>Photos &amp; expenses</button>{onCreateReminder && canWrite(business.role) && <button type="button" className="secondary-button small-button" aria-label={`Add reminder for ${job.title}`} onClick={() => onCreateReminder(job)}>+ Reminder</button>}<select aria-label={`Status for ${job.title}`} value={job.status} disabled={busy||!canWrite(business.role)} onChange={(e) => changeStatus(job.id, e.target.value as any)}>
               <option value="lead">Lead</option><option value="scheduled" disabled={!job.scheduled_start}>Scheduled</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="canceled">Canceled</option>
             </select></div>
           </article>
         })}
       </section>
+      {detailsJob&&<JobDetailsDialog business={business} jobId={detailsJob} onClose={()=>{setDetailsJob(null);void refresh()}}/>}
       {resourceJob && <RecordResourcesDialog business={business} target={{ kind: 'job', id: resourceJob.id }} title={resourceJob.title} onClose={() => setResourceJob(null)} />}
       {dispatch&&<DispatchJobDialog business={business} job={dispatch} onClose={()=>setDispatch(null)} onSaved={()=>{setNotice('Schedule and crew saved. Confirm any change with your customer.');void refresh()}}/>}
       {showForm && <div className="modal-backdrop" onMouseDown={() => setShowForm(false)}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>

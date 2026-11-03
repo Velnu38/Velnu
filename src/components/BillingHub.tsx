@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { DateTime } from 'luxon'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
@@ -15,8 +16,8 @@ function customerName(customer?: { first_name: string | null; last_name: string 
 const documentHref = (view: string, id: string) => `/?view=${view}&document=${encodeURIComponent(id)}`
 const dateLabel = (value: string | null) => value && DateTime.fromISO(value).isValid ? DateTime.fromISO(value).toFormat('MMM d, yyyy') : ''
 
-export default function BillingHub({ business, snapshot, loading, error, onNavigate }: {
-  business: CurrentBusiness; snapshot: DashboardSnapshot; loading: boolean; error: string; onNavigate?: (view: Destination) => void
+export default function BillingHub({ business, snapshot, loading, error, onNavigate, children, extraAttention = 0 }: {
+  business: CurrentBusiness; snapshot: DashboardSnapshot; loading: boolean; error: string; children?: ReactNode; extraAttention?: number; onNavigate?: (view: Destination) => void
 }) {
   const [filter, setFilter] = useState<Filter>('attention')
   const canSee = canManageFinances(business.role)
@@ -38,18 +39,19 @@ export default function BillingHub({ business, snapshot, loading, error, onNavig
     : [...overdue,...approvals]
   const rows = (filter === 'recent' ? recent : filter === 'overdue' ? overdue : filter === 'approvals' ? approvals : attention).slice(0,5)
   const total = filter === 'overdue' ? snapshot.overdueInvoiceCount : filter === 'approvals' ? snapshot.pendingApprovalCount : snapshot.overdueInvoiceCount + snapshot.pendingApprovalCount
-  const heading = filter === 'recent' ? 'Recent documents' : filter === 'overdue' ? 'Overdue invoices' : filter === 'approvals' ? 'Customer approvals' : 'Needs attention'
-  const empty = filter === 'recent' ? 'No estimates or invoices yet. Open either list to create your first document.' : filter === 'overdue' ? 'No overdue balances need attention.' : filter === 'approvals' ? 'No estimates or change orders are waiting for approval.' : 'No overdue invoices or pending approvals. Your billing is up to date.'
+  const heading = filter === 'recent' ? 'Recent documents' : filter === 'overdue' ? 'Overdue invoices' : filter === 'approvals' ? 'Customer approvals' : 'Needs Attention'
+  const empty = filter === 'recent' ? 'No estimates or invoices yet. Open either list to create your first document.' : filter === 'overdue' ? 'No overdue balances need attention.' : filter === 'approvals' ? 'No estimates or change orders are waiting for approval.' : 'No overdue invoices or pending approvals.'
   return <article className="billing-hub dashboard-tile" aria-label="Estimates and invoices overview">
     <div className="work-card-heading"><div><p className="eyebrow">Customer billing</p><h2 className="dashboard-tile-title">Estimates &amp; invoices</h2></div><div className="billing-navigation"><button type="button" className="secondary-button compact" onClick={() => onNavigate?.('estimates')}>Estimates <span aria-hidden="true">↗</span></button><button type="button" className="secondary-button compact" onClick={() => onNavigate?.('invoices')}>Invoices <span aria-hidden="true">↗</span></button></div></div>
     {!canSee ? <p className="work-card-empty">Billing details are available to owners, administrators, and office staff.</p> : <>
       <div className="billing-summary">
         <div className="billing-outstanding"><span>Outstanding</span><strong>{loading || error ? '—' : usd.format(snapshot.outstandingBalance)}</strong><small>{loading ? 'Loading balance…' : error ? 'Balance unavailable' : `${snapshot.openInvoices} open ${snapshot.openInvoices === 1 ? 'invoice' : 'invoices'}`}</small></div>
-        <button type="button" className="billing-metric overdue" disabled={loading || !!error} aria-pressed={filter === 'overdue'} onClick={() => setFilter('overdue')}><span>Overdue</span><strong>{loading || error ? '—' : snapshot.overdueInvoiceCount}</strong><small>Review invoices <span aria-hidden="true">→</span></small></button>
+        <button type="button" className="billing-metric overdue" disabled={loading || !!error} aria-pressed={filter === 'overdue'} onClick={() => setFilter('attention')}><span>Needs Attention</span><strong>{loading || error ? '—' : snapshot.overdueInvoiceCount + snapshot.pendingApprovalCount + extraAttention}</strong><small>Review next steps <span aria-hidden="true">→</span></small></button>
+
         <button type="button" className="billing-metric approval" disabled={loading || !!error} aria-pressed={filter === 'approvals'} onClick={() => setFilter('approvals')}><span>Awaiting approval</span><strong>{loading || error ? '—' : snapshot.pendingApprovalCount}</strong><small>Estimates &amp; changes <span aria-hidden="true">→</span></small></button>
       </div>
-      <div className="billing-filter-bar"><div className="billing-filters" role="group" aria-label="Billing view"><button type="button" aria-pressed={filter !== 'recent'} onClick={() => setFilter('attention')}>Needs attention</button><button type="button" aria-pressed={filter === 'recent'} onClick={() => setFilter('recent')}>Recent</button></div>{filter === 'overdue' || filter === 'approvals' ? <span className="billing-filter-label">{heading}</span> : null}</div>
-      {loading ? <p role="status" className="work-card-empty">Loading estimates and invoices…</p> : error ? <p className="work-card-empty">Billing information is unavailable. Select Refresh above to try again.</p> : <div role="region" aria-label={heading}>
+      <div className="billing-filter-bar"><div className="billing-filters" role="group" aria-label="Billing view"><button type="button" aria-pressed={filter !== 'recent'} onClick={() => setFilter('attention')}>Needs Attention</button><button type="button" aria-pressed={filter === 'recent'} onClick={() => setFilter('recent')}>Recent</button></div>{filter === 'overdue' || filter === 'approvals' ? <span className="billing-filter-label">{heading}</span> : null}</div>
+      {loading ? <p role="status" className="work-card-empty">Loading estimates and invoices…</p> : error ? <p className="work-card-empty">Billing information is unavailable. Select Refresh above to try again.</p> : <div role="region" aria-label={heading}><div hidden={filter === 'recent'}>{children}</div>
         {rows.length === 0 ? <div className="billing-empty"><span className="billing-empty-icon" aria-hidden="true">{filter === 'recent' ? '↗' : '✓'}</span><p>{empty}</p>{filter === 'attention' && recent.length > 0 && <button type="button" className="text-button" onClick={() => setFilter('recent')}>View recent documents</button>}</div> : <ul className="billing-rows">{rows.map(row => <li key={row.key}><a className="billing-row" href={row.href} aria-label={`Open ${row.kind.toLowerCase()} ${row.number} for ${row.customer}`}>
           <span className={`billing-document-icon ${row.kind === 'Invoice' ? 'invoice' : 'estimate'}`} aria-hidden="true">{row.kind === 'Invoice' ? 'I' : row.kind === 'Estimate' ? 'E' : 'C'}</span>
           <span className="billing-row-copy"><strong>{row.customer}</strong><span>{row.kind} · {row.number}</span><small>{row.detail}</small></span>

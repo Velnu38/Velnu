@@ -53,8 +53,16 @@ export async function updateJobStatus(jobId: string, status: JobInput['status'])
 /** Resolve a source link directly, including jobs beyond the first list page. */
 export async function getJob(businessId: string, id: string) {
   const { data, error } = await supabase.from('jobs')
-    .select('id,title,description,status,scheduled_start,scheduled_end,assigned_user_ids,source_estimate_id,customer_id,customers!jobs_customer_id_fkey(id,first_name,last_name,company)')
+    .select('id,title,description,status,scheduled_start,scheduled_end,assigned_user_ids,source_estimate_id,customer_id,customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)')
     .eq('business_id', businessId).eq('id', id).single()
   if (error) throw error
-  return { ...data, customers: asList(data.customers) }
+  return { ...data, customers: asList(data.customers), properties: asList(data.properties) }
+}
+
+export async function saveJobNotes(businessId: string, id: string, notes: string) {
+  if (notes.length > 4000) throw new Error('Keep job notes within 4,000 characters.')
+  const { data, error } = await supabase.from('jobs').update({description: notes.trim() || null}).eq('business_id',businessId).eq('id',id).select('id').single()
+  if(error) throw error
+  if(data?.id !== id) throw new Error('The saved job could not be verified.')
+  announceCalendarChange()
 }
