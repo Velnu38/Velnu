@@ -308,7 +308,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
 
 test('08 absent customer relations and injected invoice HTML do not crash or render executable markup', async ({ page }) => {
   const malicious = '<img src=x onerror=alert(1)>'
-  await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, balance_due: 15, due_date: '2020-01-01', customers: null }] })
+  await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, status: 'sent', balance_due: 15, due_date: '2020-01-01', customers: null }] })
   await expect(page.getByRole('region', { name: 'Needs Attention' })).toContainText('Customer')
   await expect(page.getByRole('region', { name: 'Needs Attention' })).toContainText(malicious)
   expect(await page.getByRole('region', { name: 'Needs Attention' }).locator('img').count()).toBe(0)

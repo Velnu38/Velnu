@@ -2076,10 +2076,10 @@
       {
         "line": 21,
         "tag": "select",
-        "label": "<option value=\"\">No saved service address</option> {context.properties?.map(p=><option key={p.id} value={p.id}>{p.label?p.label+' · ':''}{p.",
+        "label": "\"Service address\"",
         "action": "{e=>setSite(e.target.value)}",
         "disabled": "",
-        "source": "<select value={site} onChange={e=>setSite(e.target.value)}>"
+        "source": "<select aria-label=\"Service address\" value={site} onChange={e=>setSite(e.target.value)}>"
       },
       {
         "line": 22,

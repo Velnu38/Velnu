@@ -516,7 +516,7 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 | 15 | button | "Close scheduling" | {onClose} |
 | 19 | input | "datetime-local" | {e=>setStart(e.target.value)} |
 | 20 | select | {[...new Set([15,30,45,60,90,120,180,240,360,480,600,720,duration])].sort((a,b)=>a-b).map(n=><option key={n} value={n}>{n<60?n+' minutes':n/ | {e=>setDuration(Number(e.target.value))} |
-| 21 | select | <option value="">No saved service address</option> {context.properties?.map(p=><option key={p.id} value={p.id}>{p.label?p.label+' · ':''}{p. | {e=>setSite(e.target.value)} |
+| 21 | select | "Service address" | {e=>setSite(e.target.value)} |
 | 22 | summary | Job name and crew {workers.length===1?' · '+(context.team.find(w=>w.id===workers[0])?.label // '1 selected'): ' · '+workers.length+' selecte | Native control |
 | 22 | input | Associated label | {e=>setTitle(e.target.value)} |
 | 22 | input | "checkbox" | {e=>setWorkers(v=>e.target.checked?[...v,w.id]:v.filter(id=>id!==w.id))} |
