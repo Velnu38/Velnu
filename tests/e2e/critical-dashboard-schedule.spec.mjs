@@ -132,6 +132,7 @@ async function mockWorkspace(page, options = {}) {
     }
     if (path.endsWith('/customers')) return reply(req.headers().accept?.includes('vnd.pgrst.object')?state.customers.find(c=>c.id===url.searchParams.get('id')?.replace('eq.','')):state.customers)
     if (path.endsWith('/properties')) return reply([])
+    if (path.endsWith('/rpc/get_document_change_context')) return reply({can_change:true})
     if (path.endsWith('/jobs')) {
       if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.jobs.find(job => job.id === url.searchParams.get('id')?.replace('eq.','')))
       if (method === 'POST') {
@@ -1198,7 +1199,7 @@ for(const width of [1440,390])test(`invoice review has ordered uniform actions a
 })
 for(const width of [1440,390])test(`estimate review has the same action system and document record at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1000})
- const est=reviewDocument(4002);await mockWorkspace(page,{estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
+ const est={...reviewDocument(4002),sent_at:undefined};await mockWorkspace(page,{estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
  await page.goto('/?view=estimates&document='+est.id)
  const preview=page.getByRole('dialog',{name:'Estimate preview'})
  await expect(preview).toBeVisible()
@@ -1208,6 +1209,15 @@ for(const width of [1440,390])test(`estimate review has the same action system a
  await expect(preview.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
  await expect(preview.locator('.print-document')).toContainText('2026-01-15')
  await page.screenshot({path:`test-results/document-review-estimate-${width}.png`,fullPage:true})
+ await page.route('**/functions/v1/create-approval-link',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({token:'mock-only',relative_url:'/?approval=mock-only',expires_at:'2026-11-17T14:00:00Z'})}))
+ await preview.getByRole('button',{name:'Get customer approval link'}).click()
+ const approval=page.getByRole('dialog',{name:'EST-4002 approval link',exact:true})
+ await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(/approval=mock-only/)
+ await expect(approval.getByRole('button',{name:'Copy link',exact:true})).toBeVisible()
+ await page.keyboard.press('Escape');await expect(approval).toHaveCount(0);await expect(preview).toBeVisible()
+ await preview.getByRole('button',{name:'Photos & expenses',exact:true}).click()
+ const resources=page.getByRole('dialog',{name:'EST-4002 photos and expenses',exact:true});await expect(resources).toBeVisible()
+ await resources.getByRole('button',{name:'Close',exact:true}).click();await expect(preview).toBeVisible()
  await preview.getByRole('button',{name:'Close preview'}).click()
  await expect(page.getByRole('button',{name:'Record acceptance'})).toHaveCount(0)
  await expect(page.getByRole('button',{name:'Preview / Print'})).toBeVisible()
@@ -1231,6 +1241,7 @@ test('customer records retain complete searchable document history and open the 
   await expect(section.locator('.history-row')).toHaveCount(1)
   await expect(section).toContainText('Nov 3, 2026 · 9:00 AM EST')
  }
+ await expect(page.getByRole('link',{name:'Open invoice INV-4100',exact:true})).not.toContainText('due')
  await page.screenshot({path:'test-results/document-customer-history.png',fullPage:true})
  await page.getByRole('link',{name:'Open invoice INV-4100',exact:true}).click()
  await expect(page.getByRole('heading',{name:'INV-4100',exact:true})).toBeVisible()
