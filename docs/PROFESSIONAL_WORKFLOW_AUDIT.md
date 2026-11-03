@@ -19,6 +19,7 @@ Source review is distinct from runtime verification. The new audit exercises ele
 | Timezone behavior differed in older screens | Legacy Schedule entry/ranges and invoice follow-up entry use the business timezone. Reminder dates display in that same timezone. Impossible local times still fail validation. |
 | Repeated submits could open duplicate attempts | Same-tick guards protect customer creation and both payment-recording forms. Existing atomic financial/idempotency safeguards remain unchanged. |
 | Document settings offered logo uploads without checking plan access | Hosted uploads now follow the same backend entitlement check as onboarding; free company-name branding, color and footer editing remain available. Settings saves prevent same-tick duplicate submissions. |
+| Attention layout showed an empty billing panel beneath real workflow actions | The combined queue omits the redundant empty panel when other attention items exist, labels document-only counts as billing follow-ups and keeps approval/recent filters focused on their selected category. Calendar crew selection is inset with other card controls. |
 | Terminology differed | Payments links to Financial performance using the workspace's existing product terminology. |
 
 ## Page-by-page disposition
@@ -36,14 +37,14 @@ Source review is distinct from runtime verification. The new audit exercises ele
 | Payments | Invoice selection, default balance, amounts, methods, recording confirmation and workbook destination reviewed. Double-submit and form behavior improved. |
 | Financial workbook | Source switching, filtering, exports, manual entries, deletion and QuickBooks controls reviewed. Entry dialog aligned; irreversible/account/provider confirmations retained. |
 | Settings | Company, documents, team, calendar, scheduling and cancellation disclosures reviewed with role/module guards. Provider setup/errors remain explicit. |
-| Landing and service selection | Links, FAQ, service choices and signup paths inventoried; public route audit and existing marketing tests provide runtime coverage. |
+| Landing and service selection | Public links, FAQ and signup paths reviewed. The legacy /services URL intentionally shows the private-testing landing page. Service interests and proposed add-on choices remain in Settings → Company profile and are not purchases. |
 | Authentication and recovery | Sign-in/signup, confirmation resend, reset and recovery actions inventoried; existing mocked recovery/onboarding tests retained. No real email delivery certification. |
 | Plan, agreement and business onboarding | Required consents, optional payment setup, business fields and progression reviewed. Legal acceptance is intentionally not skipped. |
 | Customer approval | Scope/terms, explicit consent, acceptance/decline and unavailable-link states reviewed; mocked customer tests retained. |
 | Customer booking | Slot choice, conflict recovery, confirmation and ICS actions reviewed; existing mocked booking tests retained. |
 | Team invitation | Current-account selection and explicit joining reviewed; existing role/invitation tests retained. |
 | Legal, terms, privacy and install | Public routing, labels and responsive readability audited; no legal terms changed. |
-| Compatibility/unused modules | JobsSchedulePage is a compatibility export. PlaceholderPage and WorkspaceServicesPage are not active AppShell destinations; inventory presence does not imply a user-facing feature. |
+| Compatibility/unused modules | JobsSchedulePage is a compatibility export. ServicesPage is a legacy public component; /services currently renders LandingPage. PlaceholderPage and WorkspaceServicesPage are not active AppShell destinations; inventory presence does not imply a user-facing feature. |
 
 ## Friction targets and limits
 

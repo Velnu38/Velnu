@@ -55,6 +55,8 @@ async function mockWorkspace(page, seed = {}) {
         outstanding_balance: open.reduce((sum, i) => sum + Number(i.balance_due || 0), 0),
       })
     }
+    if (path.endsWith('/rpc/get_scheduling_context')) return fulfill({ preferences: { work_days: [1,2,3,4,5], start_minutes: 480, end_minutes: 1020, duration_minutes: 120, buffer_minutes: 30, notice_hours: 24 }, team: [{id:userId,label:'Owner',role:'owner',is_you:true}], time_off: [], properties: [], estimate: { id: estimateId, number: 'EST-1001', customer_id: customerId, job_id: null, property_id: null, title: 'Faucet repair', scope: 'Faucet repair', customer_name: 'Jane Doe', customer_email: customer.email }, offer: null })
+    if (path.endsWith('/rpc/get_document_change_context')) return fulfill({business_id:businessId,document_id:body.p_document,kind:body.p_kind,number:'INV-CONTEXT',customer_id:customerId,customer_name:'Jane Doe',job_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',estimate_id:null,work_status:'scheduled',can_change:true,total:100,address:'100 Main Street',items:[{description:'Original work',quantity:1,unit_price:100,tax_rate:0}]})
     if (path.endsWith('/rpc/create_document')) {
       const isInvoice = body.document_kind === 'invoice'
       const items = body.payload.items
@@ -275,7 +277,7 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   await expect(page.locator('.sidebar').getByRole('button', { name: 'Change Orders', exact: true })).toHaveCount(0)
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-CONTEXT/ }).click()
-  await page.getByRole('button', { name: 'Change orders', exact: true }).click()
+  await page.getByRole('button', { name: 'Change order', exact: true }).click()
   await expect(page.getByText('CO-TEST')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
@@ -290,8 +292,8 @@ test('issued change order cannot be reverted to draft and voiding requires confi
 test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invoice balances', async ({ page }) => {
   const state = await mockWorkspace(page, {
     invoices: [
-      { id: invoiceId, status: 'sent', balance_due: 125, due_date: '2026-10-31' },
-      { id: '77777777-7777-4777-8777-777777777777', status: 'draft', balance_due: 900 },
+      { id: invoiceId, status: 'sent', total: 125, balance_due: 125, due_date: '2026-10-31' },
+      { id: '77777777-7777-4777-8777-777777777777', status: 'draft', total: 900, balance_due: 900 },
     ],
   })
   await page.goto('/')

@@ -17,6 +17,7 @@
 @media(max-width:650px){.workspace-inner :is(input,textarea,select){font-size:16px}.workspace-quick-actions>a{flex:1 1 140px}.form-dialog{padding:20px}.form-dialog form>.modal-actions{bottom:-20px}}
 @media(prefers-reduced-motion:reduce){.workspace-inner *{animation:none!important;transition:none!important}}
 
+.workspace-inner .dashboard-calendar>.worker-select{margin:0 24px 12px}
 .form-dialog-fields{border:0;padding:0;margin:0;min-width:0}
 
 }

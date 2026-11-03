@@ -95,7 +95,7 @@ test('job adds a customer inline while retaining entered work',async({page})=>{
  await dialog.getByLabel('Name',{exact:true}).fill('New garden customer')
  await dialog.getByRole('button',{name:'Add & select customer',exact:true}).click()
  await expect(dialog.getByLabel('Job title',{exact:true})).toHaveValue('Keep the service scope')
- await expect(dialog.getByLabel('Customer',{exact:true})).not.toHaveValue('')
+ await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue(state.customers.at(-1).id)
  expect(state.customers).toHaveLength(2)
 })
 for(const width of [1440,390])test(`public and account-entry route audit at ${width}px`,async({page})=>{

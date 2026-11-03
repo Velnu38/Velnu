@@ -314,7 +314,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await expect(tile).toContainText('Jane Doe')
     await expect(tile).toContainText('INV-1')
     await expect(tile).toContainText('$15.00')
-    await expect(tile).toContainText('Showing 5 of 14 items needing attention')
+    await expect(tile).toContainText('Showing 5 of 14 billing follow-ups')
     await expect(page.locator('.overdue-panel')).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
@@ -738,7 +738,7 @@ for (const width of [1440, 390]) {
     await expect(attention.getByRole('listitem')).toHaveCount(5)
     await expect(attention).toContainText('Overdue')
     await expect(attention).toContainText('Awaiting approval')
-    await expect(hub).toContainText('Showing 5 of 7 items needing attention')
+    await expect(hub).toContainText('Showing 5 of 7 billing follow-ups')
     await expect(hub.getByRole('button',{name:'Estimates',exact:true})).toBeVisible()
     await expect(hub.getByRole('button',{name:'Invoices',exact:true})).toBeVisible()
     await expect(page.getByRole('article',{name:'Jobs overview'})).toContainText('3active')

@@ -15,25 +15,14 @@ async function signedIn(page) {
   })
 }
 
-test('website shows non-billable à la carte chooser and carries selected interests into signup', async ({ page }) => {
+test('legacy services URL shows private testing and directs users to signup without selling a plan', async ({ page }) => {
   await page.goto('/services')
-  await expect(page.getByRole('heading', { name: /Choose what you need/ })).toBeVisible()
-  await expect(page.getByText(/subscriptions and add-ons are not available for purchase/)).toBeVisible()
-  await expect(page.getByRole('radio')).toHaveCount(4)
-  await page.getByRole('radio', { name: /À la carte/ }).check()
-  await page.getByRole('checkbox', { name: /Voice-to-document assistant/ }).check()
-  await page.getByRole('checkbox', { name: /Manual bookkeeping workbook/ }).check()
-  await expect(page.getByText(/\+100 AI credits/)).toBeVisible()
-  await expect(page.getByText('2 optional services selected')).toBeVisible()
-  const pending = await page.evaluate(() => localStorage.getItem('velnu.beta.service-interests.v1'))
-  expect(JSON.parse(pending)).toMatchObject({
-    plan:'a_la_carte', services:['voice_drafts','bookkeeping'],
-  })
-  await page.getByRole('button', { name: /Continue to account setup/ }).click()
+  await expect(page.getByRole('heading', { name: 'Test Finviant Office before public beta.' })).toBeVisible()
+  await expect(page.getByRole('radio')).toHaveCount(0)
+  await expect(page.getByText(/No subscription or charges are active/)).toBeVisible()
+  await page.getByRole('link', { name: /Join private beta/i }).first().click()
   await expect(page).toHaveURL(/\/auth\?mode=signup/)
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
-  const after = await page.evaluate(() => localStorage.getItem('velnu.beta.service-interests.v1'))
-  expect(after).toBe(pending)
 })
 
 test('web app installation page explains browser access with no store download', async ({ page }) => {
@@ -50,7 +39,7 @@ test('web app installation page explains browser access with no store download',
   expect(parsed.display).toBe('standalone')
 })
 
-test('signed-in owner saves account service interests without purchase or billing', async ({ page }) => {
+async function openServicePreferences(page) {
   await signedIn(page)
   const requests = []
   await page.route('https://example.supabase.co/**', async route => {
@@ -78,6 +67,11 @@ test('signed-in owner saves account service interests without purchase or billin
   await page.getByRole('button', { name: 'Company profile', exact: true }).click()
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  return requests
+}
+
+test('signed-in owner saves account service interests without purchase or billing', async ({ page }) => {
+  const requests = await openServicePreferences(page)
   await page.getByRole('radio', { name: /À la carte/ }).check()
   await page.getByRole('checkbox', { name: /Online estimate approvals/ }).check()
   await page.getByRole('button', { name: 'Save company profile & services' }).click()
@@ -95,15 +89,15 @@ test('signed-in owner saves account service interests without purchase or billin
 test('mobile service selector and install guide are responsive', async ({ page }) => {
   await page.setViewportSize({width:390,height:844})
   await page.goto('/services')
-  await expect(page.getByRole('checkbox', { name: /Voice-to-document assistant/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Test Finviant Office before public beta.' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
   await page.goto('/install')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
 })
 
 
-test('Basic and Pro show monthly prices for optional AI assistants; Free cannot select them', async ({ page }) => {
-  await page.goto('/services')
+test('company service preferences show proposed assistant prices and Free eligibility without activating purchases', async ({ page }) => {
+  const requests = await openServicePreferences(page)
   const assistants = page.locator('.service-assistant-options')
   const scheduling = assistants.locator('label.service-addon-card').filter({ hasText: 'Scheduling Assistant' }).getByRole('checkbox')
   const bookkeeping = assistants.locator('label.service-addon-card').filter({ hasText: 'Bookkeeping Assistant' }).getByRole('checkbox')
@@ -130,8 +124,8 @@ test('Basic and Pro show monthly prices for optional AI assistants; Free cannot 
   await expect(bookkeeping).toBeDisabled()
   await expect(scheduling).not.toBeChecked()
   await expect(bookkeeping).not.toBeChecked()
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('velnu.beta.service-interests.v1') || '{}'))
-  expect(stored).toMatchObject({ plan: 'free', services: [] })
+  expect(requests.filter(x => x.path.endsWith('/business_service_interests') && x.method === 'POST')).toHaveLength(0)
+  expect(requests.filter(x => /checkout|subscription|payment_intents/i.test(x.path))).toHaveLength(0)
 })
 
 test('marketing homepage keeps proposed assistant subscriptions out of the private-testing landing page', async ({ page }) => {
