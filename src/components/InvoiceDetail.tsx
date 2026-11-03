@@ -96,7 +96,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
     {showCustomer&&<CustomerEditDialog businessId={business.id} customerId={invoice.customer_id} onClose={()=>setShowCustomer(false)} onSaved={()=>void refresh()}/>}
     <DocumentActions primary={<>
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
-      {canManageFinances(business.role)&&<button type="button" disabled={busy} onClick={()=>setShowCustomer(true)}>{customer?.email?'Edit customer':'Add customer email'}</button>}
+      {canManageFinances(business.role)&&!customer?.email&&<button type="button" disabled={busy} onClick={()=>setShowCustomer(true)}>Add customer email</button>}
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={async()=>{await refresh();announceCalendarChange()}}/>}
       {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
@@ -104,6 +104,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <button type="button" onClick={()=>setShowResources(true)}>Photos &amp; expenses</button>
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
     </>} secondary={canManageFinances(business.role)&&invoice.status!=='void'?<>
+      {customer?.email&&<button type="button" disabled={busy} onClick={()=>setShowCustomer(true)}>Edit customer</button>}
       {offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
       {invoice.status==='draft'&&<button type="button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
       {!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button type="button" className="danger-action" onClick={voidInvoice} disabled={busy}>Void invoice</button>}

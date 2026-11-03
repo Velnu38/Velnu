@@ -281,7 +281,7 @@ export default function TeamSettings({
               className="primary-button"
               disabled={busy}
               onClick={() =>
-                window.confirm(`Save access for ${editing.email}? Role: ${editing.role}. Review the selected modules before continuing.`) && void manage(
+                (!team?.members.some(m=>m.user_id===editing.user_id&&m.role!==editing.role)||window.confirm(`Change ${editing.email} from ${team?.members.find(m=>m.user_id===editing.user_id)?.role} to ${editing.role}?`)) && void manage(
                   editing.user_id,
                   "update",
                   editing.role as TeamRole,

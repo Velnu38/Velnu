@@ -72,7 +72,7 @@ test('declining an estimate does not require agreeing to its terms', async ({ pa
   const requests = await mockApproval(page)
   await page.goto('/?approval=' + token)
   await page.getByLabel('Full name').fill('Jamie Doe')
-  await page.getByRole('button', { name: 'Decline' }).click()
+  page.once('dialog',d=>d.accept());await page.getByRole('button', { name: 'Decline estimate' }).click()
   const submitted = requests.filter(x => x.body?.mode === 'declined')
   expect(submitted).toHaveLength(1)
   expect(submitted[0].body.terms_agreed).toBe(false)

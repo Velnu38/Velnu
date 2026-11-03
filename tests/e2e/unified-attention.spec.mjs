@@ -66,7 +66,7 @@ for(const width of [1440,390])test(`one attention area below billing and shared 
  const billing=page.getByRole('article',{name:'Estimates and invoices overview'})
  await billing.getByRole('button',{name:/Awaiting approval/}).click()
  await expect(billing.getByRole('button',{name:'Schedule job',exact:true})).toHaveCount(0)
- await billing.getByRole('button',{name:'Needs Attention',exact:true}).click()
+ await billing.locator('.billing-metric.overdue').click()
  await expect(page.getByRole('heading',{name:'Your next steps',exact:true})).toHaveCount(0)
  await expect(page.getByRole('heading',{name:'To do',exact:true})).toHaveCount(0)
  await expect(page.getByRole('button',{name:/Needs Attention/}).first()).toBeVisible()

@@ -29,7 +29,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
   const [notice, setNotice] = useState('')
   const [interests, setInterests] = useState<ServiceInterest>(getPendingServiceInterests)
   const [servicesLoading, setServicesLoading] = useState(Boolean(business))
-  const guard=useUnsavedChanges(busy)
+  const guard=useUnsavedChanges(busy),serviceGuard=useUnsavedChanges(busy)
   const editing = !!business
   const visibleSteps = companyOnly ? [0] : [0, 1, 2, 3]
   const logoUrl = localLogoUrl || (business && !removeLogo ? businessLogoUrl(business) : null)
@@ -119,13 +119,13 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
     <label key={key}>{title}<input type={props.type || 'text'} value={draft[key]} onChange={e => update(key, e.target.value)}
       placeholder={placeholder} required={props.required} maxLength={props.maxLength ?? 160} disabled={busy} /></label>
 
-  return <section className="profile-editor" onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
+  return <section className="profile-editor">
     <div className="profile-steps" role="list">
       {visibleSteps.map((i, number) => <div key={stages[i]} role="listitem" className={'profile-step ' + (i === step ? 'active' : i < step ? 'complete' : '')}>
         <strong>{number + 1}</strong><span>{stages[i]}</span>
       </div>)}
     </div>
-    <form onSubmit={submit} className="profile-form">
+    <form onSubmit={submit} className="profile-form" onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
       {step === 0 && <>
         <h2>{companyOnly ? 'Your business details' : 'Make every invoice look like it comes from your company'}</h2>
         <p className="quiet">The name, address, phone, and email you add here appear on your invoice and estimate documents. All fields except company name are optional.</p>
@@ -206,5 +206,6 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
         <button className="primary-button" disabled={busy || (!companyOnly&&servicesLoading)}>{busy ? 'Saving…' : companyOnly ? 'Save company profile' : step < 3 ? 'Continue' : editing ? 'Save company profile & services' : 'Create my business'}</button>
       </div>
     </form>
+    {companyOnly&&business&&<details className="settings-inset" onInputCapture={serviceGuard.markDirty} onChangeCapture={serviceGuard.markDirty}><summary>Optional Finviant services</summary><p className="quiet">Save these preferences separately from your company details. Selections do not activate or purchase a service.</p>{servicesLoading?<p role="status">Loading service preferences…</p>:<ServicePicker compact value={interests} onChange={setInterests}/>}<button type="button" className="secondary-button" disabled={busy||servicesLoading} onClick={async()=>{if(busy)return;setBusy(true);setError('');try{await saveBusinessServiceInterests(business.id,interests);clearPendingServiceInterests();serviceGuard.markClean();setNotice('Service preferences saved. No services were purchased or activated.')}catch(e){setError(e instanceof Error?e.message:'Unable to save service preferences.')}finally{setBusy(false)}}}>Save service preferences</button></details>}
   </section>
 }
