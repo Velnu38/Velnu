@@ -18,6 +18,6 @@ export default defineConfig({
     timeout: 120000,
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
-    env: { VITE_SUPABASE_URL: 'https://example.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: 'trial-test-key', VITE_ENABLE_CUSTOMER_ACTIONS: 'true' },
+    env: { FINVIANT_BROWSER_TEST: 'true', VITE_SUPABASE_URL: 'https://example.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: 'trial-test-key', VITE_ENABLE_CUSTOMER_ACTIONS: 'true' },
   },
 })

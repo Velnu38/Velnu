@@ -6,6 +6,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
+      // The isolated invoice regression page is included only in local browser-test builds.
+      // Hosted deployments must never publish test fixtures.
+      input: !process.env.VERCEL && process.env.FINVIANT_BROWSER_TEST === 'true'
+        ? { app: 'index.html', invoiceFixture: 'tests/invoice.html' }
+        : undefined,
       output: {
         // Stable vendor caches; analytics remains a consent-gated dynamic import.
         manualChunks(id) {
