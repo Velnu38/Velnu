@@ -19,12 +19,12 @@
 
 .workspace-inner .dashboard-calendar>.worker-select{margin:0 24px 12px}
 /* One visual treatment for the action requested in every attention row. */
-.workspace-inner .attention-action,.workspace-inner .primary-button.attention-action{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:0 0 176px;width:176px;min-width:176px;max-width:176px;height:44px;min-height:44px;padding:0 12px;border:1px solid #245f98;border-radius:10px;background:#245f98;color:#fff;font-family:inherit;font-size:13px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;white-space:normal}
+.workspace-inner .attention-action,.workspace .workspace-inner .primary-button.attention-action{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:0 0 176px;width:176px;min-width:176px;max-width:176px;height:44px;min-height:44px;padding:0 12px;border:1px solid #245f98;border-radius:10px;background:#245f98;color:#fff;font-family:inherit;font-size:13px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;white-space:normal}
 .workspace-inner .attention-workflow li,.workspace-inner .attention-reminders .calendar-reminders>li{display:grid;grid-template-columns:minmax(0,1fr) 176px;gap:14px;align-items:center}
 .workspace-inner .attention-action:hover:not(:disabled){background:#1d4e7c;border-color:#1d4e7c}
 .workspace-inner .attention-action:disabled{opacity:.55;cursor:default}
 .workspace-inner .billing-row:has(.billing-attention-action){grid-template-columns:32px minmax(0,1fr) auto auto 176px}
-@media(max-width:700px){.workspace-inner .attention-workflow li,.workspace-inner .attention-reminders .calendar-reminders>li{grid-template-columns:minmax(0,1fr)}.workspace-inner .attention-action,.workspace-inner .primary-button.attention-action{flex-basis:100%;width:100%;min-width:0;max-width:none}.workspace-inner .billing-row:has(.billing-attention-action){grid-template-columns:28px minmax(0,1fr) auto}.workspace-inner .billing-attention-action{grid-column:1/-1}}
+@media(max-width:700px){.workspace-inner .attention-workflow li,.workspace-inner .attention-reminders .calendar-reminders>li{grid-template-columns:minmax(0,1fr)}.workspace-inner .attention-action,.workspace .workspace-inner .primary-button.attention-action{flex-basis:100%;width:100%;min-width:0;max-width:none}.workspace-inner .billing-row:has(.billing-attention-action){grid-template-columns:28px minmax(0,1fr) auto}.workspace-inner .billing-attention-action{grid-column:1/-1}}
 .form-dialog-fields{border:0;padding:0;margin:0;min-width:0}
 
 }
