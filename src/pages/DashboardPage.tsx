@@ -1,13 +1,12 @@
 import { canAccess, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub, { DashboardJobs } from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { businessLogoUrl, type CurrentBusiness } from '../lib/business'
 import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 import FinancialPerformance from '../components/FinancialPerformance'
 import '../components/dashboard-interactive.css'
 import { readableError } from '../lib/errors'
-import WorkflowNextSteps from '../components/scheduling/WorkflowNextSteps'
 import '../components/dashboard-tiles.css'
 import AttentionReminders from '../components/AttentionReminders'
 
@@ -33,8 +32,6 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const workspaceKey = [business.id, business.role, business.access_modules?.join(',')].join(':')
-  const [workflowAttention, setWorkflowAttention] = useState<{ key: string; count: number | null } | null>(null)
-  const onWorkflowCount = useCallback((count: number | null) => setWorkflowAttention({ key: workspaceKey, count }), [workspaceKey])
   // A route change or newer refresh invalidates an older response. This also
   // avoids setState on an unmounted workspace after a slow network request.
   const currentRequest = useRef(0)
@@ -92,8 +89,6 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     }
   }, [business.id, business.timezone, business.access_modules?.join(','), business.role])
 
-  const workflowAllowed = ['owner','admin','office'].includes(business.role) && ['jobs','calendar','billing'].every(m=>canAccess(business,m as 'jobs'|'calendar'|'billing'))
-  const workflowCount = !workflowAllowed ? 0 : workflowAttention?.key === workspaceKey ? workflowAttention.count : null
   const logo = businessLogoUrl(business)
 
   return <div className="page-stack dashboard-page">
@@ -107,7 +102,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-work-grid" aria-label="Work areas">
-      {canAccess(business,'billing') && <BillingHub business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} extraAttention={(workflowCount ?? 0) + snapshot.dueReminderCount}><WorkflowNextSteps key={workspaceKey} business={business} refreshVersion={refreshVersion} onCountChange={onWorkflowCount} embedded /><AttentionReminders business={business} reminders={snapshot.dueReminders} /></BillingHub>}
+      {canAccess(business,'billing') && <BillingHub key={workspaceKey} business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} refreshVersion={refreshVersion} />}
       {canAccess(business,'jobs') && <DashboardJobs snapshot={snapshot} loading={loading} error={error} onOpen={() => onNavigate?.('work')} />}
     </section>
 

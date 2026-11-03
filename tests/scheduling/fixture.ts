@@ -29,7 +29,7 @@ export async function fixture() {
     create function private.html_escape(value text) returns text language sql immutable as $$select replace(replace(replace(coalesce(value,''),'&','&amp;'),'<','&lt;'),'>','&gt;')$$;
     grant usage on schema public,private,auth to authenticated;grant execute on function auth.uid() to authenticated;
   `)
-  for(const table of ['businesses','customers','properties','jobs','appointments','estimates','invoices','estimate_items','invoice_items','business_settings','messages']) {
+  for(const table of ['businesses','customers','properties','jobs','appointments','estimates','invoices','estimate_items','invoice_items','business_settings','messages','reminders','change_orders']) {
     const match=baseline.match(new RegExp('create table "public"\\."'+table+'" \\(([\\s\\S]*?)\\);','i'))
     if(!match) throw new Error('Missing table '+table)
     await db.exec('create table public.'+table+' ('+match[1]+');')
@@ -55,6 +55,7 @@ export async function fixture() {
   await db.exec(calendar.slice(calendar.indexOf('create view public.calendar_work'),calendar.indexOf('-- A unified projection')))
   await db.exec(migration)
   await db.exec(await readFile('supabase/migrations/20261103004720_dashboard_attention_calendar_sync.sql','utf8'))
+  await db.exec(await readFile('supabase/migrations/20261103141230_dashboard_attention_paging.sql','utf8'))
   await db.exec(`insert into auth.users values('${ids.owner}','owner@example.test'),('${ids.worker}','worker@example.test'),('${ids.outsider}','outsider@example.test');
     select set_config('request.jwt.claim.sub','${ids.owner}',false);
     insert into businesses(id,name) values('${ids.business}','Test Trades'),('${ids.other}','Other');

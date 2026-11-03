@@ -1,3 +1,4 @@
+import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
 
@@ -24,8 +25,8 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'free',ai_limit:0,voice_limit:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
-  if(path.endsWith('/rpc/get_workflow_next_actions')){
-   const value={approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}
+  if(path.endsWith('/rpc/get_dashboard_attention_page')){
+   const value=attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}})
    const delay=state.workflowDelay;state.workflowDelay=0;state.pendingWorkflow++
    try{if(delay)await new Promise(resolve=>setTimeout(resolve,delay));return await reply(value)}finally{state.pendingWorkflow--}
   }
@@ -114,8 +115,8 @@ for(const width of [1440,390])test(`dashboard tiles share surfaces and typograph
   return {background:style.backgroundColor,border:style.borderColor,borderWidth:style.borderWidth,radius:style.borderRadius,font:style.fontFamily,titleFont:title.fontFamily,titleSize:title.fontSize,titleWeight:title.fontWeight,titleColor:title.color}
  }))
  for(const tile of appearance)expect(tile).toEqual(appearance[0])
- const values=await page.locator('.billing-summary strong,.performance-metric strong,.jobs-active-count').evaluateAll(items=>items.map(item=>{const style=getComputedStyle(item);return [style.fontFamily,style.fontSize,style.fontWeight,style.color]}))
- for(const value of values)expect(value).toEqual(values[0])
+ const values=await page.locator('.billing-summary strong,.performance-metric strong,.jobs-active-count').evaluateAll(items=>items.map(item=>{const style=getComputedStyle(item);return [style.fontFamily,style.fontSize,style.fontWeight,style.color,item.closest('.has-attention')!==null]}))
+ for(const value of values){expect(value.slice(0,3)).toEqual(values[0].slice(0,3));expect(value[3]).toBe(value[4]?'rgb(180, 35, 24)':values[0][3])}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/uniform-dashboard-${width}.png`,fullPage:true})
 })

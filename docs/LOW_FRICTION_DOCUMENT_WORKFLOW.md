@@ -40,3 +40,12 @@ Attention actions use one blue treatment, 13 px semibold-style text (weight 700)
 Sending/manual issuance announces a work change so mounted attention views can refresh. The dashboard's invoice query explicitly requires an issued status, positive balance and due date before the business day. Browser regressions cover due-today versus overdue at a UTC/business-day boundary, invoice-to-job defaults, one job/event, and computed action styles at desktop/phone sizes. Database regressions exercise real SQL locally, including unauthorized calls, issued-document preservation and transaction rollback.
 
 Private hosting and customer-delivery gates remain. Mock browser sends are not evidence of actual email/SMS delivery or provider calendar synchronization. This assessment does not activate those providers or change production data.
+
+
+## Complete dashboard attention queue
+
+The Estimates & invoices widget has one server-paged Needs Attention queue, five items per page, with Previous/Next controls and an exact range and page count. Scheduling tasks, completed-job invoice tasks, due reminders, overdue unpaid invoices, and sent estimates/change orders awaiting approval are included. Categories are interleaved with stable date/ID ordering. Counts and each page are read from the same database snapshot. Refresh after scheduling, completion, focus, or the visible polling interval removes resolved actions and clamps an empty final page.
+
+Awaiting approval opens the same pager filtered to all sent estimates and change orders. Positive Needs Attention and Awaiting approval counts are red; zero is neutral. Sent invoices enter the queue only once their business-local due date has passed and a balance remains. The Estimates ↗ and Invoices ↗ buttons open their complete record lists. Generic creation shortcuts live in the dashboard header, with no duplicate New estimate/Create invoice buttons in this widget. Job-specific invoice actions remain available.
+
+The additive `20261103141230_dashboard_attention_paging.sql` migration adds an authenticated invoker RPC around a guarded private reader and shares existing workflow eligibility with the legacy workflow API. No business records are changed by the migration. Billing, calendar and scheduling module permissions and tenant scope are checked in the database.

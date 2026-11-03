@@ -10,7 +10,7 @@ const workflowFiles=(await readdir('supabase/migrations')).filter(name=>name.end
 const workflow=await readFile('supabase/migrations/'+workflowFiles[0],'utf8')
 function fn(text:string,name:string){const a=text.indexOf('CREATE OR REPLACE FUNCTION '+name+'(');assert.ok(a>=0,'Function '+name+' exists');return text.slice(a,text.indexOf('$function$;',a)+12)}
 async function setup(){const db=await fixture();await db.exec('reset role;');
-  for(const table of ['change_orders','change_order_items']){const match=baseline.match(new RegExp('create table "public"\\."'+table+'" \\(([\\s\\S]*?)\\);','i'))!;await db.exec('create table public.'+table+' ('+match[1]+');alter table '+table+' add primary key(id);')}
+  for(const table of ['change_order_items']){const match=baseline.match(new RegExp('create table "public"\\."'+table+'" \\(([\\s\\S]*?)\\);','i'))!;await db.exec('create table public.'+table+' ('+match[1]+');alter table '+table+' add primary key(id);')}
   await db.exec(fn(baseline,'private.valid_payment_links'))
   const a=owner.indexOf('create function private.guard_invoice_destinations('),b=owner.indexOf('end $$;',a)+7
   await db.exec(owner.slice(a,b))
