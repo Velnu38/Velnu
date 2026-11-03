@@ -1,13 +1,14 @@
 import { canAccess, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub, { DashboardJobs } from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 import FinancialPerformance from '../components/FinancialPerformance'
 import '../components/dashboard-interactive.css'
 import { readableError } from '../lib/errors'
 import WorkflowNextSteps from '../components/scheduling/WorkflowNextSteps'
+import '../components/dashboard-tiles.css'
 
 type DashboardDestination = 'estimates' | 'invoices' | 'work' | 'schedule' | 'bookkeeping'
 const empty: DashboardSnapshot = {
@@ -30,6 +31,9 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const workspaceKey = [business.id, business.role, business.access_modules?.join(',')].join(':')
+  const [workflowAttention, setWorkflowAttention] = useState<{ key: string; count: number | null } | null>(null)
+  const onWorkflowCount = useCallback((count: number | null) => setWorkflowAttention({ key: workspaceKey, count }), [workspaceKey])
   // A route change or newer refresh invalidates an older response. This also
   // avoids setState on an unmounted workspace after a slow network request.
   const currentRequest = useRef(0)
@@ -38,10 +42,10 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
   // without caching financial data across users, sessions, or businesses.
   const pendingLoad = useRef<{ businessId: string; accessKey: string; promise: Promise<DashboardSnapshot> } | null>(null)
 
-  async function refresh(force = false) {
+  async function refresh(force = false, background = false) {
     if (!mounted.current) return
     const request = ++currentRequest.current
-    setLoading(true)
+    if (!background) setLoading(true)
     setError('')
 
     const accessKey = business.role + ':' + business.access_modules?.join(',')
@@ -73,18 +77,30 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
     mounted.current = true
     setSnapshot(empty)
     void refresh()
-    return () => { mounted.current = false; currentRequest.current++ }
+    const update = () => { if (!document.hidden) void refresh(true, true) }
+    const timer = window.setInterval(update, 30000)
+    window.addEventListener('finviant-work-changed', update)
+    window.addEventListener('focus', update)
+    document.addEventListener('visibilitychange', update)
+    return () => {
+      mounted.current = false; currentRequest.current++
+      clearInterval(timer)
+      window.removeEventListener('finviant-work-changed', update)
+      window.removeEventListener('focus', update)
+      document.removeEventListener('visibilitychange', update)
+    }
   }, [business.id, business.timezone, business.access_modules?.join(','), business.role])
 
-  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount
+  const workflowCount = workflowAttention?.key === workspaceKey ? workflowAttention.count : null
+  const attentionCount = snapshot.overdueInvoiceCount + snapshot.dueReminderCount + snapshot.pendingApprovalCount + (workflowCount ?? 0)
 
   return <div className="page-stack dashboard-page">
     <div className="page-heading split-heading">
-      <div><p className="eyebrow">{business.name} · Today</p><h1>{loading || error ? 'Your day, organized.' : attentionCount ? `${attentionCount} item${attentionCount === 1 ? ' needs' : 's need'} your attention.` : 'Your office is caught up.'}</h1></div>
+      <div><p className="eyebrow">{business.name} · Today</p><h1 aria-live="polite">{loading || error || workflowCount === null ? 'Your day, organized.' : attentionCount ? `${attentionCount} item${attentionCount === 1 ? ' needs' : 's need'} your attention.` : 'Your office is caught up.'}</h1></div>
       <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
-    <WorkflowNextSteps business={business} refreshVersion={refreshVersion} />
+    <WorkflowNextSteps key={workspaceKey} business={business} refreshVersion={refreshVersion} onCountChange={onWorkflowCount} />
     {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} onReminders={() => onReminders?.()} />}
 
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}

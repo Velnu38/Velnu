@@ -2,6 +2,7 @@ import { collectBusinessRecords } from '../lib/businessRecords'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 import { completeJob } from './schedulingWorkflow'
+import { announceCalendarChange } from './calendar'
 
 export interface JobInput {
   customer_id: string
@@ -37,6 +38,7 @@ export async function createJob(businessId: string, input: JobInput) {
   })
   if (error) throw error
   if (!data?.id) throw new Error('The job result could not be confirmed. Retry the same submission.')
+  announceCalendarChange()
   return data
 }
 export async function updateJobStatus(jobId: string, status: JobInput['status']) {
@@ -45,6 +47,7 @@ export async function updateJobStatus(jobId: string, status: JobInput['status'])
   const { data, error } = await supabase.rpc('set_job_status_atomic', { p_job_id: jobId, p_status: status })
   if (error) throw error
   if (!data?.id || data.status !== status) throw new Error('Job status could not be confirmed. Refresh before changing it again.')
+  announceCalendarChange()
 }
 
 /** Resolve a source link directly, including jobs beyond the first list page. */

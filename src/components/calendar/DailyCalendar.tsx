@@ -68,9 +68,9 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
     finally { setBusy(null) }
   }
   const periodLabel = view === 'month' ? selected.toFormat('MMMM yyyy') : `${range.start.toFormat('MMM d')} – ${range.end.minus({ days: 1 }).toFormat('MMM d, yyyy')}`
-  return <section className="dashboard-calendar calendar-no-print" aria-label="Work calendar">
+  return <section className="dashboard-calendar dashboard-tile calendar-no-print" aria-label="Work calendar">
     <div className="calendar-heading">
-      <div><p className="eyebrow">Your schedule</p><h2>{view === 'week' ? 'Weekly schedule' : 'Monthly calendar'}</h2></div>
+      <div><p className="eyebrow">Your schedule</p><h2 className="dashboard-tile-title">{view === 'week' ? 'Weekly schedule' : 'Monthly calendar'}</h2></div>
       <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div><button className="calendar-add" onClick={onReminders}>+ Reminder</button>{business.role!=='viewer'&&<button type="button" className="calendar-add" onClick={()=>setEntry({day})}>+ Add entry</button>}</div>
     </div>
     {team.length>0&&<label className="worker-select">Show schedule for<select value={worker} onChange={e=>setWorker(e.target.value)}><option value="all">Everyone</option>{team.map(item=><option value={item.id} key={item.id}>{item.is_you?'My schedule · ':''}{item.label}</option>)}</select></label>}
