@@ -1,3 +1,4 @@
+import IntegrationTesting, { integrationTestingAvailable } from '../components/settings/IntegrationTesting'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { useState } from "react";
 import IntegrationSettings from "../components/calendar/IntegrationSettings";
@@ -10,7 +11,7 @@ import SubscriptionSettings from "../components/settings/SubscriptionSettings";
 import SchedulingSettings from "../components/scheduling/SchedulingSettings";
 import "../components/settings/settings.css";
 
-type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription";
+type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription" | "testing";
 const options: { id: Section; title: string; description: string }[] = [
   { id: "company", title: "Company profile", description: "Business details and services." },
   { id: "team", title: "Team & access", description: "Invite your team and choose their access." },
@@ -25,11 +26,12 @@ export default function SettingsPage({ business, onSaved }: {
   onSaved: (business: CurrentBusiness) => void;
 }) {
   const [visited,setVisited]=useState<Set<Section>>(()=>new Set())
-  const [section, setSection] = useState<Section | null>(null);
+  const [section, setSection] = useState<Section | null>(()=>integrationTestingAvailable && new URLSearchParams(location.search).has("integration_test") ? "testing" : null);
   const owner = isPrimaryOwner(business);
-  const allowed = options.filter((option) => option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
+  const allowed = [...options, ...(integrationTestingAvailable ? [{id: "testing" as Section,title: "Integration testing",description: "Private Stripe and approved Twilio SMS tests."}] : [])].filter((option) => option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
 
   function content(id: Section) {
+    if (id === "testing") return <IntegrationTesting businessId={business.id} />;
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
     if (id === "team") return <TeamSettings business={business} />;
     if (id === "documents") return <DocumentSettings business={business} onSaved={onSaved} />;
