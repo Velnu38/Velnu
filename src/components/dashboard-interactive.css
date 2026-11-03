@@ -209,3 +209,11 @@
 @media(prefers-reduced-motion:reduce) {
   .dashboard-page *, .dashboard-page *::before, .dashboard-page *::after { animation: none!important; transition: none!important; scroll-behavior: auto!important; }
 }
+
+/* Clear tile boundaries against the light workspace background. */
+.dashboard-page :is(.dashboard-calendar,.financial-performance,.billing-hub,.dashboard-jobs,.setup-prompt){border:2px solid #91aabd;box-shadow:0 5px 18px #27496810}
+.dashboard-page :is(.billing-summary,.billing-metric,.performance-metric){border:1.5px solid #a5baca}
+.dashboard-page .calendar-agenda-columns{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
+.calendar-next-steps> .calendar-list-heading h3{font-size:17px;color:#234b3b}
+@media(max-width:850px){.dashboard-page .calendar-agenda-columns{grid-template-columns:1fr}}
+.calendar-next-steps{min-width:0}.calendar-next-steps :is(strong,span,p,a){overflow-wrap:anywhere}

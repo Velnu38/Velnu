@@ -4,7 +4,7 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string) {
   const [invoice, items, payments, messages] = await Promise.all([
     supabase
       .from('invoices')
-      .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,notes,customer_message,sent_at,paid_at,payment_links,payment_instructions,issuer_snapshot,customer_id,job_id,estimate_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company,email,phone)')
+      .select('id,invoice_number,status,work_completed,work_completed_at,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,notes,customer_message,sent_at,paid_at,payment_links,payment_instructions,issuer_snapshot,customer_id,job_id,estimate_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company,email,phone)')
       .eq('business_id', businessId)
       .eq('id', invoiceId)
       .single(),
@@ -34,8 +34,10 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string) {
   if (payments.error) throw payments.error
   if (messages.error) throw messages.error
 
+  let jobStatus:string|null=null
+  if(invoice.data.job_id){const job=await supabase.from('jobs').select('status').eq('business_id',businessId).eq('id',invoice.data.job_id).maybeSingle();if(job.error)throw job.error;jobStatus=job.data?.status||null}
   return {
-    invoice: invoice.data,
+    invoice: {...invoice.data,work_completed:invoice.data.work_completed||jobStatus==='completed',job_work_status:jobStatus},
     items: items.data ?? [],
     payments: payments.data ?? [],
     messages: messages.data ?? [],

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState,type ReactNode } from 'react'
 import { lazy,Suspense } from 'react'
 import { DateTime } from 'luxon'
 import type { CurrentBusiness } from '../../lib/business'
@@ -9,8 +9,8 @@ import { getScheduleTeam, type Worker } from '../../services/schedulingWorkflow'
 
 const CalendarEntryDialog=lazy(()=>import('./CalendarEntryDialog'))
 type Agenda = Awaited<ReturnType<typeof loadCalendarRange>>
-export default function DailyCalendar({ business, onReminders, refreshVersion = 0 }: {
-  business: CurrentBusiness; onReminders: () => void; refreshVersion?: number
+export default function DailyCalendar({ business, onReminders, refreshVersion = 0, nextSteps }: {
+  business: CurrentBusiness; onReminders: () => void; refreshVersion?: number;nextSteps?:ReactNode
 }) {
   const zone = business.timezone || 'America/New_York'
   const [today, setToday] = useState(() => DateTime.now().setZone(zone).toISODate()!)
@@ -89,20 +89,21 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
     </div>
     {loading && !agenda && <p role="status" className="calendar-status">Loading your schedule…</p>}
     {error && <p role="alert" className="form-message error-text">{error} <button className="text-button" onClick={() => setVersion(value => value + 1)}>Retry</button></p>}
-    {agenda && <div className="calendar-agenda" aria-busy={loading}>
+    {<div className="calendar-agenda" aria-busy={loading}>
       <div className="calendar-agenda-date"><strong>{selected.toFormat('cccc, MMMM d')}</strong><span>{zone.replaceAll('_',' ')} · {selected.offsetNameShort}</span></div>
       <div className="calendar-agenda-columns">
         <div><div className="calendar-list-heading"><h3>Scheduled work</h3><span>{work.length}</span></div>
-          {!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{(showAllWork ? work : work.slice(0,3)).map(item => <li key={item.source_key}>
+          {!agenda?<p className="calendar-empty">{loading?'Loading scheduled work…':'Schedule unavailable.'}</p>:!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{(showAllWork ? work : work.slice(0,3)).map(item => <li key={item.source_key}>
             <a onClick={event=>{if(item.source_key.startsWith('appointment:')&&!item.job_id&&item.document_kind==='work'){event.preventDefault();setEntry({day,id:item.source_key.slice(12)})}}} className={`calendar-event ${item.document_kind}`} href={`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
               <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small>{item.assigned_user_ids?.length?<small>Assigned: {item.assigned_user_ids.map(id=>team.find(person=>person.id===id)?.label || 'Team member').join(', ')}</small>:null}</span><span aria-hidden="true">↗</span>
             </a>
           </li>)}</ul>}
           {work.length > 3 && <button className="text-button calendar-show-more" aria-expanded={showAllWork} onClick={() => setShowAllWork(value => !value)}>{showAllWork ? 'Show fewer scheduled items' : `Show all ${work.length} scheduled items`}</button>}
         </div>
-        <div><div className="calendar-list-heading"><h3>To do</h3><span>{reminders.length}</span></div>
-          {!reminders.length ? <p className="calendar-empty">No pending reminders due by this day.</p> : <ul className="calendar-reminders">{(showAllReminders ? reminders : reminders.slice(0,3)).map(item => <li key={item.id}><div><strong>{item.note || 'Follow up'}</strong><span>{DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span></div>{business.role !== 'viewer' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : '✓'}</button>}</li>)}</ul>}
+        <div className="calendar-next-steps"><div className="calendar-list-heading"><h3>Your Next Steps:</h3></div>
+          {!agenda?<p className="calendar-empty">{loading?'Loading reminders…':'Reminders unavailable.'}</p>:!reminders.length ? <p className="calendar-empty">No reminders due by this day.</p> : <ul className="calendar-reminders">{(showAllReminders ? reminders : reminders.slice(0,3)).map(item => <li key={item.id}><div><strong>{item.note || 'Follow up'}</strong><span>{DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span></div>{business.role !== 'viewer' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : '✓'}</button>}</li>)}</ul>}
           {reminders.length > 3 && <button className="text-button calendar-show-more" aria-expanded={showAllReminders} onClick={() => setShowAllReminders(value => !value)}>{showAllReminders ? 'Show fewer reminders' : `Show all ${reminders.length} reminders`}</button>}
+          {nextSteps}
         </div>
       </div>
     </div>}

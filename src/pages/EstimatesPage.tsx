@@ -1,3 +1,4 @@
+import DocumentContactFields,{type DocumentContact} from '../components/DocumentContactFields'
 import DocumentChangeOrderButton from '../components/DocumentChangeOrderButton'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
@@ -51,6 +52,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [customerId, setCustomerId] = useState('')
+  const [businessContact,setBusinessContact]=useState<DocumentContact>({email:business.email||'',phone:business.phone||''})
   const [customerDraft,setCustomerDraft]=useState(emptyCustomerDraft)
   const customerRequest=useRef<{signature:string;id:string}|null>(null)
   const saving=useRef(false)
@@ -94,6 +96,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function resetForm() {
+    setBusinessContact({email:business.email||'',phone:business.phone||''});
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId(''); setExpiresOn(''); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
@@ -109,10 +112,11 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         customer={customer_id:customerRequest.current.id,new_customer:fields}
       }
       const payments=isPrimaryOwner(business)?documentPayments:{}
-      const signature = JSON.stringify({ issueDate, customer, payments, propertyId, expiresOn, notes, customerTerms, lines })
+      const contact=isPrimaryOwner(business)&&(businessContact.email.trim()!==(business.email||'')||businessContact.phone.trim()!==(business.phone||''))?{business_contact:businessContact}:{}
+      const signature = JSON.stringify({ issueDate, customer, payments, contact, propertyId, expiresOn, notes, customerTerms, lines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       await createEstimate(business.id, { request_id: retryRef.current.requestId,
-        ...customer,...payments,
+        ...customer,...payments,...contact,
         property_id: propertyId || undefined,
         issue_date: issueDate,
         expires_on: expiresOn || undefined,
@@ -240,7 +244,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         <div className="full"><CustomerPropertySelect businessId={business.id} customerId={customerId} value={propertyId} onChange={setPropertyId} disabled={busy}/></div>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 14 days. A deposit is due before work begins." /></label></div>
         <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
-        <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
+        <DocumentContactFields business={business} value={businessContact} onChange={setBusinessContact}/><PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create estimate'}</button></div>
       </form>

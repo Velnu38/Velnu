@@ -74,8 +74,8 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     let active = true
     const check = () => { void getCurrentBusiness().then(next => { if (!active) return; if (!next || next.id !== business.id) setAccessRemoved(true); else { setCompany(next); setAccessRemoved(false) } }).catch(() => { if (active) setAccessRemoved(true) }) }
     const timer = window.setInterval(check, 30000)
-    window.addEventListener('focus', check)
-    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check) }
+    window.addEventListener('focus', check);window.addEventListener('finviant-business-contact-changed',check)
+    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check);window.removeEventListener('finviant-business-contact-changed',check) }
   }, [business.id])
 
   const navigationIndex = useRef(0)

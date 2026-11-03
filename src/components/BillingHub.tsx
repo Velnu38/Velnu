@@ -18,7 +18,7 @@ const dateLabel = (value: string | null) => value && DateTime.fromISO(value).isV
 export default function BillingHub({ business, snapshot, loading, error, onNavigate }: {
   business: CurrentBusiness; snapshot: DashboardSnapshot; loading: boolean; error: string; onNavigate?: (view: Destination) => void
 }) {
-  const [filter, setFilter] = useState<Filter>('attention')
+  const [filter, setFilter] = useState<Filter>('recent')
   const canSee = canManageFinances(business.role)
   const overdue: Row[] = snapshot.overdueInvoices.map(row => ({ key:`invoice:${row.id}`, kind:'Invoice', number:row.invoice_number || 'Invoice',
     customer:customerName(row.customers?.[0]), detail:row.due_date ? `Due ${dateLabel(row.due_date)}` : 'Payment past due',

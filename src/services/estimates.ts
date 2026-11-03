@@ -1,3 +1,4 @@
+import type { DocumentContact } from '../components/DocumentContactFields'
 import type { DocumentPayments } from '../components/PaymentOptionsFields'
 import type { newCustomerFields } from '../components/CustomerEntry'
 import { collectBusinessRecords } from '../lib/businessRecords'
@@ -24,7 +25,7 @@ export async function listEstimates(businessId: string) {
 
 export async function createEstimate(
   businessId: string,
-  input: Partial<DocumentPayments> & { new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; property_id?: string; issue_date?: string; expires_on?: string; notes?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
+  input: Partial<DocumentPayments> & { business_contact?:DocumentContact;  new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; property_id?: string; issue_date?: string; expires_on?: string; notes?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
 ) {
   validateDocumentInput(input)
 
@@ -36,6 +37,7 @@ export async function createEstimate(
     request_id: input.request_id ?? crypto.randomUUID(),
     payload: {
       customer_id: input.customer_id,
+      ...(input.business_contact?{business_contact:input.business_contact}:{}),
       ...(input.new_customer?{new_customer:input.new_customer}:{}),
       ...(input.payment_links?{payment_links:input.payment_links}:{}),
       ...(input.payment_instructions!==undefined?{payment_instructions:input.payment_instructions}:{}),
@@ -51,6 +53,7 @@ export async function createEstimate(
     },
   })
   if (error) throw error
+  if(input.business_contact)window.dispatchEvent(new Event('finviant-business-contact-changed'))
   return data as { id: string; estimate_number: string | null; status: string; subtotal: number; tax_amount: number; total: number; expires_on: string | null }
 }
 

@@ -1,3 +1,4 @@
+import {DateTime} from 'luxon'
 import DocumentChangeOrderButton from './DocumentChangeOrderButton'
 import { safePaymentLinks, paymentProviders } from '../lib/paymentLinks'
 import { canAccess } from '../lib/workspaceAccess'
@@ -8,15 +9,16 @@ import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { createInvoiceReminder, getInvoiceDetail } from '../services/invoiceDetail'
 import { recordPayment } from '../services/payments'
-import { updateInvoiceStatus } from '../services/invoices'
+import { setInvoiceWorkCompleted,updateInvoiceStatus } from '../services/invoices'
 import InvoiceEmailButton from './InvoiceEmailButton'
 import DocumentBrand from './DocumentBrand'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 
+const RecurringInvoicesDialog=lazy(()=>import('./RecurringInvoicesDialog'))
 const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
 
 type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null }
-type Invoice = { payment_links?: unknown; payment_instructions?: string; issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
+type Invoice = { work_completed?:boolean;job_work_status?:string|null;work_completed_at?:string|null; payment_links?: unknown; payment_instructions?: string; issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
 type Item = { id:string; description:string; quantity:number; unit_price:number; tax_rate:number; line_total:number }
 type Payment = { id:string; amount:number; method:string|null; status:string; paid_at:string; notes:string|null }
 type Message = { id:string; direction:string; channel:string; recipient:string|null; subject:string|null; body:string; status:string; sent_at:string|null; created_at:string }
@@ -35,6 +37,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const [showPayment,setShowPayment]=useState(false)
   const [showReminder,setShowReminder]=useState(false)
   const [showChangeOrders,setShowChangeOrders]=useState(false)
+  const [showRecurring,setShowRecurring]=useState(false)
   const [amount,setAmount]=useState('')
   const [method,setMethod]=useState<'cash'|'check'|'card'|'ach'|'other'>('other')
   const [paymentNote,setPaymentNote]=useState('')
@@ -55,6 +58,8 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
     try{const due=new Date(reminderAt);if(Number.isNaN(due.getTime())||due.getTime()<=Date.now())throw new Error('Choose a reminder date and time in the future.');await createInvoiceReminder(business.id,detail.invoice.id,detail.invoice.customer_id,due.toISOString(),reminderNote);setShowReminder(false);setReminderAt('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to create reminder')}finally{setBusy(false)}
   }
 
+  async function changeWork(completed:boolean){if(!detail||busy)return;const previous=detail;setDetail({...detail,invoice:{...detail.invoice,work_completed:completed}});setBusy(true);setError('');try{await setInvoiceWorkCompleted(business.id,invoiceId,completed);await refresh()}catch(e){setDetail(previous);setError(e instanceof Error?e.message:'Unable to update work completion.')}finally{setBusy(false)}}
+
   async function markSent(){if(!detail||busy)return;if(!window.confirm('This only records that you sent the invoice outside Finviant Office. It does not email the customer. Continue?'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'sent');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to mark invoice sent')}finally{setBusy(false)}}
 
   async function voidInvoice(){if(!detail||busy||detail.invoice.status==='void'||Number(detail.invoice.amount_paid)>0)return;if(!window.confirm('Void this invoice? This cannot be undone, and the invoice will remain in your records.'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'void');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to void invoice')}finally{setBusy(false)}}
@@ -74,20 +79,23 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
     <div className="invoice-action-bar">
-      {offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
+      {!invoice.work_completed&&offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton key={String(invoice.work_completed)} business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={refresh}/>}
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
       {canManageFinances(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button className="secondary-button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
+      {business.primary_owner&&invoice.status!=='void'&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>setShowRecurring(true)}>Repeat invoice</button>}
       <button className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
     </div>
     {error&&<p className="form-message error-text" role="alert">{error}</p>}
+    {showRecurring&&<Suspense fallback={<p role="status">Opening recurring invoices…</p>}><RecurringInvoicesDialog business={business} invoice={{id:invoice.id,number:invoice.invoice_number||'Invoice',customer:customerName(customer),total:Number(invoice.total),dueDays:invoice.due_date?Math.max(0,Math.min(365,DateTime.fromISO(invoice.due_date).diff(DateTime.fromISO(invoice.issue_date),'days').days)):7}} onClose={()=>setShowRecurring(false)}/></Suspense>}
+    {canManageFinances(business.role)&&invoice.status!=='void'&&<label className="work-completed-toggle calendar-no-print"><input type="checkbox" checked={Boolean(invoice.work_completed)} disabled={busy||invoice.job_work_status==='completed'} onChange={e=>void changeWork(e.target.checked)}/>Work completed (optional)</label>}
     <RecordResources key={invoice.id} business={business} target={{ kind: 'invoice', id: invoice.id }} />
     <DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />
     <section className="invoice-detail-grid">
       <article className="detail-card invoice-document print-document">
-        <DocumentBrand business={issuedBrand} kind="Invoice" />
+        <DocumentBrand business={issuedBrand} kind="Invoice" />{invoice.work_completed&&<p className="invoice-completion-status">✓ Work completed</p>}
         <div className="document-bill-to"><small>Bill to</small><strong>{customerName(customer)}</strong>{customer?.email && <span>{customer.email}</span>}{customer?.phone && <span>{customer.phone}</span>}</div>
         <div className="invoice-meta"><div><span>Issued</span><strong>{new Date(invoice.issue_date+'T00:00:00').toLocaleDateString()}</strong></div><div><span>Due</span><strong>{invoice.due_date?new Date(invoice.due_date+'T00:00:00').toLocaleDateString():'—'}</strong></div></div>
         <div className="invoice-table"><div className="invoice-table-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Total</span></div>{detail.items.map(item=><div className="invoice-table-row" key={item.id}><span>{item.description}{Number(item.tax_rate)>0&&<small>{Number(item.tax_rate).toFixed(2)}% tax</small>}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><strong>${Number(item.line_total).toFixed(2)}</strong></div>)}</div>

@@ -127,7 +127,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
     <form onSubmit={submit} className="profile-form">
       {step === 0 && <>
         <h2>{companyOnly ? 'Your business details' : 'Make every invoice look like it comes from your company'}</h2>
-        <p className="quiet">The name, address, phone, and email you add here appear on your invoice and estimate documents. All fields except company name are optional.</p>
+        <p className="quiet">The name, address, phone, and email you add here appear on your invoice and estimate documents. Company name is required. Business email and phone are optional: email is used for customer replies, and phone is printed as your contact number. Finviant uses its configured delivery service to send messages; these fields do not activate email or text delivery.</p>
         <div className="profile-field-grid">
           {field('name', 'Company name', 'Your business name', { required: true })}
           {field('legal_name', 'Legal name (if different)', 'Optional registered name')}

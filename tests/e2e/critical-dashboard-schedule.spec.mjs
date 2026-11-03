@@ -234,7 +234,7 @@ const noRuntimeErrors = page => {
 test('01 empty dashboard renders without uncaught exceptions', async ({ page }) => {
   const errors = noRuntimeErrors(page)
   await openDashboard(page)
-  await expect(page.getByText('No overdue invoices or pending approvals. Your billing is up to date.')).toBeVisible()
+  await expect(page.getByText('No estimates or invoices yet. Open either list to create your first document.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
   expect(errors).toEqual([])
 })
@@ -295,6 +295,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
 test('08 absent customer relations and injected invoice HTML do not crash or render executable markup', async ({ page }) => {
   const malicious = '<img src=x onerror=alert(1)>'
   await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, balance_due: 15, due_date: '2020-01-01', customers: null }] })
+  await page.getByRole('article',{name:'Estimates and invoices overview'}).getByRole('button',{name:'Needs attention',exact:true}).click()
   await expect(page.getByRole('region', { name: 'Needs attention' })).toContainText('Customer')
   await expect(page.getByRole('region', { name: 'Needs attention' })).toContainText(malicious)
   expect(await page.getByRole('region', { name: 'Needs attention' }).locator('img').count()).toBe(0)
@@ -696,6 +697,7 @@ for (const width of [1440, 390]) {
     await expect(hub.getByText('$2,250.00',{exact:true})).toBeVisible()
     expect(await hub.getByText('$2,250.00',{exact:true}).evaluate(el => el.getBoundingClientRect().height <= Number.parseFloat(getComputedStyle(el).fontSize)*1.5)).toBe(true)
     await expect(page.locator('.dashboard-work-grid>article')).toHaveCount(2)
+    await hub.getByRole('button',{name:'Needs attention',exact:true}).click()
     const attention = hub.getByRole('region',{name:'Needs attention'})
     await expect(attention.getByRole('listitem')).toHaveCount(5)
     await expect(attention).toContainText('Overdue')
@@ -725,7 +727,7 @@ for (const width of [1440, 390]) {
 test('billing hub empty state and finance restrictions stay honest', async ({page})=>{
   const state=await openDashboard(page)
   const hub=page.getByRole('article',{name:'Estimates and invoices overview'})
-  await expect(hub.getByText('No overdue invoices or pending approvals. Your billing is up to date.')).toBeVisible()
+  await expect(hub.getByText('No estimates or invoices yet. Open either list to create your first document.')).toBeVisible()
   await page.screenshot({path:'test-results/dashboard-billing-empty.png',fullPage:true})
   await hub.getByRole('button',{name:'Recent',exact:true}).click()
   await expect(hub).toContainText('No estimates or invoices yet.')
