@@ -1,6 +1,9 @@
 import IntegrationTesting, { integrationTestingAvailable } from '../components/settings/IntegrationTesting'
 import WorkspaceBack from '../components/WorkspaceBack'
-import { useState } from "react";
+import SupportCases from '../components/SupportCases'
+import { adminRequest } from '../services/platformAdmin'
+import './platform-admin.css'
+import { useState, useEffect } from "react";
 import IntegrationSettings from "../components/calendar/IntegrationSettings";
 import type { CurrentBusiness } from "../lib/business";
 import { canAccess, isPrimaryOwner } from "../lib/workspaceAccess";
@@ -11,8 +14,9 @@ import SubscriptionSettings from "../components/settings/SubscriptionSettings";
 import SchedulingSettings from "../components/scheduling/SchedulingSettings";
 import "../components/settings/settings.css";
 
-type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription" | "testing";
+type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription" | "testing" | "support";
 const options: { id: Section; title: string; description: string }[] = [
+  { id: "support", title: "Help & support", description: "Report an issue and follow Finviant replies." },
   { id: "company", title: "Company profile", description: "Business details and services." },
   { id: "team", title: "Team & access", description: "Invite your team and choose their access." },
   { id: "documents", title: "Invoice & estimate setup", description: "Document appearance, branding, and taxes." },
@@ -25,12 +29,15 @@ export default function SettingsPage({ business, onSaved }: {
   business: CurrentBusiness;
   onSaved: (business: CurrentBusiness) => void;
 }) {
+  const [operator,setOperator]=useState(false)
+  useEffect(()=>{let active=true;void adminRequest<{operator:boolean}>('access').then(r=>{if(active)setOperator(r.operator===true)}).catch(()=>{});return()=>{active=false}},[])
   const [visited,setVisited]=useState<Set<Section>>(()=>new Set())
   const [section, setSection] = useState<Section | null>(()=>integrationTestingAvailable && new URLSearchParams(location.search).has("integration_test") ? "testing" : null);
   const owner = isPrimaryOwner(business);
-  const allowed = [...options, ...(integrationTestingAvailable ? [{id: "testing" as Section,title: "Integration testing",description: "Private Stripe and approved Twilio SMS tests."}] : [])].filter((option) => option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
+  const allowed = [...options, ...(integrationTestingAvailable ? [{id: "testing" as Section,title: "Integration testing",description: "Private Stripe and approved Twilio SMS tests."}] : [])].filter((option) => option.id === "support" ? true : option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
 
   function content(id: Section) {
+    if (id === "support") return <SupportCases businessId={business.id} />;
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
     if (id === "team") return <TeamSettings business={business} />;
@@ -47,6 +54,7 @@ export default function SettingsPage({ business, onSaved }: {
         <h1>Settings</h1>
         <p className="quiet">Open an option below to make changes.</p>
       </div>
+      {operator && <p><a className="secondary-button" href="/admin">Open Finviant Admin Dashboard</a></p>}
       <div className="settings-options">
         {allowed.map((option) => {
           const expanded = section === option.id;

@@ -15,6 +15,7 @@ import LandingPage from './pages/LandingPage'
 import TeamInvitationPage from './pages/TeamInvitationPage'
 import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
+const PlatformAdminPage = lazy(() => import('./pages/PlatformAdminPage'))
 const CustomerBookingPage = lazy(() => import('./pages/CustomerBookingPage'))
 
 const initialQuery = new URLSearchParams(window.location.search)
@@ -145,11 +146,12 @@ export default function App() {
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
   if (initialInvite) return <TeamInvitationPage token={initialInvite} session={session} />
   if (!session) {
-    if (publicPath === '/auth' || publicPath === '/plans' || invalidAuthLink) {
+    if (publicPath === '/auth' || publicPath === '/admin' || publicPath === '/plans' || invalidAuthLink) {
       return <AuthScreen initialMode={initialAuthMode} initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />
     }
     return <LandingPage />
   }
+  if (publicPath === '/admin') return <Suspense fallback={<main className="loading-page">Opening administration…</main>}><PlatformAdminPage /></Suspense>
   if (error) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
   if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Preparing your private test workspace…</p></main>
   if (planStatus === 'needed' || planRequested) return <PlanSelection
