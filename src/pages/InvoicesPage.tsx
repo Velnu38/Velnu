@@ -1,3 +1,4 @@
+import {CreatedStamp,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
@@ -19,7 +20,7 @@ import { getJob } from '../services/jobs'
 import { createJobInvoice } from '../services/schedulingWorkflow'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
-type Invoice = { id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
+type Invoice = DocumentDates & { id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
@@ -127,7 +128,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Create your first invoice here or tell Finviant Office what to bill.</p></div> : recordList.visible.map((invoice) => {
         const customer = invoice.customers?.[0]
         return <article className="document-row invoice-list-row" key={invoice.id}>
-          <button className="invoice-open" onClick={() => {history.replaceState(history.state,'','/?view=invoices&document='+encodeURIComponent(invoice.id));setSelectedInvoiceId(invoice.id)}}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span></div></button>
+          <button className="invoice-open" onClick={() => {history.replaceState(history.state,'','/?view=invoices&document='+encodeURIComponent(invoice.id));setSelectedInvoiceId(invoice.id)}}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={invoice.created_at} timezone={business.timezone}/></div></button>
           <div className="invoice-money"><strong className="money">${Number(invoice.balance_due).toFixed(2)}</strong><span>of ${Number(invoice.total).toFixed(2)} due</span></div>
           <span className={`status-chip ${invoice.status === 'paid' ? 'paid' : ''}`}>{invoice.status.replaceAll('_', ' ')}</span>
         </article>

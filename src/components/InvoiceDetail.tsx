@@ -6,7 +6,9 @@ import DocumentChangeOrderButton from './DocumentChangeOrderButton'
 import { safePaymentLinks, paymentProviders } from '../lib/paymentLinks'
 import { canAccess } from '../lib/workspaceAccess'
 import './settings/settings.css'
-import RecordResources from './RecordResources'
+import {RecordResourcesDialog} from './RecordResources'
+import DocumentActions from './DocumentActions'
+import DocumentRecord, {DocumentTime, type DocumentDates} from './DocumentRecord'
 import DocumentSchedule from './calendar/DocumentSchedule'
 import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
@@ -21,7 +23,7 @@ const InvoiceJobDialog=lazy(()=>import('./scheduling/InvoiceJobDialog'))
 const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
 
 type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null }
-type Invoice = { payment_links?: unknown; payment_instructions?: string; issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
+type Invoice = DocumentDates & { payment_links?: unknown; payment_instructions?: string; issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
 type Item = { id:string; description:string; quantity:number; unit_price:number; tax_rate:number; line_total:number }
 type Payment = { id:string; amount:number; method:string|null; status:string; paid_at:string; notes:string|null }
 type Message = { id:string; direction:string; channel:string; recipient:string|null; subject:string|null; body:string; status:string; sent_at:string|null; created_at:string }
@@ -38,6 +40,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [showJob,setShowJob]=useState(false)
+  const [showResources,setShowResources]=useState(false)
   const [jobNotice,setJobNotice]=useState('')
   const [showPayment,setShowPayment]=useState(false)
   const [showReminder,setShowReminder]=useState(false)
@@ -83,19 +86,22 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <div><p className="eyebrow">{invoice.status}</p><h1>{invoice.invoice_number||'Invoice'}</h1><p>{customerName(customer)}{customer?.email?` · ${customer.email}`:''}</p></div>
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
-    <div className="invoice-action-bar">
-      {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a className="secondary-button" href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" className="primary-button attention-action" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
-      {offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
+    <DocumentActions primary={<>
+      {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={async()=>{await refresh();announceCalendarChange()}}/>}
-      {canManageFinances(business.role)&&invoice.status==='draft'&&<button className="secondary-button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
-      {canManageFinances(business.role)&&!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button className="secondary-button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
-      {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button className="secondary-button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
-      {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button className="primary-button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
-      <button className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
-    </div>
+      {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
+      <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
+      <button type="button" onClick={()=>setShowResources(true)}>Photos &amp; expenses</button>
+      {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
+    </>} secondary={canManageFinances(business.role)&&invoice.status!=='void'?<>
+      {offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
+      {invoice.status==='draft'&&<button type="button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
+      {!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button type="button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
+    </>:undefined}/>
     {jobNotice&&<p className="form-message" role="status">{jobNotice}</p>}
     {error&&<p className="form-message error-text" role="alert">{error}</p>}
-    <RecordResources key={invoice.id} business={business} target={{ kind: 'invoice', id: invoice.id }} />
+    <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>
+    {showResources&&<RecordResourcesDialog business={business} target={{kind:'invoice',id:invoice.id}} title={invoice.invoice_number||'Invoice'} onClose={()=>setShowResources(false)}/>}
     {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
     {!canScheduleJob&&<DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />}
     {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
@@ -104,7 +110,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <article className="detail-card invoice-document print-document">
         <DocumentBrand business={issuedBrand} kind="Invoice" />
         <div className="document-bill-to"><small>Bill to</small><strong>{customerName(customer)}</strong>{customer?.email && <span>{customer.email}</span>}{customer?.phone && <span>{customer.phone}</span>}</div>
-        <div className="invoice-meta"><div><span>Issued</span><strong>{new Date(invoice.issue_date+'T00:00:00').toLocaleDateString()}</strong></div><div><span>Due</span><strong>{invoice.due_date?new Date(invoice.due_date+'T00:00:00').toLocaleDateString():'—'}</strong></div></div>
+        <div className="invoice-meta"><div><span>Created</span><DocumentTime value={invoice.created_at} timezone={business.timezone}/></div><div><span>Issued</span><strong>{new Date(invoice.issue_date+'T00:00:00').toLocaleDateString()}</strong></div><div><span>Due</span><strong>{invoice.due_date?new Date(invoice.due_date+'T00:00:00').toLocaleDateString():'—'}</strong></div></div>
         <div className="invoice-table"><div className="invoice-table-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Total</span></div>{detail.items.map(item=><div className="invoice-table-row" key={item.id}><span>{item.description}{Number(item.tax_rate)>0&&<small>{Number(item.tax_rate).toFixed(2)}% tax</small>}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><strong>${Number(item.line_total).toFixed(2)}</strong></div>)}</div>
         <div className="invoice-totals"><div><span>Subtotal</span><strong>${Number(invoice.subtotal).toFixed(2)}</strong></div><div><span>Tax</span><strong>${Number(invoice.tax_amount).toFixed(2)}</strong></div><div><span>Paid</span><strong>−${Number(invoice.amount_paid).toFixed(2)}</strong></div><div className="grand-total"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong></div></div>
         {Number(invoice.balance_due)>0 && invoice.status!=='void' && (safePaymentLinks(invoice.payment_links).length>0 || invoice.payment_instructions) && <section className="invoice-note"><strong>Payment options</strong><div className="invoice-payment-buttons">{safePaymentLinks(invoice.payment_links).map(link=><a key={link.provider} href={link.url} target="_blank" rel="noopener noreferrer">Pay with {paymentProviders.find(p=>p.id===link.provider)?.name}</a>)}</div>{invoice.payment_instructions&&<p>{invoice.payment_instructions}</p>}<p className="quiet">Pay the balance due shown above and include {invoice.invoice_number || 'the invoice number'} with payment. Payment is handled by the business’s external provider.</p></section>}
@@ -113,8 +119,8 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
         {issuedBrand.document_footer && <div className="document-footer">{issuedBrand.document_footer}</div>}
       </article>
       <aside className="invoice-side-stack">
-        <article className="detail-card"><p className="eyebrow">Payments</p><h2>Payment history</h2>{detail.payments.length===0?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'}</strong><span>{new Date(payment.paid_at).toLocaleDateString()} · {payment.status}</span></div><strong>${Number(payment.amount).toFixed(2)}</strong></div>)}</div>}</article>
-        <article className="detail-card"><p className="eyebrow">Activity</p><h2>Messages</h2>{detail.messages.length===0?<p className="quiet">No invoice messages yet.</p>:<div className="message-list">{detail.messages.map(message=><div className="message-item" key={message.id}><div><strong>{message.channel.toUpperCase()}</strong><span>{message.status==='sent'?'Accepted for delivery':message.status}</span></div><p>{message.body}</p><small>{new Date(message.sent_at||message.created_at).toLocaleString()}</small></div>)}</div>}</article>
+        <article className="detail-card"><p className="eyebrow">Payments</p><h2>Payment history</h2>{detail.payments.length===0?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span></div><strong>${Number(payment.amount).toFixed(2)}</strong></div>)}</div>}</article>
+        <article className="detail-card"><p className="eyebrow">Activity</p><h2>Messages</h2>{detail.messages.length===0?<p className="quiet">No invoice messages yet.</p>:<div className="message-list">{detail.messages.map(message=><div className="message-item" key={message.id}><div><strong>{message.channel.toUpperCase()}</strong><span>{message.status==='sent'?'Accepted for delivery':message.status}</span></div><p>{message.body}</p><small><DocumentTime value={message.sent_at||message.created_at} timezone={business.timezone}/></small></div>)}</div>}</article>
       </aside>
     </section>
     {showPayment&&<FormDialog label="Record payment" busy={busy} onClose={()=>setShowPayment(false)}><div className="modal-head"><div><p className="eyebrow">Payment</p><h2>Record money received</h2></div><button className="icon-button" disabled={busy} onClick={()=>setShowPayment(false)} type="button" aria-label="Close">×</button></div><form className="form-grid" onSubmit={savePayment}><label>Amount<input type="number" min="0.01" max={Number(invoice.balance_due)} step="0.01" value={amount} onChange={e=>setAmount(e.target.value)} required/></label><label>Method<select value={method} onChange={e=>setMethod(e.target.value as typeof method)}><option value="cash">Cash</option><option value="check">Check</option><option value="card">Card</option><option value="ach">ACH</option><option value="other">Other</option></select></label><label className="full">Notes<input value={paymentNote} onChange={e=>setPaymentNote(e.target.value)}/></label>{error&&<p className="form-message error-text full">{error}</p>}<div className="modal-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={()=>setShowPayment(false)}>Cancel</button><button className="primary-button" disabled={busy}>{busy?'Saving…':'Record payment'}</button></div></form></FormDialog>}

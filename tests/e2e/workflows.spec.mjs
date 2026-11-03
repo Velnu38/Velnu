@@ -150,7 +150,6 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   await page.getByPlaceholder('Description').fill('Faucet repair')
   await page.getByPlaceholder('Unit price').fill('150')
   await page.getByRole('button', { name: 'Create estimate' }).click()
-  await page.getByRole('button', { name: 'Close preview', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Create invoice' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Mark sent manually' }).click()

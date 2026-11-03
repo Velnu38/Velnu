@@ -16,7 +16,7 @@ export interface InvoiceLineInput {
 export async function listInvoices(businessId: string) {
   const data = await collectBusinessRecords((from, to) => supabase
     .from('invoices')
-    .select('id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,customer_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company)', { count: 'exact' })
+    .select('created_at,updated_at,id,invoice_number,status,issue_date,due_date,subtotal,tax_amount,total,amount_paid,balance_due,customer_id,customers!invoices_customer_id_fkey(id,first_name,last_name,company)', { count: 'exact' })
     .eq('business_id', businessId)
     .order('id').range(from, to))
   data.sort((a, b) => String(b.issue_date).localeCompare(String(a.issue_date)) || b.id.localeCompare(a.id))

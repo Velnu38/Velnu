@@ -1,3 +1,5 @@
+import DocumentActions from '../components/DocumentActions'
+import DocumentRecord, {CreatedStamp,DocumentTime,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
 import DocumentChangeOrderButton from '../components/DocumentChangeOrderButton'
 import WorkspaceBack from '../components/WorkspaceBack'
@@ -28,7 +30,7 @@ import { validPaymentLink } from '../lib/paymentLinks'
 const ChangeOrdersPage = lazy(() => import('./ChangeOrdersPage'))
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
-type Estimate = { issuer_snapshot?: Partial<BusinessProfile> | null; id: string; customer_id: string; job_id?: string | null; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
+type Estimate = DocumentDates & { issuer_snapshot?: Partial<BusinessProfile> | null; id: string; customer_id: string; job_id?: string | null; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type PreviewItem = { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
@@ -74,6 +76,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   async function refresh() {
     const [estimateRows, customerRows] = await Promise.all([listEstimates(business.id), listCustomers(business.id)])
     setEstimates(estimateRows as Estimate[])
+    setPreviewTarget(previous=>previous?(estimateRows as Estimate[]).find(row=>row.id===previous.id)||previous:null)
     setCustomers(customerRows as Customer[])
     return estimateRows as Estimate[]
   }
@@ -211,28 +214,20 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" disabled={!defaultsReady} onClick={() => { resetForm(); setShowForm(true) }}>+ New estimate</button>}</div>
     {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured. You can preview and print estimates now.</p>}
-    {notice && <p className="form-message success-text">{notice}</p>}
-    {error && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
+    {notice && !previewTarget && <p className="form-message success-text">{notice}</p>}
+    {error && !previewTarget && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <RecordListControls label="estimates" list={recordList} />
-    <section className="list-card">
+    <section className="list-card" hidden={!!previewTarget}>
       {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Create an estimate here or tell Finviant Office what you want to quote.</p></div> : recordList.visible.map((estimate) => {
         const customer = estimate.customers?.[0]
         return <article className="document-row" key={estimate.id}>
-          <button type="button" className="row-main estimate-document-open" disabled={previewBusy} onClick={() => openPreview(estimate)}><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span></button>
+          <button type="button" className="row-main estimate-document-open" disabled={previewBusy} onClick={() => openPreview(estimate)}><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span><CreatedStamp value={estimate.created_at} timezone={business.timezone}/></button>
           <strong className="money">${Number(estimate.total).toFixed(2)}</strong>
           <div className="document-actions">
             <button type="button" className="secondary-button compact" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button>
             <button className="secondary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Preview / Print</button>
             <span className={`status-chip ${estimate.status === 'accepted' ? 'paid' : ''}`}>{estimate.status}</span>
-            {canManageFinances(business.role) && estimate.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'sent')}>Mark sent manually</button>}
-            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'accepted')}>Record acceptance</button>}
-            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'declined')}>Record decline</button>}
-            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(estimate.id, 'expired')}>Expire</button>}
-            {canManageFinances(business.role) && !['converted','expired','accepted'].includes(estimate.status) && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(estimate)}>Email customer</button>}
-            {canManageFinances(business.role) && estimate.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(estimate)}>Get customer approval link</button>}
-            {canManageFinances(business.role) && estimate.status === 'accepted' && <button className="conversion-button" onClick={() => { setError(''); setNotice(''); setConvertTarget(estimate) }}>Create invoice</button>}
-            {canManageFinances(business.role)&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&['accepted','converted'].includes(estimate.status)&&!estimate.job_id&&<button type="button" className="primary-button compact" onClick={()=>setScheduleTarget(estimate)}>Schedule job</button>}
-            {estimate.job_id&&canAccess(business,'jobs')&&<a className="secondary-button compact" href={`/?view=work&document=${encodeURIComponent(estimate.job_id)}`}>Open linked job</a>}
+
           </div>
         </article>
       })}
@@ -264,11 +259,23 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <div><p className="eyebrow">Customer-facing document</p><h2>Estimate preview</h2></div>
           <button className="icon-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} aria-label="Close preview" type="button">×</button>
         </div>
-        <div className="modal-actions">
-          {offersDocumentChangeOrders('estimate', previewTarget.status)&&<DocumentChangeOrderButton business={business} kind="estimate" id={previewTarget.id} onClick={()=>setShowChangeOrders(true)}/>}
-          <button type="button" className="secondary-button" onClick={() => window.print()}>Print / Save PDF</button>
-          <button type="button" className="secondary-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}}>Close</button>
-        </div>
+        <DocumentActions primary={<>
+          {canManageFinances(business.role)&&['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy||!customerActionsEnabled||!previewTarget.customers?.[0]?.email} title={!previewTarget.customers?.[0]?.email?'Add a customer email address first.':undefined} onClick={()=>emailForApproval(previewTarget)}>Email customer</button>}
+          {canManageFinances(business.role)&&previewTarget.status==='sent'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
+          {canManageFinances(business.role)&&['accepted','converted'].includes(previewTarget.status)&&!previewTarget.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" disabled={busy} onClick={()=>setScheduleTarget(previewTarget)}>Schedule job</button>}
+          {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={`/?view=work&document=${encodeURIComponent(previewTarget.job_id)}`}>Open linked job</a>}
+          {canManageFinances(business.role)&&previewTarget.status==='accepted'&&<button type="button" disabled={busy} onClick={()=>{setError('');setNotice('');setConvertTarget(previewTarget)}}>Create invoice</button>}
+          <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
+          <button type="button" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button>
+        </>} secondary={canManageFinances(business.role)?<>
+          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Get customer approval link</button>}
+          {offersDocumentChangeOrders('estimate',previewTarget.status)&&<DocumentChangeOrderButton business={business} kind="estimate" id={previewTarget.id} onClick={()=>setShowChangeOrders(true)}/>}
+          {previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
+          {previewTarget.status==='sent'&&<><button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'expired')}>Expire</button></>}
+        </>:undefined}/>
+        {notice&&<p role="status" className="form-message success-text">{notice}</p>}
+        {error&&<p role="alert" className="form-message error-text">{error}</p>}
+        <DocumentRecord dates={previewTarget} timezone={business.timezone} customerId={previewTarget.customer_id} customerName={customerName(previewTarget.customers?.[0])}/>
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
         <article className="estimate-preview-document print-document">
           <DocumentBrand business={previewTarget.issuer_snapshot?.name ? { ...business, ...previewTarget.issuer_snapshot, name: previewTarget.issuer_snapshot.name } : business} kind="Estimate" />
@@ -277,6 +284,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
             {previewTarget.customers?.[0]?.phone && <span>{previewTarget.customers[0].phone}</span>}
           </div>
           <div className="invoice-meta">
+            <div><span>Created</span><DocumentTime value={previewTarget.created_at} timezone={business.timezone}/></div>
             <div><span>Estimate</span><strong>{previewTarget.estimate_number || 'Draft'}</strong></div>
             <div><span>Issued</span><strong>{previewTarget.issue_date}</strong></div>
             {previewTarget.expires_on && <div><span>Valid until</span><strong>{previewTarget.expires_on}</strong></div>}
