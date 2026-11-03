@@ -343,7 +343,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
 
 test('09 completing reminder persists its status and removes it from attention list', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await page.getByRole('region', { name: 'Work calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
+  await page.goto('/?view=reminders')
   await expect(page.getByText('Call customer 1')).toBeVisible()
   await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Call customer 1')).toHaveCount(0)
@@ -391,7 +391,7 @@ test('the visible dashboard refreshes attention in the background without a relo
 
 test('10 failing reminder update displays error and does not hide the reminder', async ({ page }) => {
   await openDashboard(page, { reminders: [reminder()], reminderError: true })
-  await page.getByRole('region', { name: 'Work calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
+  await page.goto('/?view=reminders')
   await page.getByRole('button', { name: /Mark .* done/ }).click()
   await expect(page.getByText('Unable to complete reminder')).toBeVisible()
   await expect(page.getByText('Call customer 1')).toBeVisible()
@@ -399,7 +399,7 @@ test('10 failing reminder update displays error and does not hide the reminder',
 
 test('11 viewer cannot complete reminders', async ({ page }) => {
   const state = await openDashboard(page, { role: 'viewer', reminders: [reminder()] })
-  await page.getByRole('region', { name: 'Work calendar' }).getByRole('button', { name: '+ Reminder', exact: true }).click()
+  await page.goto('/?view=reminders')
   await expect(page.getByText('Call customer 1')).toBeVisible()
   await expect(page.getByRole('button', { name: /Mark .* done/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '+ New reminder' })).toHaveCount(0)
@@ -579,21 +579,24 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
   await expect(page.locator('.appointment-row')).toContainText('Visit 1')
 })
 
-for (const width of [1280, 390]) test(`standalone reminder creation is accessible from the merged tile at ${width}px`, async ({ page }) => {
+for (const width of [1280, 390]) test(`Add entry creates reminders from the schedule tile at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 })
   const state = await openDashboard(page, { reminders: Array.from({ length: 18 }, (_, n) => reminder(n)) })
   await expect(page.locator('.dashboard-work-grid > article')).toHaveCount(2)
   const tile = page.getByRole('region', { name: 'Work calendar' })
   await expect(page.getByRole('heading', { name: 'Reminders due', exact: true })).toHaveCount(0)
-  await tile.getByRole('button', { name: '+ Reminder', exact: true }).click()
-  await page.getByRole('button', { name: '+ New reminder' }).click()
-  await page.getByLabel('What needs to be done?').fill('Order replacement parts')
-  await page.getByLabel('Remind me on').fill(localDatetime(2))
-  await page.getByRole('button', { name: 'Save reminder' }).evaluate(button => { button.click(); button.click() })
-  await expect(page.getByRole('status').filter({ hasText: 'Reminder created.' })).toBeVisible()
+  await expect(tile.getByRole('button', { name: '+ Reminder', exact: true })).toHaveCount(0)
+  await tile.getByRole('button', { name: '+ Add entry', exact: true }).click()
+  const dialog=page.getByRole('dialog',{name:'Add to your calendar'})
+  await dialog.getByRole('button',{name:'Reminder',exact:true}).click()
+  await dialog.getByLabel('Title',{exact:true}).fill('Order replacement parts')
+  await dialog.getByLabel('Remind me on').fill(localDatetime(2))
+  await dialog.getByRole('button', { name: 'Add reminder', exact: true }).evaluate(button => { button.click(); button.click() })
+  await expect(dialog).toHaveCount(0)
   expect(count(state, '/reminders', 'POST')).toBe(1)
   expect(state.reminders.at(-1).job_id).toBeNull()
   expect(state.reminders.at(-1).business_id).toBe(BID)
+  await page.goto('/?view=reminders')
   await expect(page.getByRole('region', { name: 'Pending reminders' })).toContainText('Order replacement parts')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })

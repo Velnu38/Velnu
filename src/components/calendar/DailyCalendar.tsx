@@ -10,8 +10,8 @@ import { getScheduleTeam, type Worker } from '../../services/schedulingWorkflow'
 const JobDetailsDialog=lazy(()=>import('../JobDetailsDialog'))
 const CalendarEntryDialog=lazy(()=>import('./CalendarEntryDialog'))
 type Agenda = Awaited<ReturnType<typeof loadCalendarRange>>
-export default function DailyCalendar({ business, onReminders, refreshVersion = 0, showReminders = true }: {
-  business: CurrentBusiness; onReminders: () => void; refreshVersion?: number; showReminders?: boolean
+export default function DailyCalendar({ business, refreshVersion = 0, showReminders = true }: {
+  business: CurrentBusiness; refreshVersion?: number; showReminders?: boolean
 }) {
   const zone = business.timezone || 'America/New_York'
   const [today, setToday] = useState(() => DateTime.now().setZone(zone).toISODate()!)
@@ -73,7 +73,7 @@ export default function DailyCalendar({ business, onReminders, refreshVersion = 
   return <section className="dashboard-calendar dashboard-tile calendar-no-print" aria-label="Work calendar">
     <div className="calendar-heading">
       <div><p className="eyebrow">Your schedule</p><h2 className="dashboard-tile-title">{view === 'week' ? 'Weekly schedule' : 'Monthly calendar'}</h2></div>
-      <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div><button className="calendar-add" onClick={onReminders}>+ Reminder</button>{business.role!=='viewer'&&<button type="button" className="calendar-add" onClick={()=>setEntry({day})}>+ Add entry</button>}</div>
+      <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div>{business.role!=='viewer'&&<button type="button" className="calendar-add" onClick={()=>setEntry({day})}>+ Add entry</button>}</div>
     </div>
     {team.length>0&&<label className="worker-select">Show schedule for<select value={worker} onChange={e=>setWorker(e.target.value)}><option value="all">Everyone</option>{team.map(item=><option value={item.id} key={item.id}>{item.is_you?'My schedule · ':''}{item.label}</option>)}</select></label>}
     <div className="calendar-period-nav">

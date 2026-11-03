@@ -111,7 +111,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     if (accessRemoved) return <><WorkspaceBack/><p role="alert">Your business access could not be verified. Contact the primary owner or reload after reconnecting.</p></>
     if (!canOpenView(company, view)) return <><WorkspaceBack/><p role="alert">This area is not included in your access. Contact your primary business owner.</p></>
     if (view === 'settings') return <SettingsPage business={company} onSaved={setCompany} />
-    if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} onReminders={() => navigate('reminders')} />
+    if (view === 'dashboard') return <DashboardPage business={company} onSetup={() => navigate('settings')} onNavigate={navigate} />
     if (view === 'customers') return <CustomersPage business={company} />
     if (view === 'work') return <JobsPage business={company} />
     if (view === 'schedule') return <SchedulePage business={company} />
