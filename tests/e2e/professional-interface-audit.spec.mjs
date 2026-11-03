@@ -71,6 +71,7 @@ for(const width of [1440,390])test(`workspace route and button audit at ${width}
   const unnamed=await page.locator('button:visible').evaluateAll(buttons=>buttons.filter(b=>!b.innerText.trim()&&!b.getAttribute('aria-label')&&!b.getAttribute('title')).map(b=>b.outerHTML))
   expect(unnamed,view+' visible action names').toEqual([])
   expect(errors,view+' runtime errors').toEqual([])
+  if(view==='invoices'||view==='estimates')await expect(page.getByRole('button',{name:/\+ New (invoice|estimate)/})).toHaveCount(0)
   await page.screenshot({path:`test-results/audit-workspace-${view}-${width}.png`,fullPage:true})
  }
 })
