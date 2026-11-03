@@ -19,3 +19,17 @@
 .sidebar-brand .finviant-product,.mobile-brand .finviant-product{font-weight:500;font-size:.72em;color:#64748b;letter-spacing:0;margin-left:4px}
 
 .voice-charge{border:1px solid #c5d5ce;border-radius:12px;padding:14px;min-width:0;margin:12px 0}.voice-charge legend{font-weight:700;font-size:13px;padding:0 6px}.voice-charge>label{display:grid;gap:6px}.voice-charge input{width:100%;min-width:0;box-sizing:border-box}.quick-invoice-fields>.form-dialog-fields{min-width:0}.quick-invoice-fields .settings-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+/* Fin's compact review keeps each description beside its amount on phones. */
+.voice-line-list{display:grid;gap:0;border-top:1px solid #d4dde7}
+.voice-charge{border:0;border-bottom:1px solid #d4dde7;border-radius:0;padding:10px 0;margin:0;min-width:0}
+.voice-line-heading{display:flex;align-items:center;justify-content:space-between;font-size:12px;gap:8px}
+.voice-line-heading .text-button{min-height:36px;padding:6px 4px;font-size:11px}
+.voice-line-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,120px);gap:10px;align-items:end}
+.voice-line-fields label{min-width:0}.voice-line-fields input{min-width:0;font-size:16px}
+.voice-unit-fields{display:flex;gap:12px;align-items:end;margin-top:8px}.voice-unit-fields label{max-width:100px}.voice-unit-fields p{font-size:12px;margin-bottom:8px}
+.voice-document-total{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 0;border-top:2px solid #c6d4df;font-size:19px;margin-top:10px;color:var(--navy)}
+.voice-original summary,.quick-invoice-fields summary{cursor:pointer;font-size:12px;font-weight:700;color:#566173;padding:8px 0}
+.fin-answer{padding:18px;margin-top:16px;border:1px solid #bcded7;background:#f0fbf8;border-radius:14px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.fin-answer-text{white-space:pre-wrap}.fin-answer ul{padding-left:20px}.fin-answer details{font-size:12px}
+@media(max-width:420px){.voice-line-fields{grid-template-columns:minmax(0,1fr) 94px;gap:8px}.voice-line-fields input{padding:10px 8px}.voice-line-fields label{font-size:11px}.voice-unit-fields{flex-wrap:wrap}}
+.fin-help summary{font-size:12px;color:#566173;cursor:pointer;padding:8px 0}.voice-line-heading .text-button{min-height:44px}.voice-optional-fields{display:grid;gap:10px;padding-bottom:10px}

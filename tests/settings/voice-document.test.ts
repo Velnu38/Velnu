@@ -23,3 +23,11 @@ test('unsafe or ambiguous amounts stay unpriced; totals are checks, not guessed 
  const tooMany=parseVoiceDocument('Create invoice for Bob Smith for '+Array.from({length:51},(_,i)=>`service ${i+1} $10`).join(' and '));assert.equal(tooMany.lines.length,51);assert.equal(sum(tooMany),null)
  assert.equal(isVoiceDocumentCommand('Convert estimate to invoice'),false);assert.equal(isVoiceDocumentCommand('Create estimate for Bob for mowing $50'),true)
 })
+test('missing customers never consume currency; the reported failure totals all charges',()=>{
+ for(const kind of ['invoice','estimate'])for(const money of ['$200','200 dollars','two hundred dollars']){
+  const s=parseVoiceDocument(`Create ${kind} for ${money} for landscaping, $100 for painting`)
+  assert.equal(s.customerName,'');assert.deepEqual(s.lines.map(l=>[l.description,l.amount]),[['landscaping','200'],['painting','100']]);assert.equal(s.statedTotal,null);assert.equal(sum(s),300)
+ }
+ const service=parseVoiceDocument('Create invoice for landscaping $200 and painting $100');assert.equal(service.customerName,'');assert.equal(sum(service),300)
+ const equal=parseVoiceDocument('Create invoice for $100 landscaping and $100 painting');assert.equal(equal.customerName,'');assert.equal(sum(equal),200)
+})

@@ -105,7 +105,7 @@ test('free owner has manual branding but no hosted logo uploads or paid AI assis
   await signedIn(page)
   await mockBusiness(page, true, false)
   await page.goto('/')
-  await expect(page.getByRole('button', { name: 'Talk to Finviant Office' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Talk to Fin' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Invoice & estimate setup', exact: true }).click()
   await expect(page.getByText(/Hosted logo uploads require an activated paid plan/)).toBeVisible()
