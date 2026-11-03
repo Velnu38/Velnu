@@ -1,3 +1,5 @@
+import FormDialog from './FormDialog'
+import {useUnsavedChanges} from '../lib/unsavedChanges'
 import { canAccess } from '../lib/workspaceAccess'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DateTime } from 'luxon'
@@ -18,6 +20,8 @@ export default function RecordResources({ business, target }: { business: Curren
   const [error, setError] = useState(''), [notice, setNotice] = useState('')
   const [version, setVersion] = useState(0), [showExpense, setShowExpense] = useState(false)
   const [form, setForm] = useState({ date: DateTime.now().setZone(business.timezone || 'America/New_York').toISODate()!, amount: '', category: 'Materials', description: '' })
+  const [dirty,setDirty]=useState(false)
+  const guard=useUnsavedChanges(busy)
   const operation = useRef(false)
   const pendingExpense = useRef<{ signature: string; id: string } | null>(null)
   const uploadInput = useRef<HTMLInputElement>(null)
@@ -51,6 +55,7 @@ export default function RecordResources({ business, target }: { business: Curren
     }, `${files.length === 1 ? 'Picture' : 'Pictures'} added.`)
     if (uploadInput.current) uploadInput.current.value = ''
   }
+  function discardExpense(){if(!guard.canClose())return;setShowExpense(false);setForm(v=>({...v,amount:'',description:''}));setDirty(false);guard.markClean()}
   async function saveExpense(event: FormEvent) {
     event.preventDefault()
     await run(async () => {
@@ -59,7 +64,7 @@ export default function RecordResources({ business, target }: { business: Curren
       await addManualEntry({ id: pendingExpense.current.id, business_id: business.id,
         direction: 'expense', entry_date: form.date, amount: Number(form.amount), category: form.category,
         description: form.description, [recordColumn(target.kind)]: target.id })
-      pendingExpense.current = null
+      pendingExpense.current = null;guard.markClean();setDirty(false)
       setShowExpense(false); setForm(value => ({ ...value, amount: '', description: '' }))
     }, 'Expense saved to this record and Financial Performance.')
   }
@@ -76,14 +81,14 @@ export default function RecordResources({ business, target }: { business: Curren
       <figcaption>{photo.file_name}</figcaption>
       {finance && <button type="button" className="text-button" disabled={busy} aria-label={`Remove picture ${photo.file_name}`} onClick={() => { if (window.confirm('Remove this picture from the record?')) void run(() => removeRecordPhoto(business.id, photo), 'Picture removed.') }}>Remove picture</button>}
     </figure>)}</div>}
-    <div className="record-resources-head"><h3>Expenses{finance && !loading ? ` · ${money.format(totalCents / 100)}` : ''}</h3>{finance && <button type="button" className="primary-button compact" disabled={busy} onClick={() => setShowExpense(value => !value)}>{showExpense ? 'Close expense form' : 'Add expense'}</button>}</div>
+    <div className="record-resources-head"><h3>Expenses{finance && !loading ? ` · ${money.format(totalCents / 100)}` : ''}</h3>{finance && <button type="button" className="primary-button compact" data-keep-dialog disabled={busy} onClick={() => {if(showExpense)discardExpense();else setShowExpense(true)}}>{showExpense ? 'Close expense form' : 'Add expense'}</button>}</div>
     {!finance ? <p className="quiet">Expense records are available to owners, administrators, and office staff.</p> : <>
-      {showExpense && <form className="form-grid record-expense-form" onSubmit={saveExpense}>
+      {showExpense && <form className="form-grid record-expense-form" onSubmit={saveExpense} onInputCapture={()=>{setDirty(true);guard.markDirty()}} onChangeCapture={()=>{setDirty(true);guard.markDirty()}}>
         <label>Date<input type="date" value={form.date} required disabled={busy} onChange={e => setForm({ ...form, date: e.target.value })} /></label>
         <label>Amount ($)<input type="number" min="0.01" max="1000000000" step="0.01" value={form.amount} required disabled={busy} onChange={e => setForm({ ...form, amount: e.target.value })} /></label>
         <label>Category<select value={form.category} disabled={busy} onChange={e => setForm({ ...form, category: e.target.value })}>{['Materials', 'Labor', 'Equipment', 'Travel', 'Other'].map(category => <option key={category}>{category}</option>)}</select></label>
         <label>Description<input value={form.description} maxLength={4000} required disabled={busy} placeholder="Supplies, subcontractor, mileage…" onChange={e => setForm({ ...form, description: e.target.value })} /></label>
-        <div className="modal-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={() => setShowExpense(false)}>Cancel</button><button className="primary-button" disabled={busy}>Save expense</button></div>
+        <div className="modal-actions full"><button type="button" className="secondary-button" data-keep-dialog disabled={busy} onClick={discardExpense}>Cancel</button><button className="primary-button" disabled={busy}>Save expense</button></div>
       </form>}
       {!loading && (expenses.length === 0 ? <p className="quiet">No expenses recorded yet.</p> : <ul className="record-expense-list">{expenses.map(expense => <li key={expense.id}><div><strong>{expense.description}</strong><span>{expense.entry_date} · {expense.category}</span></div><strong>{money.format(Number(expense.amount))}</strong><button type="button" className="text-button" disabled={busy} aria-label={`Remove expense ${expense.description}`} onClick={() => { if (window.confirm('Remove this expense from the record and Financial Performance?')) void run(() => removeManualEntry(business.id, expense.id), 'Expense removed.') }}>Remove</button></li>)}</ul>)}
     </>}
@@ -91,10 +96,8 @@ export default function RecordResources({ business, target }: { business: Curren
 }
 
 export function RecordResourcesDialog({ business, target, title, onClose }: { business: CurrentBusiness; target: RecordTarget; title: string; onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null)
-  useEffect(() => { dialog.current?.showModal() }, [])
-  return <dialog ref={dialog} className="record-resource-dialog" aria-label={`${title} photos and expenses`} onCancel={onClose}>
+  return <FormDialog label={`${title} photos and expenses`} onClose={onClose} wide>
     <div className="record-resources-head"><div><p className="eyebrow">{target.kind}</p><h2>{title}</h2></div><button type="button" className="secondary-button compact" onClick={onClose}>Close</button></div>
     <RecordResources key={`${business.id}:${target.kind}:${target.id}`} business={business} target={target} />
-  </dialog>
+  </FormDialog>
 }
