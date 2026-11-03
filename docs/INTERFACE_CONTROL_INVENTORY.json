@@ -277,7 +277,7 @@
         "label": "{`Complete ${row.note||'reminder'}`}",
         "action": "{()=>void done(row.id)}",
         "disabled": "{busy!==null}",
-        "source": "<button className=\"secondary-button compact\" aria-label={`Complete ${row.note||'reminder'}`} disabled={busy!==null} onClick={()=>void done(row.id)}>"
+        "source": "<button className=\"primary-button compact attention-action\" aria-label={`Complete ${row.note||'reminder'}`} disabled={busy!==null} onClick={()=>void done(row.id)}>"
       }
     ]
   },
@@ -980,7 +980,7 @@
     "file": "src/components/InvoiceDetail.tsx",
     "controls": [
       {
-        "line": 66,
+        "line": 70,
         "tag": "button",
         "label": "Back to invoices",
         "action": "{onBack}",
@@ -988,7 +988,7 @@
         "source": "<button className=\"secondary-button\" onClick={onBack}>"
       },
       {
-        "line": 74,
+        "line": 80,
         "tag": "button",
         "label": "← Invoices",
         "action": "{onBack}",
@@ -996,7 +996,23 @@
         "source": "<button className=\"back-button\" onClick={onBack}>"
       },
       {
-        "line": 82,
+        "line": 86,
+        "tag": "a",
+        "label": "Open linked job",
+        "action": "{'/?view=work&document='+encodeURIComponent(invoice.job_id)}",
+        "disabled": "",
+        "source": "<a className=\"secondary-button\" href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>"
+      },
+      {
+        "line": 86,
+        "tag": "button",
+        "label": "Schedule job",
+        "action": "{()=>setShowJob(true)}",
+        "disabled": "{busy}",
+        "source": "<button type=\"button\" className=\"primary-button attention-action\" disabled={busy} onClick={()=>setShowJob(true)}>"
+      },
+      {
+        "line": 89,
         "tag": "button",
         "label": "Mark sent manually",
         "action": "{markSent}",
@@ -1004,7 +1020,7 @@
         "source": "<button className=\"secondary-button\" onClick={markSent} disabled={busy}>"
       },
       {
-        "line": 83,
+        "line": 90,
         "tag": "button",
         "label": "Void invoice",
         "action": "{voidInvoice}",
@@ -1012,7 +1028,7 @@
         "source": "<button className=\"secondary-button\" onClick={voidInvoice} disabled={busy}>"
       },
       {
-        "line": 84,
+        "line": 91,
         "tag": "button",
         "label": "Schedule reminder",
         "action": "{()=>setShowReminder(true)}",
@@ -1020,7 +1036,7 @@
         "source": "<button className=\"secondary-button\" disabled={busy} onClick={()=>setShowReminder(true)}>"
       },
       {
-        "line": 85,
+        "line": 92,
         "tag": "button",
         "label": "Record payment",
         "action": "{()=>setShowPayment(true)}",
@@ -1028,7 +1044,7 @@
         "source": "<button className=\"primary-button\" disabled={busy} onClick={()=>setShowPayment(true)}>"
       },
       {
-        "line": 86,
+        "line": 93,
         "tag": "button",
         "label": "Print / Save PDF",
         "action": "{()=>window.print()}",
@@ -1036,7 +1052,7 @@
         "source": "<button className=\"secondary-button\" onClick={()=>window.print()}>"
       },
       {
-        "line": 98,
+        "line": 108,
         "tag": "a",
         "label": "Pay with {paymentProviders.find(p=>p.id===link.provider)?.name}",
         "action": "{link.url}",
@@ -1044,7 +1060,7 @@
         "source": "<a key={link.provider} href={link.url} target=\"_blank\" rel=\"noopener noreferrer\">"
       },
       {
-        "line": 108,
+        "line": 118,
         "tag": "button",
         "label": "\"Close\"",
         "action": "{()=>setShowPayment(false)}",
@@ -1052,7 +1068,7 @@
         "source": "<button className=\"icon-button\" disabled={busy} onClick={()=>setShowPayment(false)} type=\"button\" aria-label=\"Close\">"
       },
       {
-        "line": 108,
+        "line": 118,
         "tag": "input",
         "label": "\"number\"",
         "action": "{e=>setAmount(e.target.value)}",
@@ -1060,7 +1076,7 @@
         "source": "<input type=\"number\" min=\"0.01\" max={Number(invoice.balance_due)} step=\"0.01\" value={amount} onChange={e=>setAmount(e.target.value)} required/>"
       },
       {
-        "line": 108,
+        "line": 118,
         "tag": "select",
         "label": "<option value=\"cash\">Cash</option> <option value=\"check\">Check</option> <option value=\"card\">Card</option> <option value=\"ach\">ACH</option> ",
         "action": "{e=>setMethod(e.target.value as typeof method)}",
@@ -1068,7 +1084,7 @@
         "source": "<select value={method} onChange={e=>setMethod(e.target.value as typeof method)}>"
       },
       {
-        "line": 108,
+        "line": 118,
         "tag": "input",
         "label": "Associated label",
         "action": "{e=>setPaymentNote(e.target.value)}",
@@ -1076,7 +1092,7 @@
         "source": "<input value={paymentNote} onChange={e=>setPaymentNote(e.target.value)}/>"
       },
       {
-        "line": 108,
+        "line": 118,
         "tag": "button",
         "label": "Cancel",
         "action": "{()=>setShowPayment(false)}",
@@ -1084,7 +1100,7 @@
         "source": "<button type=\"button\" className=\"secondary-button\" disabled={busy} onClick={()=>setShowPayment(false)}>"
       },
       {
-        "line": 108,
+        "line": 118,
         "tag": "button",
         "label": "{busy?'Saving…':'Record payment'}",
         "action": "Form submit",
@@ -1092,7 +1108,7 @@
         "source": "<button className=\"primary-button\" disabled={busy}>"
       },
       {
-        "line": 109,
+        "line": 119,
         "tag": "button",
         "label": "\"Close\"",
         "action": "{()=>setShowReminder(false)}",
@@ -1100,7 +1116,7 @@
         "source": "<button className=\"icon-button\" disabled={busy} onClick={()=>setShowReminder(false)} aria-label=\"Close\" type=\"button\">"
       },
       {
-        "line": 109,
+        "line": 119,
         "tag": "input",
         "label": "\"datetime-local\"",
         "action": "{e=>setReminderAt(e.target.value)}",
@@ -1108,7 +1124,7 @@
         "source": "<input type=\"datetime-local\" value={reminderAt} onChange={e=>setReminderAt(e.target.value)} required/>"
       },
       {
-        "line": 109,
+        "line": 119,
         "tag": "textarea",
         "label": "Associated label",
         "action": "{e=>setReminderNote(e.target.value)}",
@@ -1116,7 +1132,7 @@
         "source": "<textarea value={reminderNote} onChange={e=>setReminderNote(e.target.value)}/>"
       },
       {
-        "line": 109,
+        "line": 119,
         "tag": "button",
         "label": "Cancel",
         "action": "{()=>setShowReminder(false)}",
@@ -1124,7 +1140,7 @@
         "source": "<button type=\"button\" className=\"secondary-button\" disabled={busy} onClick={()=>setShowReminder(false)}>"
       },
       {
-        "line": 109,
+        "line": 119,
         "tag": "button",
         "label": "{busy?'Saving…':'Schedule reminder'}",
         "action": "Form submit",
@@ -2031,6 +2047,83 @@
     ]
   },
   {
+    "file": "src/components/scheduling/InvoiceJobDialog.tsx",
+    "controls": [
+      {
+        "line": 15,
+        "tag": "button",
+        "label": "\"Close scheduling\"",
+        "action": "{onClose}",
+        "disabled": "",
+        "source": "<button type=\"button\" className=\"icon-button\" aria-label=\"Close scheduling\" onClick={onClose}>"
+      },
+      {
+        "line": 19,
+        "tag": "input",
+        "label": "\"datetime-local\"",
+        "action": "{e=>setStart(e.target.value)}",
+        "disabled": "",
+        "source": "<input type=\"datetime-local\" required autoFocus value={start} onChange={e=>setStart(e.target.value)}/>"
+      },
+      {
+        "line": 20,
+        "tag": "select",
+        "label": "{[...new Set([15,30,45,60,90,120,180,240,360,480,600,720,duration])].sort((a,b)=>a-b).map(n=><option key={n} value={n}>{n<60?n+' minutes':n/",
+        "action": "{e=>setDuration(Number(e.target.value))}",
+        "disabled": "",
+        "source": "<select value={duration} onChange={e=>setDuration(Number(e.target.value))}>"
+      },
+      {
+        "line": 21,
+        "tag": "select",
+        "label": "<option value=\"\">No saved service address</option> {context.properties?.map(p=><option key={p.id} value={p.id}>{p.label?p.label+' · ':''}{p.",
+        "action": "{e=>setSite(e.target.value)}",
+        "disabled": "",
+        "source": "<select value={site} onChange={e=>setSite(e.target.value)}>"
+      },
+      {
+        "line": 22,
+        "tag": "summary",
+        "label": "Job name and crew {workers.length===1?' · '+(context.team.find(w=>w.id===workers[0])?.label || '1 selected'): ' · '+workers.length+' selecte",
+        "action": "Native control",
+        "disabled": "",
+        "source": "<summary>"
+      },
+      {
+        "line": 22,
+        "tag": "input",
+        "label": "Associated label",
+        "action": "{e=>setTitle(e.target.value)}",
+        "disabled": "",
+        "source": "<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)}/>"
+      },
+      {
+        "line": 22,
+        "tag": "input",
+        "label": "\"checkbox\"",
+        "action": "{e=>setWorkers(v=>e.target.checked?[...v,w.id]:v.filter(id=>id!==w.id))}",
+        "disabled": "",
+        "source": "<input type=\"checkbox\" checked={workers.includes(w.id)} onChange={e=>setWorkers(v=>e.target.checked?[...v,w.id]:v.filter(id=>id!==w.id))}/>"
+      },
+      {
+        "line": 25,
+        "tag": "button",
+        "label": "Cancel",
+        "action": "{onClose}",
+        "disabled": "",
+        "source": "<button type=\"button\" className=\"secondary-button\" onClick={onClose}>"
+      },
+      {
+        "line": 25,
+        "tag": "button",
+        "label": "{busy?'Scheduling…':'Create job & schedule'}",
+        "action": "Form submit",
+        "disabled": "{busy||!workers.length||!title.trim()}",
+        "source": "<button className=\"primary-button attention-action\" disabled={busy||!workers.length||!title.trim()}>"
+      }
+    ]
+  },
+  {
     "file": "src/components/scheduling/QuickCustomer.tsx",
     "controls": [
       {
@@ -2382,7 +2475,7 @@
         "label": "{row.offer?.status==='approved'?'Review times':'Schedule job'}",
         "action": "{()=>setEstimate(row.id)}",
         "disabled": "",
-        "source": "<button type=\"button\" className=\"primary-button compact\" onClick={()=>setEstimate(row.id)}>"
+        "source": "<button type=\"button\" className=\"primary-button compact attention-action\" onClick={()=>setEstimate(row.id)}>"
       },
       {
         "line": 24,
@@ -2390,7 +2483,7 @@
         "label": "Review invoice",
         "action": "{`/?view=invoices&document=${encodeURIComponent(row.invoice_id)}`}",
         "disabled": "",
-        "source": "<a className=\"primary-button compact\" href={`/?view=invoices&document=${encodeURIComponent(row.invoice_id)}`}>"
+        "source": "<a className=\"primary-button compact attention-action\" href={`/?view=invoices&document=${encodeURIComponent(row.invoice_id)}`}>"
       },
       {
         "line": 24,
@@ -2398,7 +2491,7 @@
         "label": "Add charges & invoice",
         "action": "{`/?view=invoices&job=${encodeURIComponent(row.id)}`}",
         "disabled": "",
-        "source": "<a className=\"primary-button compact\" href={`/?view=invoices&job=${encodeURIComponent(row.id)}`}>"
+        "source": "<a className=\"primary-button compact attention-action\" href={`/?view=invoices&job=${encodeURIComponent(row.id)}`}>"
       },
       {
         "line": 24,
@@ -2406,7 +2499,7 @@
         "label": "{busy===row.id?'Preparing…':'Prepare invoice draft'}",
         "action": "{()=>void prepare(row.id)}",
         "disabled": "{busy!==null}",
-        "source": "<button type=\"button\" className=\"primary-button compact\" disabled={busy!==null} onClick={()=>void prepare(row.id)}>"
+        "source": "<button type=\"button\" className=\"primary-button compact attention-action\" disabled={busy!==null} onClick={()=>void prepare(row.id)}>"
       },
       {
         "line": 25,

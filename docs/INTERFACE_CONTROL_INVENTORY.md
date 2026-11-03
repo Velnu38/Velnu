@@ -254,29 +254,31 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 
 ## src/components/InvoiceDetail.tsx
 
-19 control definitions.
+21 control definitions.
 
 | Line | Control | Label/content | Handler/destination |
 | --- | --- | --- | --- |
-| 66 | button | Back to invoices | {onBack} |
-| 74 | button | ← Invoices | {onBack} |
-| 82 | button | Mark sent manually | {markSent} |
-| 83 | button | Void invoice | {voidInvoice} |
-| 84 | button | Schedule reminder | {()=>setShowReminder(true)} |
-| 85 | button | Record payment | {()=>setShowPayment(true)} |
-| 86 | button | Print / Save PDF | {()=>window.print()} |
-| 98 | a | Pay with {paymentProviders.find(p=>p.id===link.provider)?.name} | {link.url} |
-| 108 | button | "Close" | {()=>setShowPayment(false)} |
-| 108 | input | "number" | {e=>setAmount(e.target.value)} |
-| 108 | select | <option value="cash">Cash</option> <option value="check">Check</option> <option value="card">Card</option> <option value="ach">ACH</option>  | {e=>setMethod(e.target.value as typeof method)} |
-| 108 | input | Associated label | {e=>setPaymentNote(e.target.value)} |
-| 108 | button | Cancel | {()=>setShowPayment(false)} |
-| 108 | button | {busy?'Saving…':'Record payment'} | Form submit |
-| 109 | button | "Close" | {()=>setShowReminder(false)} |
-| 109 | input | "datetime-local" | {e=>setReminderAt(e.target.value)} |
-| 109 | textarea | Associated label | {e=>setReminderNote(e.target.value)} |
-| 109 | button | Cancel | {()=>setShowReminder(false)} |
-| 109 | button | {busy?'Saving…':'Schedule reminder'} | Form submit |
+| 70 | button | Back to invoices | {onBack} |
+| 80 | button | ← Invoices | {onBack} |
+| 86 | a | Open linked job | {'/?view=work&document='+encodeURIComponent(invoice.job_id)} |
+| 86 | button | Schedule job | {()=>setShowJob(true)} |
+| 89 | button | Mark sent manually | {markSent} |
+| 90 | button | Void invoice | {voidInvoice} |
+| 91 | button | Schedule reminder | {()=>setShowReminder(true)} |
+| 92 | button | Record payment | {()=>setShowPayment(true)} |
+| 93 | button | Print / Save PDF | {()=>window.print()} |
+| 108 | a | Pay with {paymentProviders.find(p=>p.id===link.provider)?.name} | {link.url} |
+| 118 | button | "Close" | {()=>setShowPayment(false)} |
+| 118 | input | "number" | {e=>setAmount(e.target.value)} |
+| 118 | select | <option value="cash">Cash</option> <option value="check">Check</option> <option value="card">Card</option> <option value="ach">ACH</option>  | {e=>setMethod(e.target.value as typeof method)} |
+| 118 | input | Associated label | {e=>setPaymentNote(e.target.value)} |
+| 118 | button | Cancel | {()=>setShowPayment(false)} |
+| 118 | button | {busy?'Saving…':'Record payment'} | Form submit |
+| 119 | button | "Close" | {()=>setShowReminder(false)} |
+| 119 | input | "datetime-local" | {e=>setReminderAt(e.target.value)} |
+| 119 | textarea | Associated label | {e=>setReminderNote(e.target.value)} |
+| 119 | button | Cancel | {()=>setShowReminder(false)} |
+| 119 | button | {busy?'Saving…':'Schedule reminder'} | Form submit |
 
 ## src/components/InvoiceEmailButton.tsx
 
@@ -504,6 +506,22 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 | 13 | input | "checkbox" | {e=>setWorkers(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))} |
 | 13 | button | Cancel | {onClose} |
 | 13 | button | {busy?'Checking & saving…':'Check availability & save'} | {()=>void save()} |
+
+## src/components/scheduling/InvoiceJobDialog.tsx
+
+9 control definitions.
+
+| Line | Control | Label/content | Handler/destination |
+| --- | --- | --- | --- |
+| 15 | button | "Close scheduling" | {onClose} |
+| 19 | input | "datetime-local" | {e=>setStart(e.target.value)} |
+| 20 | select | {[...new Set([15,30,45,60,90,120,180,240,360,480,600,720,duration])].sort((a,b)=>a-b).map(n=><option key={n} value={n}>{n<60?n+' minutes':n/ | {e=>setDuration(Number(e.target.value))} |
+| 21 | select | <option value="">No saved service address</option> {context.properties?.map(p=><option key={p.id} value={p.id}>{p.label?p.label+' · ':''}{p. | {e=>setSite(e.target.value)} |
+| 22 | summary | Job name and crew {workers.length===1?' · '+(context.team.find(w=>w.id===workers[0])?.label // '1 selected'): ' · '+workers.length+' selecte | Native control |
+| 22 | input | Associated label | {e=>setTitle(e.target.value)} |
+| 22 | input | "checkbox" | {e=>setWorkers(v=>e.target.checked?[...v,w.id]:v.filter(id=>id!==w.id))} |
+| 25 | button | Cancel | {onClose} |
+| 25 | button | {busy?'Scheduling…':'Create job & schedule'} | Form submit |
 
 ## src/components/scheduling/QuickCustomer.tsx
 

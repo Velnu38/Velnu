@@ -1,3 +1,4 @@
+import {announceCalendarChange} from './calendar'
 import type { DocumentPayments } from '../components/PaymentOptionsFields'
 import type { newCustomerFields } from '../components/CustomerEntry'
 import { collectBusinessRecords } from '../lib/businessRecords'
@@ -58,4 +59,5 @@ export async function updateInvoiceStatus(invoiceId: string, status: 'draft' | '
   if (status === 'sent') updates.sent_at = new Date().toISOString()
   const { error } = await supabase.from('invoices').update(updates).eq('id', invoiceId)
   if (error) throw error
+  announceCalendarChange()
 }
