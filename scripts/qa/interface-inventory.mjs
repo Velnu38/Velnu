@@ -8,5 +8,5 @@ fs.mkdirSync('docs',{recursive:true})
 fs.writeFileSync('docs/INTERFACE_CONTROL_INVENTORY.json',JSON.stringify(inventory,null,2)+'\n')
 let md='# Interface control inventory\n\nGenerated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source definitions, not the number of rendered records. Includes every TSX file, including unused/compatibility screens. This is a source audit inventory; it does not certify a click on every dynamic control or an external provider transaction.\n\n'
 for(const page of inventory){md+=`## ${page.file}\n\n${page.controls.length} control definitions.\n\n| Line | Control | Label/content | Handler/destination |\n| --- | --- | --- | --- |\n`;for(const c of page.controls){const safe=x=>String(x).replaceAll('|','/').replaceAll('\n',' ').replaceAll('`',"'");md+=`| ${c.line} | ${c.tag} | ${safe(c.label)} | ${safe(c.action).slice(0,180)} |\n`}md+='\n'}
-fs.writeFileSync('docs/INTERFACE_CONTROL_INVENTORY.md',md)
+fs.writeFileSync('docs/INTERFACE_CONTROL_INVENTORY.md',md.trimEnd()+'\n')
 console.log(JSON.stringify({files:inventory.length,controls:inventory.reduce((n,p)=>n+p.controls.length,0),pages:inventory.filter(x=>x.file.startsWith('src/pages/')).map(x=>({file:x.file,controls:x.controls.length}))}))

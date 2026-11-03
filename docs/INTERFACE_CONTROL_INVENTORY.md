@@ -1007,4 +1007,3 @@ Generated with `node scripts/qa/interface-inventory.mjs`. Counts are JSX source 
 
 | Line | Control | Label/content | Handler/destination |
 | --- | --- | --- | --- |
-

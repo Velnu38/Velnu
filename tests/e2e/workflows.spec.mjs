@@ -263,7 +263,7 @@ test('technician keeps field navigation but cannot edit invoices, estimates or p
 test('issued change order cannot be reverted to draft and voiding requires confirmation', async ({ page }) => {
   const changeOrderId = '99999999-9999-4999-8999-999999999999'
   const order = {
-    id: changeOrderId, change_order_number: 'CO-TEST', status: 'sent',
+    id: changeOrderId, invoice_id: invoiceId, change_order_number: 'CO-TEST', status: 'sent',
     title: 'Extra plumbing work', description: 'Install valve', reason: 'Customer request',
     issue_date: '2026-10-26', subtotal: 80, tax_amount: 0, total: 80,
     customer_id: customerId, job_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -278,6 +278,7 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-CONTEXT/ }).click()
   await page.getByRole('button', { name: 'Change order', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Create change order', exact: true }).getByRole('button', { name: 'Close', exact: true }).click()
   await expect(page.getByText('CO-TEST')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
