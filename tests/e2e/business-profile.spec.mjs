@@ -61,7 +61,7 @@ test('new owner can enter company branding and business context during onboardin
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.getByRole('heading', { name: 'Choose your optional Finviant Office services' })).toBeVisible()
   await page.getByRole('radio', { name: /À la carte/ }).check()
-  await page.getByRole('checkbox', { name: /Voice-to-document assistant/ }).check()
+  await page.getByRole('checkbox', { name: /Fin · AI office assistant/ }).check()
   await page.getByRole('button', { name: 'Create my business' }).click()
   await page.getByRole('button', { name: 'Skip payment setup for now' }).click()
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible()
