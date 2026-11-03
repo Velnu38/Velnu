@@ -295,6 +295,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
 test('08 absent customer relations and injected invoice HTML do not crash or render executable markup', async ({ page }) => {
   const malicious = '<img src=x onerror=alert(1)>'
   await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, balance_due: 15, due_date: '2020-01-01', customers: null }] })
+  await page.getByRole('article',{name:'Estimates and invoices overview'}).getByRole('button',{name:'Needs attention',exact:true}).click()
   await expect(page.getByRole('region', { name: 'Needs attention' })).toContainText('Customer')
   await expect(page.getByRole('region', { name: 'Needs attention' })).toContainText(malicious)
   expect(await page.getByRole('region', { name: 'Needs attention' }).locator('img').count()).toBe(0)
@@ -696,6 +697,7 @@ for (const width of [1440, 390]) {
     await expect(hub.getByText('$2,250.00',{exact:true})).toBeVisible()
     expect(await hub.getByText('$2,250.00',{exact:true}).evaluate(el => el.getBoundingClientRect().height <= Number.parseFloat(getComputedStyle(el).fontSize)*1.5)).toBe(true)
     await expect(page.locator('.dashboard-work-grid>article')).toHaveCount(2)
+    await hub.getByRole('button',{name:'Needs attention',exact:true}).click()
     const attention = hub.getByRole('region',{name:'Needs attention'})
     await expect(attention.getByRole('listitem')).toHaveCount(5)
     await expect(attention).toContainText('Overdue')

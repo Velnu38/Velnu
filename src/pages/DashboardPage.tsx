@@ -1,3 +1,5 @@
+import RecurringNextSteps from '../components/scheduling/RecurringNextSteps'
+import BillingNextSteps from '../components/scheduling/BillingNextSteps'
 import { canAccess, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub, { DashboardJobs } from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
@@ -84,9 +86,9 @@ export default function DashboardPage({ business, onSetup, onNavigate, onReminde
       <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
 
-    <WorkflowNextSteps business={business} refreshVersion={refreshVersion} />
-    {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} onReminders={() => onReminders?.()} />}
+    {canAccess(business,'calendar') && <DailyCalendar key={business.id} business={business} refreshVersion={refreshVersion} onReminders={() => onReminders?.()} nextSteps={<><WorkflowNextSteps business={business} refreshVersion={refreshVersion} embedded/>{canAccess(business,'billing')&&<><BillingNextSteps snapshot={snapshot} loading={loading} error={error}/><RecurringNextSteps business={business} refreshVersion={refreshVersion}/></>}</>} />}
 
+    {!canAccess(business,'calendar')&&canAccess(business,'billing')&&<section className="detail-card"><h2>Your Next Steps:</h2><><BillingNextSteps snapshot={snapshot} loading={loading} error={error}/><RecurringNextSteps business={business} refreshVersion={refreshVersion}/></></section>}
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     <section className="dashboard-work-grid" aria-label="Work areas">
       {canAccess(business,'billing') && <BillingHub business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} />}

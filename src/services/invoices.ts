@@ -1,3 +1,4 @@
+import type { DocumentContact } from '../components/DocumentContactFields'
 import type { DocumentPayments } from '../components/PaymentOptionsFields'
 import type { newCustomerFields } from '../components/CustomerEntry'
 import { collectBusinessRecords } from '../lib/businessRecords'
@@ -24,7 +25,7 @@ export async function listInvoices(businessId: string) {
 
 export async function createInvoice(
   businessId: string,
-  input: Partial<DocumentPayments> & { new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; issue_date?: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
+  input: Partial<DocumentPayments> & { business_contact?:DocumentContact; work_completed?:boolean;  new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; issue_date?: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
 ) {
   validateDocumentInput(input)
 
@@ -36,6 +37,8 @@ export async function createInvoice(
     request_id: input.request_id ?? crypto.randomUUID(),
     payload: {
       customer_id: input.customer_id,
+      ...(input.business_contact?{business_contact:input.business_contact}:{}),
+      work_completed:input.work_completed??false,
       ...(input.new_customer?{new_customer:input.new_customer}:{}),
       ...(input.payment_links?{payment_links:input.payment_links}:{}),
       ...(input.payment_instructions!==undefined?{payment_instructions:input.payment_instructions}:{}),
@@ -50,6 +53,7 @@ export async function createInvoice(
     },
   })
   if (error) throw error
+  if(input.business_contact)window.dispatchEvent(new Event('finviant-business-contact-changed'))
   return data as { id: string; invoice_number: string | null; status: string; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; due_date: string | null }
 }
 
@@ -59,3 +63,5 @@ export async function updateInvoiceStatus(invoiceId: string, status: 'draft' | '
   const { error } = await supabase.from('invoices').update(updates).eq('id', invoiceId)
   if (error) throw error
 }
+
+export async function setInvoiceWorkCompleted(businessId:string,invoiceId:string,completed:boolean){const {data,error}=await supabase.from('invoices').update({work_completed:completed}).eq('business_id',businessId).eq('id',invoiceId).select('id,work_completed,work_completed_at').single();if(error)throw error;window.dispatchEvent(new Event('finviant-work-changed'));return data}

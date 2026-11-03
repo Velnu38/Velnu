@@ -1,3 +1,6 @@
+import {lazy,Suspense} from 'react'
+const RecurringInvoicesDialog=lazy(()=>import('../components/RecurringInvoicesDialog'))
+import DocumentContactFields,{type DocumentContact} from '../components/DocumentContactFields'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
 import RecordListControls, { useRecordList } from '../components/RecordListControls'
@@ -31,6 +34,8 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [customerId, setCustomerId] = useState('')
+  const [businessContact,setBusinessContact]=useState<DocumentContact>({email:business.email||'',phone:business.phone||''})
+  const [workCompleted,setWorkCompleted]=useState(false),[showRecurring,setShowRecurring]=useState(false)
   const [customerDraft,setCustomerDraft]=useState(emptyCustomerDraft)
   const customerRequest=useRef<{signature:string;id:string}|null>(null)
   const saving=useRef(false)
@@ -75,6 +80,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   }
 
   function resetForm() {
+    setBusinessContact({email:business.email||'',phone:business.phone||''});setWorkCompleted(false);
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(''); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); retryRef.current = null
   }
 
@@ -90,10 +96,12 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
         customer={customer_id:customerRequest.current.id,new_customer:fields}
       }
       const payments=isPrimaryOwner(business)?documentPayments:{}
-      const signature = JSON.stringify({ issueDate, customer, payments, dueDate, notes, lines: pricedLines })
+      const contact=isPrimaryOwner(business)&&(businessContact.email.trim()!==(business.email||'')||businessContact.phone.trim()!==(business.phone||''))?{business_contact:businessContact}:{}
+      const signature = JSON.stringify({ issueDate, customer, payments, contact,workCompleted, dueDate, notes, lines: pricedLines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       const input = { request_id: retryRef.current.requestId,
-        ...customer,...payments,
+        ...customer,...payments,...contact,
+        work_completed:workCompleted,
         issue_date: issueDate,
         due_date: dueDate || undefined,
         notes,
@@ -104,7 +112,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
           tax_rate: Number(line.tax_rate || 0),
         })),
       }
-      const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,...payments}) : await createInvoice(business.id,input)
+      const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,...payments,...contact,work_completed:workCompleted}) : await createInvoice(business.id,input)
       resetForm(); setShowForm(false); await refresh(); setSelectedInvoiceId(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create invoice')
@@ -117,6 +125,8 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null); refresh() }} />
 
   return <div className="page-stack"><WorkspaceBack />
+    {showRecurring&&<Suspense fallback={<p role="status">Opening recurring invoices…</p>}><RecurringInvoicesDialog business={business} onClose={()=>setShowRecurring(false)}/></Suspense>}
+    {business.primary_owner&&<div><button type="button" className="secondary-button compact" onClick={()=>setShowRecurring(true)}>Recurring invoices</button></div>}
     <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canManageFinances(business.role) && <button className="primary-button compact" disabled={!defaultsReady} onClick={() => { resetForm(); setShowForm(true) }}>+ New invoice</button>}</div>
     <RecordListControls label="invoices" list={recordList} />
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
@@ -137,7 +147,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
         {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
         <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" step="0.01" max="100" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
         {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
-        <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
+        <DocumentContactFields business={business} value={businessContact} onChange={setBusinessContact}/><label className="work-completed-toggle"><input type="checkbox" checked={workCompleted} onChange={e=>setWorkCompleted(e.target.checked)}/>Work completed (optional)</label><PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create invoice'}</button></div>
       </form>
