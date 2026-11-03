@@ -24,6 +24,8 @@ Stripe account: `acct_1UEz2sRuE7Wioad5`, test mode only.
 | Basic lookup key | `finviant_test_basic_monthly` |
 | Pro lookup key | `finviant_test_pro_monthly` |
 | Test cancellation/billing portal configuration | `bpc_1UXnf7RuE7Wioad5FEQwTkkg` |
+| Platform test webhook | `we_1UXnplRuE7Wioad5UGun5CBR` |
+| Connect test webhook | `we_1UXnpmRuE7Wioad5xuqQh5hW` |
 
 Prices and portal exist in Stripe; that alone does not prove an application checkout works.
 
@@ -45,11 +47,11 @@ Project: `xvybcmyoblfgzokaifsx`. Production project `qusmeexjbwphoezlcmie` is ou
 | `FINVIANT_INTEGRATION_TEST_BUSINESSES` | Optional override of approved business IDs; default is Barone Landscaping `7dbb21ae-90a1-4918-98d2-c2e95aa89d05`. |
 | `STRIPE_TEST_PORTAL_CONFIGURATION` | Optional override; default is the test portal listed above. |
 
-Create two **test-mode** Stripe webhook destinations to:
+Two **test-mode** Stripe webhook destinations have been created at:
 
 `https://xvybcmyoblfgzokaifsx.supabase.co/functions/v1/stripe-test-events`
 
-One destination receives **your account's** events; the other receives **connected accounts'** events. Select `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`. Copy each destination's signing secret directly into the matching server variable. Provider callback URLs must be reachable by Stripe/Twilio; each verifies its provider signature and does not expose the website or permit anonymous app operations.
+One destination receives **your account's** events; the other receives **connected accounts'** events. They select `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`. Copy each destination's signing secret directly into the matching server variable. Provider callback URLs must be reachable by Stripe/Twilio; each verifies its provider signature and does not expose the website or permit anonymous app operations.
 
 Twilio's per-message status callback is set by the server to:
 

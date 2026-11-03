@@ -5,6 +5,7 @@ for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
   await page.setViewportSize(viewport);await mock(page)
   const writes=[];let ready=false
   await page.route('https://example.supabase.co/functions/v1/private-integration-testing',async route=>{
+   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'},body:''})
    const body=route.request().postDataJSON();writes.push(body)
    if(body.action==='sms')await new Promise(resolve=>setTimeout(resolve,80))
    const result=body.action==='status'?{configuration:{stripe:ready,stripe_webhook:ready,connect_webhook:ready,sms:ready},state:{},invoices:[],operations:[]}:{status:'accepted',message:'Twilio accepted the test text. Refresh results to check delivery.'}
