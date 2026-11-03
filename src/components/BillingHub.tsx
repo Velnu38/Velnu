@@ -106,9 +106,12 @@ export default function BillingHub({ business, snapshot, loading, error, onNavig
 
 export function DashboardJobs({ snapshot, loading, error, onOpen }: { snapshot: DashboardSnapshot; loading: boolean; error: string; onOpen?: () => void }) {
   return <article className="dashboard-jobs dashboard-tile" aria-label="Jobs overview">
-    <div className="work-card-heading"><div><p className="eyebrow">Work in progress</p><h2 className="dashboard-tile-title">Jobs</h2></div><span className="jobs-active-count">{loading || error ? '—' : snapshot.activeJobCount}<small>active</small></span></div>
+    <div className="work-card-heading"><div><p className="eyebrow">Work in progress</p><h2 className="dashboard-tile-title">Jobs</h2></div></div>
+    <div className="jobs-summary">
+      <button type="button" className="billing-metric jobs-active-metric" disabled={loading || !!error} onClick={onOpen}><span>Active jobs</span><strong className="jobs-active-count">{loading || error ? '—' : snapshot.activeJobCount}</strong><small>Current &amp; upcoming</small></button>
+      <button type="button" className="primary-button jobs-open" onClick={onOpen}>Open jobs <span aria-hidden="true">↗</span></button>
+    </div>
     <p className="jobs-card-description">Manage the work, photos, and expenses in one place.</p>
-    {loading ? <p role="status" className="work-card-empty">Loading jobs…</p> : error ? <p className="work-card-empty">Job details are unavailable. Select Refresh to try again.</p> : snapshot.activeJobs.length ? <><p className="jobs-list-label">Recently updated</p><ul className="jobs-preview-list">{snapshot.activeJobs.map(job => <li key={job.id}><strong>{job.title}</strong><span>{customerName(job.customers?.[0])}</span><small className="billing-status neutral">{names[job.status] || 'Active'}</small></li>)}</ul>{snapshot.activeJobCount > snapshot.activeJobs.length && <p className="billing-list-note">Showing {snapshot.activeJobs.length} of {snapshot.activeJobCount} active jobs.</p>}</> : <div className="jobs-empty"><span aria-hidden="true">J</span><strong>No active jobs</strong><p>Open Jobs to create work or review completed jobs.</p></div>}
-    <button type="button" className="primary-button jobs-open" onClick={onOpen}>Open jobs <span aria-hidden="true">↗</span></button>
+    {loading ? <p role="status" className="work-card-empty">Loading jobs…</p> : error ? <p className="work-card-empty">Job details are unavailable. Select Refresh to try again.</p> : snapshot.activeJobs.length ? <><p className="jobs-list-label">Recently updated</p><ul className="jobs-preview-list">{snapshot.activeJobs.map(job => <li key={job.id}><strong>{job.title}</strong><span>{customerName(job.customers?.[0])}</span><small className="billing-status neutral">{names[job.status] || 'Active'}</small></li>)}</ul>{snapshot.activeJobCount > snapshot.activeJobs.length && <p className="billing-list-note">Showing {snapshot.activeJobs.length} of {snapshot.activeJobCount} active jobs.</p>}</> : <div className="jobs-empty"><span aria-hidden="true">J</span><strong>No active jobs</strong><p>Open Jobs to review current, upcoming, and completed work.</p></div>}
   </article>
 }

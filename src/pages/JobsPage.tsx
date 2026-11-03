@@ -117,7 +117,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     <div className="page-stack"><WorkspaceBack />
       <div className="page-heading split-heading">
         <div><p className="eyebrow">Jobs</p><Heading>Keep every job moving.</Heading></div>
-        <div className="work-heading-actions"><button type="button" className="secondary-button compact" disabled={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}>Refresh</button>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New job</button>}</div>
+        <div className="work-heading-actions"><button type="button" className="secondary-button compact" disabled={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}>Refresh</button></div>
       </div>
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
       <nav className="work-filters" aria-label="Job timing">{(['current', 'upcoming', 'history'] as const).map(item => <button type="button" key={item} aria-pressed={group === item} onClick={() => { setGroup(item); recordList.setPage(0) }}>{item === 'current' ? 'Current' : item === 'upcoming' ? 'Upcoming' : 'History'}{!loading && !error && <span>{grouped[item].length}</span>}</button>)}</nav>
@@ -126,7 +126,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       <p className="work-group-description">{group === 'current' ? 'In progress, scheduled today or earlier, and jobs awaiting a date.' : group === 'upcoming' ? 'Jobs scheduled for tomorrow or later that have not started.' : 'Completed and canceled jobs stay here for reference.'}</p>
       {!loading && !error && <RecordListControls label="jobs" list={recordList} />}
       <section className="list-card" aria-label={`${group} jobs`} aria-busy={loading}>
-        {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : grouped[group].length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{group === 'history' ? 'No past jobs' : `No ${group} jobs`}</h3><p>{group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Create a job or check Upcoming for your next scheduled work.'}</p></div> : recordList.visible.map((job) => {
+        {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : grouped[group].length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{group === 'history' ? 'No past jobs' : `No ${group} jobs`}</h3><p>{group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Use New job on the Dashboard to create work, or check Upcoming.'}</p></div> : recordList.visible.map((job) => {
           const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           return <article className="job-row" key={job.id}>

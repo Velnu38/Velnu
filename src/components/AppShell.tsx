@@ -51,7 +51,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ]
 
-const mobilePrimary: View[] = ['dashboard', 'customers', 'work', 'locations']
+const mobilePrimary: View[] = ['dashboard', 'customers', 'locations']
 const mobileMore: View[] = ['estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
 const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders', 'schedule', 'reminders'].includes(id))
 
