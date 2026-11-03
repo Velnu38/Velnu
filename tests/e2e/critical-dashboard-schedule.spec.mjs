@@ -223,6 +223,124 @@ async function mockWorkspace(page, options = {}) {
   })
   return state
 }
+
+// Management scenarios model conditional writes and complete calendar-range reads.
+async function managedReminders(page, options = {}) {
+  const zone='America/New_York'
+  const row={...reminder(9901),business_id:BID,due_at:DateTime.now().setZone(zone).startOf('day').plus({hours:8}).toUTC().toISO(),note:'Check supply order',...options.row}
+  const state=await mockWorkspace(page,{...options,reminders:[row],businessProfile:{timezone:zone}})
+  state.patchFailure=false;state.lostResponse=false;state.patchDelay=0
+  await page.route('**/rest/v1/reminders?**',async route=>{
+    const req=route.request(),url=new URL(req.url()),target=url.searchParams.get('id')?.replace('eq.','')
+    const reply=(body,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':Array.isArray(body)?`*/${body.length}`:'*/1'},body:JSON.stringify(body)})
+    if(req.method()==='GET'&&target)return reply(state.reminders.find(r=>r.id===target)||null)
+    if(req.method()==='GET'&&url.searchParams.get('status')?.startsWith('in.')){
+      const from=url.searchParams.getAll('due_at').find(s=>s.startsWith('gte.'))?.slice(4),to=url.searchParams.getAll('due_at').find(s=>s.startsWith('lt.'))?.slice(3)
+      return reply(state.reminders.filter(r=>r.status!=='canceled'&&(!from||Date.parse(r.due_at)>=Date.parse(from))&&(!to||Date.parse(r.due_at)<Date.parse(to))))
+    }
+    if(req.method()==='PATCH'){
+      const body=req.postDataJSON();state.requests.push({path:url.pathname,method:'PATCH',url:url.toString(),body})
+      if(state.patchDelay)await new Promise(r=>setTimeout(r,state.patchDelay))
+      if(state.patchFailure)return reply({message:'Reminder update failed',code:'PGRST_TEST'},400)
+      const row=state.reminders.find(r=>r.id===target)
+      const matches=row&&url.searchParams.get('business_id')==='eq.'+BID&&['status','due_at','note'].every(k=>{
+        const expected=url.searchParams.get(k);return !expected||(expected==='is.null'?row[k]===null:k==='due_at'?Date.parse(row[k])===Date.parse(expected.slice(3)):row[k]===expected.slice(3))
+      })
+      if(!matches)return reply([])
+      Object.assign(row,body)
+      if(state.lostResponse)return reply({message:'Response lost',code:'504'},504)
+      return reply({id:row.id})
+    }
+    return route.fallback()
+  })
+  await page.goto('/')
+  return {state,row,zone,calendar:page.getByRole('region',{name:'Work calendar'}),dialog:page.getByRole('dialog',{name:'Reminder details',exact:true})}
+}
+
+for(const width of [1440,390])test(`calendar reminder management edits and reschedules one shared record at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:950})
+  const {state,row,zone,calendar,dialog}=await managedReminders(page)
+  await calendar.getByRole('button',{name:'Open reminder Check supply order',exact:true}).click()
+  await expect(dialog.getByLabel('Reminder details',{exact:true})).toHaveValue('Check supply order')
+  await dialog.getByLabel('Reminder details',{exact:true}).fill('Collect materials at the supplier')
+  const date=DateTime.now().setZone(zone).plus({days:1}).set({hour:10,minute:15,second:0,millisecond:0})
+  await dialog.getByLabel('Remind me on',{exact:true}).fill(date.toFormat("yyyy-MM-dd'T'HH:mm"))
+  await page.screenshot({path:`test-results/reminder-editor-${width}.png`,fullPage:true})
+  await dialog.getByRole('button',{name:'Save changes',exact:true}).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  expect(state.reminders).toHaveLength(1);expect(row.due_at).toBe(date.toUTC().toISO());expect(row.note).toBe('Collect materials at the supplier')
+  await expect(calendar.getByRole('button',{name:/Open reminder Collect materials/})).toHaveCount(0)
+  await calendar.getByRole('button',{name:new RegExp('^'+date.toLocaleString(DateTime.DATE_FULL)+',')}).click()
+  await expect(calendar.getByRole('button',{name:/Open reminder Collect materials/})).toBeVisible()
+  await page.goto('/?view=reminders')
+  await page.getByRole('button',{name:/Open reminder Collect materials/}).click()
+  await expect(dialog.getByLabel('Remind me on',{exact:true})).toHaveValue(date.toFormat("yyyy-MM-dd'T'HH:mm"))
+  expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
+})
+
+test('calendar reminder management completes, reopens and confirms deletion across calendar and attention',async({page})=>{
+  const {state,row,calendar,dialog}=await managedReminders(page)
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+  await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
+  await dialog.getByRole('button',{name:'Mark complete',exact:true}).click()
+  await expect(dialog).toHaveCount(0);await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(calendar.locator('.calendar-reminders li.completed')).toContainText('Check supply order')
+  await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
+  await expect(dialog.getByLabel('Remind me on',{exact:true})).toBeDisabled()
+  await dialog.getByRole('button',{name:'Reopen reminder',exact:true}).click()
+  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1');expect(row.completed_at).toBeNull()
+  await page.getByRole('region',{name:'Needs Attention',exact:true}).getByRole('button',{name:/Open reminder Check supply order/}).click()
+  await dialog.getByRole('button',{name:'Delete reminder',exact:true}).click()
+  expect(count(state,'/reminders','PATCH')).toBe(2)
+  await dialog.getByRole('button',{name:'Keep reminder',exact:true}).click()
+  await dialog.getByRole('button',{name:'Delete reminder',exact:true}).click()
+  await dialog.getByRole('group',{name:'Confirm reminder deletion'}).getByRole('button',{name:'Delete reminder',exact:true}).click()
+  await expect(dialog).toHaveCount(0);await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(calendar.getByRole('button',{name:/Open reminder Check supply order/})).toHaveCount(0)
+  expect(row.status).toBe('canceled');expect(count(state,'/reminders','DELETE')).toBe(0)
+})
+
+test('calendar reminder management keeps failed edits and rejects a stale concurrent save',async({page})=>{
+  const {state,row,calendar,dialog}=await managedReminders(page)
+  await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
+  await dialog.getByLabel('Reminder details',{exact:true}).fill('My retained changes')
+  state.patchFailure=true
+  await dialog.getByRole('button',{name:'Save changes',exact:true}).click()
+  await expect(dialog.getByRole('alert')).toContainText('Reminder update failed')
+  await expect(dialog.getByLabel('Reminder details',{exact:true})).toHaveValue('My retained changes')
+  state.patchFailure=false;row.note='Office changed this reminder'
+  await dialog.getByRole('button',{name:'Save changes',exact:true}).click()
+  await expect(dialog.getByRole('alert')).toContainText('changed elsewhere')
+  expect(row.note).toBe('Office changed this reminder')
+  await dialog.getByRole('button',{name:'Reload reminder',exact:true}).click()
+  await expect(dialog.getByLabel('Reminder details',{exact:true})).toHaveValue('Office changed this reminder')
+  await dialog.getByLabel('Reminder details',{exact:true}).fill('Reviewed final wording')
+  state.lostResponse=true;state.patchDelay=150
+  await dialog.getByRole('button',{name:'Save changes',exact:true}).dblclick()
+  await expect(dialog).toHaveCount(0);expect(row.note).toBe('Reviewed final wording')
+  expect(count(state,'/reminders','PATCH')).toBe(3)
+})
+
+test('calendar reminder management viewers have read-only access and cannot mutate reminders',async({page})=>{
+  const {state,calendar,dialog}=await managedReminders(page,{role:'viewer'})
+  await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
+  await expect(dialog.getByLabel('Reminder details',{exact:true})).toBeDisabled()
+  await expect(dialog.getByLabel('Remind me on',{exact:true})).toBeDisabled()
+  await expect(dialog.getByRole('button',{name:/Save changes|Delete reminder|Mark complete|Reopen reminder/})).toHaveCount(0)
+  expect(count(state,'/reminders','PATCH')).toBe(0)
+})
+
+test('calendar reminder management rejects DST gaps and duplicate-hour times without a write',async({page})=>{
+  const {state,calendar,dialog}=await managedReminders(page)
+  await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
+  for(const due of ['2027-03-14T02:30','2027-11-07T01:30']){
+    await dialog.getByLabel('Remind me on',{exact:true}).fill(due)
+    await dialog.getByRole('button',{name:'Save changes',exact:true}).click()
+    await expect(dialog.getByRole('alert')).toContainText('unambiguous valid date and time')
+  }
+  expect(count(state,'/reminders','PATCH')).toBe(0)
+})
 const count = (s, suffix, method) => s.requests.filter(r => r.path.endsWith(suffix) && (!method || r.method === method)).length
 const openDashboard = async (page, options) => {
   const state = await mockWorkspace(page, options)

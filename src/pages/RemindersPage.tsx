@@ -1,12 +1,16 @@
 import WorkspaceBack from '../components/WorkspaceBack'
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import '../components/reminders.css'
+import { lazy, Suspense, type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { readableError } from '../lib/errors'
-import { validateScheduleWindow } from '../lib/scheduleTime'
+import { DateTime } from 'luxon'
 import { listJobs } from '../services/jobs'
 import { completeWorkReminder, createReminder, listReminders, REMINDER_PAGE_SIZE, type ReminderJob, type WorkReminder } from '../services/reminders'
 
+const ReminderDetailsDialog=lazy(()=>import('../components/ReminderDetailsDialog'))
+
 export default function RemindersPage({ business, initialJob }: { business: CurrentBusiness; initialJob?: ReminderJob }) {
+  const [reminderId,setReminderId]=useState<string|null>(null)
   const [rows, setRows] = useState<WorkReminder[]>([])
   const [total, setTotal] = useState(0)
   const [status, setStatus] = useState<'pending' | 'completed'>('pending')
@@ -51,6 +55,8 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
     return () => { mounted.current = false; requestId.current++ }
   }, [refresh])
 
+  useEffect(() => { const update=()=>{void refresh()}; window.addEventListener('finviant-work-changed',update); return()=>window.removeEventListener('finviant-work-changed',update) },[refresh])
+
   useEffect(() => {
     if (!showForm) return
     let active = true
@@ -71,9 +77,9 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
     if (saving.current) return
     saving.current = true; setBusy(true); setFormError(''); setSuccess('')
     try {
-      let dueAt: string
-      try { dueAt = validateScheduleWindow(form.due, '').startsAt }
-      catch { throw new Error('Choose a valid reminder date and time.') }
+      const due = DateTime.fromISO(form.due, { zone: business.timezone || 'America/New_York' })
+      if (!due.isValid || due.toFormat("yyyy-MM-dd'T'HH:mm") !== form.due || due.getPossibleOffsets().length > 1) throw new Error('Choose an unambiguous valid reminder date and time.')
+      const dueAt = due.toUTC().toISO()!
       const job = jobs.find(item => item.id === form.jobId)
       if (form.jobId && !job) throw new Error('Choose an available job or leave this reminder unlinked.')
       const input = { note: form.note, dueAt, jobId: job?.id, customerId: job?.customer_id }
@@ -119,7 +125,7 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
         <label className="full">What needs to be done?<textarea autoFocus value={form.note} maxLength={2000} required disabled={busy} placeholder="Call the customer to confirm access" onChange={event => setForm({ ...form, note: event.target.value })} /></label>
         <label>Remind me on<input type="datetime-local" required disabled={busy} value={form.due} onChange={event => setForm({ ...form, due: event.target.value })} /></label>
         <label>Related job (optional)<select value={form.jobId} disabled={busy || jobsLoading} onChange={event => setForm({ ...form, jobId: event.target.value })}><option value="">No linked job</option>{jobs.map(job => <option value={job.id} key={job.id}>{job.title}</option>)}</select></label>
-        <p className="quiet full">Times use your device’s local time. Reminders appear here and on the dashboard when due.</p>
+        <p className="quiet full">Times use {(business.timezone || 'America/New_York').replaceAll('_', ' ')}. Reminders appear on their calendar date and in Needs Attention when due.</p>
         {jobsLoading && <p className="quiet full" role="status">Loading available jobs…</p>}
         {jobsError && <p className="form-message error-text full" role="alert">{jobsError}</p>}
         {formError && <p className="form-message error-text full" role="alert">{formError}</p>}
@@ -132,9 +138,10 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
     <section className="list-card" aria-label={status === 'pending' ? 'Pending reminders' : 'Completed reminders'} aria-busy={loading}>
       {loading ? <p className="work-list-message" role="status">Loading reminders…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : rows.length === 0 ? <div className="empty-state"><h3>{status === 'pending' ? 'No pending reminders' : 'No completed reminders'}</h3><p>{status === 'pending' ? 'Create a reminder for your next follow-up.' : 'Reminders you mark done will appear here.'}</p></div> : rows.map(reminder => {
         const due = status === 'pending' && new Date(reminder.due_at).getTime() <= Date.now()
-        return <article className="work-reminder-row" key={reminder.id}><div className="row-main"><strong>{reminder.note || reminder.kind.replaceAll('_', ' ')}</strong><span>{reminder.jobs[0]?.title ? `${reminder.jobs[0].title} · ` : ''}{new Date(reminder.due_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', timeZone: business.timezone || 'America/New_York' })}</span></div><span className={`reminder-state ${due ? 'is-due' : ''}`}>{status === 'completed' ? 'Completed' : due ? 'Due' : 'Upcoming'}</span>{status === 'pending' && canWrite(business.role) && <button type="button" className="secondary-button small-button" disabled={!!completing} aria-label={`Mark ${reminder.note || 'reminder'} done`} onClick={() => void finish(reminder.id)}>{completing === reminder.id ? 'Saving…' : 'Done'}</button>}</article>
+        return <article className="work-reminder-row" key={reminder.id}><button type="button" className="row-main reminder-open" aria-label={`Open reminder ${reminder.note || 'Follow up'}`} onClick={()=>setReminderId(reminder.id)}><strong>{reminder.note || reminder.kind.replaceAll('_', ' ')}</strong><span>{reminder.jobs[0]?.title ? `${reminder.jobs[0].title} · ` : ''}{new Date(reminder.due_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', timeZone: business.timezone || 'America/New_York' })}</span><small>{canWrite(business.role)?'Edit reminder':'View reminder'} →</small></button><span className={`reminder-state ${due ? 'is-due' : ''}`}>{status === 'completed' ? 'Completed' : due ? 'Due' : 'Upcoming'}</span>{status === 'pending' && canWrite(business.role) && <button type="button" className="secondary-button small-button" disabled={!!completing} aria-label={`Mark ${reminder.note || 'reminder'} done`} onClick={() => void finish(reminder.id)}>{completing === reminder.id ? 'Saving…' : 'Done'}</button>}</article>
       })}
     </section>
     {!loading && !error && total > 0 && <div className="reminder-pagination"><span>{offset + 1}–{offset + rows.length} of {total} reminders</span><div><button type="button" className="secondary-button small-button" disabled={offset === 0 || !!completing} onClick={() => setOffset(Math.max(0, offset - REMINDER_PAGE_SIZE))}>Previous</button><button type="button" className="secondary-button small-button" disabled={offset + rows.length >= total || !!completing} onClick={() => setOffset(offset + REMINDER_PAGE_SIZE)}>Next</button></div></div>}
+    {reminderId&&<Suspense fallback={<p role="status">Opening reminder…</p>}><ReminderDetailsDialog key={business.id+reminderId} business={business} reminderId={reminderId} onClose={()=>setReminderId(null)}/></Suspense>}
   </div>
 }
