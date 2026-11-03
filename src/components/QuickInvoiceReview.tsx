@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react'
 import type {CurrentBusiness} from '../lib/business'
 import {canManageFinances} from '../lib/business'
-import {parseVoiceDocument,type VoiceKind,type VoiceLine} from '../lib/voiceDocument'
+import {parseVoiceDocument,type VoiceKind,type VoiceLine,type VoiceSeed} from '../lib/voiceDocument'
 import {getDocumentSettings,type DocumentSettings} from '../services/settings'
 import {previewDocumentTotal,validDecimal} from '../lib/financialValidation'
 import {listCustomers} from '../services/customers'
@@ -12,9 +12,10 @@ type Customer={id:string;first_name:string|null;last_name:string|null;company:st
 type SavedDocument={id:string;invoice_number?:string|null;estimate_number?:string|null;balance_due?:number;total?:number}
 const customerLabel=(c:Customer)=>[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company||'Unnamed customer'
 const blank=():VoiceLine=>({description:'',amount:'',quantity:'1'})
-export default function QuickInvoiceReview({business,command,onCancel,onSaved}:{business:CurrentBusiness;command:string;onCancel:()=>void;onSaved:(document:SavedDocument,kind:VoiceKind)=>void}){
- const seed=useMemo(()=>parseVoiceDocument(command),[command]),kind=seed.kind
+export default function QuickInvoiceReview({business,command,initialSeed,parserNotice,onCancel,onSaved}:{business:CurrentBusiness;command:string;initialSeed?:VoiceSeed;parserNotice?:string;onCancel:()=>void;onSaved:(document:SavedDocument,kind:VoiceKind)=>void}){
+ const seed=useMemo(()=>initialSeed??parseVoiceDocument(command),[command,initialSeed]),kind=seed.kind
  const [customers,setCustomers]=useState<Customer[]>([]),[loading,setLoading]=useState(true),[customerId,setCustomerId]=useState(''),[defaults,setDefaults]=useState<DocumentSettings|null>(null)
+ const [customerMode,setCustomerMode]=useState<'choose'|'new'>(seed.customerName?'new':'choose')
  const [customerName,setCustomerName]=useState(seed.customerName),[lines,setLines]=useState(seed.lines),[quantities,setQuantities]=useState(seed.lines.some(l=>Number(l.quantity)!==1))
  const [taxRate,setTaxRate]=useState(seed.taxRate??'0'),[taxVisible,setTaxVisible]=useState(seed.taxRate===''||Number(seed.taxRate)>0),[dueDate,setDueDate]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
  useUnsavedChanges(busy)
@@ -26,7 +27,7 @@ export default function QuickInvoiceReview({business,command,onCancel,onSaved}:{
  }).catch(e=>{if(active)setError((e as Error).message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[business.id,command])
  const items=lines.map(l=>({description:l.description.trim(),quantity:Number(l.quantity),unit_price:l.amount.trim()===''?NaN:Number(l.amount),tax_rate:Number(taxRate)}))
  const total=previewDocumentTotal(items),mismatch=statedTotal!==null&&total!==null&&(statedTotal===''||Math.round(Number(statedTotal)*100)!==Math.round(total*100))
- const valid=items.length>0&&items.length<=50&&items.every(i=>i.description&&validDecimal(i.unit_price,0,10000000)&&validDecimal(i.quantity,0.01,100000))&&taxRate.trim()!==''&&validDecimal(Number(taxRate),0,100)&&total!==null
+ const valid=items.length>0&&items.length<=50&&items.every(i=>i.description&&validDecimal(i.unit_price,0,10000000)&&validDecimal(i.quantity,0.01,100000))&&taxRate.trim()!==''&&validDecimal(Number(taxRate),0,100)&&total!==null&&(!!customerId||(customerMode==='new'&&!!customerName.trim()))
  const change=(index:number,key:keyof VoiceLine,value:string)=>setLines(prev=>prev.map((l,i)=>i===index?{...l,[key]:value}:l))
  async function saveDraft(e:FormEvent){e.preventDefault();if(saving.current||loading||!defaults||!canManageFinances(business.role))return
   if(!valid||mismatch){setError('Check each description, amount and the calculated total before saving.');return}
@@ -40,21 +41,28 @@ export default function QuickInvoiceReview({business,command,onCancel,onSaved}:{
   }catch(e){setError(e instanceof Error?e.message:'Could not save this draft. Retry without re-entering the charges.')}finally{saving.current=false;setBusy(false)}
  }
  return <section className="quick-invoice-review" aria-label={`Review ${kind} draft`} data-saving={busy?'true':undefined}>
- <p className="eyebrow">Voice {kind} · Review before saving</p><h3>Review the {kind} before saving</h3><p className="quick-invoice-original">You said: “{command}”</p>
+ <p className="eyebrow">Fin · {kind} draft</p>
+ <details className="voice-original"><summary>Your request</summary><p className="quick-invoice-original">{command}</p>{parserNotice&&<p className="quick-invoice-note">{parserNotice}</p>}</details>
  {seed.warnings.length>0&&<p className="form-message" role="note">{seed.warnings.join(' ')}</p>}
  <form onSubmit={saveDraft} className="quick-invoice-fields"><fieldset disabled={busy} className="form-dialog-fields">
- <label>Customer<select value={customerId} disabled={loading} onChange={e=>{setCustomerId(e.target.value);setError('')}}><option value="">Create a new customer</option>{customers.map(c=><option key={c.id} value={c.id}>{customerLabel(c)}</option>)}</select></label>
- {!customerId&&<label>New customer name or company<input value={customerName} onChange={e=>setCustomerName(e.target.value)} required maxLength={160}/></label>}
- <div className="settings-actions"><strong>{lines.length} line {lines.length===1?'item':'items'}</strong><button className="text-button" type="button" disabled={lines.length>=50} onClick={()=>setLines(l=>[...l,blank()])}>+ Add line</button><button className="text-button" type="button" aria-pressed={quantities} disabled={quantities&&lines.some(l=>Number(l.quantity)!==1)} title="Unit-priced lines keep their quantities visible." onClick={()=>setQuantities(q=>!q)}>{quantities?'Hide quantities':'Use quantities'}</button></div>
- {lines.map((l,i)=><fieldset className="voice-charge" key={i}><legend>Line {i+1}</legend><label>{lines.length===1?'Work performed / line-item description':'Description'}<input aria-label={lines.length===1?'Work performed / line-item description':`Line ${i+1} description`} value={l.description} onChange={e=>change(i,'description',e.target.value)} required maxLength={2000}/></label>
- <div className="quick-invoice-money">{quantities&&<label>Quantity<input aria-label={`Line ${i+1} quantity`} type="number" min="0.01" max="100000" step="0.01" value={l.quantity} onChange={e=>change(i,'quantity',e.target.value)} required/></label>}<label>{quantities?'Unit price ($)':'Amount ($)'}<input aria-label={lines.length===1?'Amount ($)':`Line ${i+1} amount ($)`} type="number" min="0" max="10000000" step="0.01" value={l.amount} onChange={e=>change(i,'amount',e.target.value)} required/></label></div>
- {Number(l.quantity)!==1&&<p className="quiet">{l.quantity} × ${Number(l.amount||0).toFixed(2)} = ${(Number(l.quantity)*Number(l.amount||0)).toFixed(2)} before tax</p>}
- <button type="button" className="text-button" aria-label={`Remove charge line ${i+1}`} disabled={lines.length===1} onClick={()=>setLines(prev=>prev.filter((_,n)=>n!==i))}>Remove line</button></fieldset>)}
- {!taxVisible?<button type="button" className="text-button" onClick={()=>setTaxVisible(true)}>Add tax</button>:<div className="quick-invoice-money"><label>Tax (%)<input type="number" min="0" max="100" step="0.01" value={taxRate} onChange={e=>setTaxRate(e.target.value)} required/></label><button type="button" className="text-button" onClick={()=>{setTaxRate('0');setTaxVisible(false)}}>Remove tax</button></div>}
- <label>{kind==='invoice'?'Due date (optional)':'Expiration date (optional)'}<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>
- <p role="status"><strong>Preview total: ${total?.toFixed(2)??'Check amounts'}</strong></p>
+ <label>Customer<select value={customerId||(customerMode==='new'?'__new__':'')} disabled={loading} onChange={e=>{const v=e.target.value;setCustomerId(v==='__new__'?'':v);setCustomerMode(v==='__new__'?'new':'choose');setError('')}}><option value="">Choose a customer</option>{customers.map(c=><option key={c.id} value={c.id}>{customerLabel(c)}</option>)}<option value="__new__">Create a new customer</option></select></label>
+ {!customerId&&customerMode==='choose'&&<p className="form-message">Who is this for? Choose a customer. Your charges and total are ready below.</p>}
+ {!customerId&&customerMode==='new'&&<label>New customer name or company<input value={customerName} onChange={e=>setCustomerName(e.target.value)} required maxLength={160}/></label>}
+ <div className="voice-line-list" aria-label="Charge lines">
+ {lines.map((l,i)=><div className="voice-charge" role="group" aria-label={`Line ${i+1}`} key={i}>
+ <div className="voice-line-heading"><strong>Line {i+1}</strong><button type="button" className="text-button" aria-label={`Remove charge line ${i+1}`} disabled={lines.length===1} onClick={()=>setLines(prev=>prev.filter((_,n)=>n!==i))}>Remove</button></div>
+ <div className="voice-line-fields"><label>Description<input aria-label={lines.length===1?'Work performed / line-item description':`Line ${i+1} description`} value={l.description} onChange={e=>change(i,'description',e.target.value)} required maxLength={2000}/></label>
+ <label>{quantities?'Unit price ($)':'Amount ($)'}<input aria-label={lines.length===1?'Amount ($)':`Line ${i+1} amount ($)`} inputMode="decimal" type="number" min="0" max="10000000" step="0.01" value={l.amount} onChange={e=>change(i,'amount',e.target.value)} required/></label></div>
+ {quantities&&<div className="voice-unit-fields"><label>Quantity<input aria-label={`Line ${i+1} quantity`} inputMode="decimal" type="number" min="0.01" max="100000" step="0.01" value={l.quantity} onChange={e=>change(i,'quantity',e.target.value)} required/></label><p className="quiet">{l.quantity} × ${Number(l.amount||0).toFixed(2)} = ${(Number(l.quantity)*Number(l.amount||0)).toFixed(2)} before tax</p></div>}
+ </div>)}
+ </div><button className="text-button left" type="button" disabled={lines.length>=50} onClick={()=>setLines(l=>[...l,blank()])}>+ Add line</button>
+ <details className="voice-extra-options" open={taxVisible||quantities}><summary>More options</summary><div className="voice-optional-fields"><button className="text-button left" type="button" aria-pressed={quantities} disabled={quantities&&lines.some(l=>Number(l.quantity)!==1)} onClick={()=>setQuantities(q=>!q)}>{quantities?'Hide quantities':'Use quantities'}</button>
+ {!taxVisible?<button type="button" className="text-button left" onClick={()=>setTaxVisible(true)}>Add tax</button>:<div className="quick-invoice-money"><label>Tax (%)<input type="number" min="0" max="100" step="0.01" value={taxRate} onChange={e=>setTaxRate(e.target.value)} required/></label><button type="button" className="text-button" onClick={()=>{setTaxRate('0');setTaxVisible(false)}}>Remove tax</button></div>}
+ <label>{kind==='invoice'?'Due date (optional)':'Expiration date (optional)'}<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label></div></details>
+
  {mismatch&&<div className="form-message error-text" role="alert">Spoken total: {statedTotal===''?'needs review':'$'+Number(statedTotal).toFixed(2)}. It does not match the calculated total. Check the lines, or explicitly choose the calculated total.<button type="button" className="secondary-button" onClick={()=>setStatedTotal(null)}>Use calculated total</button></div>}
  <p className="quick-invoice-note">Saves a draft only. Each line and the final total are recalculated when saved. Nothing is sent to the customer.</p>
  {error&&<p role="alert" className="form-message error-text">{error}</p>}
+ <div className="voice-document-total" role="status"><span>Total</span><strong>{total===null?'Add missing amounts':'$'+total.toFixed(2)}</strong></div>
  <div className="preview-actions"><button type="button" className="secondary-button" onClick={onCancel}>Back</button><button type="submit" className="primary-button" disabled={busy||loading||!defaults||!valid||mismatch||!canManageFinances(business.role)}>{busy?'Saving draft…':`Save draft ${kind}`}</button></div></fieldset></form></section>
 }

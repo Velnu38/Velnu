@@ -1,9 +1,9 @@
 import FormDialog from './FormDialog'
 import { useEffect, useRef, useState } from 'react'
-import {isVoiceDocumentCommand,voiceDocumentKind} from '../lib/voiceDocument'
+import {isVoiceDocumentCommand,voiceDocumentKind,parseVoiceDocument,type VoiceSeed} from '../lib/voiceDocument'
 import QuickInvoiceReview from './QuickInvoiceReview'
 import type { CurrentBusiness } from '../lib/business'
-import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, getTranscriptionStatus, type AiCommandSource } from '../services/ai'
+import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, getTranscriptionStatus, interpretDocument, askFin, type AiCommandSource } from '../services/ai'
 
 type BrowserSpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type BrowserRecognizer = {
@@ -52,6 +52,7 @@ function describe(action: ParsedAction) {
 function ResultView({ result }: { result: any }) {
   if (!result) return null
   const payload = result.result ?? result
+  if (typeof payload.answer==='string') return <section className="fin-answer" aria-label="Fin’s answer"><p className="eyebrow">Fin · Your office assistant</p><p className="fin-answer-text">{payload.answer}</p>{payload.sources?.length>0&&<div><strong>Based on saved records</strong><ul>{payload.sources.map((s:{key:string;label:string})=><li key={s.key}>{s.label}</li>)}</ul></div>}<details><summary>Records checked and limits</summary><p>Checked {new Date(payload.as_of).toLocaleString()}</p><ul>{payload.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>
   if (payload.total_outstanding !== undefined) return <p className="assistant-result">{payload.count} unpaid invoice{payload.count === 1 ? '' : 's'} · ${Number(payload.total_outstanding).toFixed(2)} outstanding</p>
   if (payload.outstanding !== undefined) return <p className="assistant-result">{payload.customers} customers · {payload.active_jobs} active jobs · ${Number(payload.outstanding).toFixed(2)} outstanding</p>
   if (payload.change_order) return <p className="assistant-result">Change order {payload.change_order.change_order_number ?? ''} created for ${Number(payload.change_order.total ?? 0).toFixed(2)}. Customer approval is still required.</p>
@@ -70,7 +71,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const [busy, setBusy] = useState(false)
   const [recording, setRecording] = useState(false)
   const [action, setAction] = useState<ParsedAction | null>(null)
-  const [quickInvoiceRequest, setQuickInvoiceRequest] = useState<string | null>(null)
+  const [quickInvoiceRequest, setQuickInvoiceRequest] = useState<{command:string;seed:VoiceSeed;notice:string} | null>(null)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
   const [voiceStatus, setVoiceStatus] = useState('')
@@ -132,17 +133,24 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   }
 
   async function parseCommand(command: string, source: AiCommandSource) {
+    if (mutationInFlight.current) return
     setError(''); setVoiceStatus(''); setResult(null); setAction(null)
     if (isVoiceDocumentCommand(command)) {
-      // Itemized drafts can be reviewed without an extra AI provider request.
-      // Never save financial changes automatically.
-      setText(command)
-      setQuickInvoiceRequest(command)
+      setText(command);setQuickInvoiceRequest(null);setBusy(true);mutationInFlight.current=true
+      try {
+        const seed=await interpretDocument(business.id,command)
+        setQuickInvoiceRequest({command,seed,notice:'Fin prepared these lines. Check the details before saving.'})
+      } catch {
+        setQuickInvoiceRequest({command,seed:parseVoiceDocument(command),notice:'Using the on-device draft parser. Review each line; Fin’s language service could not be reached.'})
+      } finally {setBusy(false);mutationInFlight.current=false}
       return
     }
     setQuickInvoiceRequest(null)
-    setBusy(true)
+    setBusy(true);mutationInFlight.current=true
     try {
+      if(/^(?:fin[, :]*)?(?:who|what|when|where|why|how|which|show|tell|do|does|is|are|can|could|would|give|have)\b|\?\s*$/i.test(command)||!/\b(?:create|make|draft|prepare|write|generate|start|schedule|record|add|convert|cancel|delete|send|mark|update)\b/i.test(command)){
+        setResult(await askFin(business.id,command));setText(command);return
+      }
       const parsed = await interpretCommand(business.id, command, source) as ParsedAction
       setAction(parsed)
       setText(command)
@@ -153,9 +161,9 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         onChanged()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Finviant Office could not understand that request')
+      setError(err instanceof Error ? err.message : 'Fin could not understand that request')
     } finally {
-      setBusy(false)
+      setBusy(false);mutationInFlight.current=false
     }
   }
 
@@ -346,20 +354,22 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   }
 
   return <>
-    <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Finviant Office"><span className="mic-dot">●</span><span>Talk to Finviant Office</span></button>
-    {open && <FormDialog label="Finviant assistant" cleanVersion={result} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
-      <div className="assistant-head"><div><p className="eyebrow">Finviant Office</p><h2>What do you need done?</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
-      <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy || voiceMode === 'checking'}><span className="record-orb">●</span>{recording ? 'Tap to stop' : voiceMode === 'checking' ? 'Checking voice…' : busy ? 'Working…' : 'Tap and speak'}</button>
+    <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Fin"><span className="mic-dot">●</span><span>Talk to Fin</span></button>
+    {open && <FormDialog label="Fin — your office assistant" cleanVersion={result} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
+      <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{quickInvoiceRequest?'Review '+quickInvoiceRequest.seed.kind:'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
+      {!quickInvoiceRequest&&<><button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy || voiceMode === 'checking'}><span className="record-orb">●</span>{recording ? 'Tap to stop' : voiceMode === 'checking' ? 'Checking voice…' : busy ? 'Working…' : 'Tap and speak'}</button>
       {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
       <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your device keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use keyboard dictation</button>
       <div className="assistant-divider"><span>or dictate / type it</span></div>
-      <p className="assistant-help">Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p>
-      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isVoiceDocumentCommand(text) ? `Review ${voiceDocumentKind(text)}` : 'Send command'}</button></div>
-      {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(document,kind) => { setQuickInvoiceRequest(null); setText(''); setResult({[kind]:document}); onChanged() }} />}
+      <p className="assistant-help">Type or speak naturally. List each service and amount; Fin calculates the total. You can choose the customer during review, or ask a question about your business.</p>
+      <details className="fin-help"><summary>Using Fin and your business data</summary><p className="assistant-help">Ask about your saved business profile, customers, unpaid invoices or upcoming work. Fin uses current records in this business; its answers show the records checked. Teach Fin through Settings → Company profile. Business questions are available to owners and administrators. Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p></details>
+      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isVoiceDocumentCommand(text) ? `Review ${voiceDocumentKind(text)}` : 'Ask Fin'}</button></div>
+      </>}
+      {quickInvoiceRequest && <QuickInvoiceReview business={business} key={quickInvoiceRequest.command} command={quickInvoiceRequest.command} initialSeed={quickInvoiceRequest.seed} parserNotice={quickInvoiceRequest.notice} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(document,kind) => { setQuickInvoiceRequest(null); setText(''); setResult({[kind]:document}); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button data-keep-dialog className="secondary-button" onClick={reject} disabled={busy}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
       <ResultView result={result} />
       {error && <p className="form-message error-text">{error}</p>}
-      <div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>
+      {!quickInvoiceRequest&&<div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>}
     </section></FormDialog>}
   </>
 }

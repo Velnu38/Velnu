@@ -1,3 +1,4 @@
+import {normalizeSpokenMoney as normalizeWords} from '../../supabase/functions/fin-assistant/core'
 import {parseQuickInvoice,isQuickInvoiceCommand} from './quickInvoice'
 export type VoiceKind='invoice'|'estimate'
 export type VoiceLine={description:string;amount:string;quantity:string}
@@ -7,39 +8,24 @@ export function isVoiceDocumentCommand(text:string){
  if(/\bconvert\b|\bfrom\s+(?:an?\s+)?(?:estimate|invoice)\b/i.test(text))return false
  return isQuickInvoiceCommand(text)||/\b(?:create|make|draft|prepare|write|generate|start)\b[\s\S]{0,100}\b(?:estimate|quote)\b|\b(?:estimate|quote)\s+(?:for|to)\b/i.test(text)
 }
-const small:Record<string,number>={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90}
-function underHundred(words:string[]):number|null{
- if(words.length===1)return small[words[0]]??null
- if(words.length===2&&small[words[0]]>=20&&small[words[0]]%10===0&&small[words[1]]>0&&small[words[1]]<10)return small[words[0]]+small[words[1]]
- return null
-}
-function group(words:string[]):number|null{
- const h=words.indexOf('hundred');if(h<0)return underHundred(words)
- if(h!==1||small[words[0]]<1||small[words[0]]>9)return null
- const rest=words.slice(2);const n=rest.length?underHundred(rest):0;return n===null?null:small[words[0]]*100+n
-}
-function wordsNumber(words:string[]):number|null{
- words=words.filter(w=>w!=='and');let sum=0,lastScale=Infinity,start=0
- for(let i=0;i<words.length;i++){const scale=words[i]==='million'?1000000:words[i]==='thousand'?1000:0;if(!scale)continue;if(scale>=lastScale)return null;const n=group(words.slice(start,i));if(n===null||n<=0)return null;sum+=n*scale;lastScale=scale;start=i+1}
- if(start<words.length){const n=group(words.slice(start));if(n===null)return null;sum+=n}else if(!sum)return null
- return sum
-}
-function normalizeWords(text:string){
- const word='(?:'+Object.keys(small).join('|')+'|hundred|thousand|million|point)'
- return text.replace(new RegExp('\\b('+word+'(?:[ -]+(?:'+word+'|and))*)\\s+(dollars?|cents|percent)\\b','gi'),(whole,phrase:string,unit:string)=>{
-  const parts=phrase.toLowerCase().split(/[ -]+/),point=parts.indexOf('point');const integer=wordsNumber(point<0?parts:parts.slice(0,point));if(integer===null)return whole
-  let value=String(integer);if(point>=0){const decimals=parts.slice(point+1);if(decimals.length<1||decimals.length>2||decimals.some(w=>small[w]===undefined||small[w]>9))return whole;value+='.'+decimals.map(w=>small[w]).join('')}
-  return value+' '+unit
- }).replace(/\b(\d+)\s+dollars?\s+(?:and\s+)?(\d{1,2})\s+cents\b/gi,(_,a,b)=>`${a}.${b.padStart(2,'0')} dollars`)
-}
 function clean(value:string){return value.replace(/^[\s,.;:+-]+|[\s,.;:+-]+$/g,'').replace(/^(?:(?:and|plus|add|for|at|with|including|then|also)\s+)+/i,'').replace(/\s+(?:and|plus|at|for)$/i,'').trim()}
 export function parseVoiceDocument(input:string):VoiceSeed{
  const raw=input.trim().replace(/[^\S\n]+/g,' '),command=normalizeWords(raw),kind=voiceDocumentKind(raw)
  const normalized=command.replace(/\b(?:estimate|quote)\b/i,'invoice'),legacy=parseQuickInvoice(normalized)
  const warnings:string[]=[];const unsafe=/\b(?:refund|credit|discount|minus|negative|deposit|paid|deduct|less|payment)\b/i.test(command)
  if(unsafe)warnings.push('Payments, deposits, discounts or negative amounts need manual review. Enter each service charge below.')
- const customerMatch=raw.match(/\b(?:invoice|bill|estimate|quote)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|due|total|amount|at|with|including|on|description|service|work|to)\b|\s+\$|[,.;:!?]|$)/i)
- const customerName=customerMatch?.[1]?.trim()||legacy.customerName
+ // Customer identity must never consume a price. A missing customer is a
+ // normal draft state: preserve the entire charge text and ask in review.
+ const candidate=raw.match(/\b(?:invoice|bill|estimate|quote)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|due|total|amount|at|with|including|on|description|service|work|to)\b|\s+\$|[,.;:!?]|$)/i)
+ const candidateName=candidate?.[1]?.trim()||''
+ const after=candidate?raw.slice(candidate.index!+candidate[0].length):''
+ const startsWithCharge=/^[\s$+−-]*\d/.test(candidateName)
+ const hasCurrency=/\$|^\d[\d,.]*\s+dollars?$/i.test(normalizeWords(candidateName))
+ // A service directly followed by a price is ambiguous with a customer's
+ // name. Only consume explicit name separators; Fin can interpret the rest.
+ const namedBoundary=/^\s*(?:for\b|to\b|[:;,])/i.test(after)
+ const customerMatch=candidate&&!startsWithCharge&&!hasCurrency&&namedBoundary?candidate:null
+ const customerName=customerMatch?candidateName:''
  const headerEnd=customerMatch?customerMatch.index!+customerMatch[0].length:0
  let body=headerEnd?normalizeWords(raw.slice(headerEnd)):command.replace(/^.*?\b(?:invoice|estimate|quote|bill)\b\s*/i,'')
  let statedTotal:string|null=null
@@ -59,7 +45,7 @@ export function parseVoiceDocument(input:string):VoiceSeed{
   if(!matches.length){if(/\d|dollars?|cents\b/i.test(clause))warnings.push('An amount could not be assigned confidently. Check the unpriced line.');lines.push({description:clause,amount:'',quantity:'1'});continue}
   if(matches.length>1){warnings.push('Separate these charges into individual lines before saving.');for(const match of matches)lines.push({description:'',amount:'',quantity:'1'});continue}
   const match=matches[0];const seed=parseQuickInvoice('Create invoice for Test for '+clause)
-  let description=clean(clause.slice(0,match.index)+clause.slice(match.index!+match[0].length)),quantity='1',amount=seed.amount
+  let description=clean(clause.slice(0,match.index)+clause.slice(match.index!+match[0].length)),quantity='1',amount=seed.amount||(/^(?:\$\s*)?0(?:\.0{1,2})?(?:\s+dollars?)?$/i.test(match[0].trim())?'0':'')
   // Explicit unit pricing: "3 shrubs at $25 each". Flat service charges stay quantity one.
   if(/\beach\b|\bper\s+(?:item|unit|hour)\b/i.test(clause)){
    const qty=description.match(/^(\d+(?:\.\d{1,2})?)\s+(.+?)\s*(?:at)?\s*(?:each|per\s+(?:item|unit|hour))$/i)

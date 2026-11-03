@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase'
+import {validDraft} from '../../supabase/functions/fin-assistant/core'
+import type {VoiceSeed} from '../lib/voiceDocument'
 
 
 async function explainFunctionError(error: unknown, type: 'transcription' | 'command'): Promise<Error> {
@@ -7,11 +9,12 @@ async function explainFunctionError(error: unknown, type: 'transcription' | 'com
     const data = await context.clone().json().catch(() => null) as { error?: string } | null
     const serverMessage = data?.error || ''
     const serverCode = (data as { code?: string } | null)?.code
+    if (serverCode === 'fin_not_configured') return new Error('Fin is awaiting its secure server connection. Invoice and estimate drafts can still be reviewed.')
     if (serverCode === 'transcription_not_configured') return new Error(serverMessage)
     if (context.status === 503 && /OPENAI_API_KEY/i.test(serverMessage)) {
       return new Error(type === 'transcription'
         ? 'Cloud transcription is not configured yet. On iPhone Safari try browser dictation, or use the keyboard microphone in the text box and tap Review invoice.'
-        : 'AI command interpretation is not configured yet. You can create a one-item invoice draft by dictating or typing: Create an invoice for Bob Smith for $150.')
+        : 'AI command interpretation is not configured yet. You can still review invoice or estimate drafts by dictating or typing each service and its amount.')
     }
     if (serverMessage && context.status < 500) return new Error(serverMessage)
     return new Error(type === 'transcription'
@@ -77,4 +80,17 @@ export async function transcribeVoice(businessId: string, audio: Blob, durationS
 
   if (error) throw await explainFunctionError(error, 'transcription')
   return data as { transcript: string; transcription_id: string }
+}
+
+export async function askFin(businessId:string,text:string){
+ const {data,error}=await supabase.functions.invoke('fin-assistant',{body:{business_id:businessId,mode:'question',text}})
+ if(error)throw await explainFunctionError(error,'command')
+ if(typeof data?.answer!=='string'||!Array.isArray(data.sources)||!Array.isArray(data.limits))throw new Error('Fin could not verify the answer. Please try again.')
+ return data as {answer:string;sources:{key:string;label:string}[];limits:string[];as_of:string}
+}
+export async function interpretDocument(businessId:string,text:string):Promise<VoiceSeed>{
+ const {data,error}=await supabase.functions.invoke('fin-assistant',{body:{business_id:businessId,mode:'draft',text}})
+ if(error)throw await explainFunctionError(error,'command')
+ if(!validDraft(data?.draft,text))throw new Error('Fin could not interpret every detail. Review the extracted lines below.')
+ return data.draft
 }
