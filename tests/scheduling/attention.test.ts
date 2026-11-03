@@ -19,9 +19,9 @@ test('attention paging reaches every category beyond preview caps, with stable t
    await db.query("update invoices set status='sent',due_date='2000-01-01' where id=$1",[i])
   }
   for(let n=0;n<13;n++){
-   const e=(await db.query<{id:string}>('insert into estimates(business_id,customer_id) values($1,$2) returning id',[ids.business,ids.customer])).rows[0].id
+   const e=(await db.query<{id:string}>("insert into estimates(business_id,customer_id,issue_date) values($1,$2,'2000-01-01') returning id",[ids.business,ids.customer])).rows[0].id
    await db.query("insert into estimate_items(business_id,estimate_id,description,quantity,unit_price,tax_rate,sort_order) values($1,$2,'Work',1,100,0,0)",[ids.business,e])
-   await db.query("update estimates set status='sent',issue_date='2000-01-01' where id=$1",[e])
+   await db.query("update estimates set status='sent' where id=$1",[e])
   }
   await db.query(`insert into change_orders(business_id,customer_id,job_id,title,status,issue_date) select $1,$2,(select id from jobs limit 1),'Change '||n,'sent','2000-01-01' from generate_series(1,11)n`,[ids.business,ids.customer])
   await db.exec('set role authenticated;')
