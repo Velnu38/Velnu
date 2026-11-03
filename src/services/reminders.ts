@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { asList } from './relations'
+import { announceCalendarChange } from './calendar'
 
 export type ReminderJob = { id: string; title: string; customer_id: string | null }
 export type WorkReminder = {
@@ -36,6 +37,7 @@ export async function createReminder(business: Workspace, input: ReminderInput) 
   const { data, error } = await supabase.from('reminders').insert(payload).select('id').single()
   if (!error) {
     if (data?.id !== input.id) throw new Error('Unable to verify the saved reminder. Try again.')
+    announceCalendarChange()
     return data.id
   }
   // Reuse the same ID after an uncertain network result; never overwrite a reminder.
@@ -49,6 +51,7 @@ export async function createReminder(business: Workspace, input: ReminderInput) 
     || saved.kind !== payload.kind || saved.job_id !== payload.job_id || saved.customer_id !== payload.customer_id) {
     throw new Error('This reminder was already saved with different details. Start a new reminder.')
   }
+  announceCalendarChange()
   return saved.id
 }
 
@@ -58,4 +61,5 @@ export async function completeWorkReminder(business: Workspace, id: string) {
     .update({ status: 'completed', completed_at: new Date().toISOString() })
     .eq('business_id', business.id).eq('id', id).eq('status', 'pending').select('id').single()
   if (error) throw error
+  announceCalendarChange()
 }

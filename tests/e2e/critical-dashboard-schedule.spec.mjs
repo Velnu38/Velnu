@@ -152,8 +152,8 @@ async function mockWorkspace(page, options = {}) {
         return reply({ id: row?.id })
       }
       const status = url.searchParams.get('status')?.replace('eq.', '')
-      const due = url.searchParams.get('due_at')?.replace('lte.', '')
-      const matching = state.reminders.filter(r => r.status === status && (!due || new Date(r.due_at) <= new Date(due)))
+      const due = url.searchParams.get('due_at')
+      const matching = state.reminders.filter(r => r.status === status && (!due || (due.startsWith('lt.') ? Date.parse(r.due_at) < Date.parse(due.slice(3)) : Date.parse(r.due_at) <= Date.parse(due.slice(4)))))
       const offset = Number(url.searchParams.get('offset') || 0)
       const limit = Number(url.searchParams.get('limit') || 50)
       return reply(matching.slice(offset, offset + limit), 200, matching.length)
@@ -335,6 +335,44 @@ test('09 completing reminder persists its status and removes it from attention l
   await expect(page.getByText('Call customer 1')).toHaveCount(0)
   expect(count(state, '/reminders', 'PATCH')).toBe(1)
   expect(state.reminders[0].status).toBe('completed')
+})
+
+test('dashboard attention updates immediately when a calendar reminder is completed', async ({ page }) => {
+  const state = await openDashboard(page, { reminders: [reminder()] })
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  const calendar = page.getByRole('region', { name: 'Work calendar' })
+  await calendar.getByRole('button', { name: 'Complete Call customer 1', exact: true }).click()
+  await expect(calendar.getByText('Call customer 1', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your office is caught up.')
+  expect(count(state, '/reminders', 'PATCH')).toBe(1)
+})
+
+test('a failed calendar reminder update keeps the attention count and retry action', async ({ page }) => {
+  await openDashboard(page, { reminders: [reminder()], reminderError: true })
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  const calendar = page.getByRole('region', { name: 'Work calendar' })
+  await calendar.getByRole('button', { name: 'Complete Call customer 1', exact: true }).click()
+  await expect(calendar.getByRole('alert')).toContainText('Unable to complete this reminder')
+  await expect(calendar.getByText('Call customer 1', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+})
+
+test('returning to the dashboard refreshes attention after another worker resolves a reminder', async ({ page }) => {
+  const state = await openDashboard(page, { reminders: [reminder()] })
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  state.reminders[0].status = 'completed'
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your office is caught up.')
+  await expect(page.getByRole('region', { name: 'Work calendar' }).getByText('Call customer 1', { exact: true })).toHaveCount(0)
+})
+
+test('the visible dashboard refreshes attention in the background without a reload', async ({ page }) => {
+  await page.clock.install()
+  const state = await openDashboard(page, { reminders: [reminder()] })
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('1 item needs your attention.')
+  state.reminders[0].status = 'completed'
+  await page.clock.fastForward('00:31')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your office is caught up.')
 })
 
 test('10 failing reminder update displays error and does not hide the reminder', async ({ page }) => {

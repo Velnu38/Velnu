@@ -1,0 +1,84 @@
+/* Shared dashboard surfaces and typography. Status badges retain their meaning. */
+.dashboard-page {
+  --tile-surface: #fff;
+  --tile-soft: #f5f8fb;
+  --tile-border: #c4d2df;
+  --tile-ink: #203b53;
+  --tile-muted: #546b7d;
+  --tile-accent: #245f98;
+  --tile-title-size: 22px;
+  --tile-value-size: 26px;
+}
+.dashboard-page .dashboard-tile {
+  background: var(--tile-surface);
+  color: var(--tile-ink);
+  border: 1px solid var(--tile-border);
+  border-radius: 18px;
+  box-shadow: 0 6px 22px #27496808;
+  font-family: inherit;
+  font-size: 13px;
+}
+.dashboard-page .dashboard-tile-title {
+  margin: 0;
+  color: var(--tile-ink);
+  font-family: inherit;
+  font-size: var(--tile-title-size);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -.03em;
+}
+.dashboard-page :is(.calendar-heading, .work-card-heading, .performance-heading) {
+  padding: 22px 24px 16px;
+}
+.dashboard-page :is(.calendar-heading, .work-card-heading, .performance-heading) .eyebrow {
+  color: var(--tile-muted);
+  font-size: 10px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.dashboard-page .workflow-next { padding: 22px 24px; }
+.dashboard-page .workflow-next > h2 { margin-bottom: 8px; }
+.dashboard-page .workflow-next > p,
+.dashboard-page .workflow-next li span { color: var(--tile-muted); font-size: 13px; line-height: 1.5; }
+.dashboard-page .workflow-next li { border-color: var(--tile-border); }
+.dashboard-page .workflow-next li strong { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.dashboard-page .billing-summary {
+  border-color: var(--tile-border);
+  background: var(--tile-soft);
+}
+.dashboard-page :is(.billing-metric.overdue, .billing-metric.approval, .performance-metric) {
+  background: var(--tile-soft);
+  border-color: var(--tile-border);
+}
+.dashboard-page :is(.billing-summary strong, .performance-metric strong, .jobs-active-count) {
+  color: var(--tile-ink);
+  font-size: var(--tile-value-size);
+  font-weight: 700;
+  font-family: inherit;
+  line-height: 1.2;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-page :is(.billing-summary > div > span, .billing-summary > button > span, .performance-metric > span, .jobs-active-count small) {
+  color: var(--tile-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.dashboard-page .jobs-open,
+.dashboard-page .workflow-next .primary-button { background: var(--tile-accent); color: #fff; font-size: 12px; font-weight: 700; }
+.dashboard-page .jobs-open:hover,
+.dashboard-page .workflow-next .primary-button:hover { background: #1d4e7c; }
+.dashboard-page :is(.billing-navigation .secondary-button, .calendar-add) {
+  border: 1px solid var(--tile-border);
+  border-radius: 10px;
+  background: var(--tile-soft);
+  color: var(--tile-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+@media(max-width:650px) {
+  .dashboard-page { --tile-title-size: 20px; --tile-value-size: 20px; }
+  .dashboard-page :is(.calendar-heading, .work-card-heading, .performance-heading) { padding: 18px 16px 14px; }
+  .dashboard-page .workflow-next { padding: 18px 16px; }
+  .dashboard-page :is(.billing-summary > div > span, .billing-summary > button > span, .performance-metric > span, .jobs-active-count small) { font-size: 11px; }
+}

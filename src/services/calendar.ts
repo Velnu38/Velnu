@@ -99,7 +99,7 @@ export async function loadAgenda(
   };
 }
 export function announceCalendarChange() {
-  window.dispatchEvent(new Event("finviant-work-changed"));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event("finviant-work-changed"));
 }
 
 /** Load the whole visible range. Paginate instead of silently dropping busy days. */

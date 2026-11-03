@@ -15,7 +15,7 @@ export type SchedulingContext = {
 export type OfferInput = {title:string;property_id:string|null;workers:string[];slots:Slot[];note:string;recipient_email?:string|null}
 export type BookingView = {business_name:string;business_phone:string|null;title:string;timezone:string;note:string;address:string|null;status:'approved'|'booked'|'canceled';expires_at:string;slots:Required<Slot>[];confirmed:Slot|null}
 export type Completion = {job_id:string;status:'completed';invoice_ready:boolean;invoice_id:string|null;needs_pricing:boolean;needs_review:boolean}
-export type WorkflowActions = {approved:Array<{id:string;estimate_number:string|null;customer_name:string;offer:{status:string;expires_at:string}|null}>;completed:Array<{id:string;title:string;invoice_id:string|null;invoice_status:string|null;error_code:string|null}>}
+export type WorkflowActions = {approved_count?:number;completed_count?:number;approved:Array<{id:string;estimate_number:string|null;customer_name:string;offer:{status:string;expires_at:string}|null}>;completed:Array<{id:string;title:string;invoice_id:string|null;invoice_status:string|null;error_code:string|null}>}
 async function rpc<T>(name:string,args:Record<string,unknown>):Promise<T> {
   const {data,error}=await supabase.rpc(name,args)
   if(error) throw new Error(error.message || 'This change could not be saved.')

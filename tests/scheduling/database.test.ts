@@ -168,3 +168,54 @@ test('scheduling email freezes the reviewed recipient and stale invitations cann
  assert.equal(claim.status,'reconciliation_required')
  }finally{await db.close()}
 })
+
+test('next steps clear for document calendar entries, restore on cancellation, and follow converted invoice schedules',async()=>{
+ const db=await fixture();try{
+ const e=await estimate(db),slot=(await suggestions(db))[0]
+ const next=async()=>((await db.query('select get_workflow_next_actions($1) r',[ids.business])).rows[0].r as any)
+ assert.equal((await next()).approved_count,1)
+ const schedule=(await db.query(`insert into document_schedules(business_id,estimate_id,job_title,description,timezone,status,scheduled_start_time,scheduled_end_time)
+ values($1,$2,'Quoted visit','','America/New_York','scheduled',$3,$4) returning id`,[ids.business,e,slot.starts_at,slot.ends_at])).rows[0].id
+ assert.equal((await db.query('select count(*)::int n from calendar_work where document_id=$1',[e])).rows[0].n,1)
+ assert.equal((await next()).approved_count,0);assert.deepEqual((await next()).approved,[])
+ await db.query("update document_schedules set status='cancelled' where id=$1",[schedule])
+ assert.equal((await next()).approved_count,1)
+ const invoice=(await db.query('select convert_estimate_to_invoice($1) id',[e])).rows[0].id
+ const convertedSchedule=(await db.query(`insert into document_schedules(business_id,invoice_id,job_title,description,timezone,status,scheduled_start_time,scheduled_end_time)
+ values($1,$2,'Invoiced visit','','America/New_York','scheduled',$3,$4) returning id`,[ids.business,invoice,slot.starts_at,slot.ends_at])).rows[0].id
+ assert.equal((await db.query('select count(*)::int n from calendar_work where document_id=$1',[invoice])).rows[0].n,1)
+ assert.equal((await next()).approved_count,0)
+ await db.query("update document_schedules set status='cancelled' where id=$1",[convertedSchedule])
+ assert.equal((await next()).approved_count,1)
+ }finally{await db.close()}
+})
+
+test('next-step counts include rows beyond the preview and retain current tenant/module authorization',async()=>{
+ const db=await fixture();try{
+ for(let n=0;n<23;n++)await estimate(db)
+ const result=(await db.query('select get_workflow_next_actions($1) r',[ids.business])).rows[0].r as any
+ assert.equal(result.approved_count,23);assert.equal(result.approved.length,20);assert.equal(result.completed_count,0)
+ assert.ok(result.approved.every((row:any)=>!('updated_at' in row)))
+ await actor(db,ids.outsider)
+ await assert.rejects(()=>db.query('select get_workflow_next_actions($1)',[ids.business]),/access/)
+ await actor(db,ids.worker)
+ await assert.rejects(()=>db.query('select get_workflow_next_actions($1)',[ids.business]),/access/)
+ await db.exec("reset role;select set_config('request.jwt.claim.sub','',false);set role anon;")
+ await assert.rejects(()=>db.query('select get_workflow_next_actions($1)',[ids.business]),/permission denied/)
+ }finally{await db.close()}
+})
+
+test('next steps move from scheduling to invoice review and clear only after the invoice is issued',async()=>{
+ const db=await fixture();try{
+ const e=await estimate(db),slot=(await suggestions(db))[0]
+ const next=async()=>((await db.query('select get_workflow_next_actions($1) r',[ids.business])).rows[0].r as any)
+ const booking=(await db.query('select book_approved_estimate($1,$2) r',[e,{title:'Visit',property_id:ids.site,workers:[ids.owner],...slot}])).rows[0].r as any
+ assert.equal((await next()).approved_count,0)
+ await db.exec("reset role;select set_config('request.jwt.claim.sub','',false);set role service_role;")
+ const done=(await db.query('select complete_job_workflow($1,$2) r',[booking.job_id,ids.owner])).rows[0].r as any
+ await db.exec(`reset role;select set_config('request.jwt.claim.sub','${ids.owner}',false);set role authenticated;`)
+ assert.equal((await next()).completed_count,1);assert.equal((await next()).completed[0].invoice_id,done.invoice_id)
+ await db.query("update invoices set status='sent' where id=$1",[done.invoice_id])
+ assert.equal((await next()).completed_count,0)
+ }finally{await db.close()}
+})

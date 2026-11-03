@@ -9,7 +9,7 @@ const customer={id:C,first_name:'Test',last_name:'Customer',company:null,email:'
 const team=[{id:U,label:'Owner',role:'owner',is_you:true},{id:J,label:'Field worker',role:'technician',is_you:false}]
 const slots=Array.from({length:3},(_,n)=>({id:`77777777-7777-4777-8777-${String(n+1).padStart(12,'0')}`,starts_at:DateTime.now().setZone(zone).plus({days:14+n}).set({hour:9,minute:0,second:0,millisecond:0}).toISO(),ends_at:DateTime.now().setZone(zone).plus({days:14+n}).set({hour:11,minute:0,second:0,millisecond:0}).toISO()}))
 async function mock(page,{signedIn=true,conflict=false}={}){
- const state={calls:[],booked:false,approved:false,customers:[customer],completed:false}
+ const state={calls:[],booked:false,bookedSlot:null,approved:false,customers:[customer],completed:false,workflowDelay:0,pendingWorkflow:0}
  if(signedIn){const head=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),body=Buffer.from(JSON.stringify({sub:U,aud:'authenticated',role:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');await page.addInitScript(session=>localStorage.setItem('sb-example-auth-token',JSON.stringify(session)),{access_token:`${head}.${body}.test`,refresh_token:'test',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user})}
  await page.route('https://example.supabase.co/**',async route=>{
   const req=route.request(),url=new URL(req.url()),path=url.pathname,method=req.method();let body;try{body=req.postDataJSON()}catch{}
@@ -24,11 +24,16 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'free',ai_limit:0,voice_limit:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
-  if(path.endsWith('/rpc/get_workflow_next_actions'))return reply({approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[]})
+  if(path.endsWith('/rpc/get_workflow_next_actions')){
+   const value={approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}
+   const delay=state.workflowDelay;state.workflowDelay=0;state.pendingWorkflow++
+   try{if(delay)await new Promise(resolve=>setTimeout(resolve,delay));return await reply(value)}finally{state.pendingWorkflow--}
+  }
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return reply({open_invoices:0,outstanding_balance:0})
   if(path.endsWith('/rpc/get_scheduling_context'))return reply({preferences:{work_days:[1,2,3,4,5],start_minutes:480,end_minutes:1020,duration_minutes:120,buffer_minutes:30,notice_hours:24},team,time_off:[],properties:[{id:P,label:'Job site',address:'1 Test Street'}],estimate:body.p_estimate?{id:E,number:'EST-QA',customer_id:C,job_id:null,property_id:P,title:'Mow and trim',scope:'Mow and trim × 2',customer_name:'Test Customer',customer_email:'customer@example.test'}:undefined,offer:null})
   if(path.endsWith('/rpc/suggest_scheduling_slots'))return reply(slots.map(({starts_at,ends_at})=>({starts_at,ends_at})))
-  if(path.endsWith('/rpc/book_approved_estimate')){state.booked=true;return reply({job_id:J,already_booked:false})}
+  if(path.endsWith('/rpc/book_approved_estimate')){state.booked=true;state.bookedSlot=body.p_input;return reply({job_id:J,already_booked:false})}
+  if(path.endsWith('/calendar_work'))return reply(state.bookedSlot?[{source_key:'appointment:'+J,job_id:J,document_kind:'estimate',document_id:E,title:state.bookedSlot.title,status:'confirmed',assigned_user_ids:state.bookedSlot.workers,starts_at:state.bookedSlot.starts_at,ends_at:state.bookedSlot.ends_at}]:[])
   if(path.endsWith('/rpc/approve_scheduling_offer')){state.approved=true;return reply({id:body.p_request,status:'approved',expires_at:DateTime.now().plus({days:7}).toISO()})}
   if(path.endsWith('/functions/v1/work-scheduling')){if(body.action==='complete'){state.completed=true;return reply({job_id:J,status:'completed',invoice_ready:true,invoice_id:E})}return reply({status:'accepted'})}
   if(path.endsWith('/rpc/save_scheduling_preferences'))return reply(null)
@@ -37,7 +42,10 @@ async function mock(page,{signedIn=true,conflict=false}={}){
    return reply({business_name:'Scheduling QA',business_phone:'555-0100',title:'Mow and trim',timezone:zone,note:'Please choose a time.',address:'1 Test Street',status:state.booked?'booked':'approved',expires_at:DateTime.now().plus({days:7}).toISO(),slots:state.booked?[]:slots,confirmed:state.booked?slots[0]:null})
   }
   if(path.endsWith('/customers')){if(method==='POST'){state.customers.push(body);return reply(body,201)}return reply(state.customers)}
-  if(path.endsWith('/estimates'))return reply([{id:E,estimate_number:'EST-QA',customer_id:C,status:'accepted',issue_date:'2026-10-01',total:105,subtotal:100,tax_amount:5,customers:customer}])
+  if(path.endsWith('/estimates')){
+   const rows=[{id:E,estimate_number:'EST-QA',customer_id:C,status:'accepted',issue_date:'2026-10-01',total:105,subtotal:100,tax_amount:5,customers:customer}]
+   return reply(url.searchParams.has('status')?rows.filter(row=>'eq.'+row.status===url.searchParams.get('status')):rows)
+  }
   if(path.endsWith('/estimate_items'))return reply([{id:P,description:'Mow and trim',quantity:2,unit_price:50,tax_rate:5,line_total:100}])
   if(path.endsWith('/jobs'))return reply([])
   return reply([])
@@ -63,6 +71,7 @@ for(const width of [1440,390])test(`guided booking proposes crew availability an
 })
 test('phone agreement books once and sends no customer message',async({page})=>{
  const state=await mock(page);await page.goto('/');await page.getByRole('region',{name:'Guided next steps'}).getByRole('button',{name:'Schedule job',exact:true}).click()
+ await expect(page.getByRole('heading',{level:1})).toHaveText('1 item needs your attention.')
  const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Time already agreed',exact:true}).click()
  await expect(dialog.locator('input[type=radio]:checked')).toHaveCount(1)
  await dialog.getByRole('checkbox',{name:/I have agreed this appointment/}).check()
@@ -72,6 +81,44 @@ test('phone agreement books once and sends no customer message',async({page})=>{
  await expect(dialog.getByRole('status')).toContainText('Job booked')
  expect(state.calls.filter(c=>c.path.endsWith('/rpc/book_approved_estimate'))).toHaveLength(1)
  expect(state.calls.filter(c=>c.path.endsWith('/functions/v1/work-scheduling'))).toHaveLength(0)
+ await dialog.getByRole('button',{name:'Close scheduling'}).click()
+ await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
+ await expect(page.getByRole('heading',{level:1})).toHaveText('Your office is caught up.')
+ const calendar=page.getByRole('region',{name:'Work calendar'})
+ await calendar.getByRole('button',{name:'Next week',exact:true}).click()
+ await calendar.getByRole('button',{name:'Next week',exact:true}).click()
+ await expect(calendar.locator('.calendar-work-list')).toContainText('Mow and trim')
+})
+
+test('an older next-step response cannot restore a booking resolved by a newer refresh',async({page})=>{
+ const state=await mock(page);await page.goto('/')
+ await expect(page.getByRole('heading',{level:1})).toHaveText('1 item needs your attention.')
+ await expect.poll(()=>state.pendingWorkflow).toBe(0)
+ state.workflowDelay=800
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
+ await expect.poll(()=>state.pendingWorkflow).toBe(1)
+ state.booked=true
+ await page.evaluate(()=>window.dispatchEvent(new Event('finviant-work-changed')))
+ await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
+ await expect(page.getByRole('heading',{level:1})).toHaveText('Your office is caught up.')
+ await expect.poll(()=>state.pendingWorkflow).toBe(0)
+ await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
+ await expect(page.getByRole('heading',{level:1})).toHaveText('Your office is caught up.')
+})
+
+for(const width of [1440,390])test(`dashboard tiles share surfaces and typography at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await mock(page);await page.goto('/')
+ await expect(page.getByRole('region',{name:'Guided next steps'})).toBeVisible()
+ await expect(page.locator('.dashboard-tile')).toHaveCount(5)
+ const appearance=await page.locator('.dashboard-tile').evaluateAll(tiles=>tiles.map(tile=>{
+  const style=getComputedStyle(tile),title=getComputedStyle(tile.querySelector('.dashboard-tile-title'))
+  return {background:style.backgroundColor,border:style.borderColor,borderWidth:style.borderWidth,radius:style.borderRadius,font:style.fontFamily,titleFont:title.fontFamily,titleSize:title.fontSize,titleWeight:title.fontWeight,titleColor:title.color}
+ }))
+ for(const tile of appearance)expect(tile).toEqual(appearance[0])
+ const values=await page.locator('.billing-summary strong,.performance-metric strong,.jobs-active-count').evaluateAll(items=>items.map(item=>{const style=getComputedStyle(item);return [style.fontFamily,style.fontSize,style.fontWeight,style.color]}))
+ for(const value of values)expect(value).toEqual(values[0])
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await page.screenshot({path:`test-results/uniform-dashboard-${width}.png`,fullPage:true})
 })
 for(const width of [1440,390])test(`customer chooses and confirms one appointment without an account at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page,{signedIn:false});await page.goto('/?booking='+'a'.repeat(64))
