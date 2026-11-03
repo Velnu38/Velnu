@@ -1,6 +1,6 @@
 import FormDialog from './FormDialog'
 import { useEffect, useRef, useState } from 'react'
-import { isQuickInvoiceCommand } from '../lib/quickInvoice'
+import {isVoiceDocumentCommand,voiceDocumentKind} from '../lib/voiceDocument'
 import QuickInvoiceReview from './QuickInvoiceReview'
 import type { CurrentBusiness } from '../lib/business'
 import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, getTranscriptionStatus, type AiCommandSource } from '../services/ai'
@@ -133,8 +133,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
 
   async function parseCommand(command: string, source: AiCommandSource) {
     setError(''); setVoiceStatus(''); setResult(null); setAction(null)
-    if (isQuickInvoiceCommand(command)) {
-      // A single-line draft can be reviewed and saved even without a paid AI key.
+    if (isVoiceDocumentCommand(command)) {
+      // Itemized drafts can be reviewed without an extra AI provider request.
       // Never save financial changes automatically.
       setText(command)
       setQuickInvoiceRequest(command)
@@ -207,7 +207,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       if (spoken) {
         setText(spoken)
         setError('')
-        if (isQuickInvoiceCommand(spoken)) void parseCommand(spoken, 'voice')
+        if (isVoiceDocumentCommand(spoken)) void parseCommand(spoken, 'voice')
         else setVoiceStatus('Words captured. Check the text and tap Send command when ready.')
       } else if (!speechError) {
         setVoiceStatus('')
@@ -268,7 +268,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
           if (!transcript.transcript?.trim()) throw new Error('No text detected. Try a clearer recording.')
           const words = transcript.transcript.trim()
           setText(words)
-          if (isQuickInvoiceCommand(words)) await parseCommand(words, 'voice')
+          if (isVoiceDocumentCommand(words)) await parseCommand(words, 'voice')
           else setVoiceStatus('Transcription complete. Review the words and tap Send command.')
         } catch (err) {
           setVoiceStatus('')
@@ -353,9 +353,9 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
       <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your device keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use keyboard dictation</button>
       <div className="assistant-divider"><span>or dictate / type it</span></div>
-      <p className="assistant-help">Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then tap Review invoice or Send command. When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p>
-      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isQuickInvoiceCommand(text) ? 'Review invoice' : 'Send command'}</button></div>
-      {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(invoice) => { setQuickInvoiceRequest(null); setText(''); setResult({ invoice }); onChanged() }} />}
+      <p className="assistant-help">Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p>
+      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isVoiceDocumentCommand(text) ? `Review ${voiceDocumentKind(text)}` : 'Send command'}</button></div>
+      {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(document,kind) => { setQuickInvoiceRequest(null); setText(''); setResult({[kind]:document}); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button data-keep-dialog className="secondary-button" onClick={reject} disabled={busy}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
       <ResultView result={result} />
       {error && <p className="form-message error-text">{error}</p>}
