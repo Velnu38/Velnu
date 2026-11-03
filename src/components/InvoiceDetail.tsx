@@ -58,7 +58,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
     try{const due=new Date(reminderAt);if(Number.isNaN(due.getTime())||due.getTime()<=Date.now())throw new Error('Choose a reminder date and time in the future.');await createInvoiceReminder(business.id,detail.invoice.id,detail.invoice.customer_id,due.toISOString(),reminderNote);setShowReminder(false);setReminderAt('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to create reminder')}finally{setBusy(false)}
   }
 
-  async function changeWork(completed:boolean){if(!detail||busy)return;setBusy(true);setError('');try{await setInvoiceWorkCompleted(business.id,invoiceId,completed);await refresh()}catch(e){setError(e instanceof Error?e.message:'Unable to update work completion.')}finally{setBusy(false)}}
+  async function changeWork(completed:boolean){if(!detail||busy)return;const previous=detail;setDetail({...detail,invoice:{...detail.invoice,work_completed:completed}});setBusy(true);setError('');try{await setInvoiceWorkCompleted(business.id,invoiceId,completed);await refresh()}catch(e){setDetail(previous);setError(e instanceof Error?e.message:'Unable to update work completion.')}finally{setBusy(false)}}
 
   async function markSent(){if(!detail||busy)return;if(!window.confirm('This only records that you sent the invoice outside Finviant Office. It does not email the customer. Continue?'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'sent');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to mark invoice sent')}finally{setBusy(false)}}
 

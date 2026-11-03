@@ -234,7 +234,7 @@ const noRuntimeErrors = page => {
 test('01 empty dashboard renders without uncaught exceptions', async ({ page }) => {
   const errors = noRuntimeErrors(page)
   await openDashboard(page)
-  await expect(page.getByText('No overdue invoices or pending approvals. Your billing is up to date.')).toBeVisible()
+  await expect(page.getByText('No estimates or invoices yet. Open either list to create your first document.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
   expect(errors).toEqual([])
 })
@@ -727,7 +727,7 @@ for (const width of [1440, 390]) {
 test('billing hub empty state and finance restrictions stay honest', async ({page})=>{
   const state=await openDashboard(page)
   const hub=page.getByRole('article',{name:'Estimates and invoices overview'})
-  await expect(hub.getByText('No overdue invoices or pending approvals. Your billing is up to date.')).toBeVisible()
+  await expect(hub.getByText('No estimates or invoices yet. Open either list to create your first document.')).toBeVisible()
   await page.screenshot({path:'test-results/dashboard-billing-empty.png',fullPage:true})
   await hub.getByRole('button',{name:'Recent',exact:true}).click()
   await expect(hub).toContainText('No estimates or invoices yet.')

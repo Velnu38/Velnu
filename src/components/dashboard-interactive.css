@@ -216,3 +216,4 @@
 .dashboard-page .calendar-agenda-columns{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
 .calendar-next-steps> .calendar-list-heading h3{font-size:17px;color:#234b3b}
 @media(max-width:850px){.dashboard-page .calendar-agenda-columns{grid-template-columns:1fr}}
+.calendar-next-steps{min-width:0}.calendar-next-steps :is(strong,span,p,a){overflow-wrap:anywhere}
