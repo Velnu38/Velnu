@@ -46,7 +46,7 @@ export default function BillingHub({ business, snapshot, loading, error, onNavig
     {!canSee ? <p className="work-card-empty">Billing details are available to owners, administrators, and office staff.</p> : <>
       <div className="billing-summary">
         <div className="billing-outstanding"><span>Outstanding</span><strong>{loading || error ? '—' : usd.format(snapshot.outstandingBalance)}</strong><small>{loading ? 'Loading balance…' : error ? 'Balance unavailable' : `${snapshot.openInvoices} open ${snapshot.openInvoices === 1 ? 'invoice' : 'invoices'}`}</small></div>
-        <button type="button" className="billing-metric overdue" disabled={loading || !!error} aria-pressed={filter === 'overdue'} onClick={() => setFilter('attention')}><span>Needs Attention</span><strong>{loading || error ? '—' : snapshot.overdueInvoiceCount + snapshot.pendingApprovalCount + extraAttention}</strong><small>Review next steps <span aria-hidden="true">→</span></small></button>
+        <button type="button" className="billing-metric overdue" disabled={loading || !!error} aria-pressed={filter === 'attention'} onClick={() => setFilter('attention')}><span>Needs Attention</span><strong>{loading || error ? '—' : snapshot.overdueInvoiceCount + snapshot.pendingApprovalCount + extraAttention}</strong><small>Review next steps <span aria-hidden="true">→</span></small></button>
 
         <button type="button" className="billing-metric approval" disabled={loading || !!error} aria-pressed={filter === 'approvals'} onClick={() => setFilter('approvals')}><span>Awaiting approval</span><strong>{loading || error ? '—' : snapshot.pendingApprovalCount}</strong><small>Estimates &amp; changes <span aria-hidden="true">→</span></small></button>
       </div>

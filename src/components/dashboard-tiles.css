@@ -84,5 +84,4 @@
 }
 .dashboard-page .attention-workflow{border:0;border-radius:0;box-shadow:none;padding:16px 22px;background:transparent}
 .dashboard-page .attention-reminders{padding:0 22px}.attention-reminders ul{list-style:none;padding:0}
-.dashboard-page .billing-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 .dashboard-page .calendar-agenda-columns:has(>div:only-child){grid-template-columns:1fr}
