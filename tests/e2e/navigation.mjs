@@ -3,7 +3,7 @@ export async function openWorkArea(page, area) {
   if (area === 'Schedule') { await page.goto('/?view=schedule'); return }
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
   if (area === 'Bookkeeping') {
-    await page.getByRole('button', { name: 'Full workbook', exact: true }).click()
+    await page.getByRole('button', { name: 'View all income & expenses', exact: true }).click()
   } else if (area === 'Jobs') {
     await page.getByRole('article', { name: 'Jobs overview' }).getByRole('button', { name: /Active jobs/ }).click()
   } else {

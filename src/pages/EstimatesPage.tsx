@@ -1,3 +1,6 @@
+import DocumentLineEditor from '../components/DocumentLineEditor'
+import DraftDocumentEditor from '../components/DraftDocumentEditor'
+import CustomerEditDialog from '../components/CustomerEditDialog'
 import DocumentActions from '../components/DocumentActions'
 import DocumentRecord, {CreatedStamp,DocumentTime,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
@@ -45,6 +48,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [convertTarget, setConvertTarget] = useState<Estimate | null>(null)
   const [scheduleTarget,setScheduleTarget]=useState<Estimate|null>(null)
   const [previewTarget, setPreviewTarget] = useState<Estimate | null>(null)
+  const [showEdit,setShowEdit]=useState(false),[editCustomer,setEditCustomer]=useState(false)
   const [showChangeOrders, setShowChangeOrders] = useState(false)
   const [previewItems, setPreviewItems] = useState<PreviewItem[]>([])
   const [previewBusy, setPreviewBusy] = useState(false)
@@ -173,7 +177,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     setBusy(true); setError(''); setNotice('')
     try {
       const sent = await sendDocumentEmail(business.id, 'estimate', estimate.id)
-      setNotice(`Estimate sent to ${sent.recipient}.`)
+      setNotice(`Estimate ${sent.status==='delivered'?'delivered':'accepted for delivery'} to ${sent.recipient}.`)
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to email estimate')
@@ -240,26 +244,29 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} disabled={busy}/><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Expires on<input type="date" min={issueDate} value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
         <div className="full"><CustomerPropertySelect businessId={business.id} customerId={customerId} value={propertyId} onChange={setPropertyId} disabled={busy}/></div>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 14 days. A deposit is due before work begins." /></label></div>
-        <div className="line-items"><div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" onClick={() => setLines([...lines, newLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" aria-label="Tax rate (%)" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [newLine()] : lines.filter((_, i) => i !== index))} aria-label="Remove line item">×</button></div>)}</div>
+        <DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/>
         <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create estimate'}</button></div>
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save draft estimate'}</button></div>
       </form>
     </FormDialog>}
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
       <div className="conversion-summary"><span>{convertTarget.estimate_number || 'Estimate'}</span><strong>${Number(convertTarget.total).toFixed(2)}</strong><p>{customerName(convertTarget.customers?.[0])}</p></div>
-      <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">Finviant Office will copy every line item and tax rate into a new draft invoice. The database recalculates the final invoice total.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Create invoice'}</button></div></form>
+      <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">Finviant Office will copy every line item and tax rate into a new draft invoice. The database recalculates the final invoice total.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Save draft invoice'}</button></div></form>
     </FormDialog>}
 
 
-    {previewTarget && <div className="modal-backdrop estimate-preview-backdrop" onMouseDown={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}}>
-      <section className="estimate-preview-modal" role="dialog" aria-modal="true" aria-label="Estimate preview" onMouseDown={event => event.stopPropagation()}>
+    {previewTarget && <FormDialog label="Estimate preview" wide onClose={()=>{setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}}><section className="estimate-preview-modal">
         <div className="modal-head">
           <div><p className="eyebrow">Customer-facing document</p><h2>Estimate preview</h2></div>
           <button className="icon-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} aria-label="Close preview" type="button">×</button>
         </div>
+        {showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
+        {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={previewTarget.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)setPreviewTarget(next)})}}/>}
         <DocumentActions primary={<>
+          {canManageFinances(business.role)&&previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
+          {canManageFinances(business.role)&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>{previewTarget.customers?.[0]?.email?'Edit customer':'Add customer email'}</button>}
           {canManageFinances(business.role)&&['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy||!customerActionsEnabled||!previewTarget.customers?.[0]?.email} title={!previewTarget.customers?.[0]?.email?'Add a customer email address first.':undefined} onClick={()=>emailForApproval(previewTarget)}>Email customer</button>}
           {canManageFinances(business.role)&&previewTarget.status==='sent'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
           {canManageFinances(business.role)&&['accepted','converted'].includes(previewTarget.status)&&!previewTarget.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" disabled={busy} onClick={()=>setScheduleTarget(previewTarget)}>Schedule job</button>}
@@ -268,10 +275,10 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
           <button type="button" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button>
         </>} secondary={canManageFinances(business.role)?<>
-          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Get customer approval link</button>}
+          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Get / create approval link</button>}
           {offersDocumentChangeOrders('estimate',previewTarget.status)&&<DocumentChangeOrderButton business={business} kind="estimate" id={previewTarget.id} onClick={()=>setShowChangeOrders(true)}/>}
           {previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
-          {previewTarget.status==='sent'&&<><button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'expired')}>Expire</button></>}
+          {previewTarget.status==='sent'&&<><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'expired')}>Expire</button></>}
         </>:undefined}/>
         {notice&&<p role="status" className="form-message success-text">{notice}</p>}
         {error&&<p role="alert" className="form-message error-text">{error}</p>}
@@ -304,7 +311,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           {(previewTarget.issuer_snapshot?.name ? previewTarget.issuer_snapshot.document_footer : business.document_footer) && <div className="document-footer">{previewTarget.issuer_snapshot?.name ? previewTarget.issuer_snapshot.document_footer : business.document_footer}</div>}
         </article>
       </section>
-    </div>}
+    </FormDialog>}
     {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
   </div>
 }

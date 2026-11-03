@@ -1,3 +1,4 @@
+import DocumentLineEditor from '../components/DocumentLineEditor'
 import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { previewDocumentTotal } from '../lib/financialValidation'
@@ -130,7 +131,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
     setBusy(true); setError(''); setNotice('')
     try {
       const sent = await sendDocumentEmail(business.id, 'change_order', order.id)
-      setNotice(`Change order sent to ${sent.recipient}.`)
+      setNotice(`Change order ${sent.status==='delivered'?'delivered':'accepted for delivery'} to ${sent.recipient}.`)
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to email change order')
@@ -160,7 +161,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
             {canManageFinances(business.role) && order.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'sent')}>Mark sent manually</button>}
             {canManageFinances(business.role) && ['draft','sent'].includes(order.status) && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'void')}>Void</button>}
             {canManageFinances(business.role) && order.status === 'draft' && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
-            {canManageFinances(business.role) && order.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Get customer approval link</button>}
+            {canManageFinances(business.role) && order.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Get / create approval link</button>}
           </div>
         </article>
       })}
@@ -177,7 +178,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
           <label>Schedule impact (days)<input type="number" step="1" value={scheduleImpactDays} onChange={(e) => setScheduleImpactDays(e.target.value)} /></label>
           <label className="full">Schedule note<input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} placeholder="Adds one working day to completion." /></label>
         </div>
-        <div className="line-items"><div className="line-items-head"><strong>Price change</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))} aria-label="Remove line item">×</button></div>)}</div>
+        <DocumentLineEditor lines={lines} onChange={setLines} newLine={blankLine}/>
         <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved. Customer approval is the next workflow step.</small></div>
         {error && <p role="alert" className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change}>{busy ? 'Saving…' : 'Create change order'}</button></div>

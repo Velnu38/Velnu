@@ -1,3 +1,6 @@
+import DraftDocumentEditor from './DraftDocumentEditor'
+import CustomerEditDialog from './CustomerEditDialog'
+import {createReminder} from '../services/reminders'
 import {DateTime} from 'luxon'
 import {announceCalendarChange} from '../services/calendar'
 import FormDialog from './FormDialog'
@@ -12,7 +15,7 @@ import DocumentRecord, {DocumentTime, type DocumentDates} from './DocumentRecord
 import DocumentSchedule from './calendar/DocumentSchedule'
 import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
-import { createInvoiceReminder, getInvoiceDetail } from '../services/invoiceDetail'
+import { getInvoiceDetail } from '../services/invoiceDetail'
 import { recordPayment } from '../services/payments'
 import { updateInvoiceStatus } from '../services/invoices'
 import InvoiceEmailButton from './InvoiceEmailButton'
@@ -39,6 +42,9 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
+  const [showEdit,setShowEdit]=useState(false),[showCustomer,setShowCustomer]=useState(false)
+  const reminderSaving=useRef(false),reminderRetry=useRef<{signature:string;id:string}|null>(null)
+  const [receipt,setReceipt]=useState('')
   const [showJob,setShowJob]=useState(false)
   const [showResources,setShowResources]=useState(false)
   const [jobNotice,setJobNotice]=useState('')
@@ -58,12 +64,12 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
 
   async function savePayment(event:FormEvent){
     event.preventDefault();if(!detail||busy||paymentSaving.current)return;paymentSaving.current=true;setBusy(true);setError('')
-    try{const value=Number(amount);if(!Number.isFinite(value)||value<=0||value>Number(detail.invoice.balance_due))throw new Error('Enter a payment greater than zero and no more than the balance due.');if(!window.confirm('Have you actually received this payment? Finviant Office will record it, not charge the customer.'))return;const signature=JSON.stringify({id:detail.invoice.id,value,method,paymentNote});if(paymentRetryRef.current?.signature!==signature)paymentRetryRef.current={signature,requestId:crypto.randomUUID()};await recordPayment(business.id,{invoice_id:detail.invoice.id,amount:value,method,notes:paymentNote,request_id:paymentRetryRef.current.requestId});paymentRetryRef.current=null;setShowPayment(false);setPaymentNote('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to record payment')}finally{paymentSaving.current=false;setBusy(false)}
+    try{const value=Number(amount);if(!Number.isFinite(value)||value<=0||value>Number(detail.invoice.balance_due))throw new Error('Enter a payment greater than zero and no more than the balance due.');if(!window.confirm('Have you actually received this payment? Finviant Office will record it, not charge the customer.'))return;const signature=JSON.stringify({id:detail.invoice.id,value,method,paymentNote});if(paymentRetryRef.current?.signature!==signature)paymentRetryRef.current={signature,requestId:crypto.randomUUID()};await recordPayment(business.id,{invoice_id:detail.invoice.id,amount:value,method,notes:paymentNote,request_id:paymentRetryRef.current.requestId});paymentRetryRef.current=null;setReceipt(`Payment of $${value.toFixed(2)} recorded by ${method}. The customer was not charged.`);setShowPayment(false);setPaymentNote('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to record payment')}finally{paymentSaving.current=false;setBusy(false)}
   }
 
   async function saveReminder(event:FormEvent){
-    event.preventDefault();if(!detail||busy)return;setBusy(true);setError('')
-    try{const due=new Date(localInstant(reminderAt,business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone));if(Number.isNaN(due.getTime())||due.getTime()<=Date.now())throw new Error('Choose a reminder date and time in the future.');await createInvoiceReminder(business.id,detail.invoice.id,detail.invoice.customer_id,due.toISOString(),reminderNote);setShowReminder(false);setReminderAt('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to create reminder')}finally{setBusy(false)}
+    event.preventDefault();if(!detail||busy||reminderSaving.current)return;reminderSaving.current=true;setBusy(true);setError('')
+    try{const due=new Date(localInstant(reminderAt,business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone));if(Number.isNaN(due.getTime())||due.getTime()<=Date.now())throw new Error('Choose a reminder date and time in the future.');const signature=JSON.stringify({due:due.toISOString(),note:reminderNote});if(reminderRetry.current?.signature!==signature)reminderRetry.current={signature,id:crypto.randomUUID()};await createReminder(business,{id:reminderRetry.current.id,invoiceId:detail.invoice.id,customerId:detail.invoice.customer_id,dueAt:due.toISOString(),note:reminderNote});reminderRetry.current=null;setShowReminder(false);setReminderAt('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to create reminder')}finally{reminderSaving.current=false;setBusy(false)}
   }
 
   async function markSent(){if(!detail||busy)return;if(!window.confirm('This only records that you sent the invoice outside Finviant Office. It does not email the customer. Continue?'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'sent');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to mark invoice sent')}finally{setBusy(false)}}
@@ -86,7 +92,11 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
       <div><p className="eyebrow">{invoice.status}</p><h1>{invoice.invoice_number||'Invoice'}</h1><p>{customerName(customer)}{customer?.email?` · ${customer.email}`:''}</p></div>
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
+    {showEdit&&<DraftDocumentEditor businessId={business.id} kind="invoice" id={invoice.id} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()}/>}
+    {showCustomer&&<CustomerEditDialog businessId={business.id} customerId={invoice.customer_id} onClose={()=>setShowCustomer(false)} onSaved={()=>void refresh()}/>}
     <DocumentActions primary={<>
+      {canManageFinances(business.role)&&invoice.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
+      {canManageFinances(business.role)&&<button type="button" disabled={busy} onClick={()=>setShowCustomer(true)}>{customer?.email?'Edit customer':'Add customer email'}</button>}
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowPayment(true)}>Record payment</button>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&<InvoiceEmailButton key={invoice.id} businessId={business.id} invoiceId={invoice.id} recipient={customer?.email} disabled={busy} onSent={async()=>{await refresh();announceCalendarChange()}}/>}
       {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
@@ -96,15 +106,16 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
     </>} secondary={canManageFinances(business.role)&&invoice.status!=='void'?<>
       {offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
       {invoice.status==='draft'&&<button type="button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
-      {!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button type="button" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
+      {!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button type="button" className="danger-action" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
     </>:undefined}/>
+    {receipt&&<p role="status" className="form-message success-text">{receipt}</p>}
     {jobNotice&&<p className="form-message" role="status">{jobNotice}</p>}
     {error&&<p className="form-message error-text" role="alert">{error}</p>}
     <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>
     {showResources&&<RecordResourcesDialog business={business} target={{kind:'invoice',id:invoice.id}} title={invoice.invoice_number||'Invoice'} onClose={()=>setShowResources(false)}/>}
     {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
     {!canScheduleJob&&<DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />}
-    {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
+    {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>{setShowJob(false);void refresh()}} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
 
     <section className="invoice-detail-grid">
       <article className="detail-card invoice-document print-document">

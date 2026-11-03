@@ -206,7 +206,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       <label>Period <select value={range} onChange={e => setRange(e.target.value as RangeChoice)}>
         <option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All available entries</option>
       </select></label>
-      <button type="button" className="secondary-button compact" disabled={sourceState !== 'ready' || !visible.length} onClick={() => exportCsv(visible, source)}>Download CSV</button>
+      <button type="button" className="secondary-button compact" disabled={sourceState !== 'ready' || !visible.length} onClick={() => exportCsv(visible, source)}>Export shown transactions ({visible.length})</button>
     </div>
 
     {source === 'quickbooks' && <section className="bookkeeping-connect">

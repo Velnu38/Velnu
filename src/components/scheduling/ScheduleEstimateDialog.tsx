@@ -1,3 +1,4 @@
+import FormDialog from '../FormDialog'
 import { useEffect, useRef, useState } from 'react'
 import { DateTime } from 'luxon'
 import type { CurrentBusiness } from '../../lib/business'
@@ -7,14 +8,13 @@ import { announceCalendarChange } from '../../services/calendar'
 import './scheduling.css'
 
 export default function ScheduleEstimateDialog({business,estimateId,onClose,onSaved}:{business:CurrentBusiness;estimateId:string;onClose:()=>void;onSaved?:()=>void}) {
-  const zone=business.timezone || 'America/New_York',dialog=useRef<HTMLDialogElement>(null),operation=useRef(false)
+  const zone=business.timezone || 'America/New_York',operation=useRef(false)
   const [context,setContext]=useState<SchedulingContext|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true)
   const [title,setTitle]=useState(''),[site,setSite]=useState(''),[workers,setWorkers]=useState<string[]>([]),[duration,setDuration]=useState(120)
   const [from,setFrom]=useState(DateTime.now().setZone(zone).toISODate()!),[slots,setSlots]=useState<Slot[]>([]),[chosen,setChosen]=useState<string[]>([]),[finding,setFinding]=useState(false)
   const [mode,setMode]=useState<'offer'|'book'>('offer'),[note,setNote]=useState('Please choose the appointment that works best for you.'),[approved,setApproved]=useState(false)
   const [created,setCreated]=useState<{id:string;url:string;token:string;expires:string}|null>(null),[notice,setNotice]=useState(''),[refresh,setRefresh]=useState(0)
   const pending=useRef<{signature:string;id:string;token:string;send:string}|null>(null)
-  useEffect(()=>{dialog.current?.showModal()},[])
   useEffect(()=>{let active=true;setLoading(true);void getSchedulingContext(business.id,estimateId).then(data=>{
     if(!active)return;setContext(data);setTitle(data.estimate?.title || 'Service visit')
     setSite(data.estimate?.property_id || (data.properties?.length===1?data.properties[0].id:''))
@@ -62,8 +62,7 @@ export default function ScheduleEstimateDialog({business,estimateId,onClose,onSa
     finally{operation.current=false;setBusy(false)}
   }
   const when=(slot:Slot)=>`${DateTime.fromISO(slot.starts_at).setZone(zone).toFormat('ccc, MMM d · h:mm a')} – ${DateTime.fromISO(slot.ends_at).setZone(zone).toFormat('h:mm a')}`
-  return <dialog ref={dialog} className="guided-dialog" aria-labelledby="schedule-estimate-title" onCancel={e=>{e.preventDefault();close()}}>
-    <header className="guided-dialog-head"><div><p className="eyebrow">Approved estimate · {context?.estimate?.number || 'Schedule next'}</p><h2 id="schedule-estimate-title">{created?'Your next step is ready':'Find a time that works'}</h2></div><button type="button" className="calendar-arrow" aria-label="Close scheduling" disabled={busy} onClick={close}>×</button></header>
+  return <FormDialog label={created?'Your next step is ready':'Find a time that works'} cleanVersion={notice} busy={busy} onClose={onClose} wide><header className="guided-dialog-head"><div><p className="eyebrow">Approved estimate · {context?.estimate?.number || 'Schedule next'}</p><h2 id="schedule-estimate-title">{created?'Your next step is ready':'Find a time that works'}</h2></div><button type="button" className="calendar-arrow" aria-label="Close scheduling" disabled={busy} onClick={close}>×</button></header>
     {loading?<p role="status">Loading the customer, scope and crew…</p>:context && <>
       <div className="guided-summary"><strong>{context.estimate?.customer_name}</strong><span>{context.estimate?.customer_email || 'No customer email saved'}</span><details><summary>Approved scope</summary><p>{context.estimate?.scope}</p></details></div>
       {context.estimate?.job_id && <p role="status">This estimate already has a job. Open Jobs to manage its schedule.</p>}
@@ -92,5 +91,5 @@ export default function ScheduleEstimateDialog({business,estimateId,onClose,onSa
     </>}
     {notice&&<p role="status" className="guided-success">{notice}</p>}{error&&<p role="alert" className="form-message error-text">{error}</p>}
     {created&&<div className="guided-actions"><button type="button" className="primary-button" onClick={close}>Done</button></div>}
-  </dialog>
+  </FormDialog>
 }

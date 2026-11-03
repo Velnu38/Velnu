@@ -1,3 +1,4 @@
+import {useUnsavedChanges} from '../../lib/unsavedChanges'
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   draftFromBusiness,
@@ -55,6 +56,7 @@ export default function DocumentSettings({
       active = false;
     };
   }, [business.id]);
+  const guard=useUnsavedChanges(busy)
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (saving.current) return;
@@ -67,7 +69,7 @@ export default function DocumentSettings({
       const path = logo ? await uploadBusinessLogo(business, logo) : undefined;
       const saved = await updateBusinessProfile(business, brand, path);
       await saveDocumentSettings(business.id, { default_tax_rate: defaultTax });
-      onSaved(saved);
+      guard.markClean();onSaved(saved);
       setLogo(null);
       setNotice(
         "Document setup saved. New documents use these defaults; issued documents keep their saved details.",
@@ -93,7 +95,7 @@ export default function DocumentSettings({
     );
   if (loading) return <p role="status">Loading document setup…</p>;
   return (
-    <form className="settings-panel" onSubmit={submit}>
+    <form className="settings-panel" onSubmit={submit} onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
       <fieldset className="form-dialog-fields" disabled={busy}>
       <p className="quiet">
         Set the appearance and default taxes for your invoices and estimates.

@@ -35,6 +35,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showForm, setShowForm] = useState(()=>new URLSearchParams(window.location.search).get('new')==='1'&&canWrite(business.role))
   useEffect(()=>{const url=new URL(location.href);if(url.searchParams.has('new')){url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[])
+  const [noAddress,setNoAddress]=useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [newCrew,setNewCrew]=useState<string[]>([]),[newDuration,setNewDuration]=useState(120)
@@ -101,6 +102,8 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
 
   async function changeStatus(jobId: string, status: 'lead' | 'scheduled' | 'in_progress' | 'completed' | 'canceled') {
     if(saving.current)return
+    if(status==='canceled'&&!window.confirm('Cancel this job and remove its active schedule? The job remains in history.'))return
+    if(status==='completed'&&!window.confirm('Complete this job? Finviant will prepare its invoice for office review; nothing is sent.'))return
     saving.current=true;setBusy(true);setError('');setNotice('')
     try { const result=await updateJobStatus(jobId, status); if(result){setNotice(result.invoice_ready?'Job completed. An invoice draft is ready for the office to review; nothing was sent.':result.needs_pricing?'Job completed. Add the charges from the next-step prompt to prepare its invoice.':'Job completed. Its invoice needs an office review.')} await refresh() }
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to update the job') }
@@ -146,11 +149,12 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value, property_id: '' })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{[customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company}</option>)}</select></label>
           <QuickCustomer businessId={business.id} onCreated={customer=>{setCustomers(value=>[...value,customer]);setForm(value=>({...value,customer_id:customer.id,property_id:''}))}}/>
           <CustomerPropertySelect businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
+          <label className="full">{!form.property_id&&<span><input type="checkbox" checked={noAddress} onChange={e=>setNoAddress(e.target.checked)}/> Continue with no service address (for remote work or an address to confirm)</span>}</label>
           <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace water heater" required /></label>
           <label className="full">Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
           <label className="full">Schedule ({timezone})<input type="datetime-local" disabled={!canDispatch} value={form.scheduled_start} onChange={(e) => setForm({ ...form, scheduled_start: e.target.value })} /></label>
           {form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label><fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset></>}{error && <p className="form-message error-text full">{error}</p>}
-          <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy||!!form.scheduled_start&&!newCrew.length}>{busy ? 'Saving…' : 'Save job'}</button></div>
+          <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy||!!form.scheduled_start&&!form.property_id&&!noAddress||!!form.scheduled_start&&!newCrew.length}>{busy ? 'Saving…' : 'Save job'}</button></div>
         </form>
       </FormDialog>}
     </div>

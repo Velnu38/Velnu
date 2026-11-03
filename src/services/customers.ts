@@ -50,7 +50,9 @@ export async function createCustomer(businessId: string, input: CustomerInput, r
   return data
 }
 
-export async function updateCustomer(customerId: string, input: CustomerInput) {
+export async function updateCustomer(customerId: string, input: CustomerInput, businessId: string, version?:string) {
+  if(!input.first_name?.trim()&&!input.last_name?.trim()&&!input.company?.trim())throw new Error('Enter a customer name or company.')
+  if(input.email?.trim()&&!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(input.email.trim()))throw new Error('Enter a valid email address.')
   const { data, error } = await supabase
     .from('customers')
     .update({
@@ -62,10 +64,12 @@ export async function updateCustomer(customerId: string, input: CustomerInput) {
       preferred_contact: input.preferred_contact || null,
       notes: input.notes?.trim() || null,
     })
-    .eq('id', customerId)
+    .eq('id', customerId).eq('business_id',businessId)
+    .eq('updated_at',version || '')
     .select()
     .single()
 
+  if (error?.code==='PGRST116') throw new Error('This customer changed elsewhere. Close and reopen the editor before saving.')
   if (error) throw error
   return data
 }

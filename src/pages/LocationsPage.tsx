@@ -1,5 +1,6 @@
+import RecordListControls,{useRecordList} from '../components/RecordListControls'
 import WorkspaceBack from '../components/WorkspaceBack'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import GoogleMapTools from '../components/GoogleMapTools'
@@ -18,7 +19,6 @@ export default function LocationsPage({ business, onCustomers }: {
 }) {
   const [locations, setLocations] = useState<Property[]>([])
   const [selectedId, setSelectedId] = useState('')
-  const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -38,16 +38,11 @@ export default function LocationsPage({ business, onCustomers }: {
     return () => { active = false }
   }, [business.id])
 
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return locations
-    return locations.filter(loc => [loc.label, formatServiceAddress(loc), displayCustomer(loc.customers?.[0])].join(' ').toLowerCase().includes(needle))
-  }, [query, locations])
-
-  const selected = visible.find(item => item.id === selectedId) || visible[0]
+  const records=useRecordList(locations,loc=>[loc.label,formatServiceAddress(loc),displayCustomer(loc.customers?.[0])].join(' '))
+  const selected = locations.find(item => item.id === selectedId) || locations[0]
 
   return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Service locations · Google Maps</p><h1>Know where each job takes you.</h1><p className="quiet">Property addresses from customer records, ready for maps and driving directions.</p></div><button className="secondary-button compact" onClick={onCustomers}>Manage properties</button></div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Service locations · Google Maps</p><h1>Know where each job takes you.</h1><p className="quiet">Property addresses from customer records, ready for maps and driving directions.</p></div><a className="secondary-button compact" href={selected?'/?view=customers&document='+encodeURIComponent(selected.customer_id):'/?view=customers'}>Manage properties</a></div>
     {error && <p role="alert" className="form-message error-text">{error}</p>}
     {loading ? <p className="quiet">Loading service locations…</p> : locations.length === 0 ?
       <section className="detail-card locations-empty">
@@ -57,8 +52,8 @@ export default function LocationsPage({ business, onCustomers }: {
       </section> :
       <div className="locations-layout">
         <section className="locations-list detail-card" aria-label="Service location list">
-          <div className="locations-toolbar"><strong>{locations.length} saved location{locations.length === 1 ? '' : 's'}</strong><input aria-label="Search service locations" placeholder="Search address or customer…" value={query} onChange={e => setQuery(e.target.value)} /></div>
-          {visible.length === 0 ? <p className="quiet">No matching locations.</p> : visible.map(location => <button className={'locations-choice' + (selected?.id === location.id ? ' selected' : '')} key={location.id} onClick={() => setSelectedId(location.id)}>
+          <RecordListControls label="service locations" list={records}/>
+          {records.total === 0 ? <p className="quiet">No matching locations.</p> : records.visible.map(location => <button className={'locations-choice' + (selected?.id === location.id ? ' selected' : '')} key={location.id} onClick={() => setSelectedId(location.id)}>
             <span className="locations-marker" aria-hidden="true">⌖</span>
             <span><strong>{location.label || displayCustomer(location.customers?.[0])}</strong><small>{formatServiceAddress(location)}</small><small>{displayCustomer(location.customers?.[0])}</small></span>
           </button>)}

@@ -79,7 +79,7 @@ test('workbook totals and CSV include entries beyond the first API page', async 
   await expect(page.locator('.bookkeeping-overview article').nth(1).locator('strong')).toHaveText('$1,001.00')
   await expect(page.getByText('QA expense 1000',{exact:true})).toBeVisible()
   const downloaded = page.waitForEvent('download')
-  await page.getByRole('button',{name:'Download CSV'}).click()
+  await page.getByRole('button',{name:/Export shown transactions/}).click()
   const stream = await (await downloaded).createReadStream()
   let csv=''
   for await (const chunk of stream) csv += chunk.toString()
@@ -140,17 +140,17 @@ test('a failed workbook read shows unavailable totals and can recover without re
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('heading',{name:'Workbook could not be loaded'})).toBeVisible({timeout:15000})
   await expect(page.locator('.bookkeeping-overview strong')).toHaveText(['Unavailable','Unavailable','Unavailable'])
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeDisabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeDisabled()
   await expect(page.getByRole('heading',{name:'Your workbook is ready'})).toHaveCount(0)
   // One failed source must not invalidate a separately verified source.
   await page.getByRole('button',{name:'QuickBooks Online',exact:true}).click()
   await expect(page.locator('.bookkeeping-overview strong').first()).toHaveText('$150.00')
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeEnabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeEnabled()
   await page.getByRole('button',{name:'Finviant Office workbook',exact:true}).click()
   state.failManualRead = false
   await page.getByRole('button',{name:'Retry loading workbook'}).click()
   await expect(page.locator('.bookkeeping-overview strong').nth(1)).toHaveText('$35.00')
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeEnabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeEnabled()
 })
 
 test('a failed reload after a write prevents exporting the previous workbook snapshot', async ({page}) => {
@@ -167,7 +167,7 @@ test('a failed reload after a write prevents exporting the previous workbook sna
   await expect(page.getByRole('heading',{name:'Workbook could not be loaded'})).toBeVisible({timeout:15000})
   await expect(page.getByText('Replacement parts',{exact:true})).toHaveCount(0)
   await expect(page.locator('.bookkeeping-overview strong')).toHaveText(['Unavailable','Unavailable','Unavailable'])
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeDisabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeDisabled()
   state.failManualRead = false
   await page.getByRole('button',{name:'Retry loading workbook'}).click()
   await expect(page.locator('.bookkeeping-overview strong').nth(1)).toHaveText('$77.50')
@@ -181,7 +181,7 @@ test('workbook text stays inert in HTML and formula prefixes are escaped in CSV'
   await expect(page.getByText(markup,{exact:true})).toBeVisible()
   expect(await page.evaluate(() => window.qaInjected)).toBeUndefined()
   const downloaded = page.waitForEvent('download')
-  await page.getByRole('button',{name:'Download CSV'}).click()
+  await page.getByRole('button',{name:/Export shown transactions/}).click()
   const stream = await (await downloaded).createReadStream()
   let csv=''
   for await (const chunk of stream) csv += chunk.toString()

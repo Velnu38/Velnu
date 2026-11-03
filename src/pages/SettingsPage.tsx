@@ -24,6 +24,7 @@ export default function SettingsPage({ business, onSaved }: {
   business: CurrentBusiness;
   onSaved: (business: CurrentBusiness) => void;
 }) {
+  const [visited,setVisited]=useState<Set<Section>>(()=>new Set())
   const [section, setSection] = useState<Section | null>(null);
   const owner = isPrimaryOwner(business);
   const allowed = options.filter((option) => option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
@@ -57,14 +58,14 @@ export default function SettingsPage({ business, onSaved }: {
                   aria-label={option.title}
                   aria-expanded={expanded}
                   aria-controls={`settings-${option.id}-content`}
-                  onClick={() => setSection(expanded ? null : option.id)}
+                  onClick={() => {setVisited(prev=>new Set([...prev,option.id]));setSection(expanded ? null : option.id)}}
                 >
                   <span className="settings-option-copy"><strong>{option.title}</strong><span>{option.description}</span></span>
                   <svg className="settings-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
                 </button>
               </h2>
               <div id={`settings-${option.id}-content`} className="settings-disclosure-content" role="region" aria-labelledby={`settings-${option.id}-trigger`} hidden={!expanded}>
-                {expanded && content(option.id)}
+                {(expanded || visited.has(option.id)) && content(option.id)}
               </div>
             </section>
           );

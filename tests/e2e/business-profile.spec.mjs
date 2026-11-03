@@ -84,10 +84,8 @@ test('existing owner edits company details and context, then document branding i
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Company profile', exact: true }).click()
   await page.getByLabel('Business phone').fill('757-555-0199')
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByLabel('Services offered').fill('Electrical inspections and repairs')
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
-  await page.getByRole('button', { name: 'Save company profile & services' }).click()
+  await page.getByRole('button', { name: 'Save company profile' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Company profile saved' })).toBeVisible()
   await page.getByRole('button', { name: 'Invoice & estimate setup', exact: true }).click()
   await page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)').setInputFiles({

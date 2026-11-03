@@ -109,7 +109,7 @@ test('job creation preserves request identity after a lost response',async({page
 test('job status failure remains visible and makes no separate appointment write',async({page})=>{
  const s=await setup(page,{jobs:[{id:A,title:'Existing job',status:'lead',customers:customer,scheduled_start:null}]})
  await openWorkArea(page, 'Jobs')
- await page.locator('.job-row select').selectOption('completed')
+ page.once('dialog',d=>d.accept());await page.locator('.job-row select').selectOption('completed')
  await expect(page.getByRole('alert')).toBeVisible()
  expect(s.requests.filter(r=>r.path.endsWith('/appointments')&&r.method==='PATCH')).toHaveLength(0)
  expect(s.jobs[0].status).toBe('lead');expect(s.errors).toEqual([])

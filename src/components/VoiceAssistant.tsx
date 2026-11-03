@@ -1,3 +1,4 @@
+import FormDialog from './FormDialog'
 import { useEffect, useRef, useState } from 'react'
 import { isQuickInvoiceCommand } from '../lib/quickInvoice'
 import QuickInvoiceReview from './QuickInvoiceReview'
@@ -170,7 +171,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     const SpeechCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition
     if (!SpeechCtor) {
       setVoiceStatus('')
-      setError('Cloud transcription is not ready and Safari does not support browser dictation. Tap the text box and use the iPhone keyboard microphone instead.')
+      setError('Cloud transcription is not ready and Safari does not support browser dictation. Tap the text box and use your device keyboard microphone instead.')
       return
     }
     const speech = new SpeechCtor()
@@ -189,12 +190,12 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     }
     speech.onerror = event => {
       speechError = event.error === 'not-allowed' || event.error === 'service-not-allowed'
-        ? 'Microphone access was blocked. Allow it in Safari or use your iPhone keyboard microphone.'
+        ? 'Microphone access was blocked. Allow it in Safari or use your device keyboard microphone.'
         : event.error === 'no-speech'
-        ? 'No speech detected by Safari. Speak after tapping the microphone, or try your iPhone keyboard microphone.'
+        ? 'No speech detected by Safari. Speak after tapping the microphone, or try your device keyboard microphone.'
         : event.error === 'network'
-        ? 'Safari dictation could not connect. Use your iPhone keyboard microphone.'
-        : 'Browser dictation stopped before detecting speech. Use your iPhone keyboard microphone.'
+        ? 'Safari dictation could not connect. Use your device keyboard microphone.'
+        : 'Browser dictation stopped before detecting speech. Use your device keyboard microphone.'
       setVoiceStatus('')
       setError(speechError)
     }
@@ -210,7 +211,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         else setVoiceStatus('Words captured. Check the text and tap Send command when ready.')
       } else if (!speechError) {
         setVoiceStatus('')
-        setError('No text detected by the browser. Use the microphone on your iPhone keyboard in the text box.')
+        setError('No text detected by the browser. Use the microphone on your device keyboard in the text box.')
       }
     }
     recognizerRef.current = speech
@@ -346,19 +347,19 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
 
   return <>
     <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Finviant Office"><span className="mic-dot">●</span><span>Talk to Finviant Office</span></button>
-    {open && <div className="assistant-backdrop" onMouseDown={() => !recording && setOpen(false)}><section className="assistant-panel" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="assistant-head"><div><p className="eyebrow">Finviant Office</p><h2>What do you need done?</h2></div><button className="icon-button" onClick={() => !recording && setOpen(false)} type="button" aria-label="Close">×</button></div>
+    {open && <FormDialog label="Finviant assistant" cleanVersion={result} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
+      <div className="assistant-head"><div><p className="eyebrow">Finviant Office</p><h2>What do you need done?</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
       <button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy || voiceMode === 'checking'}><span className="record-orb">●</span>{recording ? 'Tap to stop' : voiceMode === 'checking' ? 'Checking voice…' : busy ? 'Working…' : 'Tap and speak'}</button>
       {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
-      <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your iPhone keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use iPhone keyboard microphone</button>
+      <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your device keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use keyboard dictation</button>
       <div className="assistant-divider"><span>or dictate / type it</span></div>
-      <p className="assistant-help">iPhone: tap in the text box, use the microphone on the iPhone keyboard, speak, and tap Done. Check that your words appear, then tap Review invoice or Send command. When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p>
+      <p className="assistant-help">Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then tap Review invoice or Send command. When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p>
       <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isQuickInvoiceCommand(text) ? 'Review invoice' : 'Send command'}</button></div>
       {quickInvoiceRequest && <QuickInvoiceReview business={business} command={quickInvoiceRequest} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(invoice) => { setQuickInvoiceRequest(null); setText(''); setResult({ invoice }); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button className="secondary-button" onClick={reject} disabled={busy}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
       <ResultView result={result} />
       {error && <p className="form-message error-text">{error}</p>}
       <div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>
-    </section></div>}
+    </section></FormDialog>}
   </>
 }

@@ -21,3 +21,11 @@ export async function saveCalendarEntry(business:string,input:{id:string;title:s
   if(!data)throw new Error('The calendar save is not confirmed. Retry the same entry.')
   announceCalendarChange();return data as CalendarEntry
 }
+
+export async function cancelCalendarEntry(business:string,previous:CalendarEntry) {
+ if(previous.job_id)throw new Error('Manage linked work from Jobs to keep the schedule consistent.')
+ const {data,error}=await supabase.from('appointments').update({status:'canceled'}).eq('business_id',business).eq('id',previous.id).eq('updated_at',previous.updated_at).select('id').maybeSingle()
+ if(error)throw error
+ if(!data){const saved=await supabase.from('appointments').select('status').eq('business_id',business).eq('id',previous.id).single();if(saved.error)throw saved.error;if(saved.data.status!=='canceled')throw new Error('This event changed elsewhere. Reopen it before canceling.')}
+ announceCalendarChange()
+}

@@ -59,10 +59,13 @@ export async function getJob(businessId: string, id: string) {
   return { ...data, customers: asList(data.customers), properties: asList(data.properties) }
 }
 
-export async function saveJobNotes(businessId: string, id: string, notes: string) {
+export async function saveJobNotes(businessId: string, id: string, notes: string, previous: string|null) {
   if (notes.length > 4000) throw new Error('Keep job notes within 4,000 characters.')
-  const { data, error } = await supabase.from('jobs').update({description: notes.trim() || null}).eq('business_id',businessId).eq('id',id).select('id').single()
-  if(error) throw error
+  let query=supabase.from('jobs').update({description:notes.trim()||null}).eq('business_id',businessId).eq('id',id)
+  query=previous===null?query.is('description',null):query.eq('description',previous)
+  const {data,error}=await query.select('id').maybeSingle()
+  if(error)throw error
+  if(!data){const current=await getJob(businessId,id);if(current.description===(notes.trim()||null)){announceCalendarChange();return}throw new Error('This job changed elsewhere. Your edits are still here. Reload the latest details before merging your changes.')}
   if(data?.id !== id) throw new Error('The saved job could not be verified.')
   announceCalendarChange()
 }

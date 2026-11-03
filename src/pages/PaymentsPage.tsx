@@ -1,3 +1,4 @@
+import RecordListControls,{useRecordList} from '../components/RecordListControls'
 import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { FormEvent, useEffect, useRef, useState } from 'react'
@@ -24,6 +25,8 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice,setNotice]=useState(''),[from,setFrom]=useState(''),[until,setUntil]=useState(''),[invoiceSearch,setInvoiceSearch]=useState('')
+  const records=useRecordList(payments.filter(p=>(!from||p.paid_at>=from)&&(!until||p.paid_at.slice(0,10)<=until)),p=>[p.invoices?.[0]?.invoice_number,customerName(p.invoices?.[0]?.customers?.[0]),p.method,p.paid_at,p.amount,p.status].join(' '))
   const submitting=useRef(false)
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
@@ -48,7 +51,7 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
       const signature = JSON.stringify({ invoiceId, amount, method, notes })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       await recordPayment(business.id, { invoice_id: invoiceId, amount: Number(amount), method, notes, request_id: retryRef.current.requestId })
-      resetForm(); setShowForm(false); await refresh()
+      setNotice(`Payment of $${Number(amount).toFixed(2)} recorded by ${method}. The customer was not charged.`);resetForm();setShowForm(false);try{await refresh()}catch{setError('Payment is recorded, but the list could not refresh. Reload the page; do not record it again.')}
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to record payment')
     } finally { submitting.current=false;setBusy(false) }
@@ -56,8 +59,10 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
 
   return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View financial performance</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
+    {notice&&<p role="status" className="form-message success-text">{notice}</p>}{error&&!showForm&&<p role="alert" className="error-text">{error}</p>}
+    <div className="toolbar"><label>Paid from<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Paid through<input type="date" min={from} value={until} onChange={e=>setUntil(e.target.value)}/></label></div><RecordListControls label="payments" list={records}/>
     <section className="list-card">
-      {payments.length === 0 ? <div className="empty-state"><div className="empty-icon">$</div><h2>No payments yet</h2><p>Record a payment here when you have actually received the funds.</p></div> : payments.map((payment) => {
+      {payments.length === 0 ? <div className="empty-state"><div className="empty-icon">$</div><h2>No payments yet</h2><p>Record a payment here when you have actually received the funds.</p></div> : records.visible.map((payment) => {
         const invoice = payment.invoices?.[0]
         const customer = invoice?.customers?.[0]
         return <article className="document-row" key={payment.id}>
@@ -70,7 +75,8 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
     {showForm && <FormDialog label="Record a payment already received" busy={busy} onClose={() => { setShowForm(false); resetForm() }}>
       <div className="modal-head"><div><p className="eyebrow">Record payment</p><h2>Record a payment already received</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form className="form-grid" onSubmit={submit}>
-        <label className="full">Invoice<select aria-label="Invoice" value={invoiceId} onChange={(e) => { const id = e.target.value; setInvoiceId(id); const inv = openInvoices.find((x) => x.id === id); if (inv) setAmount(String(inv.balance_due)) }} required><option value="">Choose unpaid invoice…</option>{openInvoices.map((invoice) => <option value={invoice.id} key={invoice.id}>{invoice.invoice_number || 'Invoice'} · {customerName(invoice.customers?.[0])} · ${Number(invoice.balance_due).toFixed(2)} due</option>)}</select></label>
+        <label className="full">Find unpaid invoice<input type="search" value={invoiceSearch} onChange={e=>setInvoiceSearch(e.target.value)} placeholder="Invoice number or customer"/></label>
+        <label className="full">Invoice<select aria-label="Invoice" value={invoiceId} onChange={(e) => { const id = e.target.value; setInvoiceId(id); const inv = openInvoices.find((x) => x.id === id); if (inv) setAmount(String(inv.balance_due)) }} required><option value="">Choose unpaid invoice…</option>{openInvoices.filter(i=>i.id===invoiceId||[i.invoice_number,customerName(i.customers?.[0])].join(' ').toLowerCase().includes(invoiceSearch.toLowerCase())).map((invoice) => <option value={invoice.id} key={invoice.id}>{invoice.invoice_number || 'Invoice'} · {customerName(invoice.customers?.[0])} · ${Number(invoice.balance_due).toFixed(2)} due</option>)}</select></label>
         <label>Amount<input type="number" min="0.01" max={selected ? Number(selected.balance_due) : undefined} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></label>
         <label>Method<select value={method} onChange={(e) => setMethod(e.target.value as typeof method)}><option value="cash">Cash</option><option value="check">Check</option><option value="card">Card</option><option value="ach">ACH</option><option value="other">Other</option></select></label>
         <label className="full">Notes<input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional note" /></label>

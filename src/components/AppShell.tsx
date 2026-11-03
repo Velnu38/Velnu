@@ -1,3 +1,5 @@
+import FormDialog from './FormDialog'
+import {confirmNavigation} from '../lib/unsavedChanges'
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
 import { lazy, Suspense, useState, useEffect, useRef, type MouseEvent } from 'react'
 import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
@@ -78,18 +80,21 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check) }
   }, [business.id])
 
-  const navigationIndex = useRef(0)
+  const navigationIndex = useRef(0),lastLocation=useRef(location.href)
+  useEffect(()=>{const remember=()=>queueMicrotask(()=>{lastLocation.current=location.href});document.addEventListener('click',remember);return()=>document.removeEventListener('click',remember)},[])
   useEffect(() => {
     window.history.replaceState({...window.history.state,finviantIndex:0},'',window.location.href)
-    const pop=()=>{navigationIndex.current=Number(window.history.state?.finviantIndex)||0;setView(initialView());setRefreshVersion(v=>v+1);setShowMobileMore(false)}
+    const pop=()=>{if(!confirmNavigation()){history.pushState({finviantIndex:navigationIndex.current},'',lastLocation.current);return}lastLocation.current=location.href;navigationIndex.current=Number(window.history.state?.finviantIndex)||0;setView(initialView());setRefreshVersion(v=>v+1);setShowMobileMore(false)}
     window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)
   },[])
   function back() {
     if(navigationIndex.current>0){window.history.back();return}
+    if(!confirmNavigation())return
     window.history.replaceState({...window.history.state,finviantIndex:0},'','/?view=dashboard');setView('dashboard')
   }
   function navigate(next: View) {
-    if(next===view)return
+    if(next===view){setShowMobileMore(false);return}
+    if(!confirmNavigation())return
     navigationIndex.current++
     window.history.pushState({finviantIndex:navigationIndex.current},'','/?view='+next)
     setView(next)
@@ -102,7 +107,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     if(!(link instanceof HTMLAnchorElement)||link.target||link.hasAttribute('download'))return
     const url=new URL(link.href)
     if(url.origin!==location.origin||url.pathname!=='/'||!nav.some(item=>item.id===url.searchParams.get('view')))return
-    event.preventDefault();navigationIndex.current++
+    event.preventDefault();if(!confirmNavigation())return;navigationIndex.current++
     window.history.pushState({finviantIndex:navigationIndex.current},'',url.pathname+url.search)
     setView(initialView());setRefreshVersion(v=>v+1);setShowMobileMore(false)
   }
@@ -129,7 +134,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       <aside className="sidebar">
         <div className="sidebar-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><span>Finviant <span className="finviant-product">Office</span></span></div>
         <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
-        <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+        <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => {if(confirmNavigation())void supabase.auth.signOut()}}>Sign out</button></div>
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><strong>Finviant <span className="finviant-product">Office</span></strong></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
@@ -141,18 +146,18 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span>{item.icon}</span><small>{item.label}</small></button>
         })}
-        <button aria-label="More" className={mobileMore.includes(view) || showMobileMore ? 'active' : ''} onClick={() => setShowMobileMore(true)}><span>•••</span><small>More</small></button>
+        <button aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={mobileMore.includes(view) || showMobileMore ? 'active' : ''} onClick={() => setShowMobileMore(true)}><span>•••</span><small>More</small></button>
       </nav>
-      {showMobileMore && <div className="mobile-more-backdrop" onMouseDown={() => setShowMobileMore(false)}><section className="mobile-more-sheet" onMouseDown={(e) => e.stopPropagation()}>
+      {showMobileMore && <FormDialog label="More navigation" onClose={()=>setShowMobileMore(false)}><section className="mobile-more-sheet" id="mobile-more-options">
         <div className="mobile-more-handle" />
         <div className="mobile-more-head"><div><p className="eyebrow">Finviant Office</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)} type="button" aria-label="Close">×</button></div>
         <div className="mobile-more-grid">{mobileMore.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon" aria-hidden="true">{item.icon}</span><strong>{item.label}</strong></button>
         })}</div>
-        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
-      </section></div>}
-      {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => setRefreshVersion((v) => v + 1)} />}
+        <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => {if(confirmNavigation())void supabase.auth.signOut()}}>Sign out</button></div>
+      </section></FormDialog>}
+      {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => {if(confirmNavigation())setRefreshVersion((v) => v + 1)}} />}
     </div></WorkspaceNavigation.Provider>
   )
 }

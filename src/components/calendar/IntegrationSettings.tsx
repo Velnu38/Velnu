@@ -145,13 +145,14 @@ function ProviderCard({
               disabled={busy}
               onClick={() =>
                 void run(async () => {
+                  if(!window.confirm("Disconnect this calendar and remove Finviant’s published events from it? Your personal calendar events stay unchanged."))return;
                   await calendarRequest("disconnect", businessId, "DELETE", {
                     integrationId: integration.id,
                   });
                 })
               }
             >
-              Disconnect
+              Disconnect & remove published events
             </button>
             <button
               className="text-button"
@@ -214,6 +215,7 @@ function ProviderCard({
               disabled={busy}
               onClick={() =>
                 void run(async () => {
+                  if(!window.confirm("Disconnect this calendar and remove Finviant’s published events from it? Your personal calendar events stay unchanged."))return;
                   await calendarRequest("disconnect", businessId, "DELETE", {
                     integrationId: integration.id,
                     forget: true,

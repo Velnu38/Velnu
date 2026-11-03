@@ -52,7 +52,7 @@ export async function manageMember(
   businessId: string,
   target: string,
   action: "update" | "remove" | "revoke",
-  role?: TeamRole,
+  role?: TeamRole | "admin",
   modules?: WorkspaceModule[],
 ) {
   const { error } = await supabase.rpc("manage_team_member", {
