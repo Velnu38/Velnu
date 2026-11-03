@@ -103,3 +103,11 @@
 .attention-pagination button{min-height:44px}
 .attention-pagination button:disabled{opacity:.45;cursor:default}
 @media(max-width:480px){.attention-pagination{align-items:flex-start;flex-direction:column;padding-inline:16px}.attention-pagination>div{width:100%}.attention-pagination button{flex:1}}
+
+/* Keep the active-work summary and its full jobs destination together. */
+.dashboard-page .jobs-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 22px 18px}
+.dashboard-page .jobs-active-metric{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;padding:15px 14px;text-align:left;border:1px solid var(--tile-border);border-radius:14px;background:var(--tile-soft)}
+.dashboard-page .jobs-active-metric>span{font-size:12px;font-weight:600;color:var(--tile-muted)}
+.dashboard-page .jobs-active-metric>small{font-size:10px;line-height:1.5;color:var(--tile-muted)}
+.dashboard-page .jobs-summary .jobs-open{margin:0;width:100%;max-width:none;min-height:44px;padding:14px;gap:8px;border-radius:14px}
+@media(max-width:650px){.dashboard-page .jobs-summary{margin-inline:16px}.dashboard-page .jobs-active-metric>span{font-size:11px}}

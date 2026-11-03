@@ -250,7 +250,9 @@ test('technician keeps field navigation but cannot edit invoices, estimates or p
   await mockWorkspace(page, { role: 'technician' })
   await page.goto('/')
   await openWorkArea(page, 'Jobs')
-  await expect(page.getByRole('button', { name: '+ New job' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '+ New job' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
+  await expect(page.getByRole('link', { name: '+ New job', exact: true })).toBeVisible()
   for (const view of ['invoices', 'estimates', 'payments']) {
     await page.goto('/?view=' + view)
     await expect(page.getByText('This area is not included in your access. Contact your primary business owner.')).toBeVisible()
