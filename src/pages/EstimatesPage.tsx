@@ -1,3 +1,5 @@
+import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {readableError} from '../lib/errors'
 import DocumentLineEditor from '../components/DocumentLineEditor'
 import DraftDocumentEditor from '../components/DraftDocumentEditor'
 import CustomerEditDialog from '../components/CustomerEditDialog'
@@ -85,6 +87,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     return estimateRows as Estimate[]
   }
 
+  useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates')) }, [business.id])
 
   const linkedDocumentOpened = useRef(false)

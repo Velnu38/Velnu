@@ -1,3 +1,5 @@
+import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {readableError} from '../lib/errors'
 import CustomerEditDialog from './CustomerEditDialog'
 import RecordListControls,{useRecordList} from './RecordListControls'
 import {CreatedStamp,type DocumentDates} from './DocumentRecord'
@@ -33,6 +35,7 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
   const request=useRef(0)
   const billing=canAccess(business,'billing'),jobs=canAccess(business,'jobs')
   async function refresh(){const current=++request.current;setLoading(true);setError('');try{const next=await getCustomerDetail(business.id,customerId,{billing,jobs}) as Detail;if(current===request.current)setDetail(next)}catch(e){if(current===request.current)setError(e instanceof Error?e.message:'Unable to load customer records.')}finally{if(current===request.current)setLoading(false)}}
+  useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(()=>{setDetail(null);void refresh();return()=>{request.current++}},[business.id,customerId,billing,jobs])
   const estimateList=useRecordList(detail?.estimates||[],row=>[row.estimate_number,row.status,row.issue_date,row.created_at].join(' '))
   const invoiceList=useRecordList(detail?.invoices||[],row=>[row.invoice_number,row.status,row.issue_date,row.created_at].join(' '))

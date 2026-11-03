@@ -1,6 +1,6 @@
 # Flow and friction audit remediation — November 3, 2026
 
-Implements recommendations F01–F40 from the source-based flow audit. Source baseline: d97939f09682e063ede6e82dbca8095cb6ed1082. Release verification is pending until the complete automated suite and private deployment finish.
+Implements recommendations F01–F40 from the source-based flow audit. Source baseline: d97939f09682e063ede6e82dbca8095cb6ed1082. Release verification requires the complete automated suite, merge and protected deployment. See the ongoing assessment for the final evidence and release identity.
 
 | Audit IDs | Resulting behavior |
 | --- | --- |

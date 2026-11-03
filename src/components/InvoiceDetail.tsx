@@ -1,3 +1,5 @@
+import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {readableError} from '../lib/errors'
 import DraftDocumentEditor from './DraftDocumentEditor'
 import CustomerEditDialog from './CustomerEditDialog'
 import {createReminder} from '../services/reminders'
@@ -60,6 +62,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
   const paymentRetryRef=useRef<{signature:string; requestId:string}|null>(null)
 
   async function refresh(){setLoading(true);setError('');try{const next=await getInvoiceDetail(business.id,invoiceId) as Detail;setDetail(next);setAmount(String(next.invoice.balance_due))}catch(err){setError(err instanceof Error?err.message:'Unable to load invoice')}finally{setLoading(false)}}
+  useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(()=>{setDetail(null);setShowChangeOrders(false);void refresh()},[business.id,invoiceId])
 
   async function savePayment(event:FormEvent){

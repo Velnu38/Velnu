@@ -1,3 +1,5 @@
+import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {readableError} from '../lib/errors'
 import RecordListControls,{useRecordList} from '../components/RecordListControls'
 import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
@@ -36,6 +38,7 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
     setOpenInvoices(invoiceRows as OpenInvoice[])
   }
 
+  useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load payments')) }, [business.id])
 
   const selected = openInvoices.find((invoice) => invoice.id === invoiceId)

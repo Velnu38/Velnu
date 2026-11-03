@@ -157,7 +157,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         })}</div>
         <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => {if(confirmNavigation())void supabase.auth.signOut()}}>Sign out</button></div>
       </section></FormDialog>}
-      {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => {if(confirmNavigation())setRefreshVersion((v) => v + 1)}} />}
+      {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'))}} />}
     </div></WorkspaceNavigation.Provider>
   )
 }

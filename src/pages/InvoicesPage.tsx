@@ -1,3 +1,5 @@
+import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {readableError} from '../lib/errors'
 import DocumentLineEditor from '../components/DocumentLineEditor'
 import {CreatedStamp,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
@@ -71,6 +73,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
     setCustomers(customerRows as Customer[])
   }
 
+  useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load invoices')) }, [business.id])
 
   const pricedLines = useMemo(() => adjustPrices && isPrimaryOwner(business) ? lines.map(line => { try { return {...line,unit_price:line.unit_price ? adjustedPrice(line.unit_price,pricingAdjustment) : ''} } catch { return {...line,unit_price:'invalid'} } }) : lines,[lines,adjustPrices,pricingAdjustment,business.primary_owner])
