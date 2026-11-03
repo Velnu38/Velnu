@@ -96,9 +96,10 @@
 
 /* Positive action counts use one accessible red; zero stays neutral. */
 .dashboard-page .billing-metric.has-attention strong{color:#b42318}
-.attention-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--tile-border,#dce3ec);padding-top:14px;margin-top:14px}
+.attention-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--tile-border,#dce3ec);padding:14px 22px 18px;margin-top:14px}
 .attention-pagination p{margin:0;font-size:13px;color:var(--tile-muted,#56677b)}
 .attention-pagination small{display:block;margin-top:3px}
 .attention-pagination>div{display:flex;gap:8px}
 .attention-pagination button{min-height:44px}
-@media(max-width:480px){.attention-pagination{align-items:flex-start;flex-direction:column}.attention-pagination>div{width:100%}.attention-pagination button{flex:1}}
+.attention-pagination button:disabled{opacity:.45;cursor:default}
+@media(max-width:480px){.attention-pagination{align-items:flex-start;flex-direction:column;padding-inline:16px}.attention-pagination>div{width:100%}.attention-pagination button{flex:1}}
