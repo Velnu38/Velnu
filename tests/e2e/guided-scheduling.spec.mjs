@@ -1,3 +1,4 @@
+import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
@@ -139,7 +140,7 @@ test('stale customer slot reports a conflict and never claims confirmation',asyn
  await expect(page.getByRole('button',{name:'Refresh appointment times'})).toBeVisible()
 })
 test('a typed customer stays in the estimate draft without losing line-item work',async({page})=>{
- await mock(page);await page.goto('/?view=estimates');await page.getByRole('button',{name:'+ New estimate'}).click()
+ await mock(page);await page.goto('/?view=estimates');await createWork(page, 'estimate')
  await page.getByPlaceholder('Description',{exact:true}).fill('Keep this scope');await page.getByPlaceholder('Unit price',{exact:true}).fill('250')
  await page.getByLabel('Customer name',{exact:true}).fill('New Customer')
  await page.getByText('Add email or phone (optional)',{exact:true}).click()

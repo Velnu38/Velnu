@@ -1,3 +1,4 @@
+import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import { test, expect } from '@playwright/test'
 import { DateTime } from 'luxon'
@@ -691,7 +692,7 @@ test('dashboard layout uses the business name, puts calendar first, and opens on
   const jobs = page.getByRole('article', { name: 'Jobs overview' })
   await expect(jobs).not.toContainText('Reminders')
   await expect(jobs).not.toContainText('schedule')
-  await jobs.getByRole('button', { name: 'Open jobs', exact: false }).click()
+  await jobs.getByRole('button', { name: /Active jobs/ }).click()
   await expect(page.getByRole('heading', { name: 'Keep every job moving.' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Jobs and schedule views' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '+ New job', exact: true })).toHaveCount(0)
@@ -780,10 +781,12 @@ for (const width of [1440, 390]) {
     await expect(hub.getByRole('button',{name:'Invoices',exact:true})).toBeVisible()
     const jobWidget=page.getByRole('article',{name:'Jobs overview'})
     await expect(jobWidget.locator('.jobs-active-count')).toHaveText('3')
-    const activeBox=jobWidget.getByRole('button',{name:/Active jobs/}),openJobs=jobWidget.getByRole('button',{name:'Open jobs',exact:true})
-    const activeBounds=await activeBox.boundingBox(),openBounds=await openJobs.boundingBox()
-    expect(Math.abs(activeBounds.y-openBounds.y)).toBeLessThan(1)
-    expect(openBounds.x).toBeGreaterThan(activeBounds.x+activeBounds.width)
+    const activeBox=jobWidget.getByRole('button',{name:/Active jobs/})
+    await expect(activeBox).toBeEnabled()
+    await expect(jobWidget.getByRole('button')).toHaveCount(1)
+    await expect(jobWidget.getByRole('button',{name:'Open jobs',exact:true})).toHaveCount(0)
+    const activeBounds=await activeBox.boundingBox(),summaryBounds=await jobWidget.locator('.jobs-summary').boundingBox()
+    expect(Math.abs(activeBounds.width-summaryBounds.width)).toBeLessThan(1)
     await expect(page.locator('.sidebar,.mobile-nav,.mobile-more-grid').getByRole('button',{name:'Jobs',exact:true})).toHaveCount(0)
     await expect(page.getByRole('link',{name:'+ New job',exact:true})).toHaveCount(1)
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
@@ -897,7 +900,7 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await mockWorkspace(page);let payload
  await page.route('**/rest/v1/business_settings?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({default_tax_rate:5.3,pricing_adjustment_percent:3,payment_links:[],payment_instructions:''})}))
  await page.route('**/rest/v1/rpc/create_document',r=>{payload=r.request().postDataJSON();return r.fulfill({contentType:'application/json',body:JSON.stringify({id:id(910)})})})
- await page.goto('/?view=invoices');await page.getByRole('button',{name:'+ New invoice'}).click()
+ await page.goto('/?view=invoices');await createWork(page, 'invoice')
  await page.getByText('Choose from saved customers',{exact:true}).click()
  await page.getByLabel('Customer',{exact:true}).selectOption(CID)
  await page.getByPlaceholder('Description',{exact:true}).fill('Service work');await page.getByPlaceholder('Unit price',{exact:true}).fill('100')
@@ -905,7 +908,7 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await expect(page.locator('.estimate-total strong')).toHaveText('$105.30')
  await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.estimate-total strong')).toHaveText('$108.46')
  await page.getByRole('button',{name:'Create invoice',exact:true}).click();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
- await page.goto('/?view=estimates');await page.getByRole('button',{name:'+ New estimate'}).click();await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
+ await page.goto('/?view=estimates');await createWork(page, 'estimate');await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
 })
 
 test('owner settings invoice payment buttons use saved links and do not record payments',async({page})=>{
@@ -1031,7 +1034,7 @@ test('interactive dashboard navigation does not treat an invoice link as a job l
  await page.goto('/?view=invoices&document='+invoice.id)
  await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'Dashboard',exact:true}).click()
- await page.getByRole('button',{name:'Open jobs',exact:false}).click()
+ await page.getByRole('button',{name:/Active jobs/}).click()
  await expect(page.getByRole('heading',{name:'Keep every job moving.'})).toBeVisible()
  await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
  await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -1046,7 +1049,7 @@ test('volume lists reach historical invoices beyond 1000 and keep 25 rows per pa
  await page.getByRole('searchbox',{name:'Search invoices'}).fill('QA-0000')
  await expect(page.getByText('1 records · Page 1 of 1')).toBeVisible()
  await expect(page.getByRole('button',{name:/QA-0000/})).toBeVisible()
- await page.getByRole('button',{name:'+ New invoice'}).click()
+ await createWork(page, 'invoice')
  await page.getByLabel('Issue date',{exact:true}).fill('2026-01-01')
  await page.getByLabel('Due date',{exact:true}).fill('2026-01-31')
  await expect(page.getByLabel('Issue date',{exact:true})).toHaveValue('2026-01-01')

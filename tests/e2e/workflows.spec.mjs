@@ -1,4 +1,4 @@
-import { openWorkArea } from './navigation.mjs'
+import { openWorkArea, createWork } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 
 // Browser workflow tests use a fake Supabase API. No customers are emailed, no
@@ -119,7 +119,7 @@ test('owner creates a branded invoice atomically and it remains a draft until ma
   const state = await mockWorkspace(page)
   await page.goto('/')
   await openWorkArea(page, 'Invoices')
-  await page.getByRole('button', { name: '+ New invoice' }).click()
+  await createWork(page, 'invoice')
   await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
@@ -144,7 +144,7 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   page.on('dialog', async dialog => { await dialog.accept() })
   await page.goto('/')
   await openWorkArea(page, 'Estimates')
-  await page.getByRole('button', { name: '+ New estimate' }).click()
+  await createWork(page, 'estimate')
   await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('Faucet repair')
@@ -313,7 +313,7 @@ test('fractional invoice preview and saved draft retain database per-line roundi
   const state = await mockWorkspace(page, { documentTotals: { subtotal: 0.04, tax_amount: 0 }, invoiceItems })
   await page.goto('/')
   await openWorkArea(page, 'Invoices')
-  await page.getByRole('button', { name: '+ New invoice' }).click()
+  await createWork(page, 'invoice')
   await page.getByText('Choose from saved customers', { exact: true }).click()
   await page.getByLabel('Customer', { exact: true }).selectOption(customerId)
   await page.getByPlaceholder('Description').fill('First fractional service')
