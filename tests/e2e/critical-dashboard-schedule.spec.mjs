@@ -48,6 +48,7 @@ async function mockWorkspace(page, options = {}) {
     invoices: [...(options.invoices || [])],
     estimates: [...(options.estimates || [])],
     changeOrders: [...(options.changeOrders || [])],
+    attentionNow: options.attentionNow,
     workflow: options.workflow || {approved:[],completed:[]}, attentionFailure:false, attentionDelay:0,
     requests: [],
     photos: [], expenses: [], storageWrites: 0,
@@ -625,13 +626,8 @@ test('calendar reminders can be linked to a job', async ({ page }) => {
 })
 
 test('calendar dashboard shows daily work, overdue reminders, completion, and another date', async ({ page }) => {
-  await mockWorkspace(page)
-  let completed = false
+  await mockWorkspace(page,{reminders:[{...reminder(2),note:'Confirm materials'}]})
   await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', headers:{'access-control-expose-headers':'content-range','content-range':'0-0/1'}, body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
-  await page.route('**/rest/v1/reminders?**', route => {
-    if (route.request().method() === 'PATCH') { completed = true; return route.fulfill({contentType:'application/json',body:JSON.stringify({id:id(2)})}) }
-    return route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':completed?'*/0':'0-0/1'},body:JSON.stringify(completed?[]:[{id:id(2),note:'Confirm materials',due_at:new Date(Date.now()-3600000).toISOString(),job_id:null}])})
-  })
   await page.goto('/')
   const calendar = page.getByRole('region', {name:'Work calendar'})
   await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
@@ -1069,7 +1065,7 @@ for(const width of [1440,390])test(`invoice creates one linked scheduled job wit
 test('sent invoices need attention only with an unpaid balance before the business calendar day',async({page})=>{
  await page.clock.install({time:new Date('2026-11-04T02:00:00Z')}) // November 3 in New York
  const invoices=[['FUTURE','sent','2026-11-05',100],['TODAY','sent','2026-11-03',100],['NO-DUE','sent',null,100],['OVERDUE','sent','2026-11-02',100],['PARTIAL','partial','2026-11-02',20],['PAID','paid','2026-11-02',0],['DRAFT','draft','2026-11-02',100],['VOID','void','2026-11-02',100]].map(([number,status,due,balance],n)=>({id:id(310+n),invoice_number:'INV-'+number,status,due_date:due,balance_due:balance,total:100,issue_date:'2026-11-01',customers:customer}))
- const state=await mockWorkspace(page,{invoices,sessionTTL:259200,aggregate:{open_invoices:5,outstanding_balance:420}});await page.goto('/')
+ const state=await mockWorkspace(page,{invoices,attentionNow:Date.parse('2026-11-04T02:00:00Z'),sessionTTL:259200,aggregate:{open_invoices:5,outstanding_balance:420}});await page.goto('/')
  const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention.getByRole('link',{name:/Open invoice INV-OVERDUE/})).toBeVisible()
  await expect(attention.getByRole('link',{name:/Open invoice INV-PARTIAL/})).toBeVisible()
