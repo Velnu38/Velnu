@@ -54,7 +54,7 @@ export async function fixture() {
   const calendar=await readFile('supabase/migrations/20261102144435_calendar_sync_dashboard.sql','utf8')
   await db.exec(calendar.slice(calendar.indexOf('create view public.calendar_work'),calendar.indexOf('-- A unified projection')))
   await db.exec(migration)
-  await db.exec(await readFile('supabase/migrations/20261103004151_dashboard_attention_calendar_sync.sql','utf8'))
+  await db.exec(await readFile('supabase/migrations/20261103004720_dashboard_attention_calendar_sync.sql','utf8'))
   await db.exec(`insert into auth.users values('${ids.owner}','owner@example.test'),('${ids.worker}','worker@example.test'),('${ids.outsider}','outsider@example.test');
     select set_config('request.jwt.claim.sub','${ids.owner}',false);
     insert into businesses(id,name) values('${ids.business}','Test Trades'),('${ids.other}','Other');
