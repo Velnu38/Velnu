@@ -69,7 +69,7 @@ export default function RecordResources({ business, target }: { business: Curren
     }, 'Expense saved to this record and Financial Performance.')
   }
   const totalCents = expenses.reduce((sum, row) => sum + Math.round(Number(row.amount) * 100), 0)
-  return <section className="record-resources calendar-no-print" aria-label="Photos and expenses">
+  return <section data-editor-independent data-unsaved={dirty} data-saving={busy} aria-busy={busy} className="record-resources calendar-no-print" aria-label="Photos and expenses">
     <div className="record-resources-head"><div><h2>Photos &amp; expenses</h2><p className="quiet">Internal business records. Expenses do not change customer charges.</p></div><button type="button" className="secondary-button compact" disabled={busy || loading} onClick={() => { setError(''); setVersion(v => v + 1) }}>Refresh photos &amp; expenses</button></div>
     {error && <p role="alert" className="form-message error-text">{error}</p>}
     {notice && <p role="status" className="form-message">{notice}</p>}
