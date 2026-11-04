@@ -17,5 +17,6 @@ export async function accountDatabase(){
  create function public.get_plan_usage(b uuid) returns jsonb language sql as $$select '{"plan":"pro"}'::jsonb$$;
  grant select on public.record_photos to authenticated;`);
  await db.exec(await readFile('supabase/migrations/20261104213217_fin_account_coverage.sql','utf8'));
+ await db.exec(await readFile('supabase/migrations/20261104213955_fin_support_reporter_scope.sql','utf8'));
  await db.exec('set role authenticated');return db;
 }

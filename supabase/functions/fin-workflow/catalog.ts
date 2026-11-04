@@ -929,7 +929,7 @@ export const accountCatalog = {
         "updated_at"
       ],
       "fields": {},
-      "handoff": "Open Help & support to submit or reply to a case. Fin reads only cases visible to the signed-in reporter or primary owner.",
+      "handoff": "Open Help & support to submit or reply to a case. Fin reads only cases opened by the signed-in user, matching Help & support.",
       "module": null
     }
   },
