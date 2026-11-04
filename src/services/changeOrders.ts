@@ -26,7 +26,7 @@ export interface ChangeOrderInput {
 export async function listChangeOrders(businessId: string) {
   const { data, error } = await supabase
     .from('change_orders')
-    .select('id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,source_invoice_id,estimate_id,issue_date,subtotal,tax_amount,total,sent_at,approved_at,declined_at,customer_id,job_id,customers!change_orders_customer_id_fkey(id,first_name,last_name,company),jobs!change_orders_job_id_fkey(id,title,status)')
+    .select('created_at,updated_at,id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,source_invoice_id,estimate_id,issue_date,subtotal,tax_amount,total,sent_at,approved_at,declined_at,customer_id,job_id,customers!change_orders_customer_id_fkey(id,first_name,last_name,company,email,phone),jobs!change_orders_job_id_fkey(id,title,status)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
 
@@ -74,4 +74,10 @@ export async function getDocumentChangeContext(kind:'invoice'|'estimate',id:stri
 export async function createDocumentChangeOrder(kind:'invoice'|'estimate',id:string,request:string,input:{title:string;description:string;reason:string;schedule_impact_days:number;schedule_note:string;items:ChangeOrderLineInput[]}){
  validateDocumentInput({customer_id:id,items:input.items})
  const {data,error}=await supabase.rpc('create_document_change_order',{p_kind:kind,p_document:id,p_request:request,p_input:input});if(error)throw error;return data
+}
+
+export async function listChangeOrderItems(businessId:string,id:string){
+ const {data,error}=await supabase.from('change_order_items').select('id,description,quantity,unit_price,tax_rate,line_total').eq('business_id',businessId).eq('change_order_id',id).order('sort_order',{ascending:true})
+ if(error)throw error
+ return data??[]
 }

@@ -1,3 +1,4 @@
+import DocumentDeliveryOptions from './DocumentDeliveryOptions'
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react'
 import type {CurrentBusiness} from '../lib/business'
 import {canManageFinances} from '../lib/business'
@@ -25,7 +26,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  useUnsavedChanges(busy)
  const [email,setEmail]=useState(''),[phone,setPhone]=useState(''),[contactOpen,setContactOpen]=useState(false)
  const [saved,setSaved]=useState<SavedDocument|null>(null),[sending,setSending]=useState(false)
- const sendId=useRef(crypto.randomUUID())
+ const sendId=useRef(crypto.randomUUID()),emailInput=useRef<HTMLInputElement|null>(null)
  const selected=customers.find(c=>c.id===customerId)
  useEffect(()=>{setEmail(selected?.email||'');setPhone(selected?.phone||'')},[customerId,selected?.email,selected?.phone])
  const emailValid=/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email.trim()),phoneValid=!!normalizeMobile(phone)
@@ -70,7 +71,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  {!customerId&&customerMode==='choose'&&<p className="form-message">Who is this for? Choose a customer. Your charges and total are ready below.</p>}
  {!customerId&&customerMode==='new'&&<label>New customer name or company<input value={customerName} onChange={e=>setCustomerName(e.target.value)} required maxLength={160}/></label>}
  <details className="voice-contact-details" open={contactOpen} onToggle={e=>setContactOpen(e.currentTarget.open)}><summary>{email.trim()||phone.trim()?'Customer contact details':'Add email or phone to send (optional)'}</summary>
- <div className="form-grid"><label>Customer email<input type="email" value={email} autoComplete="email" maxLength={254} onChange={e=>setEmail(e.target.value)}/></label><label>Customer phone<input type="tel" value={phone} autoComplete="tel" maxLength={40} onChange={e=>setPhone(e.target.value)}/></label></div>
+ <div className="form-grid"><label>Customer email<input ref={emailInput} type="email" value={email} autoComplete="email" maxLength={254} onChange={e=>setEmail(e.target.value)}/></label><label>Customer phone<input type="tel" value={phone} autoComplete="tel" maxLength={40} onChange={e=>setPhone(e.target.value)}/></label></div>
  <p className="quiet">Contact changes are saved to this customer when you save the document.</p>
  {!contactsValid&&<p className="form-message error-text">Check the email or phone number, or leave it blank to save a draft.</p>}</details>
  <div className="voice-line-list" aria-label="Charge lines">
@@ -87,14 +88,11 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
 
  {mismatch&&<div className="form-message error-text" role="alert">Spoken total: {statedTotal===''?'needs review':'$'+Number(statedTotal).toFixed(2)}. It does not match the calculated total. Check the lines, or explicitly choose the calculated total.<button type="button" className="secondary-button" onClick={()=>setStatedTotal(null)}>Use calculated total</button></div>}
  </fieldset>
- <p className="quick-invoice-note">Review the customer, charges and total. Email saves this {kind} and sends it in one step. Save draft does not send anything.</p>
+ <p className="quick-invoice-note">Review the customer, charges and total. Send email saves this {kind} and sends it in one step. Save draft does not send anything.</p>
  {saved&&<p className="form-message">Your {kind} is saved. Email delivery is not confirmed. Retry below using the same document, or finish and check its activity before sending again.</p>}
  {error&&<p role="alert" className="form-message error-text">{error}</p>}
  <div className="voice-document-total" role="status"><span>Total</span><strong>{total===null?'Add missing amounts':'$'+total.toFixed(2)}</strong></div>
- <div className="voice-delivery-options" aria-label="Send this document">
- {email.trim()&&<div className="voice-delivery-option"><button type="button" className="primary-button" disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!emailValid||!customerActionsEnabled||!canManageFinances(business.role)} onClick={()=>void save(true)}>{sending?'Saving and sending…':saved?'Retry email':`Email ${kind}`}</button><span>To: {email.trim()}</span>{!customerActionsEnabled&&<p className="quiet">Email sending is awaiting delivery setup. You can save a draft now.</p>}</div>}
- {phone.trim()&&<div className="voice-delivery-option"><button type="button" className="secondary-button" disabled aria-describedby="voice-sms-status">Text {kind}</button><span>To: {phone.trim()}</span><p id="voice-sms-status" className="quiet">{phoneValid?'Customer text delivery is awaiting SMS setup. This number will be saved with the customer.':'Enter a valid mobile number to use text delivery.'}</p></div>}
- {!email.trim()&&!phone.trim()&&<p className="quiet">Add an email or phone above to see delivery options, or save a draft.</p>}
- </div>
+ <DocumentDeliveryOptions kind={kind} email={email} phone={phone} contactDisabled={busy||loading||!!saved} disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!canManageFinances(business.role)} sending={sending} emailLabel={saved?'Retry email':'Send email'} onEmail={()=>void save(true)} onEditContact={()=>{setContactOpen(true);requestAnimationFrame(()=>emailInput.current?.focus())}}/>
+
  <div className="preview-actions">{!saved&&<button type="button" className="secondary-button" onClick={onCancel}>Back</button>}<button type="submit" className={emailValid?'secondary-button':'primary-button'} disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!canManageFinances(business.role)}>{busy&&!sending?'Saving draft…':saved?'Done — keep saved document':`Save draft ${kind}`}</button></div></fieldset></form></section>
 }
