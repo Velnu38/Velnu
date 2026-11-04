@@ -4,7 +4,7 @@ test.setTimeout(60000)
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'}
 const reply=(route,json,status=200)=>route.fulfill({status,headers:{...cors,'access-control-expose-headers':'content-range','content-range':Array.isArray(json)?`0-${Math.max(0,json.length-1)}/${json.length}`:'0-0/1'},json})
 async function setup(page,contact={email:'customer@example.test',phone:'7575550123'}){
- const state=await mock(page,{ai:true});Object.assign(state.customers[0],contact)
+ const state=await mock(page,{ai:true});state.customers[0]={...state.customers[0],...contact}
  const person={...customer,...contact,updated_at:'2026-11-04T10:00:00Z'}
  const common={customer_id:C,status:'draft',issue_date:'2026-11-04',created_at:'2026-11-04T10:00:00Z',total:105,subtotal:100,tax_amount:5,amount_paid:0,balance_due:105,customers:person}
  const invoice={...common,id:E,invoice_number:'INV-QA'},estimate={...common,id:E,estimate_number:'EST-QA'}
