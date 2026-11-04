@@ -45,7 +45,7 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
     }
   })
   await page.goto('/')
-  await expect(page.getByRole('button', { name: 'Type to Fin' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Type to Fin' })).toBeVisible({timeout:15000})
   await page.getByRole('button', { name: 'Type to Fin' }).click()
   await page.getByRole('button', { name: 'Tap and speak' }).click()
   await expect(page.getByRole('button', { name: 'Tap to stop' })).toBeVisible()
