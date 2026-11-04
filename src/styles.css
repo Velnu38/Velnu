@@ -42,4 +42,4 @@
 .voice-delivery-option > span { overflow-wrap: anywhere; font-size: .9rem; }
 .voice-delivery-option > p { grid-column: 1 / -1; margin: 0; }
 .voice-delivery-option button { min-height: 44px; width: 100%; }
-@media (max-width: 520px) { .voice-delivery-option { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .voice-delivery-option { grid-template-columns: 1fr; } .voice-delivery-option > span { grid-row: 1; } }

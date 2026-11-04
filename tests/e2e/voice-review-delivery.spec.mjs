@@ -14,6 +14,8 @@ for(const kind of ['invoice','estimate'])for(const width of [390,1440])test(`rev
   sends.push(route.request().postDataJSON());await new Promise(r=>setTimeout(r,100));return route.fulfill({status:200,headers:cors,json:{status:'accepted',email_id:'email-1',recipient:'customer@example.test'}})
  })
  await expect(region.getByText('To: customer@example.test')).toBeVisible();await expect(region.getByRole('button',{name:`Text ${kind}`})).toHaveCount(0)
+ await region.getByRole('button',{name:`Email ${kind}`,exact:true}).scrollIntoViewIfNeeded()
+ if(width===390){const recipient=await region.getByText('To: customer@example.test').boundingBox(),button=await region.getByRole('button',{name:`Email ${kind}`,exact:true}).boundingBox();expect(recipient.y+recipient.height).toBeLessThanOrEqual(button.y)}
  await page.screenshot({path:`test-results/voice-review-${kind}-${width}.png`,fullPage:true})
  await region.getByRole('button',{name:`Email ${kind}`,exact:true}).dblclick()
  await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery to customer@example.test'})).toBeVisible()
