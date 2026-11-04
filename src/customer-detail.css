@@ -7,9 +7,29 @@
 .customer-record-actions>a>span{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#28645d}
 .customer-record-actions>a strong{font-size:28px}
 .customer-address-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.customer-addresses .property-item{padding:18px 0;overflow-wrap:anywhere}
-.customer-addresses .property-item:first-child{padding-top:0}
+.customer-contact-address .property-item{padding:18px 0;overflow-wrap:anywhere}
+.customer-contact-address .property-item:first-child{padding-top:0}
 .customer-record-scope{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border:1px solid #b9d8d5;background:#f0faf8;padding:16px;border-radius:14px}
 .customer-record-scope>div{display:grid;gap:4px;margin-right:auto}
 .customer-record-scope span{font-size:13px;color:#526d68}
-@media(max-width:480px){.customer-record-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.customer-record-actions>a{padding:14px 10px;min-height:90px}.customer-record-actions>a>span{font-size:10px}.customer-addresses .detail-card-head{flex-wrap:wrap}.customer-record-scope>a{font-size:13px}}
+@media(max-width:480px){.customer-record-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.customer-record-actions>a{padding:14px 10px;min-height:90px}.customer-record-actions>a>span{font-size:10px}.customer-contact-address .detail-card-head{flex-wrap:wrap}.customer-record-scope>a{font-size:13px}}
+
+/* Contact addresses belong to the contact itself, above its record snapshot. */
+.customer-contact-actions{grid-column:1/-1;display:flex;justify-content:flex-end}
+.customer-contact-address{grid-column:1/-1;min-width:0;border-top:1px solid #c6d2df;padding-top:18px}
+.customer-contact-address h2{font-size:17px;margin:0 0 5px;color:#172033}
+.customer-contact-address .detail-card-head{align-items:center;margin-bottom:16px}
+.customer-contact-address .property-list{border:1px solid #d2dde8;border-radius:12px;padding:0 16px;background:#f8fafc}
+.customer-contact-address .property-item,.customer-contact-address .property-item:first-child{padding:14px 0}
+.customer-contact-address .property-item+.property-item{border-top:1px solid #c6d2df}
+.customer-contact-address .quiet{color:#5b6b7e}
+.customer-hero-main,.customer-contact{min-width:0;overflow-wrap:anywhere}
+/* The generic button reset used to erase the list dividers. */
+.customer-directory>.customer-row-button{min-height:82px;border:0;border-bottom:2px solid #c6d2df;border-radius:0;background:#fff}
+.customer-directory>.customer-row-button:nth-child(even){background:#f7fafc}
+.customer-directory>.customer-row-button:last-child{border-bottom:0}
+.customer-directory>.customer-row-button:hover{background:#edf7f5}
+.customer-directory>.customer-row-button:focus-visible{outline:3px solid #178879;outline-offset:-4px;background:#edf7f5}
+.customer-directory .row-main strong{font-size:15px;color:#172033;overflow-wrap:anywhere}
+.customer-directory .row-chevron{display:block;color:#577185}
+@media(max-width:480px){.customer-contact-actions{justify-content:stretch}.customer-contact-actions>button{width:100%}.customer-contact-address .detail-card-head{align-items:flex-start}.customer-contact-address .property-list{padding:0 12px}.customer-directory>.customer-row-button{padding:16px 14px}}

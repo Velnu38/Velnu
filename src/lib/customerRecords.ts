@@ -3,9 +3,14 @@ const alphabet = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
 export function customerDisplayName(customer?: CustomerName) {
   return customer ? [customer.first_name?.trim(), customer.last_name?.trim()].filter(Boolean).join(' ') || customer.company?.trim() || 'Customer' : 'Selected customer'
 }
+/** Visible directory name makes last-name ordering easy to scan. */
+export function customerDirectoryName(customer: CustomerName) {
+  const first = customer.first_name?.trim(), last = customer.last_name?.trim()
+  return last ? [last, first].filter(Boolean).join(', ') : first || customer.company?.trim() || 'Unnamed customer'
+}
 /** Last name first; company-only and single-name customers stay in the same alphabet. */
 export function compareCustomers(a: CustomerName, b: CustomerName) {
-  const key = (c: CustomerName) => c.last_name?.trim() || c.company?.trim() || c.first_name?.trim() || ''
+  const key = (c: CustomerName) => c.last_name?.trim() || c.first_name?.trim() || c.company?.trim() || ''
   return alphabet.compare(key(a), key(b)) || alphabet.compare(a.first_name?.trim() || '', b.first_name?.trim() || '') || a.id.localeCompare(b.id)
 }
 export type CustomerRecordView = 'work' | 'estimates' | 'invoices'

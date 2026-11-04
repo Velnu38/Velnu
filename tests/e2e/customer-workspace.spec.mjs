@@ -4,7 +4,7 @@ const other='99999999-9999-4999-8999-999999999999'
 const version='2026-11-04T15:00:00Z'
 async function setup(page,{conflict=false,failCreate=false}={}){
  const state=await mock(page)
- state.customers=[{id:C,first_name:'Jane',last_name:'Doe',company:null,email:'jane@example.test',phone:'7575551234',updated_at:version},{id:other,first_name:'Amy',last_name:'Adams',company:null},{id:J,first_name:null,last_name:null,company:'Bayside LLC'},{id:P,first_name:'Zoe',last_name:' brown ',company:null}]
+ state.customers=[{id:C,first_name:'Jane',last_name:'Doe',company:null,email:'jane@example.test',phone:'7575551234',updated_at:version},{id:other,first_name:'Amy',last_name:'Adams',company:null},{id:J,first_name:null,last_name:null,company:'Bayside LLC'},{id:P,first_name:'Zoe',last_name:' brown ',company:null},{id:E,first_name:'Chris',last_name:null,company:'Zebra Services'}]
  const locations=[{id:P,business_id:B,customer_id:C,label:'Home',address_line1:'123 Example Street',city:'Chesapeake',state:'VA',postal_code:'23322',address_line2:null,access_notes:'Gate 98765',updated_at:version}]
  const writes=[],reads=[]
  const reply=(r,data,status=200)=>r.fulfill({status,contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':Array.isArray(data)?`0-${Math.max(0,data.length-1)}/${data.length}`:'0-0/1'},body:JSON.stringify(data)})
@@ -41,13 +41,15 @@ async function setup(page,{conflict=false,failCreate=false}={}){
 test('customer list is last-name alphabetical with company fallback, and legacy Locations opens Customers',async({page})=>{
  await setup(page);await page.goto('/?view=locations')
  await expect(page).toHaveURL(/view=customers/)
- await expect(page.locator('.customer-row strong')).toHaveText(['Amy Adams','Bayside LLC','Zoe  brown ','Jane Doe'])
+ await expect(page.locator('.customer-row strong')).toHaveText(['Adams, Amy','Bayside LLC','brown, Zoe','Chris','Doe, Jane'])
  await expect(page.getByRole('button',{name:'Locations',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:/New customer/}).click();await expect(page.getByLabel('Company (if applicable)',{exact:true})).toBeVisible();await expect(page.getByLabel('Street address (optional)',{exact:true})).toBeVisible()
 })
 for(const width of [1440,390])test(`snapshot routes only selected customer records and keeps navigation at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const {reads}=await setup(page);await page.goto('/?view=customers&document='+C)
  const snapshot=page.getByRole('region',{name:'Customer snapshot',exact:true});await expect(snapshot).toBeVisible();await expect(snapshot.getByRole('link')).toHaveCount(3)
+ const contact=page.getByRole('region',{name:'Customer contact',exact:true}),address=contact.getByRole('group',{name:'Address',exact:true});await expect(address).toContainText('123 Example Street');await expect(address.getByRole('button',{name:'+ Add address',exact:true})).toBeVisible();await expect(contact.getByRole('button',{name:'Edit customer',exact:true})).toBeVisible();await expect(page.locator('.customer-addresses')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Address & service locations',exact:true})).toHaveCount(0)
+ expect(await address.evaluate((el)=>Boolean(el.compareDocumentPosition(document.querySelector('.customer-snapshot')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
  await expect(page.locator('.customer-document-history')).toHaveCount(0)
  await expect(page.getByRole('link',{name:/Get driving directions to/})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
@@ -85,4 +87,30 @@ test('additional addresses stay with their customer and are available when selec
  await dialog.getByLabel('Location name (optional)',{exact:true}).fill('Rental');await dialog.getByLabel('Street address',{exact:true}).fill('789 Rental Street');await dialog.getByRole('button',{name:'Save address',exact:true}).click();await expect(dialog).toHaveCount(0)
  await expect(page.getByText('123 Example Street',{exact:true})).toBeVisible();await expect(page.getByText('789 Rental Street',{exact:true})).toBeVisible();expect(locations).toHaveLength(2);expect(writes[0].body.customer_id).toBe(C);expect(writes[0].body.business_id).toBe(B)
  await page.goto('/?view=work&new=1');await page.getByRole('combobox',{name:'Customer',exact:true}).selectOption(C);await expect(page.getByLabel('Service location',{exact:true}).getByRole('option',{name:/789 Rental Street/})).toHaveCount(1)
+})
+
+for(const width of [390,1440])test(`customer rows have visible dividers, last-name labels and keyboard access at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});await setup(page);await page.goto('/?view=customers')
+ const rows=page.getByRole('region',{name:'Customer directory'}).locator('.customer-row-button')
+ await expect(rows).toHaveCount(5);await expect(rows.first()).toContainText('Adams, Amy');await expect(rows.nth(2)).toContainText('brown, Zoe')
+ for(let i=0;i<4;i++){await expect(rows.nth(i)).toHaveCSS('border-bottom-width','2px');await expect(rows.nth(i)).toHaveCSS('border-bottom-color','rgb(198, 210, 223)')}
+ await expect(rows.last()).toHaveCSS('border-bottom-width','0px');await expect(rows.nth(1)).toHaveCSS('background-color','rgb(247, 250, 252)')
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await page.screenshot({path:`test-results/customer-directory-${width}.png`,fullPage:true})
+ await rows.last().focus();await page.keyboard.press('Enter');await expect(page.getByRole('heading',{name:'Jane Doe',exact:true})).toBeVisible()
+})
+
+test('last-name order is preserved across pagination and search',async({page})=>{
+ const {state}=await setup(page);state.customers=Array.from({length:31},(_,i)=>({id:`99999999-9999-4999-8999-${String(i).padStart(12,'0')}`,first_name:'Contact '+String(31-i),last_name:'Surname '+String(i).padStart(2,'0')})).reverse()
+ await page.goto('/?view=customers');await expect(page.locator('.customer-row strong')).toHaveText(Array.from({length:25},(_,i)=>`Surname ${String(i).padStart(2,'0')}, Contact ${31-i}`))
+ await page.getByRole('navigation',{name:'customers pages'}).getByRole('button',{name:'Next'}).click();await expect(page.locator('.customer-row strong')).toHaveText(Array.from({length:6},(_,n)=>`Surname ${25+n}, Contact ${6-n}`))
+ await page.getByLabel('Search customers').fill('Surname 0');await expect(page.locator('.customer-row strong')).toHaveText(Array.from({length:10},(_,i)=>`Surname 0${i}, Contact ${31-i}`));await expect(page.getByRole('navigation',{name:'customers pages'})).toContainText('Page 1 of 1')
+})
+
+test('a contact without an address can add one directly from its Address field',async({page})=>{
+ const {locations,writes}=await setup(page);locations.splice(0)
+ await page.goto('/?view=customers&document='+C);const address=page.getByRole('region',{name:'Customer contact'}).getByRole('group',{name:'Address',exact:true})
+ await expect(address).toContainText('No address added');await address.getByRole('button',{name:'+ Add address',exact:true}).click()
+ const dialog=page.getByRole('dialog',{name:'Add address',exact:true});await dialog.getByLabel('Street address',{exact:true}).fill('456 Contact Street');await dialog.getByLabel('City',{exact:true}).fill('Chesapeake');await dialog.getByRole('button',{name:'Save address',exact:true}).click()
+ await expect(address).toContainText('456 Contact Street');await expect(address.getByRole('link',{name:/Get driving directions to/})).toBeVisible();expect(writes[0].body.customer_id).toBe(C);expect(locations).toHaveLength(1)
 })

@@ -61,7 +61,7 @@ test('service location opens a valid Google Maps view and driving directions wit
   await page.goto('/')
   await page.locator('.sidebar').getByRole('button', { name: 'Customers', exact: true }).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()
-  await expect(page.getByRole('heading', { name: 'Address & service locations' })).toBeVisible()
+  await expect(page.getByRole('region',{name:'Customer contact'}).getByRole('heading', { name: 'Address',exact:true })).toBeVisible()
   await expect(page.getByText('123 Example Street', { exact: true })).toBeVisible()
   const map = page.getByRole('link', { name: /View 123 Example Street.*Google Maps/ })
   const directions = page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })
