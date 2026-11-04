@@ -1,3 +1,5 @@
+import { customerRecordsHref } from '../lib/customerRecords'
+import CustomerRecordScope from '../components/CustomerRecordScope'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
 import DocumentLineEditor from '../components/DocumentLineEditor'
@@ -44,6 +46,7 @@ const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '',
 
 export default function EstimatesPage({ business }: { business: CurrentBusiness }) {
   const [resourceEstimate, setResourceEstimate] = useState<{ id: string; estimate_number: string | null } | null>(null)
+  const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -80,7 +83,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
-    const [estimateRows, customerRows] = await Promise.all([listEstimates(business.id), listCustomers(business.id)])
+    const [estimateRows, customerRows] = await Promise.all([listEstimates(business.id, customerScope), listCustomers(business.id)])
     setEstimates(estimateRows as Estimate[])
     setPreviewTarget(previous=>previous?(estimateRows as Estimate[]).find(row=>row.id===previous.id)||previous:null)
     setCustomers(customerRows as Customer[])
@@ -196,7 +199,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       const items = await listEstimateItems(business.id, target.id)
       setPreviewItems(items as PreviewItem[])
       setPreviewTarget(target)
-      history.replaceState(history.state,'','/?view=estimates&document='+encodeURIComponent(target.id))
+      history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope,target.id))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load the estimate preview.')
     } finally { setPreviewBusy(false) }
@@ -210,6 +213,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div></div>
     {notice && !previewTarget && <p className="form-message success-text">{notice}</p>}
     {error && !previewTarget && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
+    <CustomerRecordScope customerId={customerScope} customers={customers} view="estimates"/>
     <RecordListControls label="estimates" list={recordList} />
     <section className="list-card" hidden={!!previewTarget}>
       {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Use New estimate at the top of the dashboard to create your first estimate.</p></div> : recordList.visible.map((estimate) => {
@@ -247,10 +251,10 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     </FormDialog>}
 
 
-    {previewTarget && <FormDialog label="Estimate preview" wide onClose={()=>{setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}}><section className="estimate-preview-modal">
+    {previewTarget && <FormDialog label="Estimate preview" wide onClose={()=>{setPreviewTarget(null);history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope))}}><section className="estimate-preview-modal">
         <div className="modal-head">
           <div><p className="eyebrow">Customer-facing document</p><h2>Estimate preview</h2></div>
-          <button className="icon-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'','/?view=estimates')}} aria-label="Close preview" type="button">×</button>
+          <button className="icon-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope))}} aria-label="Close preview" type="button">×</button>
         </div>
         {showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={previewTarget.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)setPreviewTarget(next)})}}/>}

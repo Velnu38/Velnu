@@ -1,3 +1,5 @@
+import { compareCustomers } from '../lib/customerRecords'
+import type { ServiceAddressDraft } from '../components/ServiceAddressFields'
 import { collectBusinessRecords } from '../lib/businessRecords'
 import { supabase } from '../lib/supabase'
 
@@ -18,7 +20,7 @@ export async function listCustomers(businessId: string) {
     .eq('business_id', businessId)
     .eq('archived', false)
     .order('id').range(from, to))
-  data.sort((a, b) => String(a.last_name || a.company || '').localeCompare(String(b.last_name || b.company || '')) || String(a.first_name || '').localeCompare(String(b.first_name || '')))
+  data.sort(compareCustomers)
   return data
 }
 
@@ -86,4 +88,15 @@ export async function updateCustomerContact(businessId:string,customerId:string,
  if(error?.code==='PGRST116')throw new Error('Customer details changed elsewhere. Go back and reopen review to load the current details before sending.')
  if(error)throw error
  return data
+}
+
+/** The first address is saved in the same transaction as its new customer. */
+export async function createCustomerWithAddress(businessId: string, input: CustomerInput, address: ServiceAddressDraft, requestId: string) {
+  if (!Object.values(address).some(value => value.trim())) return createCustomer(businessId, input, requestId)
+  if (!address.address_line1.trim()) throw new Error('Enter a street address or leave all address fields blank.')
+  const { data, error } = await supabase.rpc('create_customer_with_address', {
+    target_business_id: businessId, request_id: requestId, payload: { ...input, address },
+  })
+  if (error) throw error
+  return data as { id: string }
 }

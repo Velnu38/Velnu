@@ -1,3 +1,4 @@
+import CustomerRecordScope from '../components/CustomerRecordScope'
 import QuickCustomer from '../components/scheduling/QuickCustomer'
 import FormDialog from '../components/FormDialog'
 import JobDetailsDialog from '../components/JobDetailsDialog'
@@ -25,11 +26,12 @@ type Property = ServiceAddress & { id: string; label: string | null }
 type Job = ReminderJob & { status: string; scheduled_start: string | null; scheduled_end?: string | null; assigned_user_ids?: string[]; customers: Customer | Customer[] | null; properties?: Property[] | null }
 
 export default function JobsPage({ business, embedded = false, onCreateReminder }: { business: CurrentBusiness; embedded?: boolean; onCreateReminder?: (job: ReminderJob) => void }) {
+  const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const timezone = business.timezone || 'UTC'
   const Heading = embedded ? 'h2' : 'h1'
   const [detailsJob,setDetailsJob]=useState<string|null>(null)
   const [resourceJob, setResourceJob] = useState<Job | null>(null)
-  const [group, setGroup] = useState<JobGroup>('current')
+  const [group, setGroup] = useState<JobGroup | 'all'>(customerScope ? 'all' : 'current')
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -54,7 +56,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     const request = ++requestId.current
     setLoading(true)
     try {
-    const [jobRows, customerRows, linkedJob] = await Promise.all([listJobs(business.id), listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
+    const [jobRows, customerRows, linkedJob] = await Promise.all([listJobs(business.id, customerScope), listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
     if (linkedJob) { setDetailsJob(linkedJob.id); setGroup(jobGroup(linkedJob, new Date(), timezone)); requestedJob.current = null }
     setJobs(jobRows as Job[])
@@ -110,9 +112,9 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     finally{saving.current=false;setBusy(false)}
   }
 
-  const grouped: Record<JobGroup, Job[]> = { current: [], upcoming: [], history: [] }
+  const grouped: Record<JobGroup | 'all', Job[]> = { all: [], current: [], upcoming: [], history: [] }
   const now = new Date()
-  for (const job of jobs) if(workerFilter==='all'||job.assigned_user_ids?.includes(workerFilter)) grouped[jobGroup(job, now, timezone)].push(job)
+  for (const job of jobs) if(workerFilter==='all'||job.assigned_user_ids?.includes(workerFilter)) {grouped[jobGroup(job, now, timezone)].push(job);grouped.all.push(job)}
 
   const recordList = useRecordList(grouped[group], row => [row.title, row.status, ...(Array.isArray(row.customers) ? row.customers : row.customers ? [row.customers] : []).map(c => [c.first_name,c.last_name,c.company].join(' '))].join(' '))
 
@@ -123,13 +125,14 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
         <div className="work-heading-actions"><button type="button" className="secondary-button compact" disabled={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}>Refresh</button></div>
       </div>
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
-      <nav className="work-filters" aria-label="Job timing">{(['current', 'upcoming', 'history'] as const).map(item => <button type="button" key={item} aria-pressed={group === item} onClick={() => { setGroup(item); recordList.setPage(0) }}>{item === 'current' ? 'Current' : item === 'upcoming' ? 'Upcoming' : 'History'}{!loading && !error && <span>{grouped[item].length}</span>}</button>)}</nav>
+      <CustomerRecordScope customerId={customerScope} customers={customers} view="work"/>
+      <nav className="work-filters" aria-label="Job timing">{((customerScope ? ['all', 'current', 'upcoming', 'history'] : ['current', 'upcoming', 'history']) as Array<JobGroup | 'all'>).map(item => <button type="button" key={item} aria-pressed={group === item} onClick={() => { setGroup(item); recordList.setPage(0) }}>{item === 'all' ? 'All' : item === 'current' ? 'Current' : item === 'upcoming' ? 'Upcoming' : 'History'}{!loading && !error && <span>{grouped[item].length}</span>}</button>)}</nav>
       {team.length>0&&<label className="worker-select">Assigned team member<select value={workerFilter} onChange={e=>{setWorkerFilter(e.target.value);recordList.setPage(0)}}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.is_you?'My jobs · ':''}{w.label}</option>)}</select></label>}
       {notice&&<p role="status" className="guided-success">{notice}</p>}
-      <p className="work-group-description">{group === 'current' ? 'In progress, scheduled today or earlier, and jobs awaiting a date.' : group === 'upcoming' ? 'Jobs scheduled for tomorrow or later that have not started.' : 'Completed and canceled jobs stay here for reference.'}</p>
+      <p className="work-group-description">{group === 'all' ? 'All jobs for this customer, including completed and canceled work.' : group === 'current' ? 'In progress, scheduled today or earlier, and jobs awaiting a date.' : group === 'upcoming' ? 'Jobs scheduled for tomorrow or later that have not started.' : 'Completed and canceled jobs stay here for reference.'}</p>
       {!loading && !error && <RecordListControls label="jobs" list={recordList} />}
       <section className="list-card" aria-label={`${group} jobs`} aria-busy={loading}>
-        {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : grouped[group].length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{group === 'history' ? 'No past jobs' : `No ${group} jobs`}</h3><p>{group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Use New job on the Dashboard to create work, or check Upcoming.'}</p></div> : recordList.visible.map((job) => {
+        {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : grouped[group].length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{group === 'all' ? 'No jobs yet' : group === 'history' ? 'No past jobs' : `No ${group} jobs`}</h3><p>{group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Use New job on the Dashboard to create work, or check Upcoming.'}</p></div> : recordList.visible.map((job) => {
           const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           return <article className="job-row" key={job.id}>
