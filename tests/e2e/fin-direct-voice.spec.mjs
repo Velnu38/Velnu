@@ -33,7 +33,7 @@ for(const width of [320,390])test(`one mobile tap records real audio and submits
    uploads++;bytes=route.request().postDataBuffer().length
    return route.fulfill({status:200,headers:cors,json:{transcript:'What services do I offer?',transcription_id:'synthetic-device'}})
   })
-  await page.route('**/functions/v1/fin-assistant',route=>{
+  await page.route('**/functions/v1/fin-workflow',route=>{
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
    questions++;return route.fulfill({status:200,headers:cors,json:{answer:'Your saved service is landscaping.',sources:[],limits:[],as_of:new Date().toISOString()}})
   })
@@ -72,6 +72,6 @@ test('cancel releases native audio tracks without uploading',async()=>{
   await page.getByRole('button',{name:'Cancel recording',exact:true}).click()
   await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toBeEnabled()
   expect(await page.evaluate(()=>window.__capturedStream.getTracks().every(t=>t.readyState==='ended'))).toBe(true)
-  expect(state.calls.some(c=>c.path.endsWith('fin-assistant'))).toBe(false);expect(uploads).toBe(0)
+  expect(state.calls.some(c=>c.path.endsWith('fin-workflow'))).toBe(false);expect(uploads).toBe(0)
  }finally{await context.close()}
 })

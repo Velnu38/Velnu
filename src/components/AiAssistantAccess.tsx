@@ -15,6 +15,7 @@ export default function AiAssistantAccess({ business, onChanged, onAvailabilityC
   useEffect(() => {
     let active = true
     setAccess('checking')
+    if(!['owner','admin','office'].includes(business.role)){setAccess('unavailable');return()=>{active=false}}
     void Promise.resolve(supabase.rpc('get_plan_usage', { target_business_id: business.id })).then(({ data, error }) => {
       if (!active) return
       if (error || data?.plan !== 'pro' || Number(data?.ai_limit || 0) <= 0 || Number(data?.voice_limit || 0) <= 0) {
@@ -24,9 +25,9 @@ export default function AiAssistantAccess({ business, onChanged, onAvailabilityC
       }
     }).catch(() => { if (active) setAccess('unavailable') })
     return () => { active = false }
-  }, [business.id])
+  }, [business.id,business.role])
 
-  if (access === 'paid') return <VoiceAssistant key={`${business.id}:${business.role}`} business={business} onChanged={onChanged} />
+  if (access === 'paid') return <VoiceAssistant key={`${business.id}:${business.role}:${(business.access_modules||[]).slice().sort().join(",")}`} business={business} onChanged={onChanged} />
   // Unentitled accounts never expose an apparently functional AI button.
   // The AI Office Assistant is described under My services and on the homepage.
   return null

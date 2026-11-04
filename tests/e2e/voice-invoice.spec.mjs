@@ -1,3 +1,4 @@
+import {workflow,start,review,save,docStep,item,step,reply} from './fin-workflow-fixture.mjs'
 import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
@@ -12,87 +13,10 @@ async function signedIn(page) {
   await page.addInitScript(value => localStorage.setItem('sb-example-auth-token', JSON.stringify(value)), session)
 }
 
-test('dictated one-line invoice is reviewed before saving and stays draft', async ({ page }) => {
-  const requests = []
-  await signedIn(page)
-  await page.route('https://example.supabase.co/**', async route => {
-    const request = route.request()
-    const path = new URL(request.url()).pathname
-    const method = request.method()
-    let body = null
-    try { body = request.postDataJSON() } catch {}
-    requests.push({ path, method, body })
-    const json = (obj, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(obj) ? `0-${Math.max(0,obj.length-1)}/${obj.length}` : '0-0/1' }, body: JSON.stringify(obj) })
-    if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    if (path.endsWith('/user')) return json(user)
-    if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
-    if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
-    if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Test Services' } })
-    if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: 'pro', ai_limit: 50, voice_limit: 50, logo_bytes_limit: 131072 })
-    if (path.endsWith('/customers') && method === 'POST') return json({ id: newCustomerId, company: 'Bob Smith', first_name: null, last_name: null, email: null, phone: null }, 201)
-    if (path.endsWith('/rpc/create_document')) return json({ id: invoiceId, invoice_number: 'INV-TEST-1', status: 'draft', subtotal: 150, tax_amount: 0, total: 150, amount_paid: 0, balance_due: 150, due_date: null })
-    return json([])
-  })
-
-  // Simulate browser speech recognition, rather than calling a paid transcription API.
-  await page.addInitScript(() => {
-    window.SpeechRecognition = window.webkitSpeechRecognition = class {
-      start() {}
-      stop() {
-        this.onresult?.({ results: [[{ transcript: 'Create an invoice for Bob Smith for $150' }]] })
-        this.onend?.()
-      }
-    }
-  })
-  await page.goto('/')
-  await expect(page.getByRole('button', { name: 'Type to Fin' })).toBeVisible({timeout:15000})
-  await page.getByRole('button', { name: 'Type to Fin' }).click()
-  await page.getByRole('button', { name: 'Speak instead' }).click()
-  await expect(page.getByRole('button', { name: 'Finish recording' })).toBeVisible()
-  await page.getByRole('button', { name: 'Finish recording' }).click()
-  await expect(page.getByRole('heading', { name: 'Review invoice' })).toBeVisible()
-  await expect(page.getByLabel('New customer name or company')).toHaveValue('Bob Smith')
-  await expect(page.getByLabel('Amount ($)')).toHaveValue('150')
-  expect(requests.filter(item => item.path.endsWith('/invoices') && item.method === 'POST')).toHaveLength(0)
-
-  await page.getByLabel('Work performed / line-item description').fill('Faucet repair')
-  await page.getByRole('button', { name: 'Save draft invoice' }).click()
-  await expect(page.getByText('Invoice INV-TEST-1 is ready.')).toBeVisible()
-  const invoiceWrites = requests.filter(item => item.path.endsWith('/rpc/create_document') && item.method === 'POST')
-  expect(invoiceWrites).toHaveLength(1)
-  expect(invoiceWrites[0].body.document_kind).toBe('invoice')
-  expect(invoiceWrites[0].body.payload.items[0].description).toBe('Faucet repair')
-  expect(invoiceWrites[0].body.payload.items[0].unit_price).toBe(150)
-  expect(invoiceWrites[0].body.request_id).toBeTruthy()
-  expect(requests.filter(item => item.path.includes('/send-invoice-email'))).toHaveLength(0)
-  await page.getByRole('button', { name: 'Close review', exact: true }).click()
-  await page.getByRole('button', { name: 'Talk to Fin', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Finish recording', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Review invoice', exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Cancel recording', exact: true }).click()
-  expect(requests.filter(item => item.path.endsWith('/rpc/create_document') && item.method === 'POST')).toHaveLength(1)
+test('dictated invoice opens the verified plan and stays draft until confirmed',async({page})=>{
+ const f=await workflow(page,{steps:[docStep('invoice',[item('Faucet repair',150)])]});await page.addInitScript(()=>{window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){this.onresult?.({results:[[{transcript:'Create invoice for Test Customer faucet repair $150'}]]});this.onend?.()}}});await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click();await expect(review(page)).toContainText('Total: $150.00');expect(f.state.documents).toHaveLength(0);await save(page);await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible();expect(f.state.documents).toHaveLength(1);expect(f.state.documents[0].payload.items[0].description).toBe('Faucet repair');expect(f.state.calls.filter(c=>c.path.includes('/send-'))).toHaveLength(0)
 })
-
-test('multiple stated amounts become separate editable invoice lines', async ({ page }) => {
-  await signedIn(page)
-  await page.route('https://example.supabase.co/**', route => {
-    const path = new URL(route.request().url()).pathname
-    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } } : []
-    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body: JSON.stringify(body) })
-  })
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Type to Fin' }).click()
-  await page.getByRole('textbox', { name: 'Describe your invoice or request' }).fill('Make an invoice for Bob Smith for $300 labor and $200 materials')
-  await page.getByRole('button', { name: 'Review invoice' }).click()
-  await expect(page.getByRole('textbox',{name:'Line 1 description',exact:true})).toHaveValue('labor')
-  await expect(page.getByRole('spinbutton',{name:'Line 1 amount ($)',exact:true})).toHaveValue('300')
-  await expect(page.getByRole('textbox',{name:'Line 2 description',exact:true})).toHaveValue('materials')
-  await expect(page.getByRole('spinbutton',{name:'Line 2 amount ($)',exact:true})).toHaveValue('200')
-  await expect(page.getByRole('status').filter({hasText:'$500.00'})).toBeVisible()
-  await expect(page.getByRole('spinbutton',{name:/quantity/i})).toHaveCount(0)
-})
-
+test('multiple stated amounts remain separate in the verified plan',async({page})=>{await workflow(page,{steps:[docStep('invoice',[item('Labor',300),item('Materials',200)])]});await start(page,'Create invoice for Test Customer labor $300 and materials $200');await expect(review(page)).toContainText('Labor');await expect(review(page)).toContainText('Materials');await expect(review(page)).toContainText('Total: $500.00')})
 
 test('Safari no-speech error shows a keyboard microphone fallback instead of a silent failure', async ({ page }) => {
   await signedIn(page)
@@ -120,36 +44,7 @@ test('Safari no-speech error shows a keyboard microphone fallback instead of a s
   await expect(page.getByRole('button', { name: 'Review invoice' })).toHaveCount(0)
 })
 
-test('browser dictation prepares other commands automatically but still requires confirmation before changes', async ({ page }) => {
-  await signedIn(page)
-  const invoked = []
-  await page.route('https://example.supabase.co/**', async route => {
-    const path = new URL(route.request().url()).pathname
-    if(route.request().method()!=='OPTIONS')invoked.push(path)
-    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    if(path.endsWith('/functions/v1/ai-command'))return route.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify({action_id:invoiceId,intent:'create_customer',requires_confirmation:true,fields:{customer_name:'Bob Smith'},clarification_question:null})})
-    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } } : []
-    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body: JSON.stringify(body) })
-  })
-  await page.addInitScript(() => {
-    window.SpeechRecognition = window.webkitSpeechRecognition = class {
-      start() {}
-      stop() {
-        this.onresult?.({ results: [[{ transcript: 'Create a customer named Bob Smith' }]] })
-        this.onend?.()
-      }
-    }
-  })
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Type to Fin' }).click()
-  await page.getByRole('button', { name: 'Speak instead' }).click()
-  await page.getByRole('button', { name: 'Finish recording' }).click()
-  await expect(page.getByRole('textbox', { name: 'Describe your invoice or request' })).toHaveValue('Create a customer named Bob Smith')
-  await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toBeEnabled()
-  expect(invoked.filter(path => path.includes('/functions/v1/ai-command'))).toHaveLength(1)
-  expect(invoked.filter(path => path.includes('/functions/v1/execute-ai-action'))).toHaveLength(0)
-})
-
+test('browser dictation prepares customer creation without executing before confirmation',async({page})=>{const f=await workflow(page,{steps:[step('create_customer',{first_name:'Bob',last_name:'Smith'})]});await page.addInitScript(()=>{window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){this.onresult?.({results:[[{transcript:'Create a customer named Bob Smith'}]]});this.onend?.()}}});await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click();await expect(review(page)).toContainText('Bob');await expect(review(page).getByRole('button',{name:'Confirm and save'})).toBeEnabled();expect(f.requests).toHaveLength(1);expect(f.executions).toHaveLength(0)})
 
 test('cloud recording uses server transcription and opens draft review, without sending an invoice', async ({ page }) => {
   await signedIn(page)
@@ -170,6 +65,7 @@ test('cloud recording uses server transcription and opens draft review, without 
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
     if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } })
     if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: 'pro', ai_limit: 50, voice_limit: 50, logo_bytes_limit: 131072 })
+    if (path.endsWith('/functions/v1/fin-workflow')) return json(reply([docStep('invoice',[item('Faucet repair',150)])]))
     if (path.endsWith('/functions/v1/transcribe-voice')) {
       return request.headers()['content-type']?.includes('application/json')
         ? json({ configured: true, model: 'gpt-transcribe' })
@@ -201,8 +97,7 @@ test('cloud recording uses server transcription and opens draft review, without 
   await page.getByRole('button', { name: 'Speak instead' }).click()
   await expect(page.getByRole('button', { name: 'Finish recording' })).toBeVisible()
   await page.getByRole('button', { name: 'Finish recording' }).click()
-  await expect(page.getByRole('heading', { name: 'Review invoice' })).toBeVisible()
-  await expect(page.getByLabel('Amount ($)')).toHaveValue('150')
+  await expect(review(page)).toContainText('Total: $150.00')
   expect(calls.filter(x => x.path.endsWith('/functions/v1/transcribe-voice'))).toHaveLength(2)
   expect(calls.filter(x => x.path.endsWith('/invoices') && x.method === 'POST')).toHaveLength(0)
   expect(calls.filter(x => x.path.includes('/send-invoice-email'))).toHaveLength(0)

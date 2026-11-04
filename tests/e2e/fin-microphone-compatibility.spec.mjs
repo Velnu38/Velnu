@@ -15,7 +15,7 @@ async function setup(page,options={}){
   requests.uploads.push(route.request().postDataBuffer().toString())
   return route.fulfill({status:200,headers:cors,json:{transcript:'What services do I offer?',transcription_id:'compatibility-test'}})
  })
- await page.route('**/functions/v1/fin-assistant',route=>{
+ await page.route('**/functions/v1/fin-workflow',route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   requests.questions.push(route.request().postDataJSON())
   return route.fulfill({status:200,headers:cors,json:{answer:'Your saved service is landscaping.',sources:[],limits:[],as_of:'2026-11-04T12:00:00Z'}})
