@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises'
 import {PGlite} from '@electric-sql/pglite'
 const B='11111111-1111-4111-8111-111111111111',O='22222222-2222-4222-8222-222222222222',X='33333333-3333-4333-8333-333333333333',I='44444444-4444-4444-8444-444444444444',R='55555555-5555-4555-8555-555555555555'
 const sql=await readFile('supabase/migrations/20261103194234_private_integration_testing.sql','utf8')
-const smsSql=await readFile('supabase/migrations/20261104001810_require_sms_owner_mobile.sql','utf8')
+const smsSql=await readFile('supabase/migrations/20261104002548_require_sms_owner_mobile.sql','utf8')
 async function setup(){const db=new PGlite();await db.exec(`
  create role authenticated;create role anon;create role service_role;create schema private;create schema auth;
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
