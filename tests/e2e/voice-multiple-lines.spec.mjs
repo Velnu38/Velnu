@@ -3,7 +3,7 @@ import {workflow,start,ask,review,save,docStep,item,reply} from './fin-workflow-
 for(const width of [1440,390])for(const kind of ['invoice','estimate'])test(`Fin ${kind} reviews separate charges and saves once at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const f=await workflow(page,{steps:[docStep(kind,[item('Mowing',100),item('Edging',40)])]});await start(page,`Create ${kind} for Test Customer: mowing $100 and edging $40 total $140`)
  await expect(review(page)).toContainText('Mowing');await expect(review(page)).toContainText('Edging');await expect(review(page)).toContainText('Total: $140.00');expect(f.executions).toHaveLength(0)
- await review(page).getByRole('button',{name:'Confirm and save'}).dblclick();await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible();expect(f.executions).toHaveLength(1);expect(f.state.documents[0].payload.items.map(i=>i.unit_price)).toEqual(['100','40']);expect(f.executions[0].p_approved).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await review(page).getByRole('button',{name:'Yes, make these changes'}).dblclick();await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible();expect(f.executions).toHaveLength(1);expect(f.state.documents[0].payload.items.map(i=>i.unit_price)).toEqual(['100','40']);expect(f.executions[0].p_approved).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/fin-saved-${kind}-${width}.png`,fullPage:true})
 })
 test('stated-total conflict asks for correction before offering a plan, retaining unit quantity on correction',async({page})=>{

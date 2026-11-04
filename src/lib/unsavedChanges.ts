@@ -1,6 +1,7 @@
 import {useEffect,useRef} from 'react'
 
 const editors=new Map<symbol,{dirty:boolean;busy:boolean}>()
+export function hasUnsavedChanges(){return [...editors.values()].some(e=>e.dirty||e.busy)}
 export function confirmNavigation() {
  if([...editors.values()].some(e=>e.busy)){window.alert('Please wait for the current save to finish.');return false}
  return ![...editors.values()].some(e=>e.dirty)||window.confirm('Discard unsaved changes? Choose Cancel to keep editing.')

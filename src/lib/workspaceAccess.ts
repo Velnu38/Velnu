@@ -19,7 +19,7 @@ export function canAccess(business: CurrentBusiness, module: WorkspaceModule) {
   return (business.access_modules ?? []).includes(module);
 }
 export function canUseAssistant(business: CurrentBusiness) {
-  return workspaceModules.every((m) => canAccess(business, m.id));
+  return ['owner','admin','office','technician','viewer'].includes(business.role);
 }
 export function canOpenView(business: CurrentBusiness, view: string) {
   const module = (

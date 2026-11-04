@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import {flushSync} from 'react-dom'
 import FinWorkflowReview from './FinWorkflowReview'
 import {requestFin,executeFinReview,cancelFinReview,type FinReply,type FinExecution} from '../services/finWorkflow'
-import {uiCatalog,recordHref,type Plan} from '../../supabase/functions/fin-workflow/protocol'
+import {uiCatalog,recordHref,navigationHref,type Plan} from '../../supabase/functions/fin-workflow/protocol'
 import type { CurrentBusiness } from '../lib/business'
 import {transcribeVoice,getTranscriptionStatus,type AiCommandSource} from '../services/ai'
 
@@ -25,7 +25,7 @@ type BrowserRecognizer = {
 }
 
 function SafeFinText({text}:{text:string}){return <>{text.split(/(\*\*[^*\n]{1,100}\*\*)/g).map((part,i)=>part.startsWith('**')&&part.endsWith('**')?<strong key={i}>{part.slice(2,-2)}</strong>:part)}</>}
-function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>void}){return <section className="fin-answer" aria-label="Fin’s answer"><p className="eyebrow">Fin · Your office assistant</p><p className="fin-answer-text"><SafeFinText text={result.answer}/></p>{result.clarification&&<p className="fin-clarification"><strong>{result.clarification}</strong></p>}{result.sources?.length>0&&<details><summary>Based on saved records</summary><ul>{result.sources.map(s=><li key={s.key}>{s.label}{recordHref(s.key)&&<a href={recordHref(s.key)!} onClick={onNavigate}>Open record</a>}</li>)}</ul></details>}{result.navigation?.map(key=>Object.hasOwn(uiCatalog,key)&&<a key={key} className="secondary-button" href={'/?view='+key} onClick={onNavigate}>Open {uiCatalog[key as keyof typeof uiCatalog]}</a>)}<details><summary>Records checked and limits</summary><p>Checked {new Date(result.as_of).toLocaleString()}</p><ul>{result.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>}
+function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>void}){return <section className="fin-answer" aria-label="Fin’s answer"><p className="eyebrow">Fin · Your office assistant</p><p className="fin-answer-text"><SafeFinText text={result.answer}/></p>{result.clarification&&<p className="fin-clarification"><strong>{result.clarification}</strong></p>}{result.sources?.length>0&&<details><summary>Based on saved records</summary><ul>{result.sources.map(s=><li key={s.key}>{s.label}{recordHref(s.key)&&<a href={recordHref(s.key)!} onClick={onNavigate}>Open record</a>}</li>)}</ul></details>}{result.navigation?.map(key=>Object.hasOwn(uiCatalog,key)&&<a key={key} className="secondary-button" href={navigationHref(key)!} onClick={onNavigate}>Open {uiCatalog[key as keyof typeof uiCatalog]}</a>)}<details><summary>Records checked and limits</summary><p>Checked {new Date(result.as_of).toLocaleString()}</p><ul>{result.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>}
 
 export default function VoiceAssistant({ business, onChanged }: { business: CurrentBusiness; onChanged: () => void }) {
   const [open, setOpen] = useState(false)
@@ -103,7 +103,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
 
   async function parseCommand(command: string, source: AiCommandSource) {
     if (mutationInFlight.current) return
-    if(plan&&/^(yes|confirm|go ahead|do it|okay|ok)[.! ]*$/i.test(command.trim())){setText('');setVoiceStatus('Review the details below, then use the confirmation button to save.');return}
+    if(plan&&/^yes[.! ]*$/i.test(command.trim())){setText('');await confirm({id:plan.id,version:plan.version});return}
+    if(plan&&/^no[.! ]*$/i.test(command.trim())){setText('');await reject();return}
     setError('');setMicrophoneFailure(null);setVoiceStatus('');setPlan(null);setExecution(null)
     setBusy(true);setWorkingMessage('Fin is checking your account and preparing the next step…');mutationInFlight.current=true
     const request=retryRequest.current?.text===command?retryRequest.current:{text:command,id:crypto.randomUUID()}
@@ -343,8 +344,10 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     toggleRecording()
   }
 
-  async function confirm() {
-    if(!plan||mutationInFlight.current||text.trim())return
+  async function confirm(approval?:{id:string;version:number}) {
+    if(!plan||mutationInFlight.current||text.trim()&&!approval)return
+    if(approval&&(approval.id!==plan.id||approval.version!==plan.version))return
+    if(Date.parse(plan.expires_at)<=Date.now()){setError('This review expired. Ask Fin to refresh it.');return}
     mutationInFlight.current=true;setBusy(true);setError('')
     try{const saved=await executeFinReview(business.id,thread.current,plan);if(!mounted.current)return;setExecution(saved);setPlan(null);onChanged()}
     catch(error){if(mounted.current)setError(error instanceof Error?error.message:'The save result is not confirmed. Retry the same review.')}

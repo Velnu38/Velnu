@@ -34,7 +34,8 @@ export default function SettingsPage({ business, onSaved }: {
   const [operator,setOperator]=useState(false)
   useEffect(()=>{let active=true;void adminRequest<{operator:boolean}>('access').then(r=>{if(active)setOperator(r.operator===true)}).catch(()=>{});return()=>{active=false}},[])
   const [visited,setVisited]=useState<Set<Section>>(()=>new Set())
-  const [section, setSection] = useState<Section | null>(()=>new URLSearchParams(location.search).has("sms_setup") ? "sms" : integrationTestingAvailable && new URLSearchParams(location.search).has("integration_test") ? "testing" : null);
+  const [section, setSection] = useState<Section | null>(()=>options.some(o=>o.id===new URLSearchParams(location.search).get("section")) ? new URLSearchParams(location.search).get("section") as Section : new URLSearchParams(location.search).has("sms_setup") ? "sms" : integrationTestingAvailable && new URLSearchParams(location.search).has("integration_test") ? "testing" : null);
+  useEffect(()=>{const value=new URLSearchParams(location.search).get("section");if(options.some(o=>o.id===value))setSection(value as Section)},[])
   const owner = isPrimaryOwner(business);
   const allowed = [...options, ...(integrationTestingAvailable ? [{id: "testing" as Section,title: "Integration testing",description: "Private Stripe and approved Twilio SMS tests."}] : [])].filter((option) => option.id === "support" ? true : option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
 

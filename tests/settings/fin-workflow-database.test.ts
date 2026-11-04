@@ -1,26 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {readFile} from 'node:fs/promises'
-import {fixture,ids,actor} from '../scheduling/fixture'
-const migration=await readFile('supabase/migrations/20261104203418_fin_contextual_workflows.sql','utf8')
-const baseline=await readFile('supabase/migrations/20261028173902_finviant_complete_application_bootstrap.sql','utf8')
-const fn=(name:string)=>{const i=baseline.indexOf('CREATE OR REPLACE FUNCTION '+name+'(');return baseline.slice(i,baseline.indexOf('$function$;',i)+12)}
-async function setup(){const db=await fixture();await db.exec('reset role');await db.exec(`alter table businesses add column if not exists created_by_user_id uuid;alter table businesses add column if not exists business_description text;alter table businesses add column if not exists services_offered text;alter table businesses add column if not exists service_area text;alter table businesses add column if not exists team_roles text;update businesses set created_by_user_id='${ids.owner}' where id='${ids.business}';`)
- for(const table of ['customers','properties','invoices','estimates','jobs','reminders','change_orders'])await db.exec(`alter table ${table} enable row level security;create policy fin_scope on ${table} to authenticated using(exists(select 1 from business_members m where m.business_id=${table}.business_id and m.user_id=auth.uid())) with check(exists(select 1 from business_members m where m.business_id=${table}.business_id and m.user_id=auth.uid()));`)
- for(const name of ['public.create_job_atomic','public.create_scheduled_job','public.update_draft_document','public.set_job_status_atomic'])await db.exec(fn(name))
- for(const table of ['change_order_items','payments']){const match=baseline.match(new RegExp('create table "public"\\."'+table+'" \\(([\\s\\S]*?)\\);','i'))!;await db.exec('create table public.'+table+' ('+match[1]+');alter table '+table+' add primary key(id);grant select,insert,update,delete on '+table+' to authenticated;')}
- for(const name of ['private.valid_payment_links','public.recalc_change_order','private.commerce_change_item_guard','public.record_manual_payment','private.commerce_payment_guard','private.commerce_paid_recalc'])await db.exec(fn(name))
- const owner=await readFile('supabase/migrations/20261102170333_owner_team_document_settings.sql','utf8');const a=owner.indexOf('create function private.guard_invoice_destinations(');await db.exec(owner.slice(a,owner.indexOf('end $$;',a)+7))
- await db.exec(`create function private.is_primary_owner(b uuid,actor uuid default auth.uid()) returns boolean language sql stable security definer as $$select b='${ids.business}'::uuid and actor='${ids.owner}'::uuid$$;
- create trigger change_item_guard before insert or update or delete on change_order_items for each row execute function private.commerce_change_item_guard();create trigger change_items_recalc after insert or update or delete on change_order_items for each row execute function public.recalc_change_order();
- create trigger payment_guard before insert or update or delete on payments for each row execute function private.commerce_payment_guard();create trigger payment_recalc after insert or update or delete on payments for each row execute function private.commerce_paid_recalc();`)
- await db.exec(await readFile('supabase/migrations/20261102231643_document_workflow_and_contact_import.sql','utf8'))
- await db.exec(await readFile('supabase/migrations/20261102194320_historical_document_dates.sql','utf8'))
- await db.exec(await readFile('supabase/migrations/20261103130223_invoice_job_handoff.sql','utf8'))
- await db.exec(await readFile('supabase/migrations/20261104180222_customer_with_service_address.sql','utf8'))
- await db.exec(migration);await db.exec(await readFile('supabase/migrations/20261104203831_fin_reminder_review_snapshot.sql','utf8'));await db.exec('set role authenticated');return db}
+import {ids,actor} from '../scheduling/fixture'
+import {accountDatabase as setup} from './fin-account-fixture'
 const row=async(db:any,resource:string,id:string)=>(await db.query('select fin_lookup_records($1,$2) x',[ids.business,{resource,id,order:'oldest'}])).rows[0].x.rows[0]
-const step=(operation:string,fields:any={},target:string|null=null,customer:string|null=null,record?:any)=>({operation,fields,target,customer,request_id:crypto.randomUUID(),label:'Reviewed test',...(record?{record,expected:record.updated_at||JSON.stringify(record)}:{})})
+const step=(operation:string,fields:any={},target:string|null=null,customer:string|null=null,record?:any)=>({operation,fields,target,customer,request_id:crypto.randomUUID(),label:'Reviewed test',...(record?{record,expected:record._version||record.updated_at||JSON.stringify(record)}:{})})
 async function plan(db:any,steps:any[],thread=crypto.randomUUID(),request=crypto.randomUUID()){
  await db.query('select fin_begin_turn($1,$2,$3,$4)',[ids.business,thread,request,'Test request'])
  const reply=(await db.query('select fin_finish_turn($1,$2,$3,$4) x',[ids.business,thread,request,{answer:'Ready for review',steps,sources:[],limits:[],as_of:new Date().toISOString()}])).rows[0].x

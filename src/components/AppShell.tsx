@@ -1,6 +1,6 @@
 import FinBrand from './FinBrand'
 import FormDialog from './FormDialog'
-import {confirmNavigation} from '../lib/unsavedChanges'
+import {confirmNavigation,hasUnsavedChanges} from '../lib/unsavedChanges'
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
 import { lazy, Suspense, useState, useEffect, useRef, type MouseEvent } from 'react'
 import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
@@ -85,7 +85,8 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     const check = () => { void getCurrentBusiness().then(next => { if (!active) return; if (!next || next.id !== business.id) setAccessRemoved(true); else { setCompany(next); setAccessRemoved(false) } }).catch(() => { if (active) setAccessRemoved(true) }) }
     const timer = window.setInterval(check, 30000)
     window.addEventListener('focus', check)
-    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check) }
+    window.addEventListener('finviant-assistant-saved',check)
+    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', check);window.removeEventListener('finviant-assistant-saved',check) }
   }, [business.id])
 
   const navigationIndex = useRef(0),lastLocation=useRef(location.href)
@@ -153,7 +154,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={item.id} aria-label={item.label} aria-current={view === item.id ? 'page' : undefined} className={`mobile-destination ${view === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><DockIcon kind={item.id}/><small>{item.label}</small></button>
         })}
-        {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onAvailabilityChange={setFinAvailable} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'))}} />}
+        {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onAvailabilityChange={setFinAvailable} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}
         <button aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={`mobile-destination ${mobileMore.includes(view) || showMobileMore ? 'active' : ''}`} onClick={() => setShowMobileMore(true)}><DockIcon kind="more"/><small>More</small></button>
       </nav>
       {showMobileMore && <FormDialog label="More navigation" onClose={()=>setShowMobileMore(false)}><section className="mobile-more-sheet" id="mobile-more-options">

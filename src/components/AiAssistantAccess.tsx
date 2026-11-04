@@ -15,7 +15,7 @@ export default function AiAssistantAccess({ business, onChanged, onAvailabilityC
   useEffect(() => {
     let active = true
     setAccess('checking')
-    if(!['owner','admin','office'].includes(business.role)){setAccess('unavailable');return()=>{active=false}}
+    if(!['owner','admin','office','technician','viewer'].includes(business.role)){setAccess('unavailable');return()=>{active=false}}
     void Promise.resolve(supabase.rpc('get_plan_usage', { target_business_id: business.id })).then(({ data, error }) => {
       if (!active) return
       if (error || data?.plan !== 'pro' || Number(data?.ai_limit || 0) <= 0 || Number(data?.voice_limit || 0) <= 0) {
