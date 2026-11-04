@@ -1,4 +1,4 @@
-import {openFinTyping} from './navigation.mjs'
+import {workflow,start,save,docStep,item} from './fin-workflow-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {mock,B,C,E,P,customer} from './audit-fixture.mjs'
 test.setTimeout(60000)
@@ -67,10 +67,8 @@ test('uncertain email uses the same request after closing and reopening the save
  await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery'})).toBeVisible();expect(sends).toHaveLength(2);expect(sends[0]).toEqual(sends[1])
 })
 for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls immediately after saving a ${kind} draft`,async({page})=>{
- const {state}=await setup(page);await page.goto('/');await openFinTyping(page)
- await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(`Create ${kind} for Test Customer for landscaping $100`)
- await page.getByRole('button',{name:`Review ${kind}`,exact:true}).click()
- await page.getByRole('button',{name:`Save draft ${kind}`,exact:true}).click()
+ const {state,executions}=await workflow(page,{steps:[docStep(kind,[item('Landscaping',100)])],contact:{email:'customer@example.test',phone:'7575550123'}})
+ await start(page,`Create ${kind} for Test Customer for landscaping $100`);expect(executions).toHaveLength(0);await save(page)
  const dialog=page.getByRole('dialog',{name:'Fin — your office assistant'})
  await expect(dialog.getByRole('region',{name:'Send to customer'})).toBeVisible();await expect(dialog.getByRole('button',{name:'Send email',exact:true})).toBeEnabled()
  await expect(dialog.getByRole('button',{name:'Send SMS',exact:true})).toBeVisible();expect(state.documents).toHaveLength(1)
