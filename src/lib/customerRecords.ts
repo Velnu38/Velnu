@@ -8,10 +8,12 @@ export function customerDirectoryName(customer: CustomerName) {
   const first = customer.first_name?.trim(), last = customer.last_name?.trim()
   return last ? [last, first].filter(Boolean).join(', ') : first || customer.company?.trim() || 'Unnamed customer'
 }
-/** Last name first; company-only and single-name customers stay in the same alphabet. */
+/** Named contacts first; missing surnames use the supplied name, never a guessed one.
+ * Numbered records follow the alphabet so large QA/import batches don't bury names. */
 export function compareCustomers(a: CustomerName, b: CustomerName) {
   const key = (c: CustomerName) => c.last_name?.trim() || c.first_name?.trim() || c.company?.trim() || ''
-  return alphabet.compare(key(a), key(b)) || alphabet.compare(a.first_name?.trim() || '', b.first_name?.trim() || '') || a.id.localeCompare(b.id)
+  const group = (c: CustomerName) => !key(c) ? 3 : !/^\p{L}/u.test(key(c)) ? 2 : c.last_name?.trim() ? 0 : 1
+  return group(a)-group(b) || alphabet.compare(key(a), key(b)) || alphabet.compare(a.first_name?.trim() || '', b.first_name?.trim() || '') || a.id.localeCompare(b.id)
 }
 export type CustomerRecordView = 'work' | 'estimates' | 'invoices'
 export function customerRecordsHref(view: CustomerRecordView, customerId = '', documentId = '') {

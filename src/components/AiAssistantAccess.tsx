@@ -5,11 +5,13 @@ import VoiceAssistant from './VoiceAssistant'
 
 /** A paid plan preference is not an entitlement. The backend quota/entitlement
  * function is the source of truth. Hide API-backed AI when it isn't available. */
-export default function AiAssistantAccess({ business, onChanged }: {
+export default function AiAssistantAccess({ business, onChanged, onAvailabilityChange }: {
   business: CurrentBusiness
   onChanged: () => void
+  onAvailabilityChange?: (available: boolean) => void
 }) {
   const [access, setAccess] = useState<'checking' | 'paid' | 'unavailable'>('checking')
+  useEffect(() => { onAvailabilityChange?.(access === 'paid') }, [access, onAvailabilityChange])
   useEffect(() => {
     let active = true
     setAccess('checking')

@@ -73,7 +73,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
         {isPrimaryOwner(business)&&<button type="button" className="secondary-button compact" onClick={()=>setShowImport(true)}>Import contacts</button>}
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New customer</button>}
       </div>
-      <p className="quiet">Sorted by last name A–Z. Company-only customers appear by company name.</p>
+      <p className="quiet">Last name A–Z. Contacts without a last name follow by name or company. Numbered records appear last.</p>
       {error && !showForm && <p role="alert" className="error-text">{error}</p>}
       <RecordListControls label="customers" list={records}/>
       <section className="list-card customer-directory" aria-label="Customer directory">
@@ -84,6 +84,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
           return <button type="button" className="customer-row customer-row-button" aria-label={`Open contact for ${customerDisplayName(customer)}`} key={customer.id} onClick={() => openCustomer(customer.id)}>
             <div className="avatar">{name.charAt(0).toUpperCase()}</div>
             <div className="row-main"><strong>{name}</strong><span>{customer.company && name !== customer.company ? customer.company : customer.phone || customer.email || 'No contact information'}</span></div>
+            {!customer.last_name?.trim()&&<span className="customer-name-note">{customer.first_name?.trim()?'No last name':'Company contact'}</span>}
             <div className="row-meta"><span>{customer.phone || ''}</span><span>{customer.email || ''}</span></div>
             <span className="row-chevron">›</span>
           </button>

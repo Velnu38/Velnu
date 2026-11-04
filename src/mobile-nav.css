@@ -2,3 +2,27 @@
 
 /* Fill the bottom bar evenly using the remaining permitted destinations. */
 @media(max-width:900px){.app-shell .mobile-nav{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}}
+
+/* One stable assistant destination alongside the mobile workspace navigation. */
+@media(min-width:901px){.app-shell .mobile-nav{display:contents}.mobile-nav>.mobile-destination{display:none}}
+.fin-recording-state{display:grid;justify-items:center;gap:10px;margin:16px 0;padding:18px;border:1px solid #99dcd4;border-radius:18px;background:#eefaf7;color:#102c4b}
+.fin-listening-mark{width:58px;height:58px;border-radius:50%;padding:10px;background:#102c4b;border:2px solid #23b8ad;animation:fin-listening 1.4s ease-in-out infinite}
+.fin-recording-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.fin-recording-actions button,.fin-speak-again{min-height:44px}
+.customer-name-note{font-size:11px;color:#52677f;border:1px solid #cad6e0;padding:5px 8px;border-radius:8px;max-width:85px;flex-shrink:0}
+@media(max-width:900px){
+ .app-shell .mobile-nav{display:grid;align-items:center;gap:5px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#fff;border-top:2px solid #cedbdc;box-shadow:0 -5px 22px #102c4b12}
+ .mobile-nav>.mobile-destination{min-height:64px;align-content:center;gap:7px;border-radius:12px;color:#536579}
+ .mobile-nav>.mobile-destination small{font-size:11px;font-weight:700}
+ .mobile-nav>.mobile-destination.active{background:#e7f6f3;color:#0f766e}
+ .mobile-nav>.mobile-destination:focus-visible{outline:3px solid #16a698;outline-offset:1px}
+ .mobile-nav .fin-launcher{position:static;width:100%;max-width:none;gap:3px;min-width:0}
+ .mobile-nav .fin-launcher>.voice-fab{width:100%;min-height:98px;padding:5px 2px;gap:3px;border-radius:16px;border:2px solid #23b8ad;background:#102c4b;color:#fff;box-shadow:0 3px 10px #102c4b25}
+ .mobile-nav .fin-launcher-orb{width:48px;height:48px;min-width:48px;padding:6px;border-width:1px}
+ .mobile-nav .fin-launcher>.voice-fab>.fin-launcher-caption{display:flex;font-size:12px;gap:2px}
+ .mobile-nav .fin-launcher-caption small{font-size:10px;color:#ddf8f3}
+ .mobile-nav .fin-type-entry{display:none}
+ .workspace-inner{padding-bottom:calc(142px + env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){.fin-listening-mark{animation:none}}
+@media print{.fin-launcher,.mobile-nav{display:none!important}}
