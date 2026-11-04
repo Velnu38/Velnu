@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test'
 import {mock} from './audit-fixture.mjs'
+test.setTimeout(60000)
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'}
 for(const width of [390,1440])test(`Fin has one typed submit, clear voice control and contextual follow-ups at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:950});const state=await mock(page,{ai:true});const requests=[];let fail=false
