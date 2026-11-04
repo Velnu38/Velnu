@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test'
-import {mock} from './audit-fixture.mjs'
+import {mock,B,business} from './audit-fixture.mjs'
 test.setTimeout(60000)
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'}
 for(const width of [390,1440])test(`Fin has one typed submit, clear voice control and contextual follow-ups at ${width}px`,async({page})=>{
@@ -23,4 +23,18 @@ for(const width of [390,1440])test(`Fin has one typed submit, clear voice contro
  page.on('dialog',()=>{throw Error('Completed conversation must close without an unsaved-change prompt')});await panel.getByRole('button',{name:'Close',exact:true}).click();await launcher.click();await expect(panel.getByRole('region',{name:'Fin’s answer'})).toHaveCount(2)
  await panel.getByRole('button',{name:'New conversation',exact:true}).click();await expect(panel.getByRole('region',{name:'Fin’s answer'})).toHaveCount(0);await input.fill('What services do I offer?');await submit.click();expect(requests.at(-1).history).toEqual([])
  expect(state.documents).toHaveLength(0);expect(state.calls.filter(c=>c.path.includes('execute-ai-action'))).toHaveLength(0)
+})
+
+test('changing membership role clears the earlier business-question conversation',async({page})=>{
+ await mock(page,{ai:true})
+ await page.route('**/functions/v1/fin-assistant',async route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
+  return route.fulfill({status:200,headers:cors,json:{answer:'Owner-only saved business answer.',sources:[],limits:[],as_of:'2026-11-04T12:00:00Z'}})
+ })
+ await page.goto('/');await page.getByRole('button',{name:'Talk to Fin'}).click();await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill('What services do I offer?');await page.getByRole('button',{name:'Ask Fin',exact:true}).click();await expect(page.getByText('Owner-only saved business answer.',{exact:true})).toBeVisible()
+ await page.route('**/rest/v1/business_members?*',route=>route.fulfill({status:200,headers:cors,json:{business_id:B,role:'office',access_modules:['calendar','jobs','billing','finances'],businesses:business}}))
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
+ await expect(page.locator('.role-pill')).toHaveText('office',{timeout:15000})
+ await expect(page.getByRole('dialog',{name:'Fin — your office assistant'})).toHaveCount(0)
+ await page.getByRole('button',{name:'Talk to Fin'}).click();await expect(page.getByRole('region',{name:'Conversation with Fin'})).toHaveCount(0);await expect(page.getByText('Owner-only saved business answer.',{exact:true})).toHaveCount(0)
 })
