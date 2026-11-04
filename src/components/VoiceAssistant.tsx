@@ -37,7 +37,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const thread=useRef(crypto.randomUUID()),retryRequest=useRef<{text:string;id:string}|null>(null)
   const conversationEnd=useRef<HTMLDivElement|null>(null)
   useEffect(()=>{if(!plan&&!execution)conversationEnd.current?.scrollIntoView({block:'nearest',behavior:'instant'})},[conversation,plan,execution])
-  const executionHeading=useRef<HTMLHeadingElement>(null);useEffect(()=>{if(execution){executionHeading.current?.focus({preventScroll:true});executionHeading.current?.scrollIntoView({block:'start'})}},[execution])
+  const executionHeading=useRef<HTMLHeadingElement>(null);useEffect(()=>{if(execution){executionHeading.current?.focus({preventScroll:true});executionHeading.current?.closest('dialog')?.scrollTo({top:0})}},[execution])
   const [error, setError] = useState('')
   const [voiceStatus, setVoiceStatus] = useState('')
   const [entryMode, setEntryMode] = useState<'voice' | 'text'>('text')
