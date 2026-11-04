@@ -1,9 +1,10 @@
+import {FinMark,FinName} from './FinBrand'
 import FormDialog from './FormDialog'
 import { useEffect, useRef, useState } from 'react'
 import {isVoiceDocumentCommand,voiceDocumentKind,parseVoiceDocument,type VoiceSeed} from '../lib/voiceDocument'
 import QuickInvoiceReview from './QuickInvoiceReview'
 import type { CurrentBusiness } from '../lib/business'
-import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, getTranscriptionStatus, interpretDocument, askFin, type AiCommandSource } from '../services/ai'
+import { confirmAiAction, executeAiAction, interpretCommand, rejectAiAction, transcribeVoice, getTranscriptionStatus, interpretDocument, askFin, type AiCommandSource, type FinTurn } from '../services/ai'
 
 type BrowserSpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type BrowserRecognizer = {
@@ -74,6 +75,9 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const [action, setAction] = useState<ParsedAction | null>(null)
   const [quickInvoiceRequest, setQuickInvoiceRequest] = useState<{command:string;seed:VoiceSeed;notice:string} | null>(null)
   const [result, setResult] = useState<any>(null)
+  const [conversation,setConversation]=useState<FinTurn[]>([])
+  const conversationEnd=useRef<HTMLDivElement|null>(null)
+  useEffect(()=>{conversationEnd.current?.scrollIntoView({block:'nearest',behavior:'instant'})},[conversation])
   const [error, setError] = useState('')
   const [voiceStatus, setVoiceStatus] = useState('')
   const [voiceMode, setVoiceMode] = useState<'checking' | 'cloud' | 'browser'>('checking')
@@ -125,7 +129,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   }, [open, business.id])
 
   useEffect(()=>{
-    const openEntry=(event:Event)=>{const text=(event as CustomEvent<{text?:string}>).detail?.text;if(typeof text!=="string"||text.length>2000)return;setOpen(true);setAction(null);setResult(null);setQuickInvoiceRequest(null);setError('');setText(text)}
+    const openEntry=(event:Event)=>{const text=(event as CustomEvent<{text?:string}>).detail?.text;if(typeof text!=="string"||text.length>2000)return;setOpen(true);setAction(null);setResult(null);setQuickInvoiceRequest(null);setConversation([]);setError('');setText(text)}
     window.addEventListener('finviant-assistant-entry',openEntry);return()=>window.removeEventListener('finviant-assistant-entry',openEntry)
   },[])
 
@@ -150,7 +154,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     setBusy(true);mutationInFlight.current=true
     try {
       if(/^(?:fin[, :]*)?(?:who|what|when|where|why|how|which|show|tell|do|does|is|are|can|could|would|give|have)\b|\?\s*$/i.test(command)||!/\b(?:create|make|draft|prepare|write|generate|start|schedule|record|add|convert|cancel|delete|send|mark|update)\b/i.test(command)){
-        setResult(await askFin(business.id,command));setText(command);return
+        const response=await askFin(business.id,command,conversation);if(!mounted.current)return;setConversation(turns=>[...turns,{question:command,response}].slice(-12));setText('');return
       }
       const parsed = await interpretCommand(business.id, command, source) as ParsedAction
       setAction(parsed)
@@ -217,7 +221,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         setText(spoken)
         setError('')
         if (isVoiceDocumentCommand(spoken)) void parseCommand(spoken, 'voice')
-        else setVoiceStatus('Words captured. Check the text and tap Send command when ready.')
+        else setVoiceStatus('Words captured. Check the text and tap Ask Fin when ready.')
       } else if (!speechError) {
         setVoiceStatus('')
         setError('No text detected by the browser. Use the microphone on your device keyboard in the text box.')
@@ -278,7 +282,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
           const words = transcript.transcript.trim()
           setText(words)
           if (isVoiceDocumentCommand(words)) await parseCommand(words, 'voice')
-          else setVoiceStatus('Transcription complete. Review the words and tap Send command.')
+          else setVoiceStatus('Transcription complete. Review the words and tap Ask Fin.')
         } catch (err) {
           setVoiceStatus('')
           setError(err instanceof Error ? err.message : 'Could not transcribe the recording.')
@@ -355,22 +359,23 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   }
 
   return <>
-    <button className="voice-fab" onClick={() => { setOpen(true); reset() }} aria-label="Talk to Fin"><span className="mic-dot">●</span><span>Talk to Fin</span></button>
-    {open && <FormDialog label="Fin — your office assistant" cleanVersion={result} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
+    {!open&&<div className="fin-launcher"><button className="voice-fab" onClick={()=>setOpen(true)} aria-label="Talk to Fin" aria-describedby="fin-launcher-label"><FinMark/></button><span id="fin-launcher-label">Ask <FinName/> — tap to speak</span></div>}
+    {open && <FormDialog label="Fin — your office assistant" cleanVersion={result??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
       <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{quickInvoiceRequest?'Review '+quickInvoiceRequest.seed.kind:'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
-      {!quickInvoiceRequest&&<><button className={`record-button ${recording ? 'recording' : ''}`} onClick={toggleRecording} disabled={busy || voiceMode === 'checking'}><span className="record-orb">●</span>{recording ? 'Tap to stop' : voiceMode === 'checking' ? 'Checking voice…' : busy ? 'Working…' : 'Tap and speak'}</button>
-      {voiceStatus && <p className="assistant-help" role="status">{voiceStatus}</p>}
-      <button type="button" className="secondary-button compact" onClick={() => { textAreaRef.current?.focus(); setVoiceStatus('The text box is active. Tap the microphone on your device keyboard, speak, and tap Done. Make sure text appears before you submit.') }}>Use keyboard dictation</button>
-      <div className="assistant-divider"><span>or dictate / type it</span></div>
-      <p className="assistant-help">Type or speak naturally. List each service and amount; Fin calculates the total. You can choose the customer during review, or ask a question about your business.</p>
-      <details className="fin-help"><summary>Using Fin and your business data</summary><p className="assistant-help">Ask about your saved business profile, customers, unpaid invoices or upcoming work. Fin uses current records in this business; its answers show the records checked. Teach Fin through Settings → Company profile. Business questions are available to owners and administrators. Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p></details>
-      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} placeholder="Create an invoice for Bob Smith for $150 for faucet repair…" /><button className="primary-button compact" onClick={submitText} disabled={busy || !text.trim()}>{isVoiceDocumentCommand(text) ? `Review ${voiceDocumentKind(text)}` : 'Ask Fin'}</button></div>
+      {!quickInvoiceRequest&&<>
+      {conversation.length>0&&<section className="fin-conversation" aria-label="Conversation with Fin" aria-live="polite" tabIndex={0}>{conversation.map((turn,index)=><article key={index}><p className="fin-question"><strong>You</strong>{turn.question}</p><ResultView result={turn.response}/></article>)}<div ref={conversationEnd}/></section>}
+      <div className="fin-voice-control"><button type="button" className={`record-button ${recording?'recording':''}`} onClick={toggleRecording} disabled={busy||voiceMode==='checking'} aria-pressed={recording} aria-label={recording?'Tap to stop':voiceMode==='checking'?'Checking voice…':'Tap and speak'}><FinMark/></button><span>{recording?'Listening — tap to stop':voiceMode==='checking'?'Preparing microphone…':'Tap to speak'}</span></div>
+      {voiceStatus&&<p className="assistant-help" role="status">{voiceStatus}</p>}
+      <p className="assistant-help">{conversation.length?'Ask a follow-up by voice or type below.':'Speak or type a question, invoice, estimate, or task.'}</p>
+      <details className="fin-help"><summary>Using Fin and your business data</summary><button type="button" className="text-button" onClick={()=>textAreaRef.current?.focus()}>Use keyboard dictation</button><p className="assistant-help">Ask about your saved business profile, customers, unpaid invoices or upcoming work. Fin uses current records in this business; its answers show the records checked. Teach Fin through Settings → Company profile. Business questions are available to owners and administrators. Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p></details>
+      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} maxLength={6000} placeholder={conversation.length?"Ask a follow-up…":"Ask a question or describe what you need…"} /><button type="button" className="primary-button compact" aria-label={isVoiceDocumentCommand(text)?`Review ${voiceDocumentKind(text)}`:'Ask Fin'} onClick={submitText} disabled={busy || recording || !text.trim()}>{isVoiceDocumentCommand(text) ? `Review ${voiceDocumentKind(text)}` : <>Ask <FinName onDark/></>}</button></div>
+      {conversation.length>0&&<div className="fin-conversation-controls"><span>Fin uses recent messages and current business records.</span><button type="button" className="text-button" disabled={busy||recording} onClick={()=>{setConversation([]);reset();textAreaRef.current?.focus()}}>New conversation</button></div>}
       </>}
       {quickInvoiceRequest && <QuickInvoiceReview business={business} key={quickInvoiceRequest.command} command={quickInvoiceRequest.command} initialSeed={quickInvoiceRequest.seed} parserNotice={quickInvoiceRequest.notice} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(document,kind,delivery) => { setQuickInvoiceRequest(null); setText(''); setResult({[kind]:document,delivery}); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button data-keep-dialog className="secondary-button" onClick={reject} disabled={busy}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
       <ResultView result={result} />
-      {error && <p className="form-message error-text">{error}</p>}
-      {!quickInvoiceRequest&&<div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>}
+      {error && <p role="alert" className="form-message error-text">{error}</p>}
+      {!quickInvoiceRequest&&conversation.length===0&&<div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>}
     </section></FormDialog>}
   </>
 }

@@ -1,3 +1,4 @@
+import FinBrand from './FinBrand'
 import FormDialog from './FormDialog'
 import {confirmNavigation} from '../lib/unsavedChanges'
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
@@ -132,12 +133,12 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   return (
     <WorkspaceNavigation.Provider value={back}><div className="app-shell" onClick={openAppLink}>
       <aside className="sidebar">
-        <div className="sidebar-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><span>Finviant <span className="finviant-product">Office</span></span></div>
+        <div className="sidebar-brand"><FinBrand/></div>
         <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
         <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => {if(confirmNavigation())void supabase.auth.signOut()}}>Sign out</button></div>
       </aside>
       <main className="workspace">
-        <header className="topbar"><div className="mobile-brand"><div className="logo-mark small"><img src="/finviant-mark.svg" alt="" /></div><strong>Finviant <span className="finviant-product">Office</span></strong></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
+        <header className="topbar"><div className="mobile-brand"><FinBrand/></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
         <div className="private-testing-app"><PrivateBetaNotice compact /></div>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>

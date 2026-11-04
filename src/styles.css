@@ -43,3 +43,29 @@
 .voice-delivery-option > p { grid-column: 1 / -1; margin: 0; }
 .voice-delivery-option button { min-height: 44px; width: 100%; }
 @media (max-width: 520px) { .voice-delivery-option { grid-template-columns: 1fr; } .voice-delivery-option > span { grid-row: 1; } }
+
+/* Speech F: one mark across app branding and assistant controls. */
+.fin-mark{display:block;width:100%;height:100%;object-fit:contain;flex-shrink:0}
+.fin-brand{display:flex;flex-direction:column;align-items:center;gap:6px;color:#102c4b;text-align:center;letter-spacing:0}
+.fin-brand>.fin-mark{width:64px;height:64px}.fin-brand>span{font-size:11px;font-weight:700;white-space:nowrap}
+.sidebar-brand{justify-content:center;padding:0 0 24px}.sidebar-brand .fin-brand>.fin-mark{width:76px;height:76px}
+.mobile-brand .fin-brand{flex-direction:column;gap:2px}.mobile-brand .fin-brand>.fin-mark{width:38px;height:38px}.mobile-brand .fin-brand>span{font-size:10px;line-height:1.2;white-space:nowrap;text-align:center}
+.auth-hero>.fin-brand,.auth-brand-link>.fin-brand{background:white;border-radius:18px;padding:16px;width:max-content;margin-bottom:32px}.auth-brand-link{width:max-content}
+.onboarding-card>.fin-brand{margin-bottom:24px;align-items:flex-start}
+.logo-mark,.logo-mark.small{background:transparent;box-shadow:none;border-radius:0}
+.fin-name{display:inline-flex;align-items:baseline;white-space:nowrap}.fin-name>.fin-mark{display:inline-block;width:.95em;height:1.15em;align-self:center;margin-right:.01em}
+.fin-launcher{position:fixed;right:22px;bottom:22px;z-index:50;display:flex;flex-direction:column;align-items:center;gap:7px;max-width:190px}
+.fin-launcher>.voice-fab{position:static;width:76px;height:76px;padding:15px;border:1px solid #d3e5e6;border-radius:50%;background:#fff;box-shadow:0 8px 28px #102c4b26;display:grid;place-items:center}
+.fin-launcher>span{padding:6px 10px;border-radius:20px;background:white;color:#102c4b;box-shadow:0 2px 12px #102c4b12;font-size:12px;font-weight:750;line-height:1.4}
+.fin-launcher>.voice-fab:hover{background:#e9faf7}.fin-launcher .voice-fab>.fin-mark{display:block}
+.fin-voice-control{display:flex;flex-direction:column;align-items:center;gap:8px;margin:12px 0}.fin-voice-control>span{font-size:12px;color:#536478;font-weight:650}
+.fin-voice-control>.record-button{width:88px;height:88px;min-height:88px;padding:18px;border-radius:50%;background:#f0faf8;border:1px solid #cce9e4;display:grid;place-items:center}
+.fin-voice-control>.recording{background:#fff1f2;border:3px solid #e45a70;animation:fin-listening 1.4s ease-in-out infinite}
+@keyframes fin-listening{50%{box-shadow:0 0 0 8px #e45a7018}}
+.fin-conversation{display:grid;gap:20px;margin-bottom:20px;max-height:min(42vh,360px);overflow-y:auto;overscroll-behavior:contain;padding-right:4px}.fin-question{display:grid;gap:5px;margin:0 0 10px 30px;padding:12px 16px;border-radius:15px;background:#eef4fa;white-space:pre-wrap;overflow-wrap:anywhere}.fin-question>strong{font-size:11px;color:#52677f}
+.fin-answer-text{white-space:pre-wrap;overflow-wrap:anywhere}.fin-conversation-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}.fin-conversation-controls>span{font-size:11px;color:#64748b;max-width:360px}.fin-conversation-controls button{flex-shrink:0;min-height:44px}
+.assistant-panel .command-box{margin-top:14px}.assistant-panel .fin-help{margin:12px 0}
+@media(max-width:900px){.fin-launcher{right:12px;bottom:calc(76px + env(safe-area-inset-bottom));max-width:170px}.fin-launcher>.voice-fab{width:72px;height:72px}.fin-launcher>span{font-size:11px}.mobile-brand{letter-spacing:0}}
+@media(prefers-reduced-motion:reduce){.fin-voice-control>.recording{animation:none}}
+
+@media(max-width:600px){.fin-conversation-controls{flex-direction:column-reverse;align-items:stretch;gap:4px}.fin-conversation-controls button{text-align:right}.fin-conversation-controls>span{max-width:none}}
