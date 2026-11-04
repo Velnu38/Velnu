@@ -63,3 +63,9 @@ test('related records and line-item changes invalidate review; search/detail sna
  const edit=await review(db,'invoices',{notes:'Updated'},iid);await db.query(`update invoice_items set description='Changed description' where invoice_id=$1`,[iid]);await assert.rejects(execute(db,edit),/record changed/);
  await db.query(`update invoices set status='sent' where id=$1`,[iid]);await assert.rejects(execute(db,await review(db,'invoices',{notes:'Overwrite issued'},iid)),/history/);
  }finally{await db.close()}});
+
+test('Fin rejects clearing completed work when the linked job is completed',async()=>{const db=await accountDatabase();try{
+ const job=(await db.query<any>(`insert into jobs(business_id,customer_id,title,status) values($1,$2,'Completed work','completed') returning id`,[ids.business,ids.customer])).rows[0].id;
+ const invoice=(await db.query<any>(`insert into invoices(business_id,customer_id,job_id,work_completed) values($1,$2,$3,true) returning id`,[ids.business,ids.customer,job])).rows[0].id;
+ await assert.rejects(execute(db,await review(db,'invoices',{work_completed:false},invoice)),/completed job/);assert.equal((await lookup(db,'invoices',invoice)).rows[0].work_completed,true);
+ }finally{await db.close()}});
