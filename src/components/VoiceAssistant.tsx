@@ -1,3 +1,4 @@
+import {isFinQuestion} from '../lib/finRequest'
 import CreatedDocumentDelivery from './CreatedDocumentDelivery'
 import {FinMark,FinName} from './FinBrand'
 import FormDialog from './FormDialog'
@@ -81,7 +82,9 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   useEffect(()=>{conversationEnd.current?.scrollIntoView({block:'nearest',behavior:'instant'})},[conversation])
   const [error, setError] = useState('')
   const [voiceStatus, setVoiceStatus] = useState('')
-  const [voiceMode, setVoiceMode] = useState<'checking' | 'cloud' | 'browser'>('checking')
+  const [voiceMode, setVoiceMode] = useState<'cloud' | 'browser'>('cloud')
+  const captureStarting=useRef(false),captureGeneration=useRef(0)
+  const [workingMessage,setWorkingMessage]=useState('')
   const mutationInFlight = useRef(false)
   const mounted = useRef(true)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -94,7 +97,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   useEffect(() => {
     mounted.current = true
     return () => {
-      mounted.current = false
+      mounted.current = false;captureGeneration.current++
       if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current)
       const recorder = recorderRef.current
       if (recorder) {
@@ -107,27 +110,16 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       chunksRef.current = []
     }
   }, [])
-  // Preflight on panel open, NOT when the microphone is tapped. Browser microphone
-  // APIs need a live user gesture; awaiting a network status request in the click
-  // handler can lose that activation (notably on iPhone Safari).
+  // Preflight in the background. A status request never disables the tap target
+  // or consumes the gesture that Safari requires for microphone permission.
   useEffect(() => {
-    if (!open) return
-    let active = true
-    setVoiceMode('checking')
-    setVoiceStatus('Checking speech-to-text availability…')
-    void getTranscriptionStatus(business.id).then(status => {
-      if (!active) return
-      setVoiceMode(status.configured ? 'cloud' : 'browser')
-      setVoiceStatus(status.configured
-        ? 'Cloud transcription ready. Tap to record, speak, then tap again to stop. Words appear after processing.'
-        : 'Cloud transcription is unavailable. Browser dictation will be tried; the keyboard microphone is another option.')
-    }).catch(() => {
-      if (!active) return
-      setVoiceMode('browser')
-      setVoiceStatus('Could not check cloud transcription. Browser dictation will be tried; the keyboard microphone is another option.')
+    let active=true
+    void getTranscriptionStatus(business.id).then(status=>{if(active)setVoiceMode(status.configured?'cloud':'browser')}).catch(()=>{
+      // A temporary status failure does not prove cloud transcription is disabled.
+      if(active)setVoiceMode('cloud')
     })
-    return () => { active = false }
-  }, [open, business.id])
+    return()=>{active=false}
+  },[business.id])
 
   useEffect(()=>{
     const openEntry=(event:Event)=>{const text=(event as CustomEvent<{text?:string}>).detail?.text;if(typeof text!=="string"||text.length>2000)return;setOpen(true);setAction(null);setResult(null);setQuickInvoiceRequest(null);setConversation([]);setError('');setText(text)}
@@ -142,19 +134,19 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     if (mutationInFlight.current) return
     setError(''); setVoiceStatus(''); setResult(null); setAction(null)
     if (isVoiceDocumentCommand(command)) {
-      setText(command);setQuickInvoiceRequest(null);setBusy(true);mutationInFlight.current=true
+      setText(command);setQuickInvoiceRequest(null);setBusy(true);setWorkingMessage('Fin is preparing your draft…');mutationInFlight.current=true
       try {
         const seed=await interpretDocument(business.id,command)
         setQuickInvoiceRequest({command,seed,notice:'Fin prepared these lines. Check the details before saving.'})
       } catch {
         setQuickInvoiceRequest({command,seed:parseVoiceDocument(command),notice:'Using the on-device draft parser. Review each line; Fin’s language service could not be reached.'})
-      } finally {setBusy(false);mutationInFlight.current=false}
+      } finally {setBusy(false);setWorkingMessage('');mutationInFlight.current=false}
       return
     }
     setQuickInvoiceRequest(null)
-    setBusy(true);mutationInFlight.current=true
+    setBusy(true);setWorkingMessage('Fin is thinking…');mutationInFlight.current=true
     try {
-      if(/^(?:fin[, :]*)?(?:who|what|when|where|why|how|which|show|tell|do|does|is|are|can|could|would|give|have)\b|\?\s*$/i.test(command)||!/\b(?:create|make|draft|prepare|write|generate|start|schedule|record|add|convert|cancel|delete|send|mark|update)\b/i.test(command)){
+      if(isFinQuestion(command)){
         const response=await askFin(business.id,command,conversation);if(!mounted.current)return;setConversation(turns=>[...turns,{question:command,response}].slice(-12));setText('');return
       }
       const parsed = await interpretCommand(business.id, command, source) as ParsedAction
@@ -169,12 +161,20 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fin could not understand that request')
     } finally {
-      setBusy(false);mutationInFlight.current=false
+      setBusy(false);setWorkingMessage('');mutationInFlight.current=false
     }
   }
 
   async function submitText() {
     if (text.trim()) await parseCommand(text.trim(), 'text')
+  }
+
+  function stopBrowserDictation(speech:BrowserRecognizer) {
+    if(recordingTimeoutRef.current!==null)window.clearTimeout(recordingTimeoutRef.current)
+    recordingTimeoutRef.current=null
+    try { speech.stop() } catch { /* Finalize the captured words below. */ }
+    // Some browsers omit the final end event after interruption or permission loss.
+    if(recognizerRef.current===speech)recordingTimeoutRef.current=window.setTimeout(()=>speech.onend?.(),3000)
   }
 
   function startBrowserDictation(note = '') {
@@ -185,7 +185,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     const SpeechCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition
     if (!SpeechCtor) {
       setVoiceStatus('')
-      setError('Cloud transcription is not ready and Safari does not support browser dictation. Tap the text box and use your device keyboard microphone instead.')
+      setError('Voice recording is unavailable in this browser. Type below or use your device’s keyboard microphone.')
       return
     }
     const speech = new SpeechCtor()
@@ -195,6 +195,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     let spoken = ''
     let speechError = ''
     speech.onresult = event => {
+      if(recognizerRef.current!==speech)return
       spoken = Array.from(event.results, item => item[0]?.transcript || '').join(' ').trim()
       if (spoken) {
         setText(spoken)
@@ -204,24 +205,28 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     }
     speech.onerror = event => {
       speechError = event.error === 'not-allowed' || event.error === 'service-not-allowed'
-        ? 'Microphone access was blocked. Allow it in Safari or use your device keyboard microphone.'
+        ? 'Microphone access was blocked. Allow it in your browser’s site settings, or type below.'
         : event.error === 'no-speech'
-        ? 'No speech detected by Safari. Speak after tapping the microphone, or try your device keyboard microphone.'
+        ? 'No speech detected by the browser. Speak after tapping the microphone, or try your device keyboard microphone.'
         : event.error === 'network'
-        ? 'Safari dictation could not connect. Use your device keyboard microphone.'
+        ? 'Browser dictation could not connect. Use your device keyboard microphone.'
         : 'Browser dictation stopped before detecting speech. Use your device keyboard microphone.'
       setVoiceStatus('')
       setError(speechError)
+      speech.onerror=null
+      stopBrowserDictation(speech)
     }
     speech.onend = () => {
       if (recognizerRef.current !== speech) return
+      if(recordingTimeoutRef.current!==null)window.clearTimeout(recordingTimeoutRef.current)
+      recordingTimeoutRef.current=null
       recognizerRef.current = null
       setRecording(false)
       setBusy(false)
       if (spoken) {
         setText(spoken)
         setError('')
-        if (isVoiceDocumentCommand(spoken)) void parseCommand(spoken, 'voice')
+        if (isVoiceDocumentCommand(spoken)||isFinQuestion(spoken)) void parseCommand(spoken, 'voice')
         else setVoiceStatus('Words captured. Check the text and tap Ask Fin when ready.')
       } else if (!speechError) {
         setVoiceStatus('')
@@ -230,9 +235,10 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     }
     recognizerRef.current = speech
     try {
-      speech.start()
       setRecording(true)
-      setVoiceStatus(note || 'Listening in Safari. Speak clearly, then tap to stop.')
+      speech.start()
+      recordingTimeoutRef.current=window.setTimeout(()=>{if(recognizerRef.current===speech)stopBrowserDictation(speech)},110000)
+      setVoiceStatus(note || 'Listening. Speak clearly, then tap to stop.')
     } catch (err) {
       recognizerRef.current = null
       setRecording(false)
@@ -243,12 +249,18 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
 
   async function startCloudRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      captureStarting.current=false;setBusy(false)
       startBrowserDictation('Audio recording is unavailable in this browser. Using browser dictation instead.')
       return
     }
     let stream: MediaStream | null = null
+    const generation=++captureGeneration.current
+    let permissionTimer:ReturnType<typeof setTimeout>|undefined
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      const permission=navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      void permission.then(value=>{if(generation!==captureGeneration.current||!mounted.current)value.getTracks().forEach(track=>track.stop())}).catch(()=>{})
+      stream = await Promise.race([permission,new Promise<never>((_,reject)=>{permissionTimer=setTimeout(()=>{captureGeneration.current++;reject(new Error('Microphone permission is still pending. Allow access in your browser, then tap again, or type below.'))},15000)})])
+      clearTimeout(permissionTimer)
       if (!mounted.current) { stream.getTracks().forEach(track => track.stop()); return }
       const preferredFormats = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
       const preferredMime = typeof MediaRecorder.isTypeSupported === 'function'
@@ -261,7 +273,14 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       recordingStartedAtRef.current = Date.now()
       recorder.ondataavailable = event => { if (event.data.size) chunksRef.current.push(event.data) }
       recorder.onerror = () => {
-        setError('The microphone recording stopped unexpectedly. Try again or use keyboard dictation.')
+        recorder.onstop=null;recorder.ondataavailable=null
+        if(recordingTimeoutRef.current!==null)window.clearTimeout(recordingTimeoutRef.current)
+        recordingTimeoutRef.current=null
+        if(recorder.state==='recording'){try{recorder.stop()}catch{/* Already stopped. */}}
+        activeStream.getTracks().forEach(track=>track.stop())
+        recorderRef.current=null;recordingStartedAtRef.current=null;chunksRef.current=[]
+        setRecording(false);setBusy(false);setVoiceStatus('')
+        setError('The microphone recording stopped unexpectedly. Try again or type below.')
       }
       recorder.onstop = async () => {
         if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current)
@@ -279,10 +298,11 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
           const mime = recorder.mimeType || chunksRef.current[0]?.type || 'audio/webm'
           const audio = new Blob(chunksRef.current, { type: mime })
           const transcript = await transcribeVoice(business.id, audio, durationSeconds)
+          if(!mounted.current)return
           if (!transcript.transcript?.trim()) throw new Error('No text detected. Try a clearer recording.')
           const words = transcript.transcript.trim()
           setText(words)
-          if (isVoiceDocumentCommand(words)) await parseCommand(words, 'voice')
+          if (isVoiceDocumentCommand(words)||isFinQuestion(words)) await parseCommand(words, 'voice')
           else setVoiceStatus('Transcription complete. Review the words and tap Ask Fin.')
         } catch (err) {
           setVoiceStatus('')
@@ -307,27 +327,27 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       setBusy(false)
       setVoiceStatus('')
       const message = err instanceof Error ? err.message : 'Microphone is unavailable.'
-      setError('Cloud transcription is ready, but the microphone could not start: ' + message)
-    }
+      setError('The microphone could not start. ' + message)
+    } finally { clearTimeout(permissionTimer);captureStarting.current=false }
   }
 
   function toggleRecording() {
     if (recording) {
       if (recognizerRef.current) {
         setBusy(true)
-        recognizerRef.current.stop()
+        stopBrowserDictation(recognizerRef.current)
       } else if (recorderRef.current?.state === 'recording') {
         recorderRef.current.stop()
       }
       return
     }
-    if (busy || voiceMode === 'checking') return
+    if (busy || captureStarting.current) return
     setError('')
     setAction(null)
     setQuickInvoiceRequest(null)
     setResult(null)
     if (voiceMode === 'cloud') {
-      setBusy(true)
+      captureStarting.current=true;setBusy(true);setVoiceStatus('Opening microphone… Allow access if your browser asks.')
       // Begin getUserMedia in the actual tap handler, before any await.
       // This preserves user activation on Safari and other mobile browsers.
       void startCloudRecording()
@@ -362,16 +382,17 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const payload=result?.result??result
   const createdKind=payload?.invoice?.id?'invoice':payload?.estimate?.id?'estimate':payload?.change_order?.id?'change_order':null
   return <>
-    {!open&&<div className="fin-launcher"><button className="voice-fab" onClick={()=>setOpen(true)} aria-label="Talk to Fin" aria-describedby="fin-launcher-label"><FinMark/></button><span id="fin-launcher-label">Ask <FinName/> — tap to speak</span></div>}
+    {!open&&<div className="fin-launcher"><button type="button" className="voice-fab" onClick={()=>{setOpen(true);if(!quickInvoiceRequest&&!createdKind)toggleRecording()}} aria-label="Talk to Fin"><span className="fin-launcher-orb"><FinMark onDark/></span><span className="fin-launcher-caption">Ask <FinName onDark/><small>Tap to speak</small></span></button><button type="button" className="fin-type-entry" onClick={()=>setOpen(true)}>Type to Fin</button></div>}
     {open && <FormDialog label="Fin — your office assistant" cleanVersion={result??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
       <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{quickInvoiceRequest?'Review '+quickInvoiceRequest.seed.kind:createdKind?'Review '+createdKind.replace('_',' '):'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
       {!quickInvoiceRequest&&!createdKind&&<>
       {conversation.length>0&&<section className="fin-conversation" aria-label="Conversation with Fin" aria-live="polite" tabIndex={0}>{conversation.map((turn,index)=><article key={index}><p className="fin-question"><strong>You</strong>{turn.question}</p><ResultView result={turn.response}/></article>)}<div ref={conversationEnd}/></section>}
-      <div className="fin-voice-control"><button type="button" className={`record-button ${recording?'recording':''}`} onClick={toggleRecording} disabled={busy||voiceMode==='checking'} aria-pressed={recording} aria-label={recording?'Tap to stop':voiceMode==='checking'?'Checking voice…':'Tap and speak'}><FinMark/></button><span>{recording?'Listening — tap to stop':voiceMode==='checking'?'Preparing microphone…':'Tap to speak'}</span></div>
+      <div className="fin-voice-control"><button type="button" className={`record-button ${recording?'recording':''}`} onClick={toggleRecording} disabled={busy} aria-pressed={recording} aria-label={recording?'Tap to stop':'Tap and speak'}><FinMark onDark/></button><span>{recording?'Listening — tap to stop':'Tap to speak'}</span></div>
+      {workingMessage&&<p className="fin-working" role="status">{workingMessage}</p>}
       {voiceStatus&&<p className="assistant-help" role="status">{voiceStatus}</p>}
       <p className="assistant-help">{conversation.length?'Ask a follow-up by voice or type below.':'Speak or type a question, invoice, estimate, or task.'}</p>
       <details className="fin-help"><summary>Using Fin and your business data</summary><button type="button" className="text-button" onClick={()=>textAreaRef.current?.focus()}>Use keyboard dictation</button><p className="assistant-help">Ask about your saved business profile, customers, unpaid invoices or upcoming work. Fin uses current records in this business; its answers show the records checked. Teach Fin through Settings → Company profile. Business questions are available to owners and administrators. Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p></details>
-      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} maxLength={6000} placeholder={conversation.length?"Ask a follow-up…":"Ask a question or describe what you need…"} /><button type="button" className="primary-button compact" aria-label={isVoiceDocumentCommand(text)?`Review ${voiceDocumentKind(text)}`:'Ask Fin'} onClick={submitText} disabled={busy || recording || !text.trim()}>{isVoiceDocumentCommand(text) ? `Review ${voiceDocumentKind(text)}` : <>Ask <FinName onDark/></>}</button></div>
+      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); setQuickInvoiceRequest(null); setAction(null); setResult(null) }} maxLength={6000} placeholder={conversation.length?"Ask a follow-up…":"Ask a question or describe what you need…"} /><button type="button" className="primary-button compact fin-submit" aria-label={isVoiceDocumentCommand(text)?`Review ${voiceDocumentKind(text)}`:'Ask Fin'} onClick={submitText} disabled={busy || recording || !text.trim()}>{busy&&!recording?'Working…':isVoiceDocumentCommand(text) ? `Review ${voiceDocumentKind(text)}` : <>Ask <FinName onDark/></>}</button></div>
       {conversation.length>0&&<div className="fin-conversation-controls"><span>Fin uses recent messages and current business records.</span><button type="button" className="text-button" disabled={busy||recording} onClick={()=>{setConversation([]);reset();textAreaRef.current?.focus()}}>New conversation</button></div>}
       </>}
       {quickInvoiceRequest && <QuickInvoiceReview business={business} key={quickInvoiceRequest.command} command={quickInvoiceRequest.command} initialSeed={quickInvoiceRequest.seed} parserNotice={quickInvoiceRequest.notice} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(document,kind,delivery) => { setQuickInvoiceRequest(null); setText(''); setResult({[kind]:document,delivery}); onChanged() }} />}

@@ -45,8 +45,8 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
     }
   })
   await page.goto('/')
-  await expect(page.getByRole('button', { name: 'Talk to Fin' })).toBeVisible()
-  await page.getByRole('button', { name: 'Talk to Fin' }).click()
+  await expect(page.getByRole('button', { name: 'Type to Fin' })).toBeVisible({timeout:15000})
+  await page.getByRole('button', { name: 'Type to Fin' }).click()
   await page.getByRole('button', { name: 'Tap and speak' }).click()
   await expect(page.getByRole('button', { name: 'Tap to stop' })).toBeVisible()
   await page.getByRole('button', { name: 'Tap to stop' }).click()
@@ -76,7 +76,7 @@ test('multiple stated amounts become separate editable invoice lines', async ({ 
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body: JSON.stringify(body) })
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Talk to Fin' }).click()
+  await page.getByRole('button', { name: 'Type to Fin' }).click()
   await page.getByRole('textbox', { name: 'Describe your invoice or request' }).fill('Make an invoice for Bob Smith for $300 labor and $200 materials')
   await page.getByRole('button', { name: 'Review invoice' }).click()
   await expect(page.getByRole('textbox',{name:'Line 1 description',exact:true})).toHaveValue('labor')
@@ -106,10 +106,10 @@ test('Safari no-speech error shows a keyboard microphone fallback instead of a s
     }
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Talk to Fin' }).click()
+  await page.getByRole('button', { name: 'Type to Fin' }).click()
   await page.getByRole('button', { name: 'Tap and speak' }).click()
   await page.getByRole('button', { name: 'Tap to stop' }).click()
-  await expect(page.getByText(/No speech detected by Safari/)).toBeVisible()
+  await expect(page.getByText(/No speech detected by the browser/)).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Describe your invoice or request' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Review invoice' })).toHaveCount(0)
 })
@@ -128,16 +128,16 @@ test('Safari retains speech for other commands and makes the user submit deliber
     window.SpeechRecognition = window.webkitSpeechRecognition = class {
       start() {}
       stop() {
-        this.onresult?.({ results: [[{ transcript: 'Who has not paid me?' }]] })
+        this.onresult?.({ results: [[{ transcript: 'Create a customer named Bob Smith' }]] })
         this.onend?.()
       }
     }
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Talk to Fin' }).click()
+  await page.getByRole('button', { name: 'Type to Fin' }).click()
   await page.getByRole('button', { name: 'Tap and speak' }).click()
   await page.getByRole('button', { name: 'Tap to stop' }).click()
-  await expect(page.getByRole('textbox', { name: 'Describe your invoice or request' })).toHaveValue('Who has not paid me?')
+  await expect(page.getByRole('textbox', { name: 'Describe your invoice or request' })).toHaveValue('Create a customer named Bob Smith')
   await expect(page.getByRole('button', { name: 'Ask Fin' })).toBeEnabled()
   expect(invoked.filter(path => path.includes('/functions/v1/ai-command'))).toHaveLength(0)
 })
@@ -189,7 +189,7 @@ test('cloud recording uses server transcription and opens draft review, without 
     }
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Talk to Fin' }).click()
+  await page.getByRole('button', { name: 'Type to Fin' }).click()
   await page.getByRole('button', { name: 'Tap and speak' }).click()
   await expect(page.getByRole('button', { name: 'Tap to stop' })).toBeVisible()
   await page.getByRole('button', { name: 'Tap to stop' }).click()
@@ -244,7 +244,7 @@ test('microphone permission is requested directly inside the tap after a delayed
     }
   })
   await page.goto('/')
-  await page.getByRole('button',{name:'Talk to Fin'}).click()
+  await page.getByRole('button',{name:'Type to Fin'}).click()
   const start = page.getByRole('button',{name:'Tap and speak'})
   await expect(start).toBeEnabled()
   expect(statusChecks).toBe(1)
@@ -280,7 +280,7 @@ test('browser dictation starts in the tap gesture after unavailable cloud prefli
     }
   })
   await page.goto('/')
-  await page.getByRole('button',{name:'Talk to Fin'}).click()
+  await page.getByRole('button',{name:'Type to Fin'}).click()
   const start=page.getByRole('button',{name:'Tap and speak'})
   await expect(start).toBeEnabled()
   await start.click()

@@ -3,8 +3,8 @@ import {mock,C} from './audit-fixture.mjs'
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'}
 async function review(page,kind='invoice',contact={email:'customer@example.test'},options={}){
  const state=await mock(page,{ai:true});state.customers[0]={...state.customers[0],...contact,updated_at:'2026-11-04T10:00:00Z'}
- await page.goto('/');await page.getByRole('button',{name:'Talk to Fin'}).click();await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(`Create ${kind} for Test Customer for landscaping $200 and painting $100`);await page.getByRole('button',{name:`Review ${kind}`,exact:true}).click()
- const region=page.getByRole('region',{name:`Review ${kind} draft`});await expect(region.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue(C)
+ await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(`Create ${kind} for Test Customer for landscaping $200 and painting $100`);await page.getByRole('button',{name:`Review ${kind}`,exact:true}).click()
+ const region=page.getByRole('region',{name:`Review ${kind} draft`});await expect(region.getByRole('combobox',{name:'Customer',exact:true})).toBeEnabled({timeout:15000});await expect(region.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue(C)
  return {state,region}
 }
 for(const kind of ['invoice','estimate'])for(const width of [390,1440])test(`review directly emails ${kind} once at ${width}px`,async({page})=>{

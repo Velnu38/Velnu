@@ -4,7 +4,7 @@ on:
     branches: [ux/voice-review-send-20261104]
   pull_request:
     branches: [ux/private-testing-20261029]
-    paths: ['src/components/QuickInvoiceReview.tsx', 'src/components/VoiceAssistant.tsx', 'src/components/FinBrand.tsx', 'supabase/functions/fin-assistant/**', 'src/services/reviewDelivery.ts', 'src/components/*Delivery*.tsx', 'src/pages/ChangeOrdersPage.tsx', 'src/pages/EstimatesPage.tsx', 'src/components/InvoiceDetail.tsx', 'supabase/migrations/*change_order_review*', 'supabase/migrations/*review_email*']
+    paths: ['src/components/QuickInvoiceReview.tsx', 'src/components/VoiceAssistant.tsx', 'src/components/FinBrand.tsx', 'src/services/ai.ts', 'src/lib/finRequest.ts', 'tests/e2e/fin-*.spec.mjs', 'supabase/functions/fin-assistant/**', 'src/services/reviewDelivery.ts', 'src/components/*Delivery*.tsx', 'src/pages/ChangeOrdersPage.tsx', 'src/pages/EstimatesPage.tsx', 'src/components/InvoiceDetail.tsx', 'supabase/migrations/*change_order_review*', 'supabase/migrations/*review_email*']
 permissions:
   contents: read
 concurrency:
@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: '24'
       - name: Focused voice delivery browser checks
-        run: npx playwright test tests/e2e/voice-review-delivery.spec.mjs tests/e2e/document-review-delivery.spec.mjs tests/e2e/voice-multiple-lines.spec.mjs tests/e2e/audit-remediation.spec.mjs tests/e2e/fin-conversation.spec.mjs
+        run: npx playwright test tests/e2e/voice-review-delivery.spec.mjs tests/e2e/document-review-delivery.spec.mjs tests/e2e/voice-multiple-lines.spec.mjs tests/e2e/audit-remediation.spec.mjs tests/e2e/fin-conversation.spec.mjs tests/e2e/fin-voice-recovery.spec.mjs
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - name: Full browser regression

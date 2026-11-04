@@ -49,7 +49,7 @@ async function setup(page,options={}){
  return s
 }
 async function propose(page,text='Create a customer named Demo Customer'){
- await page.getByRole('button',{name:'Talk to Fin'}).click()
+ await page.getByRole('button',{name:'Type to Fin'}).click()
  await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(text)
  await page.getByRole('button',{name:'Ask Fin'}).click()
  await expect(page.getByRole('button',{name:'Confirm',exact:true})).toBeVisible()
