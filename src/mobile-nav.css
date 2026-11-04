@@ -26,3 +26,12 @@
 }
 @media(prefers-reduced-motion:reduce){.fin-listening-mark{animation:none}}
 @media print{.fin-launcher,.mobile-nav{display:none!important}}
+
+.fin-microphone-recovery{margin:14px 0;padding:16px;border:1px solid #e6c690;border-radius:14px;background:#fff9ed;color:#553e20;font-size:14px;line-height:1.5}
+.fin-microphone-recovery strong{display:block;font-size:16px;color:#543500}
+.fin-microphone-recovery p{margin:7px 0}.fin-microphone-recovery ol{padding-left:22px;margin:12px 0}.fin-microphone-recovery li+li{margin-top:8px}
+.fin-recovery-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.fin-recovery-actions button,.fin-recovery-actions a{min-height:44px;white-space:normal}
+.fin-recovery-actions a{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.fin-microphone-recovery details{font-size:12px;overflow-wrap:anywhere}.fin-microphone-recovery summary{cursor:pointer;min-height:36px;align-content:center}
+@media(max-width:600px){.fin-recovery-actions{display:grid;grid-template-columns:1fr}.fin-microphone-recovery{padding:14px}}

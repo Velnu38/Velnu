@@ -83,7 +83,7 @@ test('late microphone permission is cleaned up after the permission deadline',as
 test('recorder failure stops tracks and unlocks the panel',async({page})=>{
  await setup(page);await page.goto('/');await page.getByRole('button',{name:'Talk to Fin'}).click()
  await expect(page.getByRole('button',{name:'Finish recording'})).toBeVisible();await page.evaluate(()=>window.__recorder.onerror())
- await expect(page.getByRole('alert')).toContainText('recording stopped unexpectedly');await expect(input(page)).toBeEnabled()
+ await expect(page.getByRole('alert')).toContainText('could not record usable audio');await expect(input(page)).toBeEnabled()
  expect(await page.evaluate(()=>window.__mic.stops)).toBe(1)
 })
 

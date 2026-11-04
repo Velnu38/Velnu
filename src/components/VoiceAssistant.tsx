@@ -1,9 +1,12 @@
 import {isFinQuestion} from '../lib/finRequest'
 import {createVoicePauseDetector} from '../lib/voicePause'
+import {checkMicrophoneContext,describeMicrophoneFailure,startCompatibleRecorder,type MicrophoneFailure,type MicrophoneStage} from '../lib/microphone'
+import MicrophoneRecovery from './MicrophoneRecovery'
 import CreatedDocumentDelivery from './CreatedDocumentDelivery'
 import {FinMark,FinName} from './FinBrand'
 import FormDialog from './FormDialog'
 import { useEffect, useRef, useState } from 'react'
+import {flushSync} from 'react-dom'
 import {isVoiceDocumentCommand,voiceDocumentKind,parseVoiceDocument,type VoiceSeed} from '../lib/voiceDocument'
 import QuickInvoiceReview from './QuickInvoiceReview'
 import type { CurrentBusiness } from '../lib/business'
@@ -86,6 +89,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const [entryMode, setEntryMode] = useState<'voice' | 'text'>('text')
   const pauseDetector = useRef<ReturnType<typeof createVoicePauseDetector>>(null)
   const [voiceMode, setVoiceMode] = useState<'cloud' | 'browser'>('cloud')
+  const [microphoneFailure,setMicrophoneFailure]=useState<MicrophoneFailure|null>(null)
+  const preferredVoiceMethod=useRef<'cloud'|'browser'|null>(null)
   const captureStarting=useRef(false),captureGeneration=useRef(0)
   const [workingMessage,setWorkingMessage]=useState('')
   const mutationInFlight = useRef(false)
@@ -118,9 +123,9 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   // or consumes the gesture that Safari requires for microphone permission.
   useEffect(() => {
     let active=true
-    void getTranscriptionStatus(business.id).then(status=>{if(active)setVoiceMode(status.configured?'cloud':'browser')}).catch(()=>{
+    void getTranscriptionStatus(business.id).then(status=>{if(active&&!preferredVoiceMethod.current)setVoiceMode(status.configured?'cloud':'browser')}).catch(()=>{
       // A temporary status failure does not prove cloud transcription is disabled.
-      if(active)setVoiceMode('cloud')
+      if(active&&!preferredVoiceMethod.current)setVoiceMode('cloud')
     })
     return()=>{active=false}
   },[business.id])
@@ -137,13 +142,14 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   },[])
 
   function reset() {
+    setMicrophoneFailure(null)
     setEntryMode('text')
     setAction(null); setResult(null); setQuickInvoiceRequest(null); setError(''); setVoiceStatus(''); setText('')
   }
 
   async function parseCommand(command: string, source: AiCommandSource) {
     if (mutationInFlight.current) return
-    setError(''); setVoiceStatus(''); setResult(null); setAction(null)
+    setError(''); setMicrophoneFailure(null); setVoiceStatus(''); setResult(null); setAction(null)
     if (isVoiceDocumentCommand(command)) {
       setText(command);setQuickInvoiceRequest(null);setBusy(true);setWorkingMessage('Fin is preparing your draft…');mutationInFlight.current=true
       try {
@@ -196,10 +202,11 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     const SpeechCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition
     if (!SpeechCtor) {
       setVoiceStatus('')
-      setError('Voice recording is unavailable in this browser. Type below or use your device’s keyboard microphone.')
+      setMicrophoneFailure(describeMicrophoneFailure(new DOMException('Browser dictation is not available.','NotSupportedError'),'dictation'))
       return
     }
-    const speech = new SpeechCtor()
+    let speech:BrowserRecognizer
+    try { speech=new SpeechCtor() } catch(error) { setMicrophoneFailure(describeMicrophoneFailure(error,'dictation'));setVoiceStatus('');setBusy(false);return }
     speech.lang = 'en-US'
     speech.continuous = false
     speech.interimResults = true
@@ -223,7 +230,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         ? 'Browser dictation could not connect. Use your device keyboard microphone.'
         : 'Browser dictation stopped before detecting speech. Use your device keyboard microphone.'
       setVoiceStatus('')
-      setError(speechError)
+      if(event.error==='not-allowed'||event.error==='service-not-allowed')setMicrophoneFailure(describeMicrophoneFailure({name:event.error,message:speechError},'dictation'))
+      else setError(speechError)
       speech.onerror=null
       stopBrowserDictation(speech)
     }
@@ -236,8 +244,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       setBusy(false)
       if (spoken) {
         setText(spoken)
-        setError('')
-        void parseCommand(spoken, 'voice')
+        if(speechError){setError(speechError+' Check the captured words below before submitting.');setVoiceStatus('Your partial request is preserved below.')}
+        else {setError('');void parseCommand(spoken, 'voice')}
       } else if (!speechError) {
         setVoiceStatus('')
         setError('No text detected by the browser. Use the microphone on your device keyboard in the text box.')
@@ -253,7 +261,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       recognizerRef.current = null
       setRecording(false)
       setVoiceStatus('')
-      setError(err instanceof Error ? err.message : 'Could not start speech recognition. Use your keyboard microphone.')
+      setMicrophoneFailure(describeMicrophoneFailure(err,'dictation'))
     }
   }
 
@@ -264,26 +272,26 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       return
     }
     let stream: MediaStream | null = null
+    let stage:MicrophoneStage='access'
     const generation=++captureGeneration.current
     let permissionTimer:ReturnType<typeof setTimeout>|undefined
     try {
+      checkMicrophoneContext()
+      // Request the native microphone immediately; optional audio processing
+      // must never prevent device access or choose the encoder for the browser.
+      const permission=navigator.mediaDevices.getUserMedia({ audio: true })
       pauseDetector.current = createVoicePauseDetector()
-      const permission=navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
       void permission.then(value=>{if(generation!==captureGeneration.current||!mounted.current)value.getTracks().forEach(track=>track.stop())}).catch(()=>{})
-      stream = await Promise.race([permission,new Promise<never>((_,reject)=>{permissionTimer=setTimeout(()=>{captureGeneration.current++;reject(new Error('Microphone permission is still pending. Allow access in your browser, then tap again, or type below.'))},15000)})])
+      stream = await Promise.race([permission,new Promise<never>((_,reject)=>{permissionTimer=setTimeout(()=>{captureGeneration.current++;reject(new DOMException('Microphone permission is still pending. Choose Allow in the browser prompt, then retry.','MicrophonePermissionTimeout'))},15000)})])
       clearTimeout(permissionTimer)
       if (!mounted.current) { stream.getTracks().forEach(track => track.stop()); return }
-      const preferredFormats = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
-      const preferredMime = typeof MediaRecorder.isTypeSupported === 'function'
-        ? preferredFormats.find(mime => MediaRecorder.isTypeSupported(mime))
-        : undefined
-      const recorder = preferredMime ? new MediaRecorder(stream, { mimeType: preferredMime }) : new MediaRecorder(stream)
+      stage='recorder'
       const activeStream = stream
-      recorderRef.current = recorder
-      chunksRef.current = []
       recordingStartedAtRef.current = Date.now()
+      const recorder=startCompatibleRecorder(activeStream,recorder=>{
+      chunksRef.current = []
       recorder.ondataavailable = event => { if (event.data.size) chunksRef.current.push(event.data) }
-      recorder.onerror = () => {
+      recorder.onerror = event => {
         pauseDetector.current?.stop();pauseDetector.current=null
         recorder.onstop=null;recorder.ondataavailable=null
         if(recordingTimeoutRef.current!==null)window.clearTimeout(recordingTimeoutRef.current)
@@ -292,7 +300,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
         activeStream.getTracks().forEach(track=>track.stop())
         recorderRef.current=null;recordingStartedAtRef.current=null;chunksRef.current=[]
         setRecording(false);setBusy(false);setVoiceStatus('')
-        setError('The microphone recording stopped unexpectedly. Try again or type below.')
+        setMicrophoneFailure(describeMicrophoneFailure((event as Event & {error?:unknown}|undefined)?.error||new Error('The microphone recording stopped unexpectedly.'),'recorder'))
       }
       recorder.onstop = async () => {
         pauseDetector.current?.stop();pauseDetector.current=null
@@ -324,7 +332,8 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
           setBusy(false)
         }
       }
-      recorder.start()
+      })
+      recorderRef.current=recorder
       setBusy(false)
       setRecording(true)
       const detectsPauses=pauseDetector.current?.start(activeStream,()=>{
@@ -332,7 +341,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       },()=>{
         cancelRecording()
         setError('No speech detected. Check that your microphone is connected and allowed, then try again or type below.')
-      })
+      },()=>{if(recorderRef.current===recorder)setVoiceStatus('Listening… Speak your request, then choose Finish recording.')})
       setVoiceStatus(detectsPauses ? 'Listening… Speak your request, then pause. Fin will respond automatically.' : 'Listening… Speak your request, then choose Finish recording.')
       recordingTimeoutRef.current = window.setTimeout(() => {
         if (recorder.state === 'recording') { try { recorder.stop() } catch { /* Already stopped. */ } }
@@ -345,14 +354,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       setRecording(false)
       setBusy(false)
       setVoiceStatus('')
-      const message = err instanceof DOMException && err.name==='NotAllowedError'
-        ? 'Microphone access was blocked. Allow Microphone in this browser’s site settings for Finviant, then try again. You can also type below.'
-        : err instanceof DOMException && err.name==='NotFoundError'
-        ? 'No microphone was found. Connect a microphone or type below.'
-        : err instanceof DOMException && err.name==='NotReadableError'
-        ? 'Another app or your device settings prevented microphone access. Close other recording apps and try again, or type below.'
-        : err instanceof Error ? err.message : 'Microphone is unavailable.'
-      setError('The microphone could not start. ' + message)
+      setMicrophoneFailure(describeMicrophoneFailure(err,stage))
     } finally { clearTimeout(permissionTimer);captureStarting.current=false }
   }
 
@@ -369,7 +371,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     setEntryMode('text');setRecording(false);setBusy(false);setVoiceStatus('Recording cancelled. You can type below or try the microphone again.')
   }
 
-  function toggleRecording() {
+  function toggleRecording(method=voiceMode) {
     if (recording) {
       if (recognizerRef.current) {
         setBusy(true)
@@ -381,11 +383,12 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     }
     if (busy || captureStarting.current) return
     setEntryMode('voice')
+    setMicrophoneFailure(null)
     setError('')
     setAction(null)
     setQuickInvoiceRequest(null)
     setResult(null)
-    if (voiceMode === 'cloud') {
+    if (method === 'cloud') {
       captureStarting.current=true;setBusy(true);setVoiceStatus('Opening microphone… Allow access if your browser asks.')
       // Begin getUserMedia in the actual tap handler, before any await.
       // This preserves user activation on Safari and other mobile browsers.
@@ -394,6 +397,19 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       // Likewise, start browser recognition before leaving the tap handler.
       startBrowserDictation('Listening… Speak your request, then pause.')
     }
+  }
+
+  function chooseVoiceMethod(method:'cloud'|'browser') {
+    preferredVoiceMethod.current=method
+    setVoiceMode(method)
+    toggleRecording(method)
+  }
+
+  function openVoice() {
+    // Match the earlier working order: the panel is open before permission is
+    // requested, while preserving the original gesture and avoiding the keyboard.
+    flushSync(()=>{setText('');setEntryMode('voice');setOpen(true)})
+    toggleRecording()
   }
 
   async function confirm() {
@@ -419,15 +435,18 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   }
 
   const payload=result?.result??result
+  const speechWindow=window as typeof window & {SpeechRecognition?:unknown;webkitSpeechRecognition?:unknown}
+  const browserDictationAvailable=typeof speechWindow.SpeechRecognition==='function'||typeof speechWindow.webkitSpeechRecognition==='function'
   const createdKind=payload?.invoice?.id?'invoice':payload?.estimate?.id?'estimate':payload?.change_order?.id?'change_order':null
   return <>
-    <div className="fin-launcher"><button type="button" className="voice-fab" onClick={()=>{setText('');setOpen(true);toggleRecording()}} aria-label="Talk to Fin"><span className="fin-launcher-orb"><FinMark onDark/></span><span className="fin-launcher-caption">Ask <FinName onDark/><small>Tap to speak</small></span></button><button type="button" className="fin-type-entry" onClick={()=>{setEntryMode('text');setOpen(true)}}>Type to Fin</button></div>
-    {open && <FormDialog label="Fin — your office assistant" cleanVersion={result??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
+    <div className="fin-launcher"><button type="button" className="voice-fab" onClick={openVoice} aria-label="Talk to Fin"><span className="fin-launcher-orb"><FinMark onDark/></span><span className="fin-launcher-caption">Ask <FinName onDark/><small>Tap to speak</small></span></button><button type="button" className="fin-type-entry" onClick={()=>{setEntryMode('text');setOpen(true)}}>Type to Fin</button></div>
+    {open && <FormDialog label="Fin — your office assistant" autoFocusFields={entryMode==='text'} cleanVersion={result??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
       <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{quickInvoiceRequest?'Review '+quickInvoiceRequest.seed.kind:createdKind?'Review '+createdKind.replace('_',' '):'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
       {!quickInvoiceRequest&&!createdKind&&<>
       {conversation.length>0&&<section className="fin-conversation" aria-label="Conversation with Fin" aria-live="polite" tabIndex={0}>{conversation.map((turn,index)=><article key={index}><p className="fin-question"><strong>You</strong>{turn.question}</p><ResultView result={turn.response}/></article>)}<div ref={conversationEnd}/></section>}
-      {recording&&<div className="fin-recording-state"><span className="fin-listening-mark" aria-hidden="true"><FinMark onDark/></span><strong>Listening…</strong><div className="fin-recording-actions"><button type="button" className="secondary-button" onClick={toggleRecording} disabled={busy}>Finish recording</button><button type="button" data-keep-dialog className="text-button" onClick={cancelRecording} disabled={busy}>Cancel recording</button></div></div>}
-      {!recording&&!busy&&(entryMode==='text'||error||conversation.length>0||action)&&<button type="button" className="secondary-button fin-speak-again" onClick={toggleRecording}>{error?'Try microphone again':conversation.length||action?'Speak a follow-up':'Speak instead'}</button>}
+      {microphoneFailure&&<MicrophoneRecovery failure={microphoneFailure} canDictate={browserDictationAvailable} onRetry={()=>chooseVoiceMethod('cloud')} onDictate={()=>chooseVoiceMethod('browser')} onType={()=>{setMicrophoneFailure(null);setError('');setEntryMode('text');setVoiceStatus('Type below, or use the microphone on your phone’s keyboard.');textAreaRef.current?.focus()}}/>}
+      {recording&&<div className="fin-recording-state"><span className="fin-listening-mark" aria-hidden="true"><FinMark onDark/></span><strong>Listening…</strong><div className="fin-recording-actions"><button type="button" className="secondary-button" onClick={()=>toggleRecording()} disabled={busy}>Finish recording</button><button type="button" data-keep-dialog className="text-button" onClick={cancelRecording} disabled={busy}>Cancel recording</button></div></div>}
+      {!microphoneFailure&&!recording&&!busy&&(entryMode==='text'||error||conversation.length>0||action)&&<button type="button" className="secondary-button fin-speak-again" onClick={()=>toggleRecording()}>{error?'Try microphone again':conversation.length||action?'Speak a follow-up':'Speak instead'}</button>}
       {workingMessage&&<p className="fin-working" role="status">{workingMessage}</p>}
       {voiceStatus&&<p className="assistant-help" role="status">{voiceStatus}</p>}
       <p className="assistant-help">{conversation.length?'Ask a follow-up by voice or type below.':'Speak or type a question, invoice, estimate, or task.'}</p>
