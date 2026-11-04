@@ -56,6 +56,13 @@ const mobilePrimary: View[] = ['dashboard', 'customers']
 const mobileMore: View[] = ['estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
 const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders', 'schedule', 'reminders'].includes(id))
 
+function DockIcon({ kind }: { kind: string }) {
+  return <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{kind === 'dashboard'
+    ? <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>
+    : kind === 'customers' ? <><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></>
+    : <><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></>}</svg>
+}
+
 function initialView(): View {
   const query = new URLSearchParams(window.location.search)
   if (query.has('quickbooks')) return 'bookkeeping'
@@ -70,6 +77,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [view, setView] = useState<View>(initialView())
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [showMobileMore, setShowMobileMore] = useState(false)
+  const [finAvailable, setFinAvailable] = useState(false)
 
   const [accessRemoved, setAccessRemoved] = useState(false)
   useEffect(() => {
@@ -140,12 +148,13 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         <div className="private-testing-app"><PrivateBetaNotice compact /></div>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>
-      <nav className="mobile-nav">
+      <nav className="mobile-nav" aria-label="Workspace navigation">
         {mobilePrimary.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
-          return <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span>{item.icon}</span><small>{item.label}</small></button>
+          return <button key={item.id} aria-label={item.label} aria-current={view === item.id ? 'page' : undefined} className={`mobile-destination ${view === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><DockIcon kind={item.id}/><small>{item.label}</small></button>
         })}
-        <button aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={mobileMore.includes(view) || showMobileMore ? 'active' : ''} onClick={() => setShowMobileMore(true)}><span>•••</span><small>More</small></button>
+        {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onAvailabilityChange={setFinAvailable} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'))}} />}
+        <button aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={`mobile-destination ${mobileMore.includes(view) || showMobileMore ? 'active' : ''}`} onClick={() => setShowMobileMore(true)}><DockIcon kind="more"/><small>More</small></button>
       </nav>
       {showMobileMore && <FormDialog label="More navigation" onClose={()=>setShowMobileMore(false)}><section className="mobile-more-sheet" id="mobile-more-options">
         <div className="mobile-more-handle" />
@@ -153,10 +162,10 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         <div className="mobile-more-grid">{mobileMore.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
           return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon" aria-hidden="true">{item.icon}</span><strong>{item.label}</strong></button>
-        })}</div>
+        })}
+        {!accessRemoved&&canUseAssistant(company)&&finAvailable&&<button type="button" onClick={()=>{setShowMobileMore(false);window.dispatchEvent(new Event('finviant-assistant-type'))}}><span className="more-icon" aria-hidden="true">⌨</span><strong>Type to Fin</strong></button>}</div>
         <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => {if(confirmNavigation())void supabase.auth.signOut()}}>Sign out</button></div>
       </section></FormDialog>}
-      {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'))}} />}
     </div></WorkspaceNavigation.Provider>
   )
 }

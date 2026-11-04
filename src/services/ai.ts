@@ -58,6 +58,13 @@ export async function interpretCommand(businessId: string, transcript: string, s
   })
 
   if (error) throw await explainFunctionError(error, 'command')
+  if (!data || Array.isArray(data) || typeof data.intent !== 'string' || !data.intent.trim()
+    || typeof data.action_id !== 'string' || !data.action_id
+    || typeof data.requires_confirmation !== 'boolean'
+    || !data.fields || typeof data.fields !== 'object' || Array.isArray(data.fields)
+    || (data.clarification_question != null && typeof data.clarification_question !== 'string')) {
+    throw new Error('Fin returned an incomplete response. Your request is still here; try again.')
+  }
   return data
 }
 

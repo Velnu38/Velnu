@@ -41,7 +41,7 @@ async function setup(page,{conflict=false,failCreate=false}={}){
 test('customer list is last-name alphabetical with company fallback, and legacy Locations opens Customers',async({page})=>{
  await setup(page);await page.goto('/?view=locations')
  await expect(page).toHaveURL(/view=customers/)
- await expect(page.locator('.customer-row strong')).toHaveText(['Adams, Amy','Bayside LLC','brown, Zoe','Chris','Doe, Jane'])
+ await expect(page.locator('.customer-row strong')).toHaveText(['Adams, Amy','brown, Zoe','Doe, Jane','Bayside LLC','Chris'])
  await expect(page.getByRole('button',{name:'Locations',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:/New customer/}).click();await expect(page.getByLabel('Company (if applicable)',{exact:true})).toBeVisible();await expect(page.getByLabel('Street address (optional)',{exact:true})).toBeVisible()
 })
@@ -92,12 +92,12 @@ test('additional addresses stay with their customer and are available when selec
 for(const width of [390,1440])test(`customer rows have visible dividers, last-name labels and keyboard access at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await setup(page);await page.goto('/?view=customers')
  const rows=page.getByRole('region',{name:'Customer directory'}).locator('.customer-row-button')
- await expect(rows).toHaveCount(5);await expect(rows.first()).toContainText('Adams, Amy');await expect(rows.nth(2)).toContainText('brown, Zoe')
+ await expect(rows).toHaveCount(5);await expect(rows.first()).toContainText('Adams, Amy');await expect(rows.nth(1)).toContainText('brown, Zoe')
  for(let i=0;i<4;i++){await expect(rows.nth(i)).toHaveCSS('border-bottom-width','2px');await expect(rows.nth(i)).toHaveCSS('border-bottom-color','rgb(198, 210, 223)')}
  await expect(rows.last()).toHaveCSS('border-bottom-width','0px');await expect(rows.nth(1)).toHaveCSS('background-color','rgb(247, 250, 252)')
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/customer-directory-${width}.png`,fullPage:true})
- await rows.last().focus();await page.keyboard.press('Enter');await expect(page.getByRole('heading',{name:'Jane Doe',exact:true})).toBeVisible()
+ await rows.filter({hasText:'Doe, Jane'}).focus();await page.keyboard.press('Enter');await expect(page.getByRole('heading',{name:'Jane Doe',exact:true})).toBeVisible()
 })
 
 test('last-name order is preserved across pagination and search',async({page})=>{
@@ -113,4 +113,21 @@ test('a contact without an address can add one directly from its Address field',
  await expect(address).toContainText('No address added');await address.getByRole('button',{name:'+ Add address',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Add address',exact:true});await dialog.getByLabel('Street address',{exact:true}).fill('456 Contact Street');await dialog.getByLabel('City',{exact:true}).fill('Chesapeake');await dialog.getByRole('button',{name:'Save address',exact:true}).click()
  await expect(address).toContainText('456 Contact Street');await expect(address.getByRole('link',{name:/Get driving directions to/})).toBeVisible();expect(writes[0].body.customer_id).toBe(C);expect(locations).toHaveLength(1)
+})
+
+test('alphabetic surnames stay ahead of numbered imports across pages and after a last-name edit',async({page})=>{
+ const {state}=await setup(page)
+ state.customers.push(...Array.from({length:100},(_,n)=>({id:`qa-${n}`,first_name:'QA Customer',last_name:String(n+1).padStart(3,'0'),company:`Synthetic client ${n+1}`})))
+ await page.goto('/?view=customers')
+ await expect(page.locator('.customer-row strong').first()).toHaveText('Adams, Amy')
+ expect((await page.locator('.customer-row strong').allTextContents()).slice(0,5)).toEqual(['Adams, Amy','brown, Zoe','Doe, Jane','Bayside LLC','Chris'])
+ await page.getByRole('navigation',{name:'customers pages'}).getByRole('button',{name:'Next'}).click()
+ await expect(page.locator('.customer-row strong').first()).toHaveText('021, QA Customer')
+ await page.getByLabel('Search customers').fill('Amy')
+ await expect(page.locator('.customer-row strong')).toHaveText(['Adams, Amy'])
+ state.customers.find(c=>c.first_name==='Amy').last_name='Zimmerman'
+ await page.evaluate(()=>window.dispatchEvent(new Event('finviant-assistant-saved')))
+ await expect(page.locator('.customer-row strong')).toHaveText(['Zimmerman, Amy'])
+ await page.getByLabel('Search customers').fill('')
+ expect((await page.locator('.customer-row strong').allTextContents()).slice(0,3)).toEqual(['brown, Zoe','Doe, Jane','Zimmerman, Amy'])
 })

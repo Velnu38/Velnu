@@ -39,12 +39,12 @@ test('the caption starts recording immediately despite stalled preflight; a spok
   requests.push(route.request().postDataJSON());return route.fulfill({status:200,headers:cors,json:answer})
  })
  await page.goto('/');await page.locator('.fin-launcher-caption').click()
- await expect(page.getByRole('button',{name:'Tap to stop',exact:true})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Finish recording',exact:true})).toBeVisible()
  expect(await page.evaluate(()=>window.__mic)).toEqual({calls:1,gesture:true,stops:0})
- await page.getByRole('button',{name:'Tap to stop',exact:true}).click()
+ await page.getByRole('button',{name:'Finish recording',exact:true}).click()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
  await expect(input(page)).toHaveValue('');expect(requests[0].history).toEqual([])
- await page.getByRole('button',{name:'Tap and speak',exact:true}).click();await page.getByRole('button',{name:'Tap to stop',exact:true}).click()
+ await page.getByRole('button',{name:'Speak a follow-up',exact:true}).click();await page.getByRole('button',{name:'Finish recording',exact:true}).click()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(2)
  expect(requests[1].history).toEqual([{question:'What services do I offer?',answer:answer.answer}])
  expect(await page.evaluate(()=>window.__mic.calls)).toBe(2)
@@ -77,12 +77,12 @@ test('late microphone permission is cleaned up after the permission deadline',as
  await page.clock.runFor(15010);await expect(page.getByRole('alert')).toContainText('Microphone permission is still pending')
  await expect(input(page)).toBeEnabled();await page.evaluate(()=>window.__allowMic())
  await expect.poll(()=>page.evaluate(()=>window.__mic.stops)).toBe(1)
- await expect(page.getByRole('button',{name:'Tap to stop'})).toHaveCount(0)
+ await expect(page.getByRole('button',{name:'Finish recording'})).toHaveCount(0)
 })
 
 test('recorder failure stops tracks and unlocks the panel',async({page})=>{
  await setup(page);await page.goto('/');await page.getByRole('button',{name:'Talk to Fin'}).click()
- await expect(page.getByRole('button',{name:'Tap to stop'})).toBeVisible();await page.evaluate(()=>window.__recorder.onerror())
+ await expect(page.getByRole('button',{name:'Finish recording'})).toBeVisible();await page.evaluate(()=>window.__recorder.onerror())
  await expect(page.getByRole('alert')).toContainText('recording stopped unexpectedly');await expect(input(page)).toBeEnabled()
  expect(await page.evaluate(()=>window.__mic.stops)).toBe(1)
 })
@@ -117,6 +117,16 @@ test('browser dictation releases controls if its end event is missing',async({pa
   window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){}}
  })
  await page.clock.install();await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click()
- await page.getByRole('button',{name:'Tap and speak'}).click();await page.getByRole('button',{name:'Tap to stop'}).click()
+ await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click()
  await page.clock.runFor(3010);await expect(input(page)).toBeEnabled();await expect(page.getByRole('alert')).toContainText('No text detected')
+})
+
+test('a malformed command response leaves the request editable without executing it',async({page})=>{
+ await setup(page);let executions=0
+ await page.route('**/functions/v1/ai-command',route=>route.fulfill({status:200,headers:cors,json:[]}))
+ await page.route('**/functions/v1/execute-ai-action',route=>{executions++;return route.fulfill({status:200,headers:cors,json:{}})})
+ await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click()
+ await input(page).fill('Create a customer named Bob Smith');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await expect(page.getByRole('alert')).toContainText('incomplete response')
+ await expect(input(page)).toHaveValue('Create a customer named Bob Smith');await expect(input(page)).toBeEnabled();expect(executions).toBe(0)
 })
