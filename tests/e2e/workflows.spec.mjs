@@ -283,6 +283,7 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   await expect(page.getByText('CO-TEST')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Review / Send', exact: true }).click()
   await page.getByRole('button', { name: 'Void', exact: true }).click()
   await expect(page.locator('.change-order-row .status-chip')).toHaveText('void')
   const changed = state.requests.filter(x => x.path.endsWith('/change_orders') && x.method === 'PATCH')
