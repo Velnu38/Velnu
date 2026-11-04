@@ -1,3 +1,4 @@
+import CreatedDocumentDelivery from './CreatedDocumentDelivery'
 import {FinMark,FinName} from './FinBrand'
 import FormDialog from './FormDialog'
 import { useEffect, useRef, useState } from 'react'
@@ -358,11 +359,13 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     finally { mutationInFlight.current = false; setBusy(false) }
   }
 
+  const payload=result?.result??result
+  const createdKind=payload?.invoice?.id?'invoice':payload?.estimate?.id?'estimate':payload?.change_order?.id?'change_order':null
   return <>
     {!open&&<div className="fin-launcher"><button className="voice-fab" onClick={()=>setOpen(true)} aria-label="Talk to Fin" aria-describedby="fin-launcher-label"><FinMark/></button><span id="fin-launcher-label">Ask <FinName/> — tap to speak</span></div>}
     {open && <FormDialog label="Fin — your office assistant" cleanVersion={result??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
-      <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{quickInvoiceRequest?'Review '+quickInvoiceRequest.seed.kind:'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
-      {!quickInvoiceRequest&&<>
+      <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{quickInvoiceRequest?'Review '+quickInvoiceRequest.seed.kind:createdKind?'Review '+createdKind.replace('_',' '):'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
+      {!quickInvoiceRequest&&!createdKind&&<>
       {conversation.length>0&&<section className="fin-conversation" aria-label="Conversation with Fin" aria-live="polite" tabIndex={0}>{conversation.map((turn,index)=><article key={index}><p className="fin-question"><strong>You</strong>{turn.question}</p><ResultView result={turn.response}/></article>)}<div ref={conversationEnd}/></section>}
       <div className="fin-voice-control"><button type="button" className={`record-button ${recording?'recording':''}`} onClick={toggleRecording} disabled={busy||voiceMode==='checking'} aria-pressed={recording} aria-label={recording?'Tap to stop':voiceMode==='checking'?'Checking voice…':'Tap and speak'}><FinMark/></button><span>{recording?'Listening — tap to stop':voiceMode==='checking'?'Preparing microphone…':'Tap to speak'}</span></div>
       {voiceStatus&&<p className="assistant-help" role="status">{voiceStatus}</p>}
@@ -374,8 +377,10 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       {quickInvoiceRequest && <QuickInvoiceReview business={business} key={quickInvoiceRequest.command} command={quickInvoiceRequest.command} initialSeed={quickInvoiceRequest.seed} parserNotice={quickInvoiceRequest.notice} onCancel={() => setQuickInvoiceRequest(null)} onSaved={(document,kind,delivery) => { setQuickInvoiceRequest(null); setText(''); setResult({[kind]:document,delivery}); onChanged() }} />}
       {action && !result && <div className="action-preview"><span className="intent-pill">{friendlyIntent(action.intent)}</span><h3>{action.clarification_question || 'Ready to do this?'}</h3><p>{action.clarification_question ? 'Add the missing detail and send the command again.' : describe(action)}</p>{action.requires_confirmation && !action.clarification_question && <div className="preview-actions"><button data-keep-dialog className="secondary-button" onClick={reject} disabled={busy}>Cancel</button><button className="primary-button" onClick={confirm} disabled={busy}>{busy ? 'Working…' : 'Confirm'}</button></div>}</div>}
       <ResultView result={result} />
+      {createdKind&&!payload.delivery&&<CreatedDocumentDelivery key={payload[createdKind].id} business={business} kind={createdKind} documentId={payload[createdKind].id} onChanged={onChanged} onBusyChange={setBusy}/>}
+      {createdKind&&<div className="preview-actions"><button type="button" className="secondary-button" aria-label="Close review" disabled={busy} onClick={()=>setOpen(false)}>Done</button><button type="button" className="text-button" disabled={busy} onClick={reset}>New request</button></div>}
       {error && <p role="alert" className="form-message error-text">{error}</p>}
-      {!quickInvoiceRequest&&conversation.length===0&&<div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>}
+      {!quickInvoiceRequest&&!createdKind&&conversation.length===0&&<div className="assistant-hints"><span>“Who hasn’t paid me?”</span><span>“Create a customer named Bob Smith.”</span><span>“Add $475 labor to Smith’s kitchen job as a change order.”</span></div>}
     </section></FormDialog>}
   </>
 }

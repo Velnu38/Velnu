@@ -1314,7 +1314,7 @@ for(const width of [1440,390])test(`invoice review has ordered uniform actions a
  await page.goto('/?view=invoices&document='+inv.id)
  const actions=page.getByRole('group',{name:'Common actions',exact:true})
  await expect(actions.getByRole('button').first()).toHaveText('Record payment')
- await expect(actions.getByRole('button')).toHaveText(['Record payment','Email customer','Schedule job','Print / Save PDF','Photos & expenses','Schedule reminder'])
+ await expect(actions.getByRole('button')).toHaveText(['Record payment','Schedule job','Print / Save PDF','Photos & expenses','Schedule reminder'])
  await expect(page.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'Void invoice'})).toBeVisible()
  await assertUniformDocumentActions(page)
  const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
@@ -1332,7 +1332,7 @@ for(const width of [1440,390])test(`estimate review has the same action system a
  await page.goto('/?view=estimates&document='+est.id)
  const preview=page.getByRole('dialog',{name:'Estimate preview'})
  await expect(preview).toBeVisible()
- await expect(preview.getByRole('group',{name:'Common actions',exact:true}).getByRole('button')).toHaveText(['Email customer','Record acceptance','Print / Save PDF','Photos & expenses'])
+ await expect(preview.getByRole('group',{name:'Common actions',exact:true}).getByRole('button')).toHaveText(['Record acceptance','Print / Save PDF','Photos & expenses'])
  await assertUniformDocumentActions(page)
  const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
  await expect(preview.getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')

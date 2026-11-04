@@ -31,3 +31,22 @@ dialog.form-dialog:has(.assistant-panel){padding:0}dialog.form-dialog .assistant
 
 .form-dialog .estimate-preview-modal{width:100%;max-height:none;overflow:visible;border:0;border-radius:0;padding:0;box-shadow:none}
 .form-dialog:focus{outline:none}
+
+.document-delivery{border:1px solid #b9cedf;background:#f5f9fc;border-radius:14px;padding:20px;min-width:0;margin:0 0 16px}
+.document-delivery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.document-delivery h2{font-size:17px;line-height:1.4;color:#203b53;margin:0}
+.document-delivery .quiet{font-size:13px;line-height:1.5;margin:8px 0 0;color:#52657a}
+.document-delivery-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-top:14px}
+.document-delivery-grid:empty{display:none}
+.document-delivery-option{min-width:0;display:flex;flex-direction:column;gap:8px}
+.document-delivery-option>span{font-size:13px;font-weight:600;overflow-wrap:anywhere;color:#203b53}
+.document-delivery-option>.primary-button{width:100%;min-height:48px;margin:0;justify-content:center;font-size:14px;box-sizing:border-box}
+.document-delivery-option>.primary-button:disabled{opacity:.65;cursor:default}
+.document-delivery-option .quiet{margin:0}
+.change-order-review{display:grid;gap:16px}.change-order-review .document-delivery{margin:0}
+.change-order-preview-summary{display:grid;gap:12px}.change-order-preview-summary p{white-space:pre-wrap;overflow-wrap:anywhere}
+.change-order-review .document-line-row{overflow-wrap:anywhere}
+@media(max-width:680px){.document-delivery{padding:16px}.document-delivery-grid{grid-template-columns:minmax(0,1fr)}}
+/* The large floating assistant must not cover the recipient or send controls. */
+@media(max-width:680px){body:has(.invoice-detail-page .document-delivery) .fin-launcher{display:none}}
+@media print{.document-delivery,.change-order-review>.modal-head{display:none!important}}

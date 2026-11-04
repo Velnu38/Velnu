@@ -21,7 +21,7 @@ import { listCustomers } from '../services/customers'
 import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
 import DocumentBrand from '../components/DocumentBrand'
 import { createApprovalLink } from '../services/approvals'
-import { sendDocumentEmail } from '../services/communications'
+import DocumentDelivery from '../components/DocumentDelivery'
 import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
@@ -175,18 +175,6 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     } finally { setBusy(false) }
   }
 
-  async function emailForApproval(estimate: Estimate) {
-    if (!customerActionsEnabled || !window.confirm('Send this estimate to the customer for approval?')) return
-    setBusy(true); setError(''); setNotice('')
-    try {
-      const sent = await sendDocumentEmail(business.id, 'estimate', estimate.id)
-      setNotice(`Estimate ${sent.status==='delivered'?'delivered':'accepted for delivery'} to ${sent.recipient}.`)
-      await refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to email estimate')
-    } finally { setBusy(false) }
-  }
-
   async function convert(event: FormEvent) {
     event.preventDefault()
     if (!convertTarget || saving.current) return
@@ -220,7 +208,6 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
 
   return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div></div>
-    {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured. You can preview and print estimates now.</p>}
     {notice && !previewTarget && <p className="form-message success-text">{notice}</p>}
     {error && !previewTarget && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <RecordListControls label="estimates" list={recordList} />
@@ -267,10 +254,9 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         </div>
         {showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={previewTarget.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)setPreviewTarget(next)})}}/>}
+        {canManageFinances(business.role)&&['draft','sent'].includes(previewTarget.status)&&<DocumentDelivery onBusyChange={setBusy} key={"delivery:"+previewTarget.id} businessId={business.id} kind="estimate" documentId={previewTarget.id} email={previewTarget.customers?.[0]?.email} phone={previewTarget.customers?.[0]?.phone} disabled={busy} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
         <DocumentActions primary={<>
           {canManageFinances(business.role)&&previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
-          {canManageFinances(business.role)&&!previewTarget.customers?.[0]?.email&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Add customer email</button>}
-          {canManageFinances(business.role)&&['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy||!customerActionsEnabled||!previewTarget.customers?.[0]?.email} title={!previewTarget.customers?.[0]?.email?'Add a customer email address first.':undefined} onClick={()=>emailForApproval(previewTarget)}>Email customer</button>}
           {canManageFinances(business.role)&&previewTarget.status==='sent'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
           {canManageFinances(business.role)&&['accepted','converted'].includes(previewTarget.status)&&!previewTarget.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" disabled={busy} onClick={()=>setScheduleTarget(previewTarget)}>Schedule job</button>}
           {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={`/?view=work&document=${encodeURIComponent(previewTarget.job_id)}`}>Open linked job</a>}
@@ -278,7 +264,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
           <button type="button" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button>
         </>} secondary={canManageFinances(business.role)?<>
-          {previewTarget.customers?.[0]?.email&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer</button>}
+          {!['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer</button>}
           {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Approval link</button>}
           {offersDocumentChangeOrders('estimate',previewTarget.status)&&<DocumentChangeOrderButton business={business} kind="estimate" id={previewTarget.id} onClick={()=>setShowChangeOrders(true)}/>}
           {previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
