@@ -54,7 +54,7 @@ async function setupFin(page,options={}){
   return route.fulfill({status:options.rejectLost&&s.rejections.length===1?503:200,headers:cors,json:options.rejectLost&&s.rejections.length===1?{message:'Temporary error'}:null})
  })
  await start(page,options.payment?'Record a cash payment of $90 for Demo Customer':'Create a customer named Demo Customer')
- await expect(review(page).getByRole('button',{name:'Confirm and save',exact:true})).toBeVisible()
+ await expect(review(page).getByRole('button',{name:'Yes, make these changes',exact:true})).toBeVisible()
  return s
 }
 test('failed save before mutation can be retried using the same review; one mutation',async({page})=>{
@@ -70,14 +70,14 @@ test('lost execution response retries the same review without creating a second 
  expect(s.executions).toHaveLength(2);expect(s.executions[1]).toEqual(s.executions[0]);expect(s.created.size).toBe(1);expect(s.errors).toEqual([])
 })
 test('failed cancellation is visible and recoverable, never executes action',async({page})=>{
- const s=await setupFin(page,{rejectLost:true});await review(page).getByRole('button',{name:'Cancel plan',exact:true}).click()
+ const s=await setupFin(page,{rejectLost:true});await review(page).getByRole('button',{name:'No, cancel',exact:true}).click()
  await expect(page.getByRole('alert')).toContainText('Cancellation could not be confirmed')
- await review(page).getByRole('button',{name:'Cancel plan',exact:true}).click();await expect(review(page)).toHaveCount(0)
+ await review(page).getByRole('button',{name:'No, cancel',exact:true}).click();await expect(review(page)).toHaveCount(0)
  expect(s.executions).toHaveLength(0);expect(s.rejections).toHaveLength(2);expect(s.rejections[1]).toEqual(s.rejections[0]);expect(s.errors).toEqual([])
 })
 test('rapid confirmation attempts use an immediate in-flight guard',async({page})=>{
  const s=await setupFin(page,{slow:true})
- await review(page).getByRole('button',{name:'Confirm and save',exact:true}).evaluate(button=>{button.click();button.click()})
+ await review(page).getByRole('button',{name:'Yes, make these changes',exact:true}).evaluate(button=>{button.click();button.click()})
  await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toContainText('Demo Customer')
  expect(s.executions).toHaveLength(1);expect(s.created.size).toBe(1)
 })
