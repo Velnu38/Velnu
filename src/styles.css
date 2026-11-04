@@ -49,7 +49,7 @@
 .fin-brand{display:flex;flex-direction:column;align-items:center;gap:6px;color:#102c4b;text-align:center;letter-spacing:0}
 .fin-brand>.fin-mark{width:64px;height:64px}.fin-brand>span{font-size:11px;font-weight:700;white-space:nowrap}
 .sidebar-brand{justify-content:center;padding:0 0 24px}.sidebar-brand .fin-brand>.fin-mark{width:76px;height:76px}
-.mobile-brand .fin-brand{flex-direction:row;gap:6px}.mobile-brand .fin-brand>.fin-mark{width:40px;height:40px}.mobile-brand .fin-brand>span{font-size:10px;max-width:80px;white-space:normal;text-align:left}
+.mobile-brand .fin-brand{flex-direction:column;gap:2px}.mobile-brand .fin-brand>.fin-mark{width:38px;height:38px}.mobile-brand .fin-brand>span{font-size:10px;line-height:1.2;white-space:nowrap;text-align:center}
 .auth-hero>.fin-brand,.auth-brand-link>.fin-brand{background:white;border-radius:18px;padding:16px;width:max-content;margin-bottom:32px}.auth-brand-link{width:max-content}
 .onboarding-card>.fin-brand{margin-bottom:24px;align-items:flex-start}
 .logo-mark,.logo-mark.small{background:transparent;box-shadow:none;border-radius:0}
