@@ -6,15 +6,21 @@ export function createVoicePauseDetector() {
   try { context = new Audio(); void context.resume().catch(() => {}) } catch { return null }
   let timer: ReturnType<typeof setInterval> | undefined
   let source: MediaStreamAudioSourceNode | undefined
+  let stopped = false
   const stop = () => {
+    if (stopped) return
+    stopped = true
     clearInterval(timer)
-    source?.disconnect()
-    if (context.state !== 'closed') void context.close().catch(() => {})
+    try { source?.disconnect() } catch { /* Audio monitoring is optional. */ }
+    try { if (context.state !== 'closed') void context.close().catch(() => {}) } catch { /* Device already closed. */ }
   }
   return {
     stop,
-    start(stream: MediaStream, onPause: () => void, onEmpty: () => void) {
+    start(stream: MediaStream, onPause: () => void, onEmpty: () => void, onUnavailable: () => void = () => {}) {
       try {
+        if (stopped || context.state === 'closed') return false
+        // Mobile audio contexts may suspend while the permission prompt is open.
+        void context.resume().catch(() => { if (!stopped) { stop(); onUnavailable() } })
         source = context.createMediaStreamSource(stream)
         const analyser = context.createAnalyser()
         analyser.fftSize = 2048
@@ -25,7 +31,7 @@ export function createVoicePauseDetector() {
         timer = setInterval(() => {
           // A suspended audio context cannot measure silence reliably.
           if (context.state !== 'running') return
-          analyser.getFloatTimeDomainData(samples)
+          try { analyser.getFloatTimeDomainData(samples) } catch { stop(); onUnavailable(); return }
           const rms = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length)
           const now = performance.now()
           if (rms >= 0.008) { lastSound = now; soundFrames++ }
