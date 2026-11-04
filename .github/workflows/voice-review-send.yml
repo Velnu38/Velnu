@@ -1,0 +1,41 @@
+name: Voice review delivery checks
+on:
+  push:
+    branches: [ux/voice-review-send-20261104]
+  pull_request:
+    branches: [ux/private-testing-20261029]
+    paths: ['src/components/QuickInvoiceReview.tsx', 'src/services/reviewDelivery.ts', 'supabase/migrations/*review_email*']
+permissions:
+  contents: read
+concurrency:
+  group: voice-review-send-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:settings && npm run test:services && npm run test:deployment
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Focused voice delivery browser checks
+        run: npx playwright test tests/e2e/voice-review-delivery.spec.mjs tests/e2e/voice-multiple-lines.spec.mjs
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - name: Full browser regression
+        run: npx playwright test
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: voice-review-evidence
+          path: test-results/
+          retention-days: 7

@@ -33,3 +33,13 @@
 .fin-answer{padding:18px;margin-top:16px;border:1px solid #bcded7;background:#f0fbf8;border-radius:14px;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.fin-answer-text{white-space:pre-wrap}.fin-answer ul{padding-left:20px}.fin-answer details{font-size:12px}
 @media(max-width:420px){.voice-line-fields{grid-template-columns:minmax(0,1fr) 94px;gap:8px}.voice-line-fields input{padding:10px 8px}.voice-line-fields label{font-size:11px}.voice-unit-fields{flex-wrap:wrap}}
 .fin-help summary{font-size:12px;color:#566173;cursor:pointer;padding:8px 0}.voice-line-heading .text-button{min-height:44px}.voice-optional-fields{display:grid;gap:10px;padding-bottom:10px}
+
+/* Keep recipients visible beside the action they authorize. */
+.voice-contact-details { margin: .75rem 0; }
+.voice-contact-details summary { cursor: pointer; font-weight: 600; padding: .6rem 0; }
+.voice-delivery-options { display: grid; gap: .75rem; margin: 1rem 0; }
+.voice-delivery-option { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr); align-items: center; gap: .5rem .8rem; }
+.voice-delivery-option > span { overflow-wrap: anywhere; font-size: .9rem; }
+.voice-delivery-option > p { grid-column: 1 / -1; margin: 0; }
+.voice-delivery-option button { min-height: 44px; width: 100%; }
+@media (max-width: 520px) { .voice-delivery-option { grid-template-columns: 1fr; } }
