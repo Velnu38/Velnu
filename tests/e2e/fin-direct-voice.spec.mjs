@@ -15,7 +15,7 @@ test.beforeAll(async({playwright},info)=>{
  for(let i=0;i<count;i++){const t=i/rate;wav.writeInt16LE(t>=.5&&t<2?Math.round(Math.sin(2*Math.PI*440*t)*9000):0,44+i*2)}
  const audio=join(fixtureDir,'speech-and-pause.wav');await writeFile(audio,wav)
  const options=info.project.use.launchOptions||{}
- browser=await playwright.chromium.launch({...options,args:[...(options.args||[]),'--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream',`--use-file-for-fake-audio-capture=${audio}`]})
+ browser=await playwright.chromium.launch({channel:info.project.use.channel,...options,args:[...(options.args||[]),'--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream',`--use-file-for-fake-audio-capture=${audio}`]})
 })
 test.afterAll(async()=>{await browser?.close();if(fixtureDir)await rm(fixtureDir,{recursive:true,force:true})})
 

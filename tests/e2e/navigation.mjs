@@ -16,3 +16,11 @@ export async function createWork(page, kind) {
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
   await page.getByRole('navigation', { name: 'Create work' }).getByRole('link', { name: '+ New ' + kind, exact: true }).click()
 }
+
+/** Typed Fin entry is in More on phones and beside the desktop voice launcher. */
+export async function openFinTyping(page) {
+  if ((page.viewportSize()?.width ?? 1280) <= 900) {
+    await page.getByRole('navigation', { name: 'Workspace navigation' }).getByRole('button', { name: 'More', exact: true }).click()
+  }
+  await page.getByRole('button', { name: 'Type to Fin', exact: true }).click()
+}

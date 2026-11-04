@@ -65,7 +65,7 @@ test('dictated one-line invoice is reviewed before saving and stays draft', asyn
   expect(invoiceWrites[0].body.payload.items[0].unit_price).toBe(150)
   expect(invoiceWrites[0].body.request_id).toBeTruthy()
   expect(requests.filter(item => item.path.includes('/send-invoice-email'))).toHaveLength(0)
-  await page.getByRole('button', { name: 'Done', exact: true }).click()
+  await page.getByRole('button', { name: 'Close review', exact: true }).click()
   await page.getByRole('button', { name: 'Talk to Fin', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Finish recording', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Review invoice', exact: true })).toHaveCount(0)
