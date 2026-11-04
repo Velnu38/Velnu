@@ -48,6 +48,7 @@ for(const kind of ['invoice','estimate','change_order'])test(`${kind} sends once
  })
  const delivery=await openReview(page,kind);await delivery.getByRole('button',{name:'Send email',exact:true}).dblclick()
  await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery'})).toBeVisible()
+ await expect(delivery).toHaveCount(1)
  expect(sends).toHaveLength(1);expect(sends[0].expected_recipient).toBe('customer@example.test');expect(sends[0].business_id).toBe(B)
  expect(sends[0].invoice_id||sends[0].document_id).toBe(kind==='change_order'?P:E)
  if(kind!=='invoice')expect(sends[0].document_type).toBe(kind)
