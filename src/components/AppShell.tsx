@@ -36,14 +36,12 @@ const InvoicesPage = lazy(() => import('../pages/InvoicesPage'))
 const PaymentsPage = lazy(() => import('../pages/PaymentsPage'))
 const BookkeepingPage = lazy(() => import('../pages/BookkeepingPage'))
 const SettingsPage = lazy(() => import('../pages/SettingsPage'))
-const LocationsPage = lazy(() => import('../pages/LocationsPage'))
 
-type View = 'schedule' | 'reminders' | 'dashboard' | 'customers' | 'work' | 'locations' | 'change_orders' | 'estimates' | 'invoices' | 'payments' | 'bookkeeping' | 'settings'
+type View = 'schedule' | 'reminders' | 'dashboard' | 'customers' | 'work' | 'change_orders' | 'estimates' | 'invoices' | 'payments' | 'bookkeeping' | 'settings'
 
 const nav: { id: View; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
   { id: 'customers', label: 'Customers', icon: 'C' },
-  { id: 'locations', label: 'Locations', icon: '⌖' },
   { id: 'estimates', label: 'Estimates', icon: 'E' },
   { id: 'invoices', label: 'Invoices', icon: 'I' },
   { id: 'work', label: 'Jobs', icon: 'J' },
@@ -54,7 +52,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ]
 
-const mobilePrimary: View[] = ['dashboard', 'customers', 'locations']
+const mobilePrimary: View[] = ['dashboard', 'customers']
 const mobileMore: View[] = ['estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
 const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders', 'schedule', 'reminders'].includes(id))
 
@@ -62,6 +60,7 @@ function initialView(): View {
   const query = new URLSearchParams(window.location.search)
   if (query.has('quickbooks')) return 'bookkeeping'
   const requested = query.get('view')
+  if(requested==='locations'){query.set('view','customers');window.history.replaceState(window.history.state,'','/?'+query.toString());return 'customers'}
   if(requested==='change_orders')return 'change_orders'
   return nav.some(item => item.id === requested) ? requested as View : 'dashboard'
 }
@@ -122,7 +121,6 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     if (view === 'work') return <JobsPage business={company} />
     if (view === 'schedule') return <SchedulePage business={company} />
     if (view === 'reminders') return <RemindersPage business={company} />
-    if (view === 'locations') return <LocationsPage business={company} onCustomers={() => navigate('customers')} />
     if (view === 'change_orders')return <ChangeOrdersPage business={company}/>
     if (view === 'estimates') return <EstimatesPage business={company} />
     if (view === 'invoices') return <InvoicesPage business={company} />

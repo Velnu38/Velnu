@@ -6,7 +6,8 @@ import { isPrimaryOwner } from '../lib/workspaceAccess'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { FormEvent, lazy,Suspense,useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
-import { createCustomer, listCustomers } from '../services/customers'
+import ServiceAddressFields, { emptyServiceAddress } from '../components/ServiceAddressFields'
+import { createCustomerWithAddress, listCustomers } from '../services/customers'
 import CustomerDetail from '../components/CustomerDetail'
 
 const ContactImportDialog=lazy(()=>import('../components/ContactImportDialog'))
@@ -24,6 +25,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
   const [showForm, setShowForm] = useState(false)
   const [showImport,setShowImport]=useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(()=>new URLSearchParams(location.search).get('document'))
+  const [address, setAddress] = useState(emptyServiceAddress)
   const saving=useRef(false),customerRetry=useRef<{signature:string;id:string}|null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -36,7 +38,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
-  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load customers')) }, [business.id])
+  useEffect(() => { void refresh().catch(err => setError(readableError(err, 'Unable to load customers'))) }, [business.id])
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -45,13 +47,13 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     setBusy(true)
     setError('')
     try {
-      const signature=JSON.stringify(form);if(customerRetry.current?.signature!==signature)customerRetry.current={signature,id:crypto.randomUUID()};const created = await createCustomer(business.id, form,customerRetry.current.id);customerRetry.current=null
+      const signature=JSON.stringify({form,address});if(customerRetry.current?.signature!==signature)customerRetry.current={signature,id:crypto.randomUUID()};const created = await createCustomerWithAddress(business.id, form,address,customerRetry.current.id);customerRetry.current=null
       setForm({ first_name: '', last_name: '', company: '', phone: '', email: '' })
+      setAddress(emptyServiceAddress())
       setShowForm(false)
-      await refresh()
       openCustomer(created.id)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to create customer')
+      setError(readableError(err, 'Unable to create customer. Your details are still here; try saving again.'))
     } finally {
       saving.current=false
       setBusy(false)
@@ -70,6 +72,8 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
         {isPrimaryOwner(business)&&<button type="button" className="secondary-button compact" onClick={()=>setShowImport(true)}>Import contacts</button>}
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New customer</button>}
       </div>
+      <p className="quiet">Sorted by last name A–Z. Company-only customers appear by company name.</p>
+      {error && !showForm && <p role="alert" className="error-text">{error}</p>}
       <RecordListControls label="customers" list={records}/>
       <section className="list-card">
         {records.total === 0 ? (
@@ -90,9 +94,11 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
         <form onSubmit={submit} className="form-grid">
           <label>First name<input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} /></label>
           <label>Last name<input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} /></label>
-          <label className="full">Company<input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></label>
+          <label className="full">Company (if applicable)<input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></label>
           <label>Phone<input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
           <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+          <div className="full"><h3>Address</h3><p className="quiet">Saved for service locations, maps and directions. Add more addresses from the customer profile.</p></div>
+          <ServiceAddressFields value={address} onChange={setAddress}/>
           {error && <p className="form-message error-text full">{error}</p>}
           <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save customer'}</button></div>
         </form>

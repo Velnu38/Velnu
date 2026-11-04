@@ -1,3 +1,5 @@
+import CustomerRecordScope from '../components/CustomerRecordScope'
+import { customerRecordsHref } from '../lib/customerRecords'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
 import DocumentLineEditor from '../components/DocumentLineEditor'
@@ -23,12 +25,13 @@ import { getJob } from '../services/jobs'
 import { createJobInvoice } from '../services/schedulingWorkflow'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
-type Invoice = DocumentDates & { id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
+type Invoice = DocumentDates & { customer_id: string; id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
 
 export default function InvoicesPage({ business }: { business: CurrentBusiness }) {
+  const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -68,7 +71,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   },[business.id,business.role,defaultsReady,defaultTax])
 
   async function refresh() {
-    const [invoiceRows, customerRows] = await Promise.all([listInvoices(business.id), listCustomers(business.id)])
+    const [invoiceRows, customerRows] = await Promise.all([listInvoices(business.id, customerScope), listCustomers(business.id)])
     setInvoices(invoiceRows as Invoice[])
     setCustomers(customerRows as Customer[])
   }
@@ -115,7 +118,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
         })),
       }
       const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,...payments}) : await createInvoice(business.id,input)
-      resetForm(); setShowForm(false); await refresh(); history.replaceState(history.state,'','/?view=invoices&document='+encodeURIComponent(created.id));setSelectedInvoiceId(created.id)
+      resetForm(); setShowForm(false); await refresh(); history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope, created.id));setSelectedInvoiceId(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create invoice')
     } finally { saving.current=false;setBusy(false) }
@@ -124,17 +127,18 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
 
   const recordList = useRecordList(invoices, row => [row.invoice_number, customerName(row.customers?.[0]), row.issue_date, row.status].join(' '))
 
-  if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);history.replaceState(history.state,'','/?view=invoices');void refresh().catch(e=>setError(e.message)) }} />
+  if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />
 
   return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div></div>
+    <CustomerRecordScope customerId={customerScope} customers={customers} view="invoices"/>
     <RecordListControls label="invoices" list={recordList} />
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
     <section className="list-card">
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Use New invoice at the top of the dashboard to create your first invoice.</p></div> : recordList.visible.map((invoice) => {
         const customer = invoice.customers?.[0]
         return <article className="document-row invoice-list-row" key={invoice.id}>
-          <button className="invoice-open" onClick={() => {history.replaceState(history.state,'','/?view=invoices&document='+encodeURIComponent(invoice.id));setSelectedInvoiceId(invoice.id)}}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={invoice.created_at} timezone={business.timezone}/></div></button>
+          <button className="invoice-open" onClick={() => {history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope, invoice.id));setSelectedInvoiceId(invoice.id)}}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={invoice.created_at} timezone={business.timezone}/></div></button>
           <div className="invoice-money"><strong className="money">${Number(invoice.balance_due).toFixed(2)}</strong><span>of ${Number(invoice.total).toFixed(2)} due</span></div>
           <span className={`status-chip ${invoice.status === 'paid' ? 'paid' : ''}`}>{invoice.status.replaceAll('_', ' ')}</span>
         </article>

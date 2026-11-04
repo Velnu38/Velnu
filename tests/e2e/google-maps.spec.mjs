@@ -44,7 +44,7 @@ async function mockBusinessData(page) {
       if (filters.has('customer_id')) return json([property])
       return json([{ ...property, customers: customer }])
     }
-    if (path.endsWith('/customers')) return json([customer])
+    if (path.endsWith('/customers')) return json(new URL(request.url()).searchParams.has('id') ? customer : [customer])
     if (path.endsWith('/rpc/create_job_atomic') && method === 'POST') return json({ id: '77777777-7777-4777-8777-777777777777', ...body.payload, status: 'lead' }, 200)
     if (path.endsWith('/jobs')) return json([])
     if (path.endsWith('/appointments')) {
@@ -59,9 +59,10 @@ async function mockBusinessData(page) {
 test('service location opens a valid Google Maps view and driving directions without revealing access notes', async ({ page }) => {
   await mockBusinessData(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Locations', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Know where each job takes you.' })).toBeVisible()
-  await expect(page.getByText('123 Example Street, Chesapeake, VA 23320').first()).toBeVisible()
+  await page.locator('.sidebar').getByRole('button', { name: 'Customers', exact: true }).click()
+  await page.getByRole('button', { name: /Jane Doe/ }).click()
+  await expect(page.getByRole('heading', { name: 'Address & service locations' })).toBeVisible()
+  await expect(page.getByText('123 Example Street', { exact: true })).toBeVisible()
   const map = page.getByRole('link', { name: /View 123 Example Street.*Google Maps/ })
   const directions = page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })
   await expect(map).toBeVisible()
@@ -76,7 +77,6 @@ test('service location opens a valid Google Maps view and driving directions wit
   expect(directionsUrl.searchParams.get('destination')).toContain('Chesapeake')
   expect(directionsUrl.searchParams.get('travelmode')).toBe('driving')
   expect((searchUrl.toString() + directionsUrl.toString()).includes('98765')).toBe(false)
-  await expect(page.getByText(/embedded map will be available/)).toBeVisible()
   await expect(page.locator('iframe[src*="google.com/maps/embed"]')).toHaveCount(0)
 })
 
@@ -107,11 +107,12 @@ test('schedule shows driving directions from its associated job location', async
   await expect(page.getByText(/Faucet replacement/).first()).toBeVisible()
 })
 
-test('mobile primary navigation exposes Locations and route links without horizontal overflow', async ({ page }) => {
+test('mobile Customers contains service locations and route links without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockBusinessData(page)
   await page.goto('/')
-  await page.locator('.mobile-nav').getByRole('button', { name: 'Locations', exact: true }).click()
+  await page.locator('.mobile-nav').getByRole('button', { name: 'Customers', exact: true }).click()
+  await page.getByRole('button', { name: /Jane Doe/ }).click()
   await expect(page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
 })

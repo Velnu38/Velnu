@@ -17,12 +17,16 @@ export interface JobInput {
   request_id?: string
 }
 
-export async function listJobs(businessId: string) {
-  const data = await collectBusinessRecords((from, to) => supabase
+export async function listJobs(businessId: string, customerId?: string) {
+  const data = await collectBusinessRecords((from, to) => {
+    let query = supabase
     .from('jobs')
     .select('id, title, description, status, scheduled_start, scheduled_end, assigned_user_ids, source_estimate_id, customer_id, property_id, customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)', { count: 'exact' })
     .eq('business_id', businessId)
-    .order('id').range(from, to))
+    .order('id').range(from, to)
+    if (customerId) query = query.eq('customer_id', customerId)
+    return query
+  })
   data.sort((a, b) => String(a.scheduled_start || '9999').localeCompare(String(b.scheduled_start || '9999')) || a.id.localeCompare(b.id))
   return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers), properties: asList(row.properties) }))
 }
