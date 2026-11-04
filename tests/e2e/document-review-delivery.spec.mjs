@@ -81,3 +81,22 @@ test('creating a change order opens its review and delivery controls automatical
  await form.getByRole('button',{name:'Create change order',exact:true}).click()
  const review=page.getByRole('dialog',{name:'Review change order'});await expect(review).toBeVisible();await expect(review.getByRole('button',{name:'Send email'})).toBeEnabled();await expect(review.getByText('Two fixtures',{exact:true})).toBeVisible();expect(state.changes).toHaveLength(1)
 })
+test('switching change orders ignores a late line-item response from the previous review',async({page})=>{
+ const {order}=await setup(page);const otherId='77777777-7777-4777-8777-777777777777';let releaseFirst
+ const firstReleased=new Promise(resolve=>{releaseFirst=resolve})
+ const other={...order,id:otherId,change_order_number:'CO-OTHER',title:'Different work'}
+ await page.route('**/rest/v1/change_orders?*',route=>reply(route,[order,other]))
+ let firstStarted=false
+ await page.route('**/rest/v1/change_order_items?*',async route=>{
+  const first=new URL(route.request().url()).searchParams.get('change_order_id')==='eq.'+P
+  if(first){firstStarted=true;await firstReleased}
+  return reply(route,[{id:E,description:first?'First order lines':'Second order lines',quantity:1,unit_price:100,line_total:100,tax_rate:5}])
+ })
+ await page.goto('/?view=invoices&document='+E);await page.getByRole('button',{name:'Change order',exact:true}).click();await page.getByRole('dialog',{name:'Create change order'}).getByRole('button',{name:'Close',exact:true}).click()
+ await page.getByRole('button',{name:'Review / Send'}).first().click();await expect.poll(()=>firstStarted).toBe(true)
+ await page.getByRole('button',{name:'Close review',exact:true}).click();await page.getByRole('button',{name:'Review / Send'}).last().click()
+ const review=page.getByRole('dialog',{name:'Review change order'});await expect(review.getByText('Second order lines',{exact:true})).toBeVisible()
+ const lateResponse=page.waitForResponse(response=>response.url().includes('/change_order_items')&&new URL(response.url()).searchParams.get('change_order_id')==='eq.'+P)
+ releaseFirst();await lateResponse
+ await expect(review.getByText('Second order lines',{exact:true})).toBeVisible();await expect(review.getByText('First order lines',{exact:true})).toHaveCount(0)
+})

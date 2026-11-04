@@ -38,6 +38,8 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   const [jobs, setJobs] = useState<Job[]>([])
   const [showForm, setShowForm] = useState(!!context)
   const [reviewId,setReviewId]=useState<string|null>(null),[reviewItems,setReviewItems]=useState<Awaited<ReturnType<typeof listChangeOrderItems>>>([]),[reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState(''),[editCustomer,setEditCustomer]=useState(false)
+  const reviewFetch=useRef(0)
+  useEffect(()=>()=>{reviewFetch.current++},[business.id])
   const reviewed=changeOrders.find(order=>order.id===reviewId)
   const [source,setSource]=useState<DocumentChangeSource|null>(null)
   const saving=useRef(false)
@@ -132,9 +134,11 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
     } finally { setBusy(false) }
   }
 
+  function closeReview(){reviewFetch.current++;setReviewId(null);setReviewError('');setReviewLoading(false)}
   async function openReview(order:ChangeOrder){
+    const request=++reviewFetch.current
     setReviewId(order.id);setReviewItems([]);setReviewLoading(true);setReviewError('')
-    try{setReviewItems(await listChangeOrderItems(business.id,order.id))}catch{setReviewError('Could not load the saved line items. Reload them before sending.')}finally{setReviewLoading(false)}
+    try{const items=await listChangeOrderItems(business.id,order.id);if(request===reviewFetch.current)setReviewItems(items)}catch{if(request===reviewFetch.current)setReviewError('Could not load the saved line items. Reload them before sending.')}finally{if(request===reviewFetch.current)setReviewLoading(false)}
   }
 
   return <div className="page-stack">
@@ -179,8 +183,8 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
         <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change}>{busy ? 'Saving…' : 'Create change order'}</button></div>
       </form>
     </FormDialog>}
-    {reviewId&&<FormDialog label="Review change order" wide busy={busy} onClose={()=>{setReviewId(null);setReviewError('')}}><section className="change-order-review">
-      <div className="modal-head"><div><p className="eyebrow">{reviewed?.status||'Saved document'}</p><h2>Review change order</h2></div><button type="button" className="icon-button" aria-label="Close review" onClick={()=>setReviewId(null)}>×</button></div>
+    {reviewId&&<FormDialog label="Review change order" wide busy={busy} onClose={closeReview}><section className="change-order-review">
+      <div className="modal-head"><div><p className="eyebrow">{reviewed?.status||'Saved document'}</p><h2>Review change order</h2></div><button type="button" className="icon-button" aria-label="Close review" onClick={closeReview}>×</button></div>
       {reviewed?<>
         {canManageFinances(business.role)&&['draft','sent'].includes(reviewed.status)&&<DocumentDelivery onBusyChange={setBusy} key={reviewed.id} businessId={business.id} kind="change_order" documentId={reviewed.id} email={reviewed.customers?.[0]?.email} phone={reviewed.customers?.[0]?.phone} disabled={busy||reviewLoading||!!reviewError} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={reviewed.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>void refresh()}/>}
