@@ -41,13 +41,20 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
 
   return <div className="page-stack">
     <div className="detail-top"><button className="back-button" onClick={onBack}>← Customers</button></div>
-    <section className="customer-hero">
+    <section className="customer-hero" aria-label="Customer contact">
       <div className="avatar large">{displayName(customer).charAt(0).toUpperCase()}</div>
       <div className="customer-hero-main"><p className="eyebrow">Customer</p><h1>{displayName(customer)}</h1><div className="customer-contact">{customer.company&&displayName(customer)!==customer.company&&<span>{customer.company}</span>}{customer.phone&&<span>{customer.phone}</span>}{customer.email&&<span>{customer.email}</span>}</div></div>
       {billing&&<div className="customer-balance"><span>Outstanding</span><strong>${outstanding.toFixed(2)}</strong></div>}
+      {canWrite(business.role)&&<div className="customer-contact-actions"><button type="button" className="secondary-button compact" onClick={()=>setShowEdit(true)}>Edit customer</button></div>}
+    <div className="customer-contact-address" role="group" aria-label="Address">
+      <div className="detail-card-head"><div><h2>Address</h2><p className="quiet">Service locations, maps and directions for this contact.</p></div>{canWrite(business.role)&&<button type="button" className="secondary-button compact" onClick={()=>{setEditingAddress(undefined);setShowAddress(true)}}>+ Add address</button>}</div>
+      {detail.properties.length===0?<p className="quiet">No address added. Add an address for this contact or a service location.</p>:<div className="property-list">{detail.properties.map(item=><article className="property-item" key={item.id}>
+        <div className="customer-address-head"><strong>{item.label||'Service address'}</strong>{canWrite(business.role)&&<button type="button" className="text-button" aria-label={`Edit address ${item.address_line1}`} onClick={()=>{setEditingAddress(item);setShowAddress(true)}}>Edit address</button>}</div>
+        <span>{item.address_line1}{item.address_line2?`, ${item.address_line2}`:''}</span><span>{[item.city,item.state,item.postal_code].filter(Boolean).join(', ')}</span>
+        {item.access_notes&&<small>{item.access_notes}</small>}<div className="property-map-actions"><GoogleMapTools address={item} preview compact /></div>
+      </article>)}</div>}
+    </div>
     </section>
-
-    {canWrite(business.role)&&<button type="button" className="secondary-button" onClick={()=>setShowEdit(true)}>Edit customer</button>}
     {showEdit&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()}/>}
     {error&&<p role="alert" className="form-message error-text">{error}</p>}
     <section className="detail-card customer-snapshot" aria-label="Customer snapshot">
@@ -58,14 +65,6 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
         <a href={customerRecordsHref('invoices',customerId)} aria-label={`View invoices for ${displayName(customer)}`}><strong>{detail.invoices.length}</strong><span>Invoices <span aria-hidden="true">→</span></span></a></>}
       </div>
       {customer.notes&&<p className="customer-notes">{customer.notes}</p>}
-    </section>
-    <section className="detail-card customer-addresses" aria-label="Customer addresses">
-      <div className="detail-card-head"><div><p className="eyebrow">Addresses</p><h2>Address &amp; service locations</h2></div>{canWrite(business.role)&&<button type="button" className="secondary-button compact" onClick={()=>{setEditingAddress(undefined);setShowAddress(true)}}>+ Add address</button>}</div>
-      {detail.properties.length===0?<p className="quiet">No address yet. Add one here for service locations, maps and directions.</p>:<div className="property-list">{detail.properties.map(item=><article className="property-item" key={item.id}>
-        <div className="customer-address-head"><strong>{item.label||'Service address'}</strong>{canWrite(business.role)&&<button type="button" className="text-button" aria-label={`Edit address ${item.address_line1}`} onClick={()=>{setEditingAddress(item);setShowAddress(true)}}>Edit address</button>}</div>
-        <span>{item.address_line1}{item.address_line2?`, ${item.address_line2}`:''}</span><span>{[item.city,item.state,item.postal_code].filter(Boolean).join(', ')}</span>
-        {item.access_notes&&<small>{item.access_notes}</small>}<div className="property-map-actions"><GoogleMapTools address={item} preview compact /></div>
-      </article>)}</div>}
     </section>
     {showAddress&&<ServiceLocationDialog businessId={business.id} customerId={customerId} location={editingAddress} onClose={()=>setShowAddress(false)} onSaved={()=>void refresh()}/>}
   </div>

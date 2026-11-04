@@ -9,6 +9,7 @@ import { canWrite, type CurrentBusiness } from '../lib/business'
 import ServiceAddressFields, { emptyServiceAddress } from '../components/ServiceAddressFields'
 import { createCustomerWithAddress, listCustomers } from '../services/customers'
 import CustomerDetail from '../components/CustomerDetail'
+import {customerDirectoryName,customerDisplayName} from '../lib/customerRecords'
 
 const ContactImportDialog=lazy(()=>import('../components/ContactImportDialog'))
 type Customer = {
@@ -75,12 +76,12 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
       <p className="quiet">Sorted by last name A–Z. Company-only customers appear by company name.</p>
       {error && !showForm && <p role="alert" className="error-text">{error}</p>}
       <RecordListControls label="customers" list={records}/>
-      <section className="list-card">
+      <section className="list-card customer-directory" aria-label="Customer directory">
         {records.total === 0 ? (
           <div className="empty-state"><div className="empty-icon">C</div><h2>{customers.length ? 'No matches' : 'No customers yet'}</h2><p>{customers.length ? 'Try a different search.' : 'Add your first customer or tell Finviant Office to create one.'}</p></div>
         ) : records.visible.map((customer) => {
-          const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Unnamed customer'
-          return <button className="customer-row customer-row-button" key={customer.id} onClick={() => openCustomer(customer.id)}>
+          const name = customerDirectoryName(customer)
+          return <button type="button" className="customer-row customer-row-button" aria-label={`Open contact for ${customerDisplayName(customer)}`} key={customer.id} onClick={() => openCustomer(customer.id)}>
             <div className="avatar">{name.charAt(0).toUpperCase()}</div>
             <div className="row-main"><strong>{name}</strong><span>{customer.company && name !== customer.company ? customer.company : customer.phone || customer.email || 'No contact information'}</span></div>
             <div className="row-meta"><span>{customer.phone || ''}</span><span>{customer.email || ''}</span></div>
@@ -97,7 +98,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
           <label className="full">Company (if applicable)<input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></label>
           <label>Phone<input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
           <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
-          <div className="full"><h3>Address</h3><p className="quiet">Saved for service locations, maps and directions. Add more addresses from the customer profile.</p></div>
+          <div className="full"><h3>Address</h3><p className="quiet">Saved for service locations, maps and directions. Manage additional service locations in this contact’s Address section.</p></div>
           <ServiceAddressFields value={address} onChange={setAddress}/>
           {error && <p className="form-message error-text full">{error}</p>}
           <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save customer'}</button></div>
