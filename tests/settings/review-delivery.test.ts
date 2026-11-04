@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 import {PGlite} from '@electric-sql/pglite'
-const migration=await readFile('supabase/migrations/20261104142230_review_email_recipient_guard.sql','utf8')
+const migration=await readFile('supabase/migrations/20261104150757_review_email_recipient_guard.sql','utf8')
 const B='11111111-1111-4111-8111-111111111111',U='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',D='44444444-4444-4444-8444-444444444444',R='55555555-5555-4555-8555-555555555555'
 async function setup(){const db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role;create schema private;
  create function private.member_module_access(uuid,uuid,text) returns boolean language sql as $$select $1='${B}' and $2='${U}'$$;

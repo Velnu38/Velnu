@@ -65,5 +65,5 @@ test('new customer contact is saved atomically with document before email, save 
   sends.push(route.request().postDataJSON());return route.fulfill({status:200,headers:cors,json:{status:'accepted',email_id:'email-new',recipient:'new@example.test'}})
  })
  await region.getByRole('button',{name:'Email invoice',exact:true}).click();await expect(region.getByRole('alert')).toBeVisible();expect(sends).toHaveLength(0)
- await region.getByRole('button',{name:'Email invoice',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Email accepted'})).toBeVisible();expect(writes[0]).toEqual(writes[1]);expect(writes[0].payload.new_customer.email).toBe('new@example.test');expect(sends).toHaveLength(1)
+ await region.getByRole('button',{name:'Email invoice',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Email accepted'})).toBeVisible();expect(writes[0]).toEqual(writes[1]);expect(writes[0].payload.new_customer.email).toBe('new@example.test');expect(writes[0].payload.new_customer.first_name).toBe('New');expect(writes[0].payload.new_customer.last_name).toBe('Customer');expect(writes[0].payload.payment_links).toBeUndefined();expect(writes[0].payload.payment_instructions).toBeUndefined();expect(sends).toHaveLength(1)
 })

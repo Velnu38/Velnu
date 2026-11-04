@@ -8,6 +8,7 @@ import {listCustomers,updateCustomerContact} from '../services/customers'
 import {createInvoice} from '../services/invoices'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 import {createEstimate} from '../services/estimates'
+import {newCustomerFields} from './CustomerEntry'
 import {customerActionsEnabled} from '../lib/releaseFlags'
 import {normalizeMobile} from '../lib/smsPhone'
 import {sendReviewedDocument,type ReviewDeliveryReceipt} from '../services/reviewDelivery'
@@ -50,7 +51,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
     const updated=await updateCustomerContact(business.id,selected.id,selected.updated_at,email.trim(),phone.trim());setCustomers(rows=>rows.map(c=>c.id===updated.id?updated:c))
    }
    if(customerRetry.current?.name!==customerName.trim())customerRetry.current={name:customerName.trim(),id:crypto.randomUUID()}
-   const chosen=customerId||customerRetry.current.id,input={customer_id:chosen,...(!customerId?{new_customer:{first_name:null,last_name:null,company:customerName.trim(),email:email.trim()||null,phone:phone.trim()||null}}:{}),payment_links:defaults.payment_links,payment_instructions:defaults.payment_instructions,items,...(kind==='invoice'?{due_date:dueDate||undefined}:{expires_on:dueDate||undefined})}
+   const chosen=customerId||customerRetry.current.id,input={customer_id:chosen,...(!customerId?{new_customer:newCustomerFields({name:customerName,email,phone})}:{}),items,...(kind==='invoice'?{due_date:dueDate||undefined}:{expires_on:dueDate||undefined})}
    const signature=JSON.stringify({kind,...input});if(retry.current?.signature!==signature)retry.current={signature,id:crypto.randomUUID()}
    const document=saved??(kind==='invoice'?await createInvoice(business.id,{...input,request_id:retry.current.id}):await createEstimate(business.id,{...input,request_id:retry.current.id}))
    setSaved(document)
