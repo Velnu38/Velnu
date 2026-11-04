@@ -42,6 +42,7 @@ export function integrationTestHandler(d:IntegrationDependencies){return async(r
   }
   if(!i.request_id||!uuid.test(i.request_id))return reply(400,{error:'A stable test request ID is required.'})
   if(i.action==='sms'){
+   if(context.sms_owner_verified!==true)return reply(409,{error:'Verify the primary owner mobile number in Text messaging setup before sending SMS.'})
    if(!d.configuration.sms)return reply(503,{error:'Twilio setup is incomplete. Add its credentials, sender and approved test numbers in server settings.'})
    if(!i.phone||!/^\+[1-9]\d{7,14}$/.test(i.phone)||!d.smsAllowed(i.phone)||i.consent!==true)return reply(400,{error:'Use an approved test phone number, including country code, and confirm permission to text it.'})
    op=await caller.reserve(i.request_id,'sms',{phone:i.phone,consent:true})

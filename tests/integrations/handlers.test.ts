@@ -6,7 +6,7 @@ import {verifyTwilioSignature,twilioTestEventHandler} from '../../supabase/funct
 const B='11111111-1111-4111-8111-111111111111',R='22222222-2222-4222-8222-222222222222',I='33333333-3333-4333-8333-333333333333',origin='https://finviant.com'
 const request=(action:string,extra:Record<string,unknown>={})=>new Request(origin,{method:'POST',headers:{origin,authorization:'Bearer token'},body:JSON.stringify({business_id:B,request_id:R,action,...extra})})
 function setup(){
- const calls:any[]=[],finishes:any[]=[],ctx={state:{} as any,operations:[],invoices:[]};let fresh=true
+ const calls:any[]=[],finishes:any[]=[],ctx={sms_owner_verified:true,state:{} as any,operations:[],invoices:[]};let fresh=true
  const d:IntegrationDependencies={staging:true,origin,origins:[origin],configuration:{stripe:true,stripe_webhook:true,connect_webhook:true,sms:true},portalConfiguration:'bpc_test',
  authorize:async()=>({context:async()=>ctx,reserve:async(id,kind,input)=>({id,kind,input:{...input,amount_cents:1250,invoice_number:'INV-1',currency:'usd'},status:'reserved',fresh,created_at:new Date().toISOString(),result:{}})}),
  stripe:async(path,body,key,account)=>{calls.push({path,body,key,account});if(path==='/v1/account')return{id:'acct_1UEz2sRuE7Wioad5'};if(path.startsWith('/v1/prices'))return{data:[{id:'price_pro',livemode:false,currency:'usd',unit_amount:2499,recurring:{interval:'month'}}]};if(path.startsWith('/v1/accounts/'))return{charges_enabled:true};if(path==='/v1/checkout/sessions')return{id:'cs_test_123',livemode:false,url:'https://checkout.stripe.com/c/pay/test',amount_total:1250};throw new Error('Unexpected call '+path)},
@@ -61,4 +61,9 @@ test('Twilio callbacks verify the exact configured URL, account and signature; d
  const calls:any[]=[];const handler=twilioTestEventHandler({staging:true,url:url.split('?')[0],account,token,record:async(a)=>{calls.push(a);return true}})
  const response=await handler(new Request(url,{method:'POST',headers:{'x-twilio-signature':sig},body:params.toString()}));assert.equal(response.status,200);assert.equal(calls[0].p_status,'delivered')
  params.append('MessageSid',sid);assert.equal(await verifyTwilioSignature(url,params,sig,token),false)
+})
+
+test('SMS provider calls are blocked without a verified owner even when the client claims verification',async()=>{
+ const {d,ctx}=setup();ctx.sms_owner_verified=false;let sends=0;d.sms=async()=>{sends++;return{sid:'SM'+'a'.repeat(32),status:'queued'}}
+ const r=await integrationTestHandler(d)(request('sms',{phone:'+17575550123',consent:true,owner_mobile_verified:true}));assert.equal(r.status,409);assert.match((await r.json()).error,/Verify the primary owner mobile/);assert.equal(sends,0)
 })

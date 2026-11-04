@@ -15,7 +15,7 @@ export const serviceCatalog: Array<{
   { id: 'automated_reminders', name: 'Automated follow-ups', description: 'Paid service: prepare follow-up drafts and deliver reminders, subject to verification and per-plan limits.', stage: 'Paid · Planned', tag: 'Automation' },
   { id: 'bookkeeping', name: 'Manual bookkeeping workbook', description: 'Record income and expenses, export a CSV, and view separate QuickBooks imports when configured. This is the basic workbook, not the optional AI Bookkeeping Assistant.', stage: 'Core workbook · Beta', tag: 'Finances' },
   { id: 'team_tools', name: 'Team collaboration', description: 'Help owners coordinate employees, roles and assignments with appropriate permissions.', stage: 'Planned', tag: 'Team' },
-  { id: 'sms_messages', name: 'Customer text messaging', description: 'Paid service: outgoing SMS and replies; usage limits and customer messaging consent required.', stage: 'Paid · Planned', tag: 'Messaging' },
+  { id: 'sms_messages', name: 'Customer text messaging', description: 'Paid service: outgoing SMS and replies; verified owner mobile, usage limits and customer messaging consent required.', stage: 'Paid · Planned', tag: 'Messaging' },
 ]
 export const plans: Array<{ id: PlanInterest; label: string; description: string }> = [
   { id: 'free', label: 'Free', description: 'Manual tools only · 0 AI, customer approvals, and metered services' },
