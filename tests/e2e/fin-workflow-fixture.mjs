@@ -1,3 +1,4 @@
+import {expect} from '@playwright/test'
 import {mock,B,C,E} from './audit-fixture.mjs'
 import {openFinTyping} from './navigation.mjs'
 export const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'}
@@ -17,4 +18,10 @@ export async function workflow(page,{steps=[docStep()],respond,contact={email:'c
 export async function ask(page,text){await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(text);await page.getByRole('button',{name:'Ask Fin',exact:true}).click()}
 export async function start(page,text='Create invoice for Test Customer: landscaping $200 and painting $100'){await page.goto('/');await openFinTyping(page);await ask(page,text)}
 export const review=page=>page.getByRole('region',{name:'Review Fin’s plan'})
-export const save=page=>review(page).getByRole('button',{name:'Confirm and save',exact:true}).click()
+export async function save(page){
+ const [response]=await Promise.all([page.waitForResponse(r=>r.url().endsWith('/rest/v1/rpc/fin_execute_review')&&r.request().method()==='POST'),review(page).getByRole('button',{name:'Confirm and save',exact:true}).click()])
+ if(response.ok()){
+  await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible({timeout:15000})
+  await expect(page.getByRole('status').filter({hasText:'Loading saved document delivery options…'})).toHaveCount(0,{timeout:15000})
+ }
+}
