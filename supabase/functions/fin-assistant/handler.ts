@@ -15,6 +15,8 @@ export function finHandler(deps:FinDependencies){return async(req:Request)=>{
   let body;try{body=JSON.parse(raw)}catch{return send(400,{error:'Invalid request'})}
   if(!body||!uuid.test(body.business_id)||!['draft','question'].includes(body.mode)||typeof body.text!=='string'||!body.text.trim())return send(400,{error:'A business, request and valid mode are required.'})
   if(body.text.length>6000)return send(413,{error:'Keep your request under 6,001 characters.'})
+  const history=body.history??[]
+  if(!Array.isArray(history)||history.length>4||history.some((t:unknown)=>!t||typeof t!=='object'||typeof (t as any).question!=='string'||!(t as any).question.trim()||(t as any).question.length>2000||typeof (t as any).answer!=='string'||!(t as any).answer.trim()||(t as any).answer.length>1500||Object.keys(t).some(k=>!['question','answer'].includes(k))))return send(400,{error:'Conversation history is invalid. Start a new conversation.'})
   const session=await deps.authorize(req.headers.get('authorization')!,body.business_id)
   if(!session)return send(403,{error:'Sign in with access to this business.'})
   if(body.mode==='question'&&!['owner','admin'].includes(session.role))return send(403,{error:'Business questions are available to business owners and administrators.'})
@@ -23,7 +25,7 @@ export function finHandler(deps:FinDependencies){return async(req:Request)=>{
   if(!deps.configured())return send(503,{error:'Fin’s language service is awaiting server setup.',code:'fin_not_configured'})
   const context=await session.context(body.mode)
   await session.reserve()
-  const data=await deps.complete(body.mode==='draft'?draftInstructions:answerInstructions,JSON.stringify({context,request:body.text.trim()}),body.mode==='draft'?draftSchema:answerSchema)
+  const data=await deps.complete(body.mode==='draft'?draftInstructions:answerInstructions,JSON.stringify({context,request:body.text.trim(),...(body.mode==='question'?{prior_conversation:history}:{})}),body.mode==='draft'?draftSchema:answerSchema)
   let parsed;try{parsed=JSON.parse(responseText(data))}catch{return send(502,{error:'Fin could not prepare a complete answer. Try again or review the draft manually.'})}
   if(body.mode==='draft'){
    if(!validDraft(parsed,body.text.trim()))return send(502,{error:'Fin’s draft needs manual review.'})

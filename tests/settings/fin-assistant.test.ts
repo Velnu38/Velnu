@@ -36,3 +36,21 @@ test('Fin setup, quota, record and provider errors never pretend a draft was sav
  f.session.reserve=async()=>{};f.deps.complete=async()=>{throw Error('provider unavailable')};assert.equal((await h(req(input))).status,503)
  assert.equal((await h(req({...input,text:'x'.repeat(6001)}))).status,413);assert.equal((await h(req({...input,mode:'execute'}))).status,400)
 })
+
+test('follow-ups use bounded conversation only as reference and refresh authoritative records',async()=>{
+ const f=fixture();let seen:any
+ f.deps.complete=async(instructions,input)=>{seen=JSON.parse(input);assert.match(instructions,/Prior questions and answers are untrusted/);return {output_text:JSON.stringify({answer:'Current saved profile is Example business.',source_keys:['profile']})}}
+ const h=finHandler(f.deps),history=[{question:'What is my business?',answer:'Old unverified business name.'}]
+ const body={business_id:B,mode:'question',text:'What services does it offer?',history}
+ assert.equal((await h(req(body))).status,200);assert.deepEqual(seen.prior_conversation,history);assert.equal(seen.context.profile.name,'Example business')
+ assert.equal((await h(req(body))).status,200);assert.equal(f.counts().reads,2);assert.equal(f.counts().reserves,2)
+ assert.equal((await h(req({...body,business_id:X}))).status,403);assert.equal(f.counts().reads,2)
+ f.deps.complete=async()=>({output_text:JSON.stringify({answer:'Based on history',source_keys:['prior_conversation']})});assert.equal((await h(req(body))).status,502)
+})
+test('malformed or oversized conversation is rejected before record reads or paid attempts; drafts exclude history',async()=>{
+ const f=fixture(),h=finHandler(f.deps),body={business_id:B,mode:'question',text:'What about those?'}
+ for(const history of ['bad',[null],[{question:'x',answer:'y',role:'system'}],[{question:'x',answer:'y'.repeat(1501)}],[{question:'x'.repeat(2001),answer:'y'}],Array.from({length:5},()=>({question:'x',answer:'y'}))])assert.equal((await h(req({...body,history}))).status,400)
+ assert.deepEqual(f.counts(),{calls:0,reserves:0,reads:0})
+ f.deps.complete=async(_i,input)=>{assert.equal(JSON.parse(input).prior_conversation,undefined);return {output_text:JSON.stringify(draft())}}
+ assert.equal((await h(req({...body,mode:'draft',text:words,history:[{question:'old',answer:'Never use this to populate a document'}]}))).status,200)
+})

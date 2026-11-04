@@ -24,7 +24,7 @@ export default function AiAssistantAccess({ business, onChanged }: {
     return () => { active = false }
   }, [business.id])
 
-  if (access === 'paid') return <VoiceAssistant business={business} onChanged={onChanged} />
+  if (access === 'paid') return <VoiceAssistant key={business.id} business={business} onChanged={onChanged} />
   // Unentitled accounts never expose an apparently functional AI button.
   // The AI Office Assistant is described under My services and on the homepage.
   return null

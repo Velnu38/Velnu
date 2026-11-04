@@ -1,3 +1,4 @@
+import FinBrand from './FinBrand'
 import { type FormEvent, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -87,7 +88,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
 
   return <main className="auth-page">
     <section className="auth-hero">
-      <a href="/" className="auth-brand-link" title="Back to Finviant Office home"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><div className="brand-word">Finviant Office</div></a>
+      <a href="/" className="auth-brand-link" title="Back to Finviant Office home"><FinBrand/></a>
       <h1>Run your business by talking to it.</h1>
       <p>Meet Fin, your AI office assistant for customers, jobs, estimates, invoices, payments and follow-up.</p>
       <div className="voice-example">“Create an invoice for Bob Smith for $1,450 due in 15 days.”</div>

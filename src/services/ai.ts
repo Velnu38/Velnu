@@ -82,11 +82,13 @@ export async function transcribeVoice(businessId: string, audio: Blob, durationS
   return data as { transcript: string; transcription_id: string }
 }
 
-export async function askFin(businessId:string,text:string){
- const {data,error}=await supabase.functions.invoke('fin-assistant',{body:{business_id:businessId,mode:'question',text}})
+export type FinAnswer={answer:string;sources:{key:string;label:string}[];limits:string[];as_of:string}
+export type FinTurn={question:string;response:FinAnswer}
+export async function askFin(businessId:string,text:string,turns:FinTurn[]=[]){
+ const {data,error}=await supabase.functions.invoke('fin-assistant',{body:{business_id:businessId,mode:'question',text,history:turns.slice(-4).map(t=>({question:t.question.slice(0,2000),answer:t.response.answer.slice(0,1500)}))}})
  if(error)throw await explainFunctionError(error,'command')
  if(typeof data?.answer!=='string'||!Array.isArray(data.sources)||!Array.isArray(data.limits))throw new Error('Fin could not verify the answer. Please try again.')
- return data as {answer:string;sources:{key:string;label:string}[];limits:string[];as_of:string}
+ return data as FinAnswer
 }
 export async function interpretDocument(businessId:string,text:string):Promise<VoiceSeed>{
  const {data,error}=await supabase.functions.invoke('fin-assistant',{body:{business_id:businessId,mode:'draft',text}})
