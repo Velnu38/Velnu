@@ -78,3 +78,12 @@ export async function archiveCustomer(customerId: string) {
   const { error } = await supabase.from('customers').update({ archived: true }).eq('id', customerId)
   if (error) throw error
 }
+
+/** Edit contact details only, preserving notes, preferences and names. */
+export async function updateCustomerContact(businessId:string,customerId:string,version:string,email:string,phone:string){
+ if(email&&!/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email))throw new Error('Enter a valid customer email.')
+ const {data,error}=await supabase.from('customers').update({email:email||null,phone:phone||null}).eq('business_id',businessId).eq('id',customerId).eq('updated_at',version).select().single()
+ if(error?.code==='PGRST116')throw new Error('Customer details changed elsewhere. Go back and reopen review to load the current details before sending.')
+ if(error)throw error
+ return data
+}
