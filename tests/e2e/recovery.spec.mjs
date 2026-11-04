@@ -1,3 +1,4 @@
+import {workflow,start,save,review,step,cors} from './fin-workflow-fixture.mjs'
 import { openWorkArea } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 const B='11111111-1111-4111-8111-111111111111', U='33333333-3333-4333-8333-333333333333', C='44444444-4444-4444-8444-444444444444', A='55555555-5555-4555-8555-555555555555'
@@ -21,20 +22,6 @@ async function setup(page,options={}){
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return json({open_invoices:0,outstanding_balance:0})
   if(path.endsWith('/customers'))return json([customer])
   if(path.endsWith('/jobs'))return json(s.jobs)
-  if(path.endsWith('/functions/v1/ai-command'))return json({action_id:A,intent:options.payment?'record_payment':'create_customer',requires_confirmation:true,fields:options.payment?{customer_name:'Demo Customer',payment_amount:90,payment_method:'cash'}:{customer_name:'Demo Customer'},clarification_question:null})
-  if(path.endsWith('/rpc/decide_ai_action')){
-   expect(body.p_action_id).toBe(A)
-   if(body.p_decision==='rejected'){s.rejections++;if(options.rejectLost&&s.rejections===1)return json({message:'Temporary error',code:'500'},500);return json(null)}
-   s.confirmations++
-   if(options.confirmLost&&s.confirmations===1)return json({message:'Confirmation response lost',code:'500'},500)
-   return json(null)
-  }
-  if(path.endsWith('/functions/v1/execute-ai-action')){
-   expect(body.action_id).toBe(A);s.executions++;s.created=1
-   if(options.executeLost&&s.executions===1)return json({error:'Response lost after commit'},504)
-   if(options.slow)await new Promise(r=>setTimeout(r,150))
-   return json({action_id:A,status:'executed',already_executed:s.executions>1,result:options.payment?{payment:{id:C,amount:90},invoice:{id:C,invoice_number:'INV-TEST',balance_due:90}}:{customer:{id:C}}})
-  }
   if(path.endsWith('/rpc/create_job_atomic')){
    s.jobAttempts++
    if(!s.jobs.length)s.jobs.push({id:A,title:body.payload.title,status:'lead',customers:customer,scheduled_start:null})
@@ -48,49 +35,56 @@ async function setup(page,options={}){
  await page.goto('/')
  return s
 }
-async function propose(page,text='Create a customer named Demo Customer'){
- await page.getByRole('button',{name:'Type to Fin'}).click()
- await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(text)
- await page.getByRole('button',{name:'Ask Fin'}).click()
- await expect(page.getByRole('button',{name:'Confirm',exact:true})).toBeVisible()
+async function setupFin(page,options={}){
+ const planned=options.payment?{...step('record_payment',{amount:'90.00',payment_method:'cash'}),label:'Cash payment of $90.00 for Demo Customer'}:{...step('create_customer',{first_name:'Demo',last_name:'Customer'}),label:'Demo Customer'}
+ await workflow(page,{steps:[planned]})
+ const s={executions:[],rejections:[],created:new Set(),errors:[]};page.on('pageerror',e=>s.errors.push(e.message))
+ await page.route('**/rest/v1/rpc/fin_execute_review',async route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
+  const body=route.request().postDataJSON();s.executions.push(body)
+  if(options.confirmLost&&s.executions.length===1)return route.fulfill({status:503,headers:cors,json:{message:'Save could not be confirmed. Retry this review.'}})
+  s.created.add(body.p_review)
+  if(options.executeLost&&s.executions.length===1)return route.fulfill({status:503,headers:cors,json:{message:'Response lost after commit. Retry this review.'}})
+  if(options.slow)await new Promise(r=>setTimeout(r,150))
+  return route.fulfill({status:200,headers:cors,json:{status:'completed',steps:[{operation:planned.operation,resource:options.payment?'payments':'customers',id:C,label:planned.label,status:'completed'}]}})
+ })
+ await page.route('**/rest/v1/rpc/fin_cancel_review',route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
+  s.rejections.push(route.request().postDataJSON())
+  return route.fulfill({status:options.rejectLost&&s.rejections.length===1?503:200,headers:cors,json:options.rejectLost&&s.rejections.length===1?{message:'Temporary error'}:null})
+ })
+ await start(page,options.payment?'Record a cash payment of $90 for Demo Customer':'Create a customer named Demo Customer')
+ await expect(review(page).getByRole('button',{name:'Confirm and save',exact:true})).toBeVisible()
+ return s
 }
-test('lost confirmation can be retried using the same action; one mutation',async({page})=>{
- const s=await setup(page,{confirmLost:true});await propose(page)
- await page.getByRole('button',{name:'Confirm',exact:true}).click()
- await expect(page.locator('.assistant-panel .error-text')).toBeVisible()
- expect(s.executions).toBe(0)
- await page.getByRole('button',{name:'Confirm',exact:true}).click()
- await expect(page.getByText('Customer saved.')).toBeVisible()
- expect(s.confirmations).toBe(2);expect(s.created).toBe(1);expect(s.errors).toEqual([])
- expect(s.requests.filter(r=>r.path.endsWith('/ai_actions')&&r.method==='PATCH')).toHaveLength(0)
+test('failed save before mutation can be retried using the same review; one mutation',async({page})=>{
+ const s=await setupFin(page,{confirmLost:true});await save(page)
+ await expect(page.getByRole('alert')).toContainText('Save could not be confirmed');expect(s.created.size).toBe(0)
+ await save(page);await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toContainText('Demo Customer')
+ expect(s.executions).toHaveLength(2);expect(s.executions[1]).toEqual(s.executions[0]);expect(s.created.size).toBe(1);expect(s.errors).toEqual([])
 })
-test('lost execution response retries the same action without creating a second record',async({page})=>{
- const s=await setup(page,{executeLost:true});await propose(page)
- await page.getByRole('button',{name:'Confirm',exact:true}).click()
- await expect(page.locator('.assistant-panel .error-text')).toBeVisible()
- await page.getByRole('button',{name:'Confirm',exact:true}).click()
- await expect(page.getByText('Customer saved.')).toBeVisible()
- expect(s.executions).toBe(2);expect(s.created).toBe(1);expect(s.errors).toEqual([])
+test('lost execution response retries the same review without creating a second record',async({page})=>{
+ const s=await setupFin(page,{executeLost:true});await save(page)
+ await expect(page.getByRole('alert')).toContainText('Response lost after commit');expect(s.created.size).toBe(1)
+ await save(page);await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toContainText('Demo Customer')
+ expect(s.executions).toHaveLength(2);expect(s.executions[1]).toEqual(s.executions[0]);expect(s.created.size).toBe(1);expect(s.errors).toEqual([])
 })
 test('failed cancellation is visible and recoverable, never executes action',async({page})=>{
- const s=await setup(page,{rejectLost:true});await propose(page)
- await page.getByRole('button',{name:'Cancel',exact:true}).click()
- await expect(page.getByText(/Cancellation could not be confirmed/)).toBeVisible()
- await page.getByRole('button',{name:'Cancel',exact:true}).click()
- await expect(page.getByRole('button',{name:'Confirm',exact:true})).toHaveCount(0)
- expect(s.executions).toBe(0);expect(s.rejections).toBe(2);expect(s.errors).toEqual([])
+ const s=await setupFin(page,{rejectLost:true});await review(page).getByRole('button',{name:'Cancel plan',exact:true}).click()
+ await expect(page.getByRole('alert')).toContainText('Cancellation could not be confirmed')
+ await review(page).getByRole('button',{name:'Cancel plan',exact:true}).click();await expect(review(page)).toHaveCount(0)
+ expect(s.executions).toHaveLength(0);expect(s.rejections).toHaveLength(2);expect(s.rejections[1]).toEqual(s.rejections[0]);expect(s.errors).toEqual([])
 })
 test('rapid confirmation attempts use an immediate in-flight guard',async({page})=>{
- const s=await setup(page,{slow:true});await propose(page)
- await page.getByRole('button',{name:'Confirm',exact:true}).evaluate(button=>{button.click();button.click()})
- await expect(page.getByText('Customer saved.')).toBeVisible()
- expect(s.executions).toBe(1);expect(s.confirmations).toBe(1)
+ const s=await setupFin(page,{slow:true})
+ await review(page).getByRole('button',{name:'Confirm and save',exact:true}).evaluate(button=>{button.click();button.click()})
+ await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toContainText('Demo Customer')
+ expect(s.executions).toHaveLength(1);expect(s.created.size).toBe(1)
 })
 test('recorded payment is described as a payment, not a newly created invoice',async({page})=>{
- await setup(page,{payment:true});await propose(page,'Record a cash payment of $90 for Demo Customer')
- await page.getByRole('button',{name:'Confirm',exact:true}).click()
- await expect(page.getByText('Payment of $90.00 recorded.')).toBeVisible()
- await expect(page.getByText(/Invoice INV-TEST is ready/)).toHaveCount(0)
+ await setupFin(page,{payment:true});await save(page)
+ await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toContainText('Cash payment of $90.00 for Demo Customer')
+ await expect(page.getByRole('region',{name:'Send to customer'})).toHaveCount(0)
 })
 test('job creation preserves request identity after a lost response',async({page})=>{
  const s=await setup(page,{jobLost:true})
