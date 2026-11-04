@@ -3,6 +3,7 @@ import {mkdtemp,writeFile,rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {mock} from './audit-fixture.mjs'
+import {workflow,start,review} from './fin-workflow-fixture.mjs'
 
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'}
 let browser,fixtureDir
@@ -73,5 +74,14 @@ test('cancel releases native audio tracks without uploading',async()=>{
   await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toBeEnabled()
   expect(await page.evaluate(()=>window.__capturedStream.getTracks().every(t=>t.readyState==='ended'))).toBe(true)
   expect(state.calls.some(c=>c.path.endsWith('fin-workflow'))).toBe(false);expect(uploads).toBe(0)
+ }finally{await context.close()}
+})
+
+for(const word of ['yes','no'])test(`spoken ${word} applies only to the displayed review`,async()=>{
+ const context=await browser.newContext({baseURL:'http://127.0.0.1:4173',viewport:{width:390,height:844},permissions:['microphone']})
+ try{const page=await context.newPage();const f=await workflow(page);let uploads=0;
+ await page.route('**/functions/v1/transcribe-voice',route=>{if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});if(route.request().headers()['content-type']?.includes('application/json'))return route.fulfill({status:200,headers:cors,json:{configured:true}});uploads++;return route.fulfill({status:200,headers:cors,json:{transcript:word,transcription_id:'synthetic-approval'}})});
+ await start(page);await expect(review(page)).toBeVisible();await page.getByRole('button',{name:'Speak a follow-up',exact:true}).click();await expect(review(page)).toHaveCount(0,{timeout:25000});expect(uploads).toBe(1);expect(f.requests).toHaveLength(1);expect(f.executions).toHaveLength(word==='yes'?1:0);
+ if(word==='yes')await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible();else await expect(page.getByText('Plan cancelled. No changes were saved.')).toBeVisible();
  }finally{await context.close()}
 })

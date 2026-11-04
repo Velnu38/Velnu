@@ -19,7 +19,7 @@ export async function ask(page,text){await page.getByRole('textbox',{name:'Descr
 export async function start(page,text='Create invoice for Test Customer: landscaping $200 and painting $100'){await page.goto('/');await openFinTyping(page);await ask(page,text)}
 export const review=page=>page.getByRole('region',{name:'Review Fin’s plan'})
 export async function save(page){
- const [response]=await Promise.all([page.waitForResponse(r=>r.url().endsWith('/rest/v1/rpc/fin_execute_review')&&r.request().method()==='POST'),review(page).getByRole('button',{name:'Confirm and save',exact:true}).click()])
+ const [response]=await Promise.all([page.waitForResponse(r=>r.url().endsWith('/rest/v1/rpc/fin_execute_review')&&r.request().method()==='POST'),review(page).getByRole('button',{name:'Yes, make these changes',exact:true}).click()])
  if(response.ok()){
   await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible({timeout:15000})
   await expect(page.getByRole('status').filter({hasText:'Loading saved document delivery options…'})).toHaveCount(0,{timeout:15000})
