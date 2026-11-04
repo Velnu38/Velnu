@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 type Operation={id:string;kind:string;status:string;provider_id:string|null;created_at:string;result:{message?:string}}
-type TestStatus={subscription?:{status:string;cancel_at_period_end:boolean}|null;configuration:{stripe:boolean;stripe_webhook:boolean;connect_webhook:boolean;sms:boolean};state:{stripe_account?:string;stripe_customer?:string;stripe_subscription?:string};operations:Operation[];invoices:{id:string;invoice_number:string;balance_due:number}[]}
+type TestStatus={sms_owner_verified?:boolean;subscription?:{status:string;cancel_at_period_end:boolean}|null;configuration:{stripe:boolean;stripe_webhook:boolean;connect_webhook:boolean;sms:boolean};state:{stripe_account?:string;stripe_customer?:string;stripe_subscription?:string};operations:Operation[];invoices:{id:string;invoice_number:string;balance_due:number}[]}
 export const integrationTestingAvailable=import.meta.env.VITE_SUPABASE_URL==='https://xvybcmyoblfgzokaifsx.supabase.co'||import.meta.env.VITE_PRIVATE_INTEGRATION_TESTING==='true'
 async function invoke(body:Record<string,unknown>){
  const {data,error}=await supabase.functions.invoke('private-integration-testing',{body})
@@ -61,10 +61,11 @@ export default function IntegrationTesting({businessId}:{businessId:string}){
    </section>
    <section className="settings-inset"><h3>Twilio SMS delivery test</h3>
     <p>{config?.sms?'Tester messaging is configured.':'Setup needed: Twilio credentials, sending number and approved recipient list.'}</p>
+    {status.sms_owner_verified!==true&&<p className="form-message">Verify your owner mobile first in <a href="/?view=settings&sms_setup=1">Text messaging setup</a>.</p>}
     <label>Approved tester phone<input type="tel" autoComplete="off" placeholder="+17575550123" value={phone} disabled={busy} onChange={e=>{setPhone(e.target.value);setConsent(false)}}/></label>
     <label><span><input type="checkbox" checked={consent} disabled={busy} onChange={e=>setConsent(e.target.checked)}/> I have permission to send this test text to this number.</span></label>
     <p className="quiet">Message: “Finviant internal test: SMS delivery is working. No payment is requested.”</p>
-    <button type="button" className="primary-button" disabled={busy||!config?.sms||!consent||!/^\+[1-9]\d{7,14}$/.test(phone.trim())} onClick={()=>void run('sms')}>{busy?'Processing test…':'Send approved test text'}</button>
+    <button type="button" className="primary-button" disabled={busy||status.sms_owner_verified!==true||!config?.sms||!consent||!/^\+[1-9]\d{7,14}$/.test(phone.trim())} onClick={()=>void run('sms')}>{busy?'Processing test…':'Send approved test text'}</button>
    </section>
    <section className="settings-inset"><h3>Recent test results</h3>
     <p className="quiet">Accepted means the provider received the request. Paid and Delivered require verified provider confirmation.</p>

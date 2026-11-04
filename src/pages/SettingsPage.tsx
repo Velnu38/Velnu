@@ -1,3 +1,4 @@
+import SmsSetup from '../components/settings/SmsSetup'
 import IntegrationTesting, { integrationTestingAvailable } from '../components/settings/IntegrationTesting'
 import WorkspaceBack from '../components/WorkspaceBack'
 import SupportCases from '../components/SupportCases'
@@ -14,11 +15,12 @@ import SubscriptionSettings from "../components/settings/SubscriptionSettings";
 import SchedulingSettings from "../components/scheduling/SchedulingSettings";
 import "../components/settings/settings.css";
 
-type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription" | "testing" | "support";
+type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription" | "testing" | "support" | "sms";
 const options: { id: Section; title: string; description: string }[] = [
   { id: "support", title: "Help & support", description: "Report an issue and follow Finviant replies." },
   { id: "company", title: "Company profile", description: "Business details and services." },
   { id: "team", title: "Team & access", description: "Invite your team and choose their access." },
+  { id: "sms", title: "Text messaging setup", description: "Verify your owner mobile number before sending SMS." },
   { id: "documents", title: "Invoice & estimate setup", description: "Document appearance, branding, and taxes." },
   { id: "calendar", title: "Calendar connections", description: "Google Calendar and Microsoft Outlook." },
   { id: "scheduling", title: "Scheduling & team availability", description: "Working hours, booking notice, travel time, and time off." },
@@ -32,11 +34,12 @@ export default function SettingsPage({ business, onSaved }: {
   const [operator,setOperator]=useState(false)
   useEffect(()=>{let active=true;void adminRequest<{operator:boolean}>('access').then(r=>{if(active)setOperator(r.operator===true)}).catch(()=>{});return()=>{active=false}},[])
   const [visited,setVisited]=useState<Set<Section>>(()=>new Set())
-  const [section, setSection] = useState<Section | null>(()=>integrationTestingAvailable && new URLSearchParams(location.search).has("integration_test") ? "testing" : null);
+  const [section, setSection] = useState<Section | null>(()=>new URLSearchParams(location.search).has("sms_setup") ? "sms" : integrationTestingAvailable && new URLSearchParams(location.search).has("integration_test") ? "testing" : null);
   const owner = isPrimaryOwner(business);
   const allowed = [...options, ...(integrationTestingAvailable ? [{id: "testing" as Section,title: "Integration testing",description: "Private Stripe and approved Twilio SMS tests."}] : [])].filter((option) => option.id === "support" ? true : option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
 
   function content(id: Section) {
+    if (id === "sms") return <SmsSetup businessId={business.id} />;
     if (id === "support") return <SupportCases businessId={business.id} />;
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
