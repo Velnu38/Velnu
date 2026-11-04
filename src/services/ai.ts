@@ -5,7 +5,7 @@ import type {VoiceSeed} from '../lib/voiceDocument'
 
 type AiInvokeOptions = { body: Record<string, unknown> | FormData; timeout?: number }
 /** A rejected session can refresh once. Provider failures and uncertain operations are never replayed. */
-async function invokeAi(name:string, options:AiInvokeOptions) {
+export async function invokeAi(name:string, options:AiInvokeOptions) {
   const timeout=options.timeout ?? 60000
   const controller=new AbortController()
   let timer:ReturnType<typeof setTimeout>|undefined

@@ -1,72 +1,22 @@
-import {openFinTyping} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
-import {mock,C} from './audit-fixture.mjs'
-const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'}
-async function review(page,kind='invoice',contact={email:'customer@example.test'},options={}){
- const state=await mock(page,{ai:true});state.customers[0]={...state.customers[0],...contact,updated_at:'2026-11-04T10:00:00Z'}
- await page.goto('/');await openFinTyping(page);await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(`Create ${kind} for Test Customer for landscaping $200 and painting $100`);await page.getByRole('button',{name:`Review ${kind}`,exact:true}).click()
- const region=page.getByRole('region',{name:`Review ${kind} draft`});await expect(region.getByRole('combobox',{name:'Customer',exact:true})).toBeEnabled({timeout:15000});await expect(region.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue(C)
- return {state,region}
-}
-for(const kind of ['invoice','estimate'])for(const width of [390,1440])test(`review directly emails ${kind} once at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:950});const {state,region}=await review(page,kind);const sends=[]
- await page.route('**/functions/v1/send-*-email',async route=>{
-  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
-  sends.push(route.request().postDataJSON());await new Promise(r=>setTimeout(r,100));return route.fulfill({status:200,headers:cors,json:{status:'accepted',email_id:'email-1',recipient:'customer@example.test'}})
- })
- await expect(region.getByText('To: customer@example.test')).toBeVisible();await expect(region.getByRole('button',{name:'Send SMS'})).toHaveCount(0)
- await region.getByRole('button',{name:'Send email',exact:true}).scrollIntoViewIfNeeded()
- if(width===390){const recipient=await region.getByText('To: customer@example.test').boundingBox(),button=await region.getByRole('button',{name:'Send email',exact:true}).boundingBox();expect(recipient.y+recipient.height).toBeLessThanOrEqual(button.y)}
- await page.screenshot({path:`test-results/voice-review-${kind}-${width}.png`,fullPage:true})
- await region.getByRole('button',{name:'Send email',exact:true}).dblclick()
- await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery to customer@example.test'})).toBeVisible()
- expect(state.documents).toHaveLength(1);expect(sends).toHaveLength(1);expect(sends[0].expected_recipient).toBe('customer@example.test');expect(sends[0].request_id).toBeTruthy();expect(sends[0].invoice_id||sends[0].document_id).toBe('44444444-4444-4444-8444-444444444444')
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+import {workflow,start,save,review,docStep,cors} from './fin-workflow-fixture.mjs'
+import {C,E} from './audit-fixture.mjs'
+async function prepared(page,kind='invoice',contact={email:'customer@example.test',phone:null}){const f=await workflow(page,{steps:[docStep(kind)],contact});await start(page,`Create ${kind} for Test Customer: landscaping $200 and painting $100`);return f}
+const delivery=page=>page.getByRole('region',{name:'Send to customer'})
+for(const kind of ['invoice','estimate'])for(const width of [390,1440])test(`Fin saved ${kind} sends email from the same screen once at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:950});const f=await prepared(page,kind),sends=[]
+ await page.route('**/functions/v1/send-*-email',async route=>{if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});sends.push(route.request().postDataJSON());await new Promise(r=>setTimeout(r,100));return route.fulfill({status:200,headers:cors,json:{status:'accepted',email_id:'email-1',recipient:'customer@example.test'}})})
+ expect(f.state.documents).toHaveLength(0);await save(page);await expect(delivery(page).getByText('To: customer@example.test')).toBeVisible();await expect(delivery(page).getByRole('button',{name:'Send SMS'})).toHaveCount(0);expect(sends).toHaveLength(0)
+ await delivery(page).getByRole('button',{name:'Send email',exact:true}).dblclick();await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery to customer@example.test'})).toBeVisible();expect(f.state.documents).toHaveLength(1);expect(sends).toHaveLength(1);expect(sends[0].expected_recipient).toBe('customer@example.test');expect(sends[0].request_id).toBeTruthy();expect(sends[0].invoice_id||sends[0].document_id).toBe(E);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
-test('unknown send outcome preserves document and request ID, locks reviewed data',async({page})=>{
- const {state,region}=await review(page);const sends=[]
- await page.route('**/functions/v1/send-invoice-email',async route=>{
-  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
-  sends.push(route.request().postDataJSON());return route.fulfill({status:sends.length===1?503:200,headers:cors,json:sends.length===1?{error:'Outcome uncertain. Retry the same send.'}:{status:'accepted',email_id:'email-1',recipient:'customer@example.test'}})
- })
- await region.getByRole('button',{name:'Send email',exact:true}).click();await expect(region.getByRole('alert')).toContainText('Outcome uncertain');await expect(region.getByRole('textbox',{name:'Line 1 description'})).toBeDisabled();await expect(region.getByRole('button',{name:'Done — keep saved document'})).toBeEnabled()
- await region.getByRole('button',{name:'Retry email',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Email accepted'})).toBeVisible();expect(state.documents).toHaveLength(1);expect(sends).toHaveLength(2);expect(sends[1]).toEqual(sends[0])
+test('unknown send outcome preserves the saved document and retries the same delivery ID',async({page})=>{
+ const f=await prepared(page),sends=[];await page.route('**/functions/v1/send-invoice-email',route=>{if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});sends.push(route.request().postDataJSON());return route.fulfill({status:sends.length===1?503:200,headers:cors,json:sends.length===1?{error:'Outcome uncertain. Retry the same send.'}:{status:'accepted',email_id:'email-1',recipient:'customer@example.test'}})});await save(page);await delivery(page).getByRole('button',{name:'Send email',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Outcome uncertain');await delivery(page).getByRole('button',{name:'Retry email',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Email accepted'})).toBeVisible();expect(f.state.documents).toHaveLength(1);expect(sends[1]).toEqual(sends[0])
 })
-test('no contacts means no send buttons; adding email inline enables sending',async({page})=>{
- const {region}=await review(page,'estimate',{email:null,phone:null});await expect(region.getByRole('button',{name:'Send email'})).toHaveCount(0);await expect(region.getByRole('button',{name:'Send SMS'})).toHaveCount(0)
- await region.getByText('Add email or phone to send (optional)',{exact:true}).click();await region.getByRole('textbox',{name:'Customer email'}).fill('bad-email');await expect(region.getByRole('button',{name:'Send email'})).toHaveCount(0);await region.getByRole('textbox',{name:'Customer email'}).fill('new@example.test');await expect(region.getByRole('button',{name:'Send email'})).toBeEnabled()
+async function contactRoutes(page,f,{conflict=false}={}){const patches=[];await page.route('**/rest/v1/customers?*',route=>{const method=route.request().method();if(method==='OPTIONS')return route.fulfill({status:204,headers:cors});if(method==='PATCH'){patches.push({body:route.request().postDataJSON(),url:route.request().url()});if(conflict)return route.fulfill({status:406,headers:cors,json:{code:'PGRST116',message:'No rows'}});f.state.customers[0]={...f.state.customers[0],...patches.at(-1).body};return route.fulfill({status:200,headers:cors,json:f.state.customers[0]})}return route.fulfill({status:200,headers:cors,json:new URL(route.request().url()).searchParams.get('id')?f.state.customers[0]:f.state.customers})});return patches}
+test('missing contacts hide send buttons; adding an email in this screen enables delivery',async({page})=>{
+ const f=await prepared(page,'estimate',{email:null,phone:null});await contactRoutes(page,f);await save(page);await expect(delivery(page).getByRole('button',{name:/Send email|Send SMS/})).toHaveCount(0);await delivery(page).getByRole('button',{name:'Add email or phone'}).click();const dialog=page.getByRole('dialog',{name:'Edit customer',exact:true});await dialog.getByRole('textbox',{name:'Email',exact:true}).fill('new@example.test');await dialog.getByRole('button',{name:'Save customer changes'}).click();await expect(delivery(page).getByRole('button',{name:'Send email'})).toBeEnabled();await expect(delivery(page)).toContainText('new@example.test')
 })
-test('phone-only customer shows SMS setup state, with no false send or email option',async({page})=>{
- const {region,state}=await review(page,'invoice',{email:null,phone:'7575550123'});await expect(region.getByRole('button',{name:'Send email'})).toHaveCount(0);await expect(region.getByRole('button',{name:'Send SMS'})).toBeDisabled();await expect(region.getByText(/Customer text delivery is awaiting SMS setup/)).toBeVisible();await region.getByRole('button',{name:'Save draft invoice'}).click();expect(state.documents).toHaveLength(1);expect(state.calls.filter(c=>c.path.includes('send-'))).toHaveLength(0)
-})
-test('contact edit only patches reviewed fields with business and version guards',async({page})=>{
- const {region}=await review(page);let patch
- await page.route('**/rest/v1/customers?*',async route=>{
-  if(route.request().method()!=='PATCH')return route.fallback()
-  patch={body:route.request().postDataJSON(),url:route.request().url()};return route.fulfill({status:200,headers:cors,json:{id:C,first_name:'Test',last_name:'Customer',email:'updated@example.test',phone:null,updated_at:'2026-11-04T11:00:00Z'}})
- })
- await region.getByText('Customer contact details',{exact:true}).click();await region.getByRole('textbox',{name:'Customer email'}).fill('updated@example.test');await region.getByRole('button',{name:'Save draft invoice'}).click();await expect.poll(()=>patch).toBeTruthy();expect(patch.body).toEqual({email:'updated@example.test',phone:null});expect(patch.url).toContain('business_id=eq.');expect(patch.url).toContain('updated_at=eq.')
-})
-test('customer contact conflict prevents document creation or delivery',async({page})=>{
- const {region,state}=await review(page)
- await page.route('**/rest/v1/customers?*',async route=>{
-  if(route.request().method()!=='PATCH')return route.fallback()
-  return route.fulfill({status:406,headers:cors,json:{code:'PGRST116',message:'No rows'}})
- })
- await region.getByText('Customer contact details',{exact:true}).click();await region.getByRole('textbox',{name:'Customer email'}).fill('updated@example.test');await region.getByRole('button',{name:'Send email',exact:true}).click();await expect(region.getByRole('alert')).toContainText('changed elsewhere');expect(state.documents).toHaveLength(0)
-})
-test('new customer contact is saved atomically with document before email, save failure never sends',async({page})=>{
- const {region}=await review(page);const writes=[],sends=[]
- await region.getByRole('combobox',{name:'Customer',exact:true}).selectOption('__new__');await region.getByRole('textbox',{name:'New customer name or company'}).fill('New Customer')
- await region.getByText('Add email or phone to send (optional)',{exact:true}).click();await region.getByRole('textbox',{name:'Customer email'}).fill('new@example.test')
- await page.route('**/rest/v1/rpc/create_document',async route=>{
-  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
-  writes.push(route.request().postDataJSON());return route.fulfill({status:writes.length===1?503:200,headers:cors,json:writes.length===1?{message:'Save unavailable'}:{id:'44444444-4444-4444-8444-444444444444',total:300,status:'draft'}})
- })
- await page.route('**/functions/v1/send-invoice-email',async route=>{
-  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
-  sends.push(route.request().postDataJSON());return route.fulfill({status:200,headers:cors,json:{status:'accepted',email_id:'email-new',recipient:'new@example.test'}})
- })
- await region.getByRole('button',{name:'Send email',exact:true}).click();await expect(region.getByRole('alert')).toBeVisible();expect(sends).toHaveLength(0)
- await region.getByRole('button',{name:'Send email',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Email accepted'})).toBeVisible();expect(writes[0]).toEqual(writes[1]);expect(writes[0].payload.new_customer.email).toBe('new@example.test');expect(writes[0].payload.new_customer.first_name).toBe('New');expect(writes[0].payload.new_customer.last_name).toBe('Customer');expect(writes[0].payload.payment_links).toBeUndefined();expect(writes[0].payload.payment_instructions).toBeUndefined();expect(sends).toHaveLength(1)
-})
+test('phone-only contact shows honest SMS setup state and never sends',async({page})=>{const f=await prepared(page,'invoice',{email:null,phone:'7575550123'});await save(page);await expect(delivery(page).getByRole('button',{name:'Send email'})).toHaveCount(0);await expect(delivery(page).getByRole('button',{name:'Send SMS'})).toBeDisabled();await expect(delivery(page)).toContainText('awaiting SMS setup');expect(f.state.calls.filter(c=>c.path.includes('send-'))).toHaveLength(0)})
+test('contact edits use business and version guards and cannot patch foreign fields',async({page})=>{const f=await prepared(page);f.state.customers[0].updated_at='2026-11-04T10:00:00Z';const patches=await contactRoutes(page,f);await save(page);await delivery(page).getByRole('button',{name:'Edit customer contact'}).click();const dialog=page.getByRole('dialog',{name:'Edit customer',exact:true});await dialog.getByRole('textbox',{name:'Email',exact:true}).fill('updated@example.test');await dialog.getByRole('button',{name:'Save customer changes'}).click();await expect.poll(()=>patches.length).toBe(1);expect(patches[0].url).toContain('business_id=eq.');expect(patches[0].url).toContain('updated_at=eq.');expect(patches[0].body).not.toHaveProperty('id');expect(patches[0].body).not.toHaveProperty('business_id');await expect(delivery(page)).toContainText('updated@example.test')})
+test('contact conflict retains edits and does not send or silently overwrite another session',async({page})=>{const f=await prepared(page);f.state.customers[0].updated_at='2026-11-04T10:00:00Z';await contactRoutes(page,f,{conflict:true});await save(page);await delivery(page).getByRole('button',{name:'Edit customer contact'}).click();const dialog=page.getByRole('dialog',{name:'Edit customer',exact:true});await dialog.getByRole('textbox',{name:'Email',exact:true}).fill('updated@example.test');await dialog.getByRole('button',{name:'Save customer changes'}).click();await expect(dialog.getByRole('alert')).toBeVisible();await expect(dialog.getByRole('textbox',{name:'Email',exact:true})).toHaveValue('updated@example.test');expect(f.state.documents).toHaveLength(1);expect(f.state.calls.filter(c=>c.path.includes('send-'))).toHaveLength(0)})
+test('failed compound save never exposes a send button or dispatches a message',async({page})=>{const f=await prepared(page);await page.route('**/rest/v1/rpc/fin_execute_review',route=>route.fulfill({status:409,headers:cors,json:{message:'The customer changed. Refresh this review.'}}));await save(page);await expect(page.getByRole('alert')).toContainText('customer changed');await expect(delivery(page)).toHaveCount(0);expect(f.state.documents).toHaveLength(0);expect(f.state.calls.filter(c=>c.path.includes('send-'))).toHaveLength(0)})

@@ -35,3 +35,9 @@
 .fin-recovery-actions a{display:flex;align-items:center;justify-content:center;text-decoration:none}
 .fin-microphone-recovery details{font-size:12px;overflow-wrap:anywhere}.fin-microphone-recovery summary{cursor:pointer;min-height:36px;align-content:center}
 @media(max-width:600px){.fin-recovery-actions{display:grid;grid-template-columns:1fr}.fin-microphone-recovery{padding:14px}}
+
+.fin-plan,.fin-execution{border:2px solid #0f766e;border-radius:16px;padding:18px;background:#f0fdfa;color:#102d3a;margin-block:18px}
+.fin-plan ol{padding-left:22px}.fin-plan li{padding:8px 0 16px;border-bottom:1px solid #9acbc4}.fin-plan li:last-child{border:0}.fin-plan h4{margin:8px 0}.fin-plan dl>div{display:grid;grid-template-columns:minmax(90px,1fr) 2fr;gap:10px;margin:8px 0}.fin-plan dt{font-weight:650}.fin-plan dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}.fin-plan-items{overflow-x:auto}.fin-plan-items table{width:100%;text-align:left}.fin-plan-items td,.fin-plan-items th{padding:7px;border-bottom:1px solid #b7d9d4}.fin-plan-actions{display:flex;gap:10px;flex-wrap:wrap}.fin-plan-actions button{min-height:44px}.fin-execution a,.fin-answer li a{display:inline-block;margin-left:12px}.fin-clarification{padding:12px;background:#e6f4f1;border-left:4px solid #0f766e}
+@media(max-width:480px){.fin-plan{padding:12px}.fin-plan-actions{flex-direction:column}.fin-plan-actions button{width:100%}.fin-plan dl>div{grid-template-columns:1fr;gap:3px}}
+
+.fin-previous{display:block;color:#526573;margin-top:4px}.fin-plan h3:focus,.fin-execution h3:focus{outline:2px solid #0f766e;outline-offset:4px}

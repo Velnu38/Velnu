@@ -34,7 +34,7 @@ const input=page=>page.getByRole('textbox',{name:'Describe your invoice or reque
 
 test('the caption starts recording immediately despite stalled preflight; a spoken question and follow-up receive answers',async({page})=>{
  await page.setViewportSize({width:390,height:844});await setup(page,{pending:true});const requests=[]
- await page.route('**/functions/v1/fin-assistant',route=>{
+ await page.route('**/functions/v1/fin-workflow',route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   requests.push(route.request().postDataJSON());return route.fulfill({status:200,headers:cors,json:answer})
  })
@@ -43,23 +43,23 @@ test('the caption starts recording immediately despite stalled preflight; a spok
  expect(await page.evaluate(()=>window.__mic)).toEqual({calls:1,gesture:true,stops:0})
  await page.getByRole('button',{name:'Finish recording',exact:true}).click()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
- await expect(input(page)).toHaveValue('');expect(requests[0].history).toEqual([])
+ await expect(input(page)).toHaveValue('');expect(requests[0]).not.toHaveProperty('history')
  await page.getByRole('button',{name:'Speak a follow-up',exact:true}).click();await page.getByRole('button',{name:'Finish recording',exact:true}).click()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(2)
- expect(requests[1].history).toEqual([{question:'What services do I offer?',answer:answer.answer}])
+ expect(requests[1].thread_id).toBe(requests[0].thread_id)
  expect(await page.evaluate(()=>window.__mic.calls)).toBe(2)
 })
 
 test('typing opens without microphone access and a pending answer has a visible status',async({page})=>{
  await setup(page);let reply
- await page.route('**/functions/v1/fin-assistant',route=>{
+ await page.route('**/functions/v1/fin-workflow',route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   reply=()=>route.fulfill({status:200,headers:cors,json:answer})
  })
  await page.goto('/');await page.getByRole('button',{name:'Type to Fin',exact:true}).click()
  expect(await page.evaluate(()=>window.__mic.calls)).toBe(0)
  await input(page).fill('What services do I offer?');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
- await expect(page.getByRole('status').filter({hasText:'Fin is thinking'})).toBeVisible()
+ await expect(page.getByRole('status').filter({hasText:'Fin is checking your account'})).toBeVisible()
  await expect.poll(()=>Boolean(reply)).toBe(true);await reply()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
 })
@@ -93,7 +93,7 @@ test('a rejected session refreshes once and retries the question with the renewe
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   refreshes++;return route.fulfill({status:200,headers:cors,json:{access_token:token,refresh_token:'renewed-refresh',token_type:'bearer',expires_in:3600,user:{id:U,email:'owner@example.test',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{}}}})
  })
- await page.route('**/functions/v1/fin-assistant',route=>{
+ await page.route('**/functions/v1/fin-workflow',route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   calls++;if(calls===1)return route.fulfill({status:401,headers:cors,json:{message:'Invalid JWT'}})
   expect(route.request().headers().authorization).toBe('Bearer '+token)
@@ -105,9 +105,9 @@ test('a rejected session refreshes once and retries the question with the renewe
 
 test('a stalled answer releases the controls and preserves the question without replaying it',async({page})=>{
  await setup(page);let calls=0
- await page.route('**/functions/v1/fin-assistant',route=>{if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});calls++})
+ await page.route('**/functions/v1/fin-workflow',route=>{if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});calls++})
  await page.clock.install();await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await input(page).fill('What services do I offer?');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
- await expect.poll(()=>calls).toBe(1);await page.clock.runFor(60010)
+ await expect.poll(()=>calls).toBe(1);await page.clock.runFor(150010)
  await expect(page.getByRole('alert')).toContainText('Fin took too long');await expect(input(page)).toHaveValue('What services do I offer?');await expect(input(page)).toBeEnabled();expect(calls).toBe(1)
 })
 
@@ -123,10 +123,10 @@ test('browser dictation releases controls if its end event is missing',async({pa
 
 test('a malformed command response leaves the request editable without executing it',async({page})=>{
  await setup(page);let executions=0
- await page.route('**/functions/v1/ai-command',route=>route.fulfill({status:200,headers:cors,json:[]}))
+ await page.route('**/functions/v1/fin-workflow',route=>route.fulfill({status:200,headers:cors,json:[]}))
  await page.route('**/functions/v1/execute-ai-action',route=>{executions++;return route.fulfill({status:200,headers:cors,json:{}})})
  await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click()
  await input(page).fill('Create a customer named Bob Smith');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
- await expect(page.getByRole('alert')).toContainText('incomplete response')
+ await expect(page.getByRole('alert')).toContainText('complete response')
  await expect(input(page)).toHaveValue('Create a customer named Bob Smith');await expect(input(page)).toBeEnabled();expect(executions).toBe(0)
 })
