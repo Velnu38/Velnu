@@ -60,3 +60,18 @@ export function adjustedPrice(price: string, percent: number): string {
     Math.round((n * (1 + percent / 100) + Number.EPSILON) * 100) / 100
   ).toFixed(2);
 }
+
+/** Only documented URL capabilities are used; generic provider links remain unchanged. */
+export function invoicePaymentUrl(link:PaymentLink,balance:number,reference:string,currency='USD'):string {
+  if(!validPaymentLink(link)||!Number.isFinite(balance)||balance<=0)return link.url
+  const u=new URL(link.url)
+  if(link.provider==='paypal'&&u.hostname==='paypal.me'&&!u.search&&!u.hash&&/^\/[A-Za-z0-9]+\/?$/.test(u.pathname)){
+    u.pathname=u.pathname.replace(/\/$/,'')+'/'+balance.toFixed(2)+currency;return u.toString()
+  }
+  if(link.provider==='stripe'&&u.hostname==='buy.stripe.com'&&!u.search&&!u.hash&&/^\/[A-Za-z0-9_]+$/.test(u.pathname)){
+    const ref=reference.replace(/[^A-Za-z0-9_-]/g,'_').slice(0,200)
+    if(ref)u.searchParams.set('client_reference_id',ref)
+    return u.toString()
+  }
+  return link.url
+}

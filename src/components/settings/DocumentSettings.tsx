@@ -1,3 +1,5 @@
+import PaymentSettings from './PaymentSettings'
+import {isPrimaryOwner} from '../../lib/workspaceAccess'
 import {useUnsavedChanges} from '../../lib/unsavedChanges'
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
@@ -95,7 +97,7 @@ export default function DocumentSettings({
     );
   if (loading) return <p role="status">Loading document setup…</p>;
   return (
-    <form className="settings-panel" onSubmit={submit} onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
+    <><form className="settings-panel" onSubmit={submit} onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
       <fieldset className="form-dialog-fields" disabled={busy}>
       <p className="quiet">
         Set the appearance and default taxes for your invoices and estimates.
@@ -180,6 +182,6 @@ export default function DocumentSettings({
         {busy ? "Saving…" : "Save document setup"}
       </button>
       </fieldset>
-    </form>
+    </form>{isPrimaryOwner(business)?<PaymentSettings business={business}/>:<p className="quiet">The primary account owner manages customer payment methods here.</p>}</>
   );
 }
