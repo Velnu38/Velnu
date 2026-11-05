@@ -41,10 +41,10 @@ function FinancialTrend({ buckets, selected, onSelect }: { buckets: FinancialBuc
   </div>
 }
 
-export default function FinancialPerformance({ business, onOpenWorkbook, refreshVersion = 0 }: { business: CurrentBusiness; onOpenWorkbook?: () => void; refreshVersion?: number }) {
+export default function FinancialPerformance({ business, onOpenWorkbook, refreshVersion = 0, compact = false }: { business: CurrentBusiness; onOpenWorkbook?: () => void; refreshVersion?: number; compact?: boolean }) {
   const zone = business.timezone || 'America/New_York'
   const [day, setDay] = useState(() => DateTime.now().setZone(zone).toISODate()!)
-  const [period, setPeriod] = useState<FinancialPeriod>(6)
+  const [period, setPeriod] = useState<FinancialPeriod>(compact ? 1 : 6)
   const [result, setResult] = useState<{ key: string; rows: WorkbookLine[] } | null>(null)
   const [loading, setLoading] = useState(true), [error, setError] = useState('')
   const [version, setVersion] = useState(0)
@@ -57,9 +57,10 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   const rows = useMemo(() => result?.key === requestKey ? result.rows.filter(row => row.currency === 'USD' && row.entry_date >= range.from && row.entry_date < range.to) : [], [result, requestKey, range.from, range.to])
   useEffect(() => {
     const refresh = () => { if (!document.hidden) { setDay(DateTime.now().setZone(zone).toISODate()!); setVersion(value => value + 1) } }
+    window.addEventListener('finviant-work-changed', refresh)
     window.addEventListener('focus', refresh)
     document.addEventListener('visibilitychange', refresh)
-    return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh) }
+    return () => { window.removeEventListener('finviant-work-changed', refresh); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh) }
   }, [zone])
   useEffect(() => {
     let active = true
@@ -79,15 +80,16 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   function resetFilters() { setSearch(''); setSource('all'); setPage(0) }
   function expand(kind: Detail) { setDetail(value => value === kind ? null : kind); resetFilters() }
   function selectBucket(key: string) { setSelected(value => value === key ? null : key); setDetail('all'); resetFilters() }
-  return <section className="financial-performance interactive-performance dashboard-tile" aria-labelledby="financial-performance-title">
-    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><h2 className="dashboard-tile-title" id="financial-performance-title">Financial performance</h2><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span> {months === 1 ? 'month' : 'months'}</span></button>)}</div></div>
-    {error ? <div className="performance-unavailable" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setVersion(value => value + 1)}>Retry financial data</button></div> : !ready ? <div className="performance-loading" role="status">Loading financial transactions…</div> : <FinancialTrend buckets={buckets} selected={bucket?.key || null} onSelect={selectBucket}/>}
+  return <section className={`financial-performance interactive-performance dashboard-tile${compact ? ' performance-compact' : ''}`} aria-labelledby="financial-performance-title">
+    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><h2 className="dashboard-tile-title" id="financial-performance-title">Financial performance</h2><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
+    {error ? <div className="performance-unavailable" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setVersion(value => value + 1)}>Retry financial data</button></div> : !ready ? <div className="performance-loading" role="status">Loading financial transactions…</div> : !compact ? <FinancialTrend buckets={buckets} selected={bucket?.key || null} onSelect={selectBucket}/> : null}
     <div className="performance-scope"><span>{!ready ? loading ? 'Loading financial data…' : 'Financial data unavailable' : bucket ? `Viewing ${scopeLabel}` : `Period total · ${scopeRows.length} transactions`}</span>{bucket && <button className="text-button" onClick={() => { setSelected(null); resetFilters() }}>Show entire period</button>}</div>
     <div className="performance-metrics">
       {([{ kind: 'income', label: 'Income', value: totals.income, count: scopeRows.filter(row => row.direction === 'income').length }, { kind: 'expense', label: 'Expenses', value: totals.expenses, count: scopeRows.filter(row => row.direction === 'expense').length }, { kind: 'all', label: 'Net total', value: totals.net, count: scopeRows.length }] as const).map(item => <button key={item.kind} type="button" className={`performance-metric ${item.kind}`} disabled={!ready} aria-expanded={detail === item.kind} aria-controls="financial-transactions" onClick={() => expand(item.kind)}>
         <span>{item.label}<span aria-hidden="true">{detail === item.kind ? '−' : '+'}</span></span><strong>{ready ? usd.format(item.value) : '—'}</strong><small>{ready ? `${item.count} ${item.count === 1 ? 'transaction' : 'transactions'}` : 'Unavailable'} <span aria-hidden="true">↗</span></small>
       </button>)}
     </div>
+    {compact && ready && <details className="home-financial-trend"><summary>Income &amp; expense trend</summary><FinancialTrend buckets={buckets} selected={bucket?.key || null} onSelect={selectBucket}/></details>}
     {detail && ready && <div id="financial-transactions" className="financial-transactions" role="region" aria-label={`${detail === 'all' ? 'All' : detail === 'income' ? 'Income' : 'Expense'} transactions`}>
       <div className="transaction-heading"><div><h3>{detail === 'all' ? 'All transactions' : detail === 'income' ? 'Income transactions' : 'Expense transactions'}</h3><p>{scopeLabel}{detail === 'all' ? ` · Income ${usd.format(totals.income)} − expenses ${usd.format(totals.expenses)} = ${usd.format(totals.net)}` : ''}</p></div><button className="calendar-arrow" aria-label="Close transaction details" onClick={() => setDetail(null)} type="button">×</button></div>
       <div className="transaction-filters"><label>Search transactions<input type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(0) }} placeholder="Description, source, or reference…"/></label><label>Source<select value={source} onChange={event => { setSource(event.target.value); setPage(0) }}><option value="all">All sources</option><option value="invoice_payment">Invoice payments</option><option value="manual">Manual & job entries</option></select></label></div>
@@ -98,6 +100,6 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
       </li>)}</ul>}
       <div className="transaction-pagination"><span>{filtered.length ? `${currentPage * 25 + 1}–${Math.min((currentPage + 1) * 25, filtered.length)} of ${filtered.length}` : '0 transactions'}</span>{pages > 1 && <div><button className="secondary-button compact" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button><button className="secondary-button compact" disabled={currentPage === pages - 1} onClick={() => setPage(currentPage + 1)}>Next</button></div>}</div>
     </div>}
-    <div className="performance-footer"><p>Income includes recorded payments. Expenses include recorded costs. QuickBooks and non-USD entries stay separate.</p>{onOpenWorkbook && <button className="text-button" onClick={onOpenWorkbook}>View all income &amp; expenses <span aria-hidden="true">↗</span></button>}</div>
+    <div className="performance-footer">{compact ? <details className="performance-explanation"><summary>What’s included</summary><p>Income includes recorded payments. Expenses include recorded costs. QuickBooks and non-USD entries stay separate.</p></details> : <p>Income includes recorded payments. Expenses include recorded costs. QuickBooks and non-USD entries stay separate.</p>}{onOpenWorkbook && <button className="text-button" onClick={onOpenWorkbook}>View all income &amp; expenses <span aria-hidden="true">↗</span></button>}</div>
   </section>
 }

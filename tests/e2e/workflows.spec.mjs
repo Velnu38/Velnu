@@ -251,7 +251,7 @@ test('technician keeps field navigation but cannot edit invoices, estimates or p
   await page.goto('/')
   await openWorkArea(page, 'Jobs')
   await expect(page.getByRole('button', { name: '+ New job' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Dashboard', exact: true }).click()
+  await page.getByRole('button', { name: 'Home', exact: true }).click()
   await expect(page.getByRole('link', { name: '+ New job', exact: true })).toBeVisible()
   for (const view of ['invoices', 'estimates', 'payments']) {
     await page.goto('/?view=' + view)

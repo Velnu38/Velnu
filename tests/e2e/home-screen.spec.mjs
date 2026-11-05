@@ -1,0 +1,79 @@
+import {test,expect} from '@playwright/test'
+import {mock,business,B} from './audit-fixture.mjs'
+
+// Synthetic fixture checks: no live account, model, or customer delivery is used.
+for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calendar and navigation at ${width}px`, async({page})=>{
+ await page.setViewportSize({width,height:900})
+ const state=await mock(page,{ai:true})
+ const errors=[];page.on('pageerror',e=>errors.push(e.message))
+ await page.goto('/')
+ await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
+ const finance=page.getByRole('region',{name:'Financial performance',exact:true}),calendar=page.getByRole('region',{name:'Work calendar',exact:true})
+ await expect(finance).toBeVisible();await expect(calendar).toBeVisible()
+ expect(await finance.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.dashboard-calendar'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
+ for(const months of [1,3,6,12]){
+  await finance.getByRole('button',{name:`${months} ${months===1?'month':'months'}`,exact:true}).click()
+  await expect(finance.locator('.performance-metric.income')).toBeEnabled()
+ }
+ await finance.locator('.performance-metric.income').click()
+ await expect(finance.getByRole('region',{name:'Income transactions',exact:true})).toBeVisible()
+ await finance.getByRole('button',{name:'Close transaction details'}).click()
+ await finance.locator('.home-financial-trend>summary').click()
+ await expect(finance.getByRole('group',{name:/Income and expense chart/})).toBeVisible()
+ await calendar.getByRole('button',{name:'Month',exact:true}).click()
+ await expect(calendar.getByRole('heading',{name:'Monthly calendar'})).toBeVisible()
+ await calendar.getByRole('button',{name:'Week',exact:true}).click()
+ await expect(page.getByRole('button',{name:'Talk to Fin',exact:true})).toBeVisible()
+ if(width<901){
+  const dock=page.getByRole('navigation',{name:'Workspace navigation',exact:true})
+  await expect(dock.getByRole('button')).toHaveCount(5)
+  for(const label of ['Home','Invoices','Estimates','Jobs','More'])await expect(dock.getByRole('button',{name:label,exact:true})).toBeVisible()
+  await dock.getByRole('button',{name:'More',exact:true}).click()
+  const more=page.getByRole('dialog',{name:'More navigation'})
+  for(const label of ['Customers','Schedule','Reminders','Payments','Financial performance','Settings','Type to Fin'])await expect(more.getByRole('button',{name:label,exact:true})).toBeVisible()
+  await more.getByRole('button',{name:'Close',exact:true}).click()
+ }else{
+  for(const label of ['Home','Customers','Invoices','Estimates','Jobs','Schedule','Reminders','Payments','Financial performance','Settings'])await expect(page.locator('.sidebar').getByRole('button',{name:label,exact:true})).toBeVisible()
+ }
+ await expect(page.locator('.fin-brand:visible img').first()).toHaveAttribute('src','/finviant-mark.svg')
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ expect(state.calls.some(c=>c.path.includes('/functions/v1/send-'))).toBe(false)
+ expect(errors).toEqual([])
+ await page.screenshot({path:`test-results/home-screen-${width}.png`,fullPage:true})
+})
+for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation chooser opens the existing ${kind} editor`,async({page})=>{
+ await mock(page);await page.goto('/')
+ const origin=await page.evaluate(()=>performance.timeOrigin)
+ await page.getByRole('button',{name:'Create new',exact:true}).click()
+ const chooser=page.getByRole('dialog',{name:'Create new',exact:true})
+ await chooser.getByRole('link',{name:'+ New '+kind,exact:true}).click()
+ await expect(chooser).toHaveCount(0)
+ if(kind==='reminder')await expect(page.getByRole('heading',{name:'Create a reminder',exact:true})).toBeVisible()
+ else await expect(page.getByRole('dialog')).toBeVisible()
+ expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin)
+})
+test('Home calendar creation reuses the entry editor and Escape restores the trigger',async({page})=>{
+ await mock(page);await page.goto('/')
+ const trigger=page.getByRole('button',{name:'Create new',exact:true})
+ await trigger.click();await page.keyboard.press('Escape');await expect(trigger).toBeFocused()
+ await trigger.click();await page.getByRole('button',{name:'+ New calendar entry',exact:true}).click()
+ await expect(page.getByRole('dialog',{name:'Add to your calendar',exact:true})).toBeVisible()
+})
+for(const role of ['technician','viewer'])test(`Home preserves ${role} module and creation restrictions`,async({page})=>{
+ await page.setViewportSize({width:390,height:900});const state=await mock(page,{owner:false})
+ await page.route('**/rest/v1/business_members?**',route=>route.fulfill({contentType:'application/json',json:{business_id:B,role,access_modules:['calendar','jobs'],businesses:business}}))
+ await page.goto('/')
+ await expect(page.getByRole('region',{name:'Work calendar',exact:true})).toBeVisible()
+ await expect(page.getByRole('region',{name:'Financial performance',exact:true})).toHaveCount(0)
+ const dock=page.getByRole('navigation',{name:'Workspace navigation'})
+ await expect(dock.getByRole('button',{name:'Invoices',exact:true})).toHaveCount(0)
+ await expect(dock.getByRole('button',{name:'Estimates',exact:true})).toHaveCount(0)
+ if(role==='viewer')await expect(page.getByRole('button',{name:'Create new',exact:true})).toHaveCount(0)
+ else {
+  await page.getByRole('button',{name:'Create new',exact:true}).click()
+  const chooser=page.getByRole('dialog',{name:'Create new',exact:true})
+  await expect(chooser.getByRole('link',{name:'+ New invoice',exact:true})).toHaveCount(0)
+  await expect(chooser.getByRole('link',{name:'+ New job',exact:true})).toBeVisible()
+ }
+ expect(state.calls.some(c=>c.path.endsWith('/payments')||c.path.endsWith('/bookkeeping_entries'))).toBe(false)
+})

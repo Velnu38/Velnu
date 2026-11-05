@@ -1,4 +1,6 @@
 import FinBrand from './FinBrand'
+import WorkspaceIcon from './WorkspaceIcon'
+import '../home-screen.css'
 import FormDialog from './FormDialog'
 import {confirmNavigation,hasUnsavedChanges} from '../lib/unsavedChanges'
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
@@ -40,7 +42,7 @@ const SettingsPage = lazy(() => import('../pages/SettingsPage'))
 type View = 'schedule' | 'reminders' | 'dashboard' | 'customers' | 'work' | 'change_orders' | 'estimates' | 'invoices' | 'payments' | 'bookkeeping' | 'settings'
 
 const nav: { id: View; label: string; icon: string }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: '⌂' },
+  { id: 'dashboard', label: 'Home', icon: '⌂' },
   { id: 'customers', label: 'Customers', icon: 'C' },
   { id: 'estimates', label: 'Estimates', icon: 'E' },
   { id: 'invoices', label: 'Invoices', icon: 'I' },
@@ -52,16 +54,9 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ]
 
-const mobilePrimary: View[] = ['dashboard', 'customers']
-const mobileMore: View[] = ['estimates', 'invoices', 'payments', 'bookkeeping', 'settings']
-const sidebarNav = nav.filter(({ id }) => !['estimates', 'invoices', 'work', 'bookkeeping', 'change_orders', 'schedule', 'reminders'].includes(id))
-
-function DockIcon({ kind }: { kind: string }) {
-  return <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{kind === 'dashboard'
-    ? <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>
-    : kind === 'customers' ? <><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></>
-    : <><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></>}</svg>
-}
+const mobilePrimary: View[] = ['dashboard', 'invoices', 'estimates', 'work']
+const mobileMore: View[] = ['customers', 'schedule', 'reminders', 'payments', 'bookkeeping', 'settings']
+const sidebarNav = nav
 
 function initialView(): View {
   const query = new URLSearchParams(window.location.search)
@@ -138,31 +133,33 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   return (
-    <WorkspaceNavigation.Provider value={back}><div className="app-shell" onClick={openAppLink}>
+    <WorkspaceNavigation.Provider value={back}><div className={`app-shell finviant-workspace${view === 'dashboard' ? ' home-view' : ''}`} onClick={openAppLink}>
       <aside className="sidebar">
         <div className="sidebar-brand"><FinBrand wordmark/></div>
-        <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}</button>)}</nav>
+        <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} className={view === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon"><WorkspaceIcon kind={item.id}/></span>{item.label}</button>)}</nav>
         <div className="sidebar-footer"><div className="sidebar-legal"><a href="/install" target="_blank" rel="noopener noreferrer">Get app icon</a><a href="/legal" target="_blank" rel="noopener noreferrer">User agreement, AI & privacy</a></div><div className="business-chip"><strong>{company.name}</strong><span>{company.role}</span></div><button className="text-button left" onClick={() => {if(confirmNavigation())void supabase.auth.signOut()}}>Sign out</button></div>
       </aside>
       <main className="workspace">
-        <header className="topbar"><div className="mobile-brand"><FinBrand wordmark/></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div></header>
+        <header className="topbar"><div className="mobile-brand"><FinBrand wordmark/></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div>
+          <div className="workspace-assistant">{!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onAvailabilityChange={setFinAvailable} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}</div>
+        </header>
         <div className="private-testing-app"><PrivateBetaNotice compact /></div>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>
       <nav className="mobile-nav" aria-label="Workspace navigation">
         {mobilePrimary.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
-          return <button key={item.id} aria-label={item.label} aria-current={view === item.id ? 'page' : undefined} className={`mobile-destination ${view === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><DockIcon kind={item.id}/><small>{item.label}</small></button>
+          return <button key={item.id} aria-label={item.label} aria-current={view === item.id ? 'page' : undefined} className={`mobile-destination ${view === item.id ? 'active' : ''}`} onClick={() => navigate(item.id)}><WorkspaceIcon kind={item.id}/><small>{item.label}</small></button>
         })}
-        {!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onAvailabilityChange={setFinAvailable} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}
-        <button aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={`mobile-destination ${mobileMore.includes(view) || showMobileMore ? 'active' : ''}`} onClick={() => setShowMobileMore(true)}><DockIcon kind="more"/><small>More</small></button>
+
+        <button aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={`mobile-destination ${mobileMore.includes(view) || showMobileMore ? 'active' : ''}`} onClick={() => setShowMobileMore(true)}><WorkspaceIcon kind="more"/><small>More</small></button>
       </nav>
       {showMobileMore && <FormDialog label="More navigation" onClose={()=>setShowMobileMore(false)}><section className="mobile-more-sheet" id="mobile-more-options">
         <div className="mobile-more-handle" />
         <div className="mobile-more-head"><div><p className="eyebrow">Finviant Office</p><h2>More</h2></div><button className="icon-button" onClick={() => setShowMobileMore(false)} type="button" aria-label="Close">×</button></div>
         <div className="mobile-more-grid">{mobileMore.filter(id => canOpenView(company,id)).map((id) => {
           const item = nav.find((entry) => entry.id === id)!
-          return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon" aria-hidden="true">{item.icon}</span><strong>{item.label}</strong></button>
+          return <button key={id} aria-label={item.label} className={view === id ? 'active' : ''} onClick={() => navigate(id)}><span className="more-icon"><WorkspaceIcon kind={item.id}/></span><strong>{item.label}</strong></button>
         })}
         {!accessRemoved&&canUseAssistant(company)&&finAvailable&&<button type="button" onClick={()=>{setShowMobileMore(false);window.dispatchEvent(new Event('finviant-assistant-type'))}}><span className="more-icon" aria-hidden="true">⌨</span><strong>Type to Fin</strong></button>}</div>
         <div className="mobile-more-account"><div><strong>{company.name}</strong><span>{company.role}</span></div><a href="/legal" target="_blank" rel="noopener noreferrer">Agreement & privacy</a><a href="/install" target="_blank" rel="noopener noreferrer">App icon</a><button className="secondary-button" onClick={() => {if(confirmNavigation())void supabase.auth.signOut()}}>Sign out</button></div>
