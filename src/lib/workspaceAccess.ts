@@ -3,7 +3,7 @@ export const workspaceModules = [
   { id: "calendar", label: "Calendar & reminders" },
   { id: "jobs", label: "Jobs" },
   { id: "billing", label: "Estimates & invoices" },
-  { id: "finances", label: "Financial performance & expenses" },
+  { id: "finances", label: "Financial Performance & expenses" },
 ] as const;
 export type WorkspaceModule = (typeof workspaceModules)[number]["id"];
 export function isPrimaryOwner(business: CurrentBusiness) {
