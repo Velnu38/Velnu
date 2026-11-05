@@ -7,7 +7,7 @@ import {CreatedStamp,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
-import RecordListControls, { useRecordList } from '../components/RecordListControls'
+import RecordListControls, { RecordListPagination, useRecordList } from '../components/RecordListControls'
 import { adjustedPrice } from '../lib/paymentLinks'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import { getDocumentSettings } from '../services/settings'
@@ -160,14 +160,14 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
     <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create invoice</button>}</div>
     <CustomerRecordScope customerId={customerScope} customers={customers} view="invoices"/>
     <section className="module-summary-grid" aria-label="Invoice summary">
-      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'open'} onClick={() => chooseFilter('open')}><span>Outstanding</span><strong>{invoiceMoney.format(openInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))}</strong><small>{openInvoices.length} open {openInvoices.length === 1 ? 'invoice' : 'invoices'}</small></button>
-      <button type="button" className="module-summary-card module-summary-card-overdue" aria-pressed={statusFilter === 'overdue'} onClick={() => chooseFilter('overdue')}><span>Overdue</span><strong>{overdueInvoices.length}</strong><small>{invoiceMoney.format(overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))} balance due</small></button>
-      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'paid'} onClick={() => chooseFilter('paid')}><span>Paid invoices</span><strong>{paidInvoices.length}</strong><small>{invoiceMoney.format(paidInvoices.reduce((sum, invoice) => sum + Number(invoice.amount_paid || invoice.total || 0), 0))} collected</small></button>
+      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'open'} onClick={() => chooseFilter('open')}><span>Total Outstanding</span><strong>{invoiceMoney.format(openInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))}</strong><small>{openInvoices.length} unpaid {openInvoices.length === 1 ? 'invoice' : 'invoices'} · includes overdue</small></button>
+      <button type="button" className="module-summary-card module-summary-card-overdue" aria-pressed={statusFilter === 'overdue'} onClick={() => chooseFilter('overdue')}><span>Overdue</span><strong>{invoiceMoney.format(overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))}</strong><small>{overdueInvoices.length} past-due {overdueInvoices.length === 1 ? 'invoice' : 'invoices'}</small></button>
+      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'paid'} onClick={() => chooseFilter('paid')}><span>Paid invoices</span><strong>{invoiceMoney.format(paidInvoices.reduce((sum, invoice) => sum + Number(invoice.amount_paid || invoice.total || 0), 0))}</strong><small>{paidInvoices.length} {paidInvoices.length === 1 ? 'invoice' : 'invoices'} collected</small></button>
     </section>
     <nav className="module-status-filters" aria-label="Filter invoices">
-      {([['all','All',invoices.length],['open','Open',openInvoices.length],['draft','Draft',invoices.filter(row=>row.status==='draft').length],['sent','Sent',invoices.filter(row=>['sent','viewed','partial'].includes(row.status)&&!invoiceIsOverdue(row)).length],['paid','Paid',paidInvoices.length],['overdue','Overdue',overdueInvoices.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
+      {([['all','All',invoices.length],['draft','Draft',invoices.filter(row=>row.status==='draft').length],['sent','Sent',invoices.filter(row=>['sent','viewed','partial'].includes(row.status)&&!invoiceIsOverdue(row)).length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
     </nav>
-    <RecordListControls label="invoices" list={recordList} />
+    <RecordListControls label="invoices" list={recordList} showPagination={false} />
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
     <section className="module-record-list" aria-label="Invoices">
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Select Create invoice to prepare your first invoice.</p></div> : recordList.visible.map((invoice) => {
@@ -181,6 +181,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
       })}
       {invoices.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>No {statusFilter === 'all' ? '' : `${statusFilter} `}invoices in this view.</strong><span>Choose another status or view all invoices.</span></div>}
     </section>
+    <RecordListPagination label="invoices" list={recordList} className="invoice-bottom-pagination" />
     {showForm && <FormDialog label="Invoices form" busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
       <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       {handoff&&<p className="form-message">Dictated request: {handoff}. Review each charge as a separate line.</p>}
