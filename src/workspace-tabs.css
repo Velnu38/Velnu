@@ -16,6 +16,8 @@
   .module-summary-card > small { color: #627789; font-size: 11px; line-height: 1.4; }
   .module-summary-card-overdue > strong, .module-summary-card-approval > strong { color: #b42318; }
   .job-summary-grid .module-summary-card > strong { font-size: 28px; }
+  .estimates-module .module-summary-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+  .estimates-module .module-summary-card > strong { font-size: clamp(18px, 3.2vw, 25px); }
 
   .module-status-filters { display: flex; align-items: center; gap: 7px; max-width: 100%; overflow-x: auto; padding: 1px 1px 3px; scrollbar-width: thin; }
   .module-status-filters button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; min-height: 40px; padding: 0 13px; border: 1px solid #d6e0e6; border-radius: 999px; background: #fff; color: #52677b; font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -30,7 +32,7 @@
   .record-list-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .record-list-pagination > span { color: #52677b; font-size: 12px; }
   .record-list-pagination > div { display: flex; gap: 8px; }
-  .invoice-bottom-pagination { padding: 14px 16px; border: 1px solid #d8e2e8; border-radius: 15px; background: #fff; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination) { padding: 14px 16px; border: 1px solid #d8e2e8; border-radius: 15px; background: #fff; }
 
   .module-record-list { display: grid; gap: 10px; min-width: 0; min-height: 0; overflow: visible; border: 0; background: transparent; }
   .module-record-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, auto) minmax(175px, auto); gap: 18px; align-items: center; min-width: 0; padding: 16px; border: 1px solid #d6e0e6; border-radius: 16px; background: #fff; box-shadow: 0 3px 12px #102c4b05; }
@@ -128,8 +130,8 @@
   .workspace-module .record-list-controls { align-items: stretch; padding: 12px; }
   .workspace-module .record-list-controls > label { min-width: 100%; }
   .workspace-module .record-list-controls nav { justify-content: space-between; width: 100%; }
-  .invoice-bottom-pagination { padding: 12px; }
-  .invoice-bottom-pagination > div { flex: 1; justify-content: flex-end; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination) { padding: 12px; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination) > div { flex: 1; justify-content: flex-end; }
   .module-record-card { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 13px; border-radius: 14px; }
   .module-record-open strong { font-size: 14px; }
   .module-record-main > span { font-size: 11px; }
