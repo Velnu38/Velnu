@@ -52,7 +52,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'schedule', label: 'Schedule', icon: '▦' },
   { id: 'reminders', label: 'Reminders', icon: '✓' },
   { id: 'payments', label: 'Payments', icon: '$' },
-  { id: 'bookkeeping', label: 'Financial performance', icon: '↗' },
+  { id: 'bookkeeping', label: 'Financial Performance', icon: '↗' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ]
 

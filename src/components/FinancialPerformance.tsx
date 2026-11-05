@@ -1,7 +1,8 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { DateTime } from 'luxon'
 import type { CurrentBusiness } from '../lib/business'
-import { canOpenView } from '../lib/workspaceAccess'
+import FinancialEntryDialog from './FinancialEntryDialog'
+import { canAccess, canOpenView } from '../lib/workspaceAccess'
 import { financialBuckets, financialRange, financialTotals, type FinancialBucket, type FinancialPeriod } from '../lib/dashboardFinance'
 import { listVelnuWorkbook, type WorkbookLine } from '../services/bookkeeping'
 import { readableError } from '../lib/errors'
@@ -42,6 +43,7 @@ function FinancialTrend({ buckets, selected, onSelect }: { buckets: FinancialBuc
 }
 
 export default function FinancialPerformance({ business, onOpenWorkbook, refreshVersion = 0, compact = false }: { business: CurrentBusiness; onOpenWorkbook?: () => void; refreshVersion?: number; compact?: boolean }) {
+  const [newEntry,setNewEntry]=useState(false),[notice,setNotice]=useState('')
   const zone = business.timezone || 'America/New_York'
   const [day, setDay] = useState(() => DateTime.now().setZone(zone).toISODate()!)
   const [period, setPeriod] = useState<FinancialPeriod>(compact ? 1 : 6)
@@ -81,11 +83,13 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   function expand(kind: Detail) { setDetail(value => value === kind ? null : kind); resetFilters() }
   function selectBucket(key: string) { setSelected(value => value === key ? null : key); setDetail('all'); resetFilters() }
   return <section className={`financial-performance interactive-performance dashboard-tile${compact ? ' performance-compact' : ''}`} aria-labelledby="financial-performance-title">
-    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><h2 className="dashboard-tile-title" id="financial-performance-title">Financial performance</h2><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
+    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2 className="dashboard-tile-title" id="financial-performance-title">Financial Performance</h2>{canAccess(business,"finances")&&<button type="button" className="secondary-button compact" onClick={()=>setNewEntry(true)}>+ Entry</button>}</div><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
+    {notice&&<p role="status" className="form-message">{notice}</p>}
+    {newEntry&&<FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction)=>{setNewEntry(false);setSelected(null);resetFilters();setNotice(`${direction==='income'?'Income':'Expense'} saved.${date<range.from||date>=range.to?' This transaction is outside the selected period. View all income & expenses to find it.':' Totals are refreshing.'}`);setVersion(v=>v+1)}}/>}
     {error ? <div className="performance-unavailable" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setVersion(value => value + 1)}>Retry financial data</button></div> : !ready ? <div className="performance-loading" role="status">Loading financial transactions…</div> : !compact ? <FinancialTrend buckets={buckets} selected={bucket?.key || null} onSelect={selectBucket}/> : null}
     <div className="performance-scope"><span>{!ready ? loading ? 'Loading financial data…' : 'Financial data unavailable' : bucket ? `Viewing ${scopeLabel}` : `Period total · ${scopeRows.length} transactions`}</span>{bucket && <button className="text-button" onClick={() => { setSelected(null); resetFilters() }}>Show entire period</button>}</div>
     <div className="performance-metrics">
-      {([{ kind: 'income', label: 'Income', value: totals.income, count: scopeRows.filter(row => row.direction === 'income').length }, { kind: 'expense', label: 'Expenses', value: totals.expenses, count: scopeRows.filter(row => row.direction === 'expense').length }, { kind: 'all', label: 'Net total', value: totals.net, count: scopeRows.length }] as const).map(item => <button key={item.kind} type="button" className={`performance-metric ${item.kind}`} disabled={!ready} aria-expanded={detail === item.kind} aria-controls="financial-transactions" onClick={() => expand(item.kind)}>
+      {([{ kind: 'income', label: 'Income', value: totals.income, count: scopeRows.filter(row => row.direction === 'income').length }, { kind: 'expense', label: 'Expenses', value: totals.expenses, count: scopeRows.filter(row => row.direction === 'expense').length }, { kind: 'all', label: 'Net Cash Flow', value: totals.net, count: scopeRows.length }] as const).map(item => <button key={item.kind} type="button" className={`performance-metric ${item.kind}`} disabled={!ready} aria-expanded={detail === item.kind} aria-controls="financial-transactions" onClick={() => expand(item.kind)}>
         <span>{item.label}<span aria-hidden="true">{detail === item.kind ? '−' : '+'}</span></span><strong>{ready ? usd.format(item.value) : '—'}</strong><small>{ready ? `${item.count} ${item.count === 1 ? 'transaction' : 'transactions'}` : 'Unavailable'} <span aria-hidden="true">↗</span></small>
       </button>)}
     </div>

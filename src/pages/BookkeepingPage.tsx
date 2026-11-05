@@ -1,12 +1,12 @@
-import FormDialog from '../components/FormDialog'
+import FinancialEntryDialog from '../components/FinancialEntryDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import {
-  addManualEntry, connectQuickBooks, disconnectQuickBooks,
+  connectQuickBooks, disconnectQuickBooks,
   getQuickBooksStatus, listQuickBooksWorkbook, listVelnuWorkbook,
   removeManualEntry, syncQuickBooks,
-  type EntryDirection, type QBStatus, type WorkbookLine, type WorkbookSource,
+  type QBStatus, type WorkbookLine, type WorkbookSource,
 } from '../services/bookkeeping'
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
@@ -56,14 +56,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [newEntry, setNewEntry] = useState(false)
-  const [direction, setDirection] = useState<EntryDirection>('expense')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState('Materials & supplies')
-  const [description, setDescription] = useState('')
-  const [entryDate, setEntryDate] = useState(getToday)
-  const [notes, setNotes] = useState('')
   const [costsAcknowledged, setCostsAcknowledged] = useState(false)
-  const retryId = useRef<string | null>(null)
 
   async function refresh() {
     if (!canSee) return
@@ -114,26 +107,6 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       return totals
     }, { income: 0, expenses: 0 })
   }, [visible])
-
-  async function saveManual(event: FormEvent) {
-    event.preventDefault()
-    if (!canSee || busy) return
-    setBusy(true); setError(''); setNotice('')
-    try {
-      retryId.current ||= crypto.randomUUID()
-      await addManualEntry({
-        id: retryId.current, business_id: business.id, direction, entry_date: entryDate,
-        category, description, notes, amount: Number(amount),
-      })
-      retryId.current = null
-      setNewEntry(false)
-      setAmount(''); setDescription(''); setNotes('')
-      await refresh()
-      setNotice('Manual ' + direction + ' saved to your Finviant Office workbook.')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to save this entry.')
-    } finally { setBusy(false) }
-  }
 
   async function deleteEntry(row: WorkbookLine) {
     if (!row.removable || busy || !window.confirm('Delete this manually entered record? This cannot be undone.')) return
@@ -196,7 +169,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Bookkeeping · Money in and out</p><h1>Know what you earned. Know what you spent.</h1>
         <p className="quiet">Payments on Finviant Office invoices appear automatically. Add other expenses or income manually, or optionally connect QuickBooks Online.</p></div>
-      <button className="primary-button compact" onClick={() => { retryId.current = null; setNewEntry(true); setSource('velnu') }}>+ Add expense or income</button>
+      <button className="primary-button compact" onClick={() => { setNewEntry(true); setSource('velnu') }}>+ Entry</button>
     </div>
     <section className="bookkeeping-tabs" role="group" aria-label="Workbook source">
       <button type="button" className={source === 'velnu' ? 'active' : ''} aria-pressed={source === 'velnu'} onClick={() => setSource('velnu')}>Finviant Office workbook</button>
@@ -257,25 +230,6 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <td>{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
         </tr>)}</tbody></table></div>}
     </section>
-    {newEntry && <FormDialog label="Add workbook entry" busy={busy} onClose={() => { if (!busy) setNewEntry(false) }}>
-        <div className="modal-head"><div><p className="eyebrow">Manual bookkeeping</p><h2>Add income or expense</h2></div>
-          <button type="button" className="icon-button" disabled={busy} onClick={() => setNewEntry(false)} aria-label="Close form">×</button></div>
-        <p className="quiet">Use manual income only for money that isn't already recorded against a Finviant Office invoice.</p>
-        <form className="bookkeeping-entry-form" onSubmit={saveManual}>
-          <label>Entry type <select value={direction} onChange={e => { setDirection(e.target.value as EntryDirection); setCategory(e.target.value === 'income' ? 'Other received income' : 'Materials & supplies') }}>
-            <option value="expense">Expense / money spent</option><option value="income">Other income / money received</option></select></label>
-          <label>Transaction date <input aria-label="Transaction date" type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} required /></label>
-          <label>Amount in USD ($) <input aria-label="Amount in USD" type="number" min="0.01" max="100000000" step=".01" value={amount} onChange={e => setAmount(e.target.value)} required /></label>
-          <label>Category <select value={category} onChange={e => setCategory(e.target.value)}>
-            {(direction === 'expense' ? ['Materials & supplies','Equipment & tools','Fuel & travel','Contractor payments','Software & subscriptions','Office expenses','Insurance','Other expense']
-              : ['Other received income','Cash sale (not invoiced)','Additional service income','Miscellaneous income']).map(x => <option key={x}>{x}</option>)}
-          </select></label>
-          <label className="full">Description <input aria-label="Description" value={description} maxLength={400} onChange={e => setDescription(e.target.value)} placeholder="What was paid for?" required /></label>
-          <label className="full">Notes (optional) <textarea aria-label="Notes" value={notes} maxLength={2000} rows={2} onChange={e => setNotes(e.target.value)} placeholder="Receipt or reference notes" /></label>
-          <p className="bookkeeping-small full">This creates a bookkeeping record only. It does not withdraw, deposit, charge, or transfer funds.</p>
-          <div className="bookkeeping-entry-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={() => setNewEntry(false)}>Cancel</button>
-            <button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save entry'}</button></div>
-        </form>
-      </FormDialog>}
+    {newEntry && <FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction)=>{setNewEntry(false);setNotice(`${direction==='income'?'Income':'Expense'} saved. Transaction date: ${date}. Choose All time if it is outside the displayed period.`);void refresh()}}/>}
   </div>
 }

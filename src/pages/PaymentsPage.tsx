@@ -20,7 +20,7 @@ function customerName(customer?: Customer) {
 export default function PaymentsPage({ business, onOpenWorkbook }: { business: CurrentBusiness; onOpenWorkbook?: () => void }) {
   const [payments, setPayments] = useState<Payment[]>([])
   const [openInvoices, setOpenInvoices] = useState<OpenInvoice[]>([])
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(()=>canManageFinances(business.role)&&new URLSearchParams(location.search).get('action')==='record')
   const [invoiceId, setInvoiceId] = useState('')
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState<'cash' | 'check' | 'card' | 'ach' | 'other'>('other')
@@ -61,7 +61,7 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
   }
 
   return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View financial performance</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View Financial Performance</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
     {notice&&<p role="status" className="form-message success-text">{notice}</p>}{error&&!showForm&&<p role="alert" className="error-text">{error}</p>}
     <div className="toolbar"><label>Paid from<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Paid through<input type="date" min={from} value={until} onChange={e=>setUntil(e.target.value)}/></label></div><RecordListControls label="payments" list={records}/>
     <section className="list-card">
