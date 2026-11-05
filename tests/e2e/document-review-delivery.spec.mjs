@@ -29,12 +29,13 @@ for(const kind of ['invoice','estimate','change_order'])for(const [scenario,cont
  ['both',{email:'customer@example.test',phone:'7575550123'},true,true],
  ['neither',{email:null,phone:null},false,false],
  ['invalid',{email:'bad-address',phone:'not-a-number'},false,false],
-])test(`${kind} saved review shows only valid contact channels: ${scenario}`,async({page})=>{
+])test(`${kind} saved review disables unavailable contact channels: ${scenario}`,async({page})=>{
  await page.setViewportSize({width:390,height:950});const {state}=await setup(page,contact);const delivery=await openReview(page,kind)
  await expect(delivery).toBeVisible()
- await expect(delivery.getByRole('button',{name:'Send email',exact:true})).toHaveCount(hasEmail?1:0)
- await expect(delivery.getByRole('button',{name:'Send SMS',exact:true})).toHaveCount(hasSms?1:0)
+ await expect(delivery.getByRole('button',{name:'Send email',exact:true})).toHaveCount(1)
+ await expect(delivery.getByRole('button',{name:'Send SMS',exact:true})).toHaveCount(1)
  if(hasEmail)await expect(delivery.getByRole('button',{name:'Send email'})).toBeEnabled()
+ else await expect(delivery.getByRole('button',{name:'Send email'})).toBeDisabled()
  if(hasSms){await expect(delivery.getByRole('button',{name:'Send SMS'})).toBeDisabled();await expect(delivery).toContainText('awaiting SMS setup')}
  if(scenario==='neither')await expect(delivery.getByRole('button',{name:'Add email or phone'})).toBeVisible()
  expect(state.calls.some(call=>call.path.includes('/send-'))).toBe(false)
