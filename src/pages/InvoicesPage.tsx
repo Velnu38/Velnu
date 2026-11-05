@@ -1,3 +1,8 @@
+import CustomerEditDialog from '../components/CustomerEditDialog'
+import CreationPreview from '../components/CreationPreview'
+import {documentEndDate,previewAmounts} from '../lib/documentPreview'
+import {sendReviewedDocument} from '../services/reviewDelivery'
+import {validateDocumentInput} from '../lib/financialValidation'
 import CustomerRecordScope from '../components/CustomerRecordScope'
 import { customerRecordsHref } from '../lib/customerRecords'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
@@ -12,7 +17,7 @@ import { adjustedPrice } from '../lib/paymentLinks'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import { getDocumentSettings } from '../services/settings'
 import { previewDocumentTotal } from '../lib/financialValidation'
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { createInvoice, listInvoices } from '../services/invoices'
@@ -24,7 +29,7 @@ import '../components/scheduling/scheduling.css'
 import { getJob } from '../services/jobs'
 import { createJobInvoice } from '../services/schedulingWorkflow'
 
-type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
+type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?:string|null; phone?:string|null }
 type Invoice = DocumentDates & { customer_id: string; id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type InvoiceFilter = 'all' | 'open' | 'draft' | 'sent' | 'paid' | 'overdue'
@@ -38,6 +43,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const [customers, setCustomers] = useState<Customer[]>([])
   const [statusFilter, setStatusFilter] = useState<InvoiceFilter>('all')
   const [showForm, setShowForm] = useState(false)
+  const [editCreatedInvoice,setEditCreatedInvoice]=useState(false)
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('document'))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -45,9 +51,13 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const [customerDraft,setCustomerDraft]=useState(emptyCustomerDraft)
   const customerRequest=useRef<{signature:string;id:string}|null>(null)
   const saving=useRef(false)
+  const [creationPreview,setCreationPreview]=useState(false)
+  const savedCreation=useRef<string|null>(null)
+  const [editCreationCustomer,setEditCreationCustomer]=useState(false)
+  const dateEdited=useRef(false)
   const [defaultPayments,setDefaultPayments]=useState<DocumentPayments>({payment_links:[],payment_instructions:''})
   const [documentPayments,setDocumentPayments]=useState<DocumentPayments>({payment_links:[],payment_instructions:''})
-  const [dueDate, setDueDate] = useState('')
+  const [dueDate, setDueDate] = useState(() => documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice'))
   const [issueDate, setIssueDate] = useState(() => DateTime.now().setZone(business.timezone || 'UTC').toISODate()!)
   const [notes, setNotes] = useState('')
   const [defaultTax, setDefaultTax] = useState(0)
@@ -90,13 +100,31 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
     return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
   }
 
-  function resetForm() {
-    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(''); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); retryRef.current = null
+
+  const creationCustomer=customerId?customers.find(c=>c.id===customerId):{first_name:customerDraft.name,last_name:null,company:customerDraft.company,email:customerDraft.email,phone:customerDraft.phone}
+  async function finishCreation(id:string,edit=false){setEditCreatedInvoice(edit);resetForm();setShowForm(false);history.replaceState(history.state,'',customerRecordsHref('invoices',customerScope,id));setSelectedInvoiceId(id);void refresh().catch(()=>{})}
+  function reviewCreation(event:React.FormEvent){
+    event.preventDefault();setError('')
+    try{
+      if(!customerId)newCustomerFields(customerDraft)
+      validateDocumentInput({customer_id:customerId||'new',issue_date:issueDate,due_date:dueDate,items:pricedLines.map(l=>({description:l.description,quantity:Number(l.quantity),unit_price:Number(l.unit_price),tax_rate:Number(l.tax_rate)}))})
+      if(documentPayments.payment_links.some(link=>!validPaymentLink(link)))throw new Error('Enter a valid HTTPS payment link.')
+      setCreationPreview(true)
+    }catch(e){setError(e instanceof Error?e.message:'Check the document details.')}
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault(); if(saving.current)return;saving.current=true;setBusy(true); setError('')
+  function resetForm() {
+    setCreationPreview(false); savedCreation.current=null; dateEdited.current=false
+    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); retryRef.current = null
+  }
+
+  async function submit(sendEmail=false) {
+     if(saving.current)return;saving.current=true;setBusy(true); setError('')
     try {
+      if(savedCreation.current){
+        if(sendEmail)await sendReviewedDocument(business.id, 'invoice',savedCreation.current,creationCustomer?.email||'');
+        await finishCreation(savedCreation.current); return
+      }
       if(previewTotal === null)throw new Error('Check the description, quantity, price and tax on each line.')
       if(documentPayments.payment_links.some(link=>!validPaymentLink(link)))throw new Error('Enter a valid HTTPS link for each selected payment method.')
       let customer={customer_id:customerId,new_customer:undefined as ReturnType<typeof newCustomerFields>|undefined}
@@ -121,7 +149,9 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
         })),
       }
       const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,...payments}) : await createInvoice(business.id,input)
-      resetForm(); setShowForm(false); await refresh(); history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope, created.id));setSelectedInvoiceId(created.id)
+      savedCreation.current=created.id
+      if(sendEmail)await sendReviewedDocument(business.id, 'invoice',created.id,creationCustomer?.email||'')
+      await finishCreation(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create invoice')
     } finally { saving.current=false;setBusy(false) }
@@ -154,7 +184,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' || Number(invoice.balance_due) <= 0 && invoice.status !== 'void')
   function chooseFilter(filter: InvoiceFilter) { setStatusFilter(filter); recordList.setPage(0) }
 
-  if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />
+  if (selectedInvoiceId) return <InvoiceDetail initialEdit={editCreatedInvoice} business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);setEditCreatedInvoice(false);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />
 
   return <div className="page-stack workspace-module invoice-module"><WorkspaceBack />
     <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create invoice</button>}</div>
@@ -182,18 +212,21 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
       {invoices.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>No {statusFilter === 'all' ? '' : `${statusFilter} `}invoices in this view.</strong><span>Choose another status or view all invoices.</span></div>}
     </section>
     <RecordListPagination label="invoices" list={recordList} className="invoice-bottom-pagination" />
-    {showForm && <FormDialog label="Invoices form" busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
-      <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
+    {showForm && <FormDialog label="Create an invoice" autoFocusFields={false} busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
+      <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       {handoff&&<p className="form-message">Dictated request: {handoff}. Review each charge as a separate line.</p>}
-      <form onSubmit={submit} className="estimate-form">
-        <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} disabled={busy||!!sourceJob}/><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label><label>Due date<input type="date" min={issueDate} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
+      <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
+        <details className="composer-section"><summary>{customerId || customerDraft.name || customerDraft.company ? 'Customer · '+(creationCustomer?.first_name || creationCustomer?.company || 'Selected') : '＋ Add Customer'}</summary><div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} disabled={busy||!!sourceJob}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer(true)}>Edit customer contact</button>}</div></details><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
         {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
-        <DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/>
+        <details className="composer-section"><summary>＋ Add Work Details</summary><DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/></details>
         {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
         <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save draft invoice'}</button></div>
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>Preview</button></div>
       </form>
+
+      {editCreationCustomer&&customerId&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setEditCreationCustomer(false)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
+      {creationPreview&&<CreationPreview busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} onEmail={()=>void submit(true)}/>}
     </FormDialog>}
   </div>
 }

@@ -8,7 +8,6 @@ import {announceCalendarChange} from '../services/calendar'
 import FormDialog from './FormDialog'
 import { localInstant } from '../lib/calendarTime'
 import DocumentChangeOrderButton from './DocumentChangeOrderButton'
-import { safePaymentLinks, paymentProviders } from '../lib/paymentLinks'
 import { canAccess } from '../lib/workspaceAccess'
 import './settings/settings.css'
 import {RecordResourcesDialog} from './RecordResources'
@@ -21,7 +20,7 @@ import { getInvoiceDetail } from '../services/invoiceDetail'
 import { recordPayment } from '../services/payments'
 import { updateInvoiceStatus } from '../services/invoices'
 import DocumentDelivery from './DocumentDelivery'
-import DocumentBrand from './DocumentBrand'
+import DocumentPaper from './DocumentPaper'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 
 const InvoiceJobDialog=lazy(()=>import('./scheduling/InvoiceJobDialog'))
@@ -39,12 +38,12 @@ function customerName(customer?: Customer | null) {
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
 }
 
-export default function InvoiceDetail({ business, invoiceId, onBack }: { business:CurrentBusiness; invoiceId:string; onBack:()=>void }) {
+export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit=false }: { business:CurrentBusiness; invoiceId:string; onBack:()=>void; initialEdit?:boolean }) {
   const [detail,setDetail]=useState<Detail|null>(null)
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
-  const [showEdit,setShowEdit]=useState(false),[showCustomer,setShowCustomer]=useState(false)
+  const [showEdit,setShowEdit]=useState(initialEdit),[showCustomer,setShowCustomer]=useState(false)
   const reminderSaving=useRef(false),reminderRetry=useRef<{signature:string;id:string}|null>(null)
   const [receipt,setReceipt]=useState('')
   const [showJob,setShowJob]=useState(false)
@@ -120,17 +119,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack }: { busines
     {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>{setShowJob(false);void refresh()}} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
 
     <section className="invoice-detail-grid">
-      <article className="detail-card invoice-document print-document">
-        <DocumentBrand business={issuedBrand} kind="Invoice" />
-        <div className="document-bill-to"><small>Bill to</small><strong>{customerName(customer)}</strong>{customer?.email && <span>{customer.email}</span>}{customer?.phone && <span>{customer.phone}</span>}</div>
-        <div className="invoice-meta"><div><span>Created</span><DocumentTime value={invoice.created_at} timezone={business.timezone}/></div><div><span>Issued</span><strong>{new Date(invoice.issue_date+'T00:00:00').toLocaleDateString()}</strong></div><div><span>Due</span><strong>{invoice.due_date?new Date(invoice.due_date+'T00:00:00').toLocaleDateString():'—'}</strong></div></div>
-        <div className="invoice-table"><div className="invoice-table-head"><span>Description</span><span>Qty</span><span>Rate</span><span>Total</span></div>{detail.items.map(item=><div className="invoice-table-row" key={item.id}><span>{item.description}{Number(item.tax_rate)>0&&<small>{Number(item.tax_rate).toFixed(2)}% tax</small>}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><strong>${Number(item.line_total).toFixed(2)}</strong></div>)}</div>
-        <div className="invoice-totals"><div><span>Subtotal</span><strong>${Number(invoice.subtotal).toFixed(2)}</strong></div>{Number(invoice.tax_amount)>0&&<div><span>Tax</span><strong>${Number(invoice.tax_amount).toFixed(2)}</strong></div>}<div><span>Paid</span><strong>−${Number(invoice.amount_paid).toFixed(2)}</strong></div><div className="grand-total"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong></div></div>
-        {Number(invoice.balance_due)>0 && invoice.status!=='void' && (safePaymentLinks(invoice.payment_links).length>0 || invoice.payment_instructions) && <section className="invoice-note"><strong>Payment options</strong><div className="invoice-payment-buttons">{safePaymentLinks(invoice.payment_links).map(link=><a key={link.provider} href={link.url} target="_blank" rel="noopener noreferrer">Pay with {paymentProviders.find(p=>p.id===link.provider)?.name}</a>)}</div>{invoice.payment_instructions&&<p>{invoice.payment_instructions}</p>}<p className="quiet">Pay the balance due shown above and include {invoice.invoice_number || 'the invoice number'} with payment. Payment is handled by the business’s external provider.</p></section>}
-        {invoice.customer_message&&<div className="invoice-note"><strong>Message to customer</strong><p>{invoice.customer_message}</p></div>}
-        {invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}
-        {issuedBrand.document_footer && <div className="document-footer">{issuedBrand.document_footer}</div>}
-      </article>
+      <div><DocumentPaper business={issuedBrand} kind="invoice" customer={customer} number={invoice.invoice_number} issued={invoice.issue_date} ending={invoice.due_date} items={detail.items} subtotal={invoice.subtotal} tax={invoice.tax_amount} total={invoice.total} paid={invoice.amount_paid} balance={invoice.balance_due} message={invoice.customer_message} paymentLinks={invoice.payment_links} paymentInstructions={invoice.payment_instructions} status={invoice.status}/>{invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}</div>
       <aside className="invoice-side-stack">
         <article className="detail-card"><p className="eyebrow">Payments</p><h2>Payment history</h2>{detail.payments.length===0?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span></div><strong>${Number(payment.amount).toFixed(2)}</strong></div>)}</div>}</article>
         <article className="detail-card"><p className="eyebrow">Activity</p><h2>Messages</h2>{detail.messages.length===0?<p className="quiet">No invoice messages yet.</p>:<div className="message-list">{detail.messages.map(message=><div className="message-item" key={message.id}><div><strong>{message.channel.toUpperCase()}</strong><span>{message.status==='sent'?'Accepted for delivery':message.status}</span></div><p>{message.body}</p><small><DocumentTime value={message.sent_at||message.created_at} timezone={business.timezone}/></small></div>)}</div>}</article>

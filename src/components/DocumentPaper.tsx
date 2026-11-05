@@ -1,0 +1,20 @@
+import {previewAmounts} from '../lib/documentPreview'
+import DocumentBrand from './DocumentBrand'
+import type { BusinessProfile } from '../lib/business'
+import { safePaymentLinks, paymentProviders } from '../lib/paymentLinks'
+import './document-composer.css'
+export type PaperLine = { description:string; quantity:number|string; unit_price:number|string; tax_rate?:number|string; line_total?:number|string }
+export type PaperCustomer = { first_name?:string|null; last_name?:string|null; company?:string|null; email?:string|null; phone?:string|null }
+const money=(value:number|string)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value))
+export default function DocumentPaper({business,kind,customer,number,issued,ending,items,subtotal,tax,total,paid=0,balance,message,paymentLinks,paymentInstructions,status,serviceAddress}:{
+ business:Pick<BusinessProfile,'name'>&Partial<BusinessProfile>;kind:'invoice'|'estimate';customer?:PaperCustomer|null;number?:string|null;issued:string;ending?:string|null;items:PaperLine[];subtotal:number|string;tax:number|string;total:number|string;paid?:number|string;balance?:number|string;message?:string|null;paymentLinks?:unknown;paymentInstructions?:string|null;status?:string;serviceAddress?:string
+}){
+ const due=balance??total
+ return <article className="document-paper print-document">
+  <DocumentBrand business={business} kind={kind==='invoice'?'Invoice':'Estimate'}/>
+  <section className="paper-details"><div><small>{kind==='invoice'?'Bill to':'Prepared for'}</small><strong>{[customer?.first_name,customer?.last_name].filter(Boolean).join(' ')||customer?.company||'Customer'}</strong>{customer?.company&&(customer.first_name||customer.last_name)&&<span>{customer.company}</span>}{customer?.email&&<span>{customer.email}</span>}{customer?.phone&&<span>{customer.phone}</span>}</div>{serviceAddress&&<div><small>Service address</small><span>{serviceAddress}</span></div>}<div><small>{kind==='invoice'?'Invoice':'Estimate'} details</small><strong>{number||'Number assigned when saved'}</strong><span>Issued {issued}</span>{ending&&<span>{kind==='invoice'?'Due':'Valid until'} {ending}</span>}</div></section>
+  <div className="paper-table-scroll"><table className="paper-table"><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.map((item,index)=><tr key={index}><td>{item.description}{Number(item.tax_rate)>0&&<small>{Number(item.tax_rate)}% tax</small>}</td><td>{Number(item.quantity)}</td><td>{money(item.unit_price)}</td><td>{money(item.line_total??previewAmounts([{...item,tax_rate:0}]).subtotal)}</td></tr>)}</tbody></table></div>
+  <section className="paper-bottom"><div>{message&&<div className="paper-message"><strong>{kind==='estimate'?'Estimate terms':'Message to customer'}</strong><p>{message}</p></div>}{kind==='invoice'&&Number(due)>0&&status!=='void'&&(safePaymentLinks(paymentLinks).length>0||paymentInstructions)&&<div className="paper-message"><strong>Payment options</strong>{safePaymentLinks(paymentLinks).map(link=><a key={link.provider} href={link.url} target="_blank" rel="noopener noreferrer">Pay with {paymentProviders.find(p=>p.id===link.provider)?.name}</a>)}{paymentInstructions&&<p>{paymentInstructions}</p>}<p>Include {number||'the invoice number'} with payment.</p></div>}</div><div className="paper-totals"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div>{Number(tax)>0&&<div><span>Tax</span><strong>{money(tax)}</strong></div>}{kind==='invoice'&&Number(paid)>0&&<><div><span>Total</span><strong>{money(total)}</strong></div><div><span>Paid</span><strong>−{money(paid)}</strong></div></>}<div className="paper-grand-total"><span>{kind==='invoice'?'Amount due':'Estimated total'}</span><strong>{money(kind==='invoice'?due:total)}</strong></div></div></section>
+  {business.document_footer&&<footer className="document-footer">{business.document_footer}</footer>}
+ </article>
+}

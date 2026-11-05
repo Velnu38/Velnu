@@ -1,4 +1,6 @@
-import DocumentDeliveryOptions from './DocumentDeliveryOptions'
+import CreationPreview from './CreationPreview'
+import {DateTime} from 'luxon'
+import {documentEndDate,previewAmounts} from '../lib/documentPreview'
 import {useEffect,useMemo,useRef,useState,type FormEvent} from 'react'
 import type {CurrentBusiness} from '../lib/business'
 import {canManageFinances} from '../lib/business'
@@ -19,13 +21,15 @@ const customerLabel=(c:Customer)=>[c.first_name,c.last_name].filter(Boolean).joi
 const blank=():VoiceLine=>({description:'',amount:'',quantity:'1'})
 export default function QuickInvoiceReview({business,command,initialSeed,parserNotice,onCancel,onSaved}:{business:CurrentBusiness;command:string;initialSeed?:VoiceSeed;parserNotice?:string;onCancel:()=>void;onSaved:(document:SavedDocument,kind:VoiceKind,delivery?:ReviewDeliveryReceipt)=>void}){
  const seed=useMemo(()=>initialSeed??parseVoiceDocument(command),[command,initialSeed]),kind=seed.kind
+ const [preview,setPreview]=useState(false)
+ const [issueDate]=useState(()=>DateTime.now().setZone(business.timezone||'UTC').toISODate()!)
  const [customers,setCustomers]=useState<Customer[]>([]),[loading,setLoading]=useState(true),[customerId,setCustomerId]=useState(''),[defaults,setDefaults]=useState<DocumentSettings|null>(null)
  const [customerMode,setCustomerMode]=useState<'choose'|'new'>(seed.customerName?'new':'choose')
  const [customerName,setCustomerName]=useState(seed.customerName),[lines,setLines]=useState(seed.lines),[quantities,setQuantities]=useState(seed.lines.some(l=>Number(l.quantity)!==1))
- const [taxRate,setTaxRate]=useState(seed.taxRate??'0'),[taxVisible,setTaxVisible]=useState(seed.taxRate===''||Number(seed.taxRate)>0),[dueDate,setDueDate]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('')
+ const [taxRate,setTaxRate]=useState(seed.taxRate??'0'),[taxVisible,setTaxVisible]=useState(seed.taxRate===''||Number(seed.taxRate)>0),[dueDate,setDueDate]=useState(()=>documentEndDate(issueDate,kind)),[busy,setBusy]=useState(false),[error,setError]=useState('')
  useUnsavedChanges(busy)
  const [email,setEmail]=useState(''),[phone,setPhone]=useState(''),[contactOpen,setContactOpen]=useState(false)
- const [saved,setSaved]=useState<SavedDocument|null>(null),[sending,setSending]=useState(false)
+ const [saved,setSaved]=useState<SavedDocument|null>(null),[,setSending]=useState(false)
  const sendId=useRef(crypto.randomUUID()),emailInput=useRef<HTMLInputElement|null>(null)
  const selected=customers.find(c=>c.id===customerId)
  useEffect(()=>{setEmail(selected?.email||'');setPhone(selected?.phone||'')},[customerId,selected?.email,selected?.phone])
@@ -41,7 +45,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  const total=previewDocumentTotal(items),mismatch=statedTotal!==null&&total!==null&&(statedTotal===''||Math.round(Number(statedTotal)*100)!==Math.round(total*100))
  const valid=items.length>0&&items.length<=50&&items.every(i=>i.description&&validDecimal(i.unit_price,0,10000000)&&validDecimal(i.quantity,0.01,100000))&&taxRate.trim()!==''&&validDecimal(Number(taxRate),0,100)&&total!==null&&(!!customerId||(customerMode==='new'&&!!customerName.trim()))
  const change=(index:number,key:keyof VoiceLine,value:string)=>setLines(prev=>prev.map((l,i)=>i===index?{...l,[key]:value}:l))
- async function saveDraft(e:FormEvent){e.preventDefault();await save(false)}
+ async function saveDraft(e:FormEvent){e.preventDefault();if(valid&&!mismatch&&contactsValid)setPreview(true);else setError('Review the customer, amounts and contact details.')}
  async function save(sendEmail:boolean){if(saving.current||loading||!defaults||!canManageFinances(business.role))return
   if(!valid||mismatch||!contactsValid){setError('Check each description, amount and the calculated total before saving.');return}
   if(!customerId&&!customerName.trim()){setError('Choose a customer or enter a customer name.');return}
@@ -52,7 +56,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
     const updated=await updateCustomerContact(business.id,selected.id,selected.updated_at,email.trim(),phone.trim());setCustomers(rows=>rows.map(c=>c.id===updated.id?updated:c))
    }
    if(customerRetry.current?.name!==customerName.trim())customerRetry.current={name:customerName.trim(),id:crypto.randomUUID()}
-   const chosen=customerId||customerRetry.current.id,input={customer_id:chosen,...(!customerId?{new_customer:newCustomerFields({name:customerName,email,phone})}:{}),items,...(kind==='invoice'?{due_date:dueDate||undefined}:{expires_on:dueDate||undefined})}
+   const chosen=customerId||customerRetry.current.id,input={issue_date:issueDate,customer_id:chosen,...(!customerId?{new_customer:newCustomerFields({name:customerName,email,phone})}:{}),items,...(kind==='invoice'?{due_date:dueDate||undefined}:{expires_on:dueDate||undefined})}
    const signature=JSON.stringify({kind,...input});if(retry.current?.signature!==signature)retry.current={signature,id:crypto.randomUUID()}
    const document=saved??(kind==='invoice'?await createInvoice(business.id,{...input,request_id:retry.current.id}):await createEstimate(business.id,{...input,request_id:retry.current.id}))
    setSaved(document)
@@ -66,7 +70,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  <p className="eyebrow">Fin · {kind} draft</p>
  <details className="voice-original"><summary>Your request</summary><p className="quick-invoice-original">{command}</p>{parserNotice&&<p className="quick-invoice-note">{parserNotice}</p>}</details>
  {seed.warnings.length>0&&<p className="form-message" role="note">{seed.warnings.join(' ')}</p>}
- <form onSubmit={saveDraft} className="quick-invoice-fields"><fieldset disabled={busy} className="form-dialog-fields">
+ <form onSubmit={saveDraft} className="quick-invoice-fields" hidden={preview}><fieldset disabled={busy} className="form-dialog-fields">
  <fieldset className="form-dialog-fields" disabled={!!saved}><label>Customer<select value={customerId||(customerMode==='new'?'__new__':'')} disabled={loading} onChange={e=>{const v=e.target.value;setCustomerId(v==='__new__'?'':v);setCustomerMode(v==='__new__'?'new':'choose');setError('')}}><option value="">Choose a customer</option>{customers.map(c=><option key={c.id} value={c.id}>{customerLabel(c)}</option>)}<option value="__new__">Create a new customer</option></select></label>
  {!customerId&&customerMode==='choose'&&<p className="form-message">Who is this for? Choose a customer. Your charges and total are ready below.</p>}
  {!customerId&&customerMode==='new'&&<label>New customer name or company<input value={customerName} onChange={e=>setCustomerName(e.target.value)} required maxLength={160}/></label>}
@@ -84,7 +88,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  </div><button className="text-button left" type="button" disabled={lines.length>=50} onClick={()=>setLines(l=>[...l,blank()])}>+ Add line</button>
  <details className="voice-extra-options" open={taxVisible||quantities}><summary>More options</summary><div className="voice-optional-fields"><button className="text-button left" type="button" aria-pressed={quantities} disabled={quantities&&lines.some(l=>Number(l.quantity)!==1)} onClick={()=>setQuantities(q=>!q)}>{quantities?'Hide quantities':'Use quantities'}</button>
  {!taxVisible?<button type="button" className="text-button left" onClick={()=>setTaxVisible(true)}>Add tax</button>:<div className="quick-invoice-money"><label>Tax (%)<input type="number" min="0" max="100" step="0.01" value={taxRate} onChange={e=>setTaxRate(e.target.value)} required/></label><button type="button" className="text-button" onClick={()=>{setTaxRate('0');setTaxVisible(false)}}>Remove tax</button></div>}
- <label>{kind==='invoice'?'Due date (optional)':'Expiration date (optional)'}<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label></div></details>
+ <label>{kind==='invoice'?'Due date':'Valid until'}<input type="date" min={issueDate} value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label></div></details>
 
  {mismatch&&<div className="form-message error-text" role="alert">Spoken total: {statedTotal===''?'needs review':'$'+Number(statedTotal).toFixed(2)}. It does not match the calculated total. Check the lines, or explicitly choose the calculated total.<button type="button" className="secondary-button" onClick={()=>setStatedTotal(null)}>Use calculated total</button></div>}
  </fieldset>
@@ -92,7 +96,9 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  {saved&&<p className="form-message">Your {kind} is saved. Email delivery is not confirmed. Retry below using the same document, or finish and check its activity before sending again.</p>}
  {error&&<p role="alert" className="form-message error-text">{error}</p>}
  <div className="voice-document-total" role="status"><span>Total</span><strong>{total===null?'Add missing amounts':'$'+total.toFixed(2)}</strong></div>
- <DocumentDeliveryOptions kind={kind} email={email} phone={phone} contactDisabled={busy||loading||!!saved} disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!canManageFinances(business.role)} sending={sending} emailLabel={saved?'Retry email':'Send email'} onEmail={()=>void save(true)} onEditContact={()=>{setContactOpen(true);requestAnimationFrame(()=>emailInput.current?.focus())}}/>
 
- <div className="preview-actions">{!saved&&<button type="button" className="secondary-button" onClick={onCancel}>Back</button>}<button type="submit" className={emailValid?'secondary-button':'primary-button'} disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!canManageFinances(business.role)}>{busy&&!sending?'Saving draft…':saved?'Done — keep saved document':`Save draft ${kind}`}</button></div></fieldset></form></section>
+
+ <div className="preview-actions">{!saved&&<button type="button" className="secondary-button" onClick={onCancel}>Back</button>}<button type="submit" className={emailValid?'secondary-button':'primary-button'} disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!canManageFinances(business.role)}>Preview</button></div></fieldset></form>
+ {preview&&<CreationPreview busy={busy} error={error} saved={!!saved} paper={{business,kind,customer:selected?{...selected,email,phone}:{first_name:customerName,email,phone},issued:issueDate,ending:dueDate,items,...previewAmounts(items),paymentLinks:defaults?.payment_links,paymentInstructions:defaults?.payment_instructions}} onBack={()=>{if(saved)onSaved(saved,kind);else setPreview(false)}} onSave={()=>void save(false)} onEmail={()=>void save(true)}/>}
+ </section>
 }

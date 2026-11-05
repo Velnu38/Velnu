@@ -1,3 +1,4 @@
+import DocumentPaper from '../components/DocumentPaper'
 import { useEffect, useRef, useState } from 'react'
 import { getCustomerApproval, submitCustomerApproval } from '../services/approvals'
 import DocumentBrand from '../components/DocumentBrand'
@@ -69,23 +70,19 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
 
   return <main className="approval-page">
     <section className="approval-card">
-      <DocumentBrand business={{ ...data.business_profile, name: data.business_name }} kind={data.document_type === 'estimate' ? 'Estimate' : 'Preview'} />
+      {data.document_type!=='estimate'&&<DocumentBrand business={{ ...data.business_profile, name: data.business_name }} kind="Change order" />}
       <p className="approval-powered">Secure customer approval · Powered by Finviant Office</p>
       <div className="approval-heading"><p className="eyebrow">{heading}</p><h1>{number || heading}</h1><p>From <strong>{data.business_name}</strong> for {customerName(data.customer)}</p></div>
       {data.document_type === 'change_order' && <section className="approval-scope"><h2>{doc.title}</h2>{doc.job_title && <p><strong>Job:</strong> {doc.job_title}</p>}{doc.description && <p>{doc.description}</p>}{doc.reason && <p><strong>Reason:</strong> {doc.reason}</p>}{doc.schedule_impact_days !== 0 && <div className="schedule-impact"><strong>Schedule impact</strong><span>{doc.schedule_impact_days > 0 ? '+' : ''}{doc.schedule_impact_days} day{Math.abs(doc.schedule_impact_days) === 1 ? '' : 's'}</span>{doc.schedule_note && <small>{doc.schedule_note}</small>}</div>}</section>}
       {doc.customer_message && data.document_type !== 'estimate' && <p className="customer-message">{doc.customer_message}</p>}
+      {data.document_type==='estimate'?<DocumentPaper business={{...data.business_profile,name:data.business_name}} kind="estimate" customer={data.customer} number={number} issued={doc.issue_date} ending={doc.expires_on} items={data.items} subtotal={doc.subtotal} tax={doc.tax_amount} total={doc.total} message={doc.customer_message}/>:<>
       <section className="approval-items">
         <div className="approval-row approval-row-head"><span>Description</span><span>Qty</span><span>Price</span><span>Total</span></div>
         {data.items.map((item, index) => <div className="approval-row" key={`${item.description}-${index}`}><span>{item.description}{Number(item.tax_rate) ? <small>{Number(item.tax_rate)}% tax</small> : null}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><span>${Number(item.line_total).toFixed(2)}</span></div>)}
       </section>
       <section className="approval-totals"><div><span>Subtotal</span><strong>${Number(doc.subtotal).toFixed(2)}</strong></div>{Number(doc.tax_amount)>0&&<div><span>Tax</span><strong>${Number(doc.tax_amount).toFixed(2)}</strong></div>}<div className="approval-grand-total"><span>Total</span><strong>${Number(doc.total).toFixed(2)}</strong></div></section>
-      {data.document_type === 'estimate' && <section className="estimate-terms" aria-label="Estimate terms">
-        <h2>Estimate terms</h2>
-        <p>The services, quantities, prices, tax, and total shown above describe the work being offered.</p>
-        {doc.expires_on && <p><strong>Estimate valid through:</strong> {new Date(doc.expires_on + 'T00:00:00').toLocaleDateString()}</p>}
-        {doc.customer_message && <div className="estimate-customer-terms"><strong>Additional terms from {data.business_name}</strong><p>{doc.customer_message}</p></div>}
-      </section>}
       {data.business_profile?.document_footer && <p className="document-footer">{data.business_profile.document_footer}</p>}
+      </>}
       {data.completed ? <section className={`approval-complete ${data.completed.action}`}><h2>{data.completed.action === 'approved' ? `Document ${approvedVerb}` : 'Document declined'}</h2><p>Recorded for {data.completed.typed_name} on {new Date(data.completed.created_at).toLocaleString()}.</p><p className="quiet">{data.document_type === 'estimate' && data.completed.action === 'approved' && data.completed.terms_agreed ? 'Agreement to the displayed estimate terms was recorded with the document and amount at acceptance.' : 'This decision is recorded with the document’s approval history.'}</p></section> :
       <section className="approval-decision">
         <h2>{data.document_type === 'estimate' ? 'Accept or decline this estimate' : 'Your decision'}</h2>
