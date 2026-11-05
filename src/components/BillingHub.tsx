@@ -1,3 +1,4 @@
+import InvoiceReminderDialog from './InvoiceReminderDialog'
 import { useEffect, useState } from 'react'
 import { DateTime } from 'luxon'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
@@ -18,6 +19,7 @@ const documentHref = (view: string, id: string) => `/?view=${view}&document=${en
 const dateLabel = (value: string | null) => value && DateTime.fromISO(value).isValid ? DateTime.fromISO(value).toFormat('MMM d, yyyy') : ''
 
 export default function BillingHub({ business, refreshVersion = 0 }: { business: CurrentBusiness; refreshVersion?: number }) {
+  const [reminderInvoice,setReminderInvoice]=useState<string|null>(null)
   const [filter, setFilter] = useState<Filter>('attention')
   const [expanded, setExpanded] = useState(false)
   const canSee = canManageFinances(business.role)
@@ -67,6 +69,7 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
   const currentPage=attentionPage?.page??1
   const pageCount=Math.max(1,Math.ceil(total/5))
   return <article className="billing-hub dashboard-tile home-attention-tile" aria-label="Needs attention overview">
+    {reminderInvoice&&<InvoiceReminderDialog business={business} invoiceId={reminderInvoice} onClose={()=>setReminderInvoice(null)} onSent={()=>{setRetry(v=>v+1);window.dispatchEvent(new Event('finviant-work-changed'))}}/>}
     <button type="button" className="attention-summary-toggle" aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>
       <span><span className="eyebrow">Your next steps</span><strong className="dashboard-tile-title">Needs Attention</strong><small>{countsUnavailable?'Loading action counts…':`${attentionCount} ${attentionCount===1?'action':'actions'} need your attention`}</small></span>
       <span className="attention-summary-chevron" aria-hidden="true">{expanded?'⌃':'⌄'}</span>
@@ -89,12 +92,12 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
         {pageError ? <p role="alert" className="work-card-empty">{pageError} <button type="button" className="text-button" onClick={()=>setRetry(value=>value+1)}>Retry</button></p> : null}
         {pageLoading && !attentionPage ? <p role="status" className="work-card-empty">Loading attention items…</p> : <>
         {filter==='attention'&&<><WorkflowNextSteps business={business} data={workflow} embedded/><AttentionReminders business={business} reminders={reminders}/></>}
-        {rows.length === 0 && filter === 'attention' && items.length > 0 ? null : rows.length === 0 && !pageError ? <div className="billing-empty"><span className="billing-empty-icon" aria-hidden="true">✓</span><p>{empty}</p></div> : <ul className="billing-rows">{rows.map(row => <li key={row.key}><a className="billing-row" href={row.href} aria-label={`Open ${row.kind.toLowerCase()} ${row.number} for ${row.customer}`}>
+        {rows.length === 0 && filter === 'attention' && items.length > 0 ? null : rows.length === 0 && !pageError ? <div className="billing-empty"><span className="billing-empty-icon" aria-hidden="true">✓</span><p>{empty}</p></div> : <ul className="billing-rows">{rows.map(row => <li key={row.key} className={row.kind==='Invoice'?'billing-reminder-row':undefined}><a className="billing-row" href={row.href} aria-label={`Open ${row.kind.toLowerCase()} ${row.number} for ${row.customer}`}>
           <span className={`billing-document-icon ${row.kind === 'Invoice' ? 'invoice' : 'estimate'}`} aria-hidden="true">{row.kind === 'Invoice' ? 'I' : row.kind === 'Estimate' ? 'E' : 'C'}</span>
           <span className="billing-row-copy"><strong>{row.customer}</strong><span>{row.kind} · {row.number}</span><small>{row.detail}</small></span>
           <span className={`billing-status ${row.tone}`}>{row.status}</span>
-          <span className="billing-row-amount"><strong>{usd.format(row.amount)}</strong><small>{row.amountLabel}</small></span><span className="attention-action billing-attention-action">{row.kind==='Invoice'?'Review invoice':'Review approval'}</span>
-        </a></li>)}</ul>}
+          <span className="billing-row-amount"><strong>{usd.format(row.amount)}</strong><small>{row.amountLabel}</small></span>{row.kind!=='Invoice'&&<span className="attention-action billing-attention-action">Review approval</span>}
+        </a>{row.kind==='Invoice'&&<button type="button" className="primary-button compact" onClick={()=>setReminderInvoice(row.key.slice(8))}>Send Reminder</button>}</li>)}</ul>}
         </>}
         {attentionPage&&<nav className="attention-pagination" aria-label="Attention pages">
           <p aria-live="polite">{total?`Showing ${(currentPage-1)*5+1}–${Math.min(currentPage*5,total)} of ${total}`:'0 items'}<small>Page {currentPage} of {pageCount}</small></p>
