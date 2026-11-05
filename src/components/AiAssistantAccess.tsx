@@ -1,3 +1,4 @@
+import {setAssistantAvailable} from '../lib/assistantEntry'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { CurrentBusiness } from '../lib/business'
@@ -11,7 +12,7 @@ export default function AiAssistantAccess({ business, onChanged, onAvailabilityC
   onAvailabilityChange?: (available: boolean) => void
 }) {
   const [access, setAccess] = useState<'checking' | 'paid' | 'unavailable'>('checking')
-  useEffect(() => { onAvailabilityChange?.(access === 'paid') }, [access, onAvailabilityChange])
+  useEffect(() => { setAssistantAvailable(access === 'paid');onAvailabilityChange?.(access === 'paid');return()=>setAssistantAvailable(false) }, [access, onAvailabilityChange])
   useEffect(() => {
     let active = true
     setAccess('checking')
