@@ -53,6 +53,6 @@ Deno.serve(finHandler({
   }
  },
  async complete(instructions,input,schema){
-  return await providerJson('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env('OPENAI_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-5-mini',reasoning:{effort:'low'},instructions,input,store:false,max_output_tokens:3500,text:{format:{type:'json_schema',name:'fin_response',strict:true,schema}}})},{timeoutMs:45000,maxBytes:1048576})
+  return await providerJson('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env('OPENAI_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-6-luna',reasoning:{effort:'low'},instructions,input,store:false,max_output_tokens:3500,text:{format:{type:'json_schema',name:'fin_response',strict:true,schema}}})},{timeoutMs:45000,maxBytes:1048576})
  }
 }))
