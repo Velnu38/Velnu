@@ -10,6 +10,10 @@ export default function WorkspaceIcon({ kind }: { kind: string }) {
       : kind === 'reminders' ? <><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5ZM10 21h4M12 2v2"/></>
       : kind === 'bookkeeping' ? <><path d="M4 21V11h4v10M10 21V6h4v15M16 21V3h4v18"/></>
       : kind === 'payments' ? <><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h3"/></>
+      : kind === 'company' ? <><path d="M4 21V3h12v18M16 10h4v11M8 7h4M8 11h4M8 15h4M2 21h20"/></>
+      : kind === 'support' ? <><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4M12 17h.01"/></>
+      : kind === 'sms' ? <><path d="M21 4H3v14h4v4l5-4h9ZM7 9h10M7 13h6"/></>
+      : kind === 'availability' ? <><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></>
       : kind === 'settings' ? <><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></>
       : <><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></>}
   </svg>

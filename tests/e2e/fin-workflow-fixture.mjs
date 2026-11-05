@@ -15,7 +15,7 @@ export async function workflow(page,{steps=[docStep()],respond,contact={email:'c
  await page.route('**/rest/v1/rpc/fin_cancel_review',route=>route.fulfill({status:200,headers:cors,json:null}))
  return {state,requests,executions,plans}
 }
-export async function ask(page,text){await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(text);await page.getByRole('button',{name:'Ask Fin',exact:true}).click()}
+export async function ask(page,text){await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(text);await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click()}
 export async function start(page,text='Create invoice for Test Customer: landscaping $200 and painting $100'){await page.goto('/');await openFinTyping(page);await ask(page,text)}
 export const review=page=>page.getByRole('region',{name:'Review Fin’s plan'})
 export async function save(page){

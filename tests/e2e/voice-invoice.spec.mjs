@@ -14,7 +14,7 @@ async function signedIn(page) {
 }
 
 test('dictated invoice opens the verified plan and stays draft until confirmed',async({page})=>{
- const f=await workflow(page,{steps:[docStep('invoice',[item('Faucet repair',150)])]});await page.addInitScript(()=>{window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){this.onresult?.({results:[[{transcript:'Create invoice for Test Customer faucet repair $150'}]]});this.onend?.()}}});await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click();await expect(review(page)).toContainText('Total: $150.00');expect(f.state.documents).toHaveLength(0);await save(page);await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible();expect(f.state.documents).toHaveLength(1);expect(f.state.documents[0].payload.items[0].description).toBe('Faucet repair');expect(f.state.calls.filter(c=>c.path.includes('/send-'))).toHaveLength(0)
+ const f=await workflow(page,{steps:[docStep('invoice',[item('Faucet repair',150)])]});await page.addInitScript(()=>{window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){this.onresult?.({results:[[{transcript:'Create invoice for Test Customer faucet repair $150'}]]});this.onend?.()}}});await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click();await expect(review(page)).toContainText('Total: $150.00');expect(f.state.documents).toHaveLength(0);await save(page);await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible();expect(f.state.documents).toHaveLength(1);expect(f.state.documents[0].payload.items[0].description).toBe('Faucet repair');expect(f.state.calls.filter(c=>c.path.includes('/send-'))).toHaveLength(0)
 })
 test('multiple stated amounts remain separate in the verified plan',async({page})=>{await workflow(page,{steps:[docStep('invoice',[item('Labor',300),item('Materials',200)])]});await start(page,'Create invoice for Test Customer labor $300 and materials $200');await expect(review(page)).toContainText('Labor');await expect(review(page)).toContainText('Materials');await expect(review(page)).toContainText('Total: $500.00')})
 
@@ -36,7 +36,7 @@ test('Safari no-speech error shows a keyboard microphone fallback instead of a s
     }
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Type to Fin' }).click()
+  await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
   await page.getByRole('button', { name: 'Speak instead' }).click()
   await page.getByRole('button', { name: 'Finish recording' }).click()
   await expect(page.getByText(/No speech detected by the browser/)).toBeVisible()
@@ -44,7 +44,7 @@ test('Safari no-speech error shows a keyboard microphone fallback instead of a s
   await expect(page.getByRole('button', { name: 'Review invoice' })).toHaveCount(0)
 })
 
-test('browser dictation prepares customer creation without executing before confirmation',async({page})=>{const f=await workflow(page,{steps:[step('create_customer',{first_name:'Bob',last_name:'Smith'})]});await page.addInitScript(()=>{window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){this.onresult?.({results:[[{transcript:'Create a customer named Bob Smith'}]]});this.onend?.()}}});await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click();await expect(review(page)).toContainText('Bob');await expect(review(page).getByRole('button',{name:'Yes, make these changes'})).toBeEnabled();expect(f.requests).toHaveLength(1);expect(f.executions).toHaveLength(0)})
+test('browser dictation prepares customer creation without executing before confirmation',async({page})=>{const f=await workflow(page,{steps:[step('create_customer',{first_name:'Bob',last_name:'Smith'})]});await page.addInitScript(()=>{window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){this.onresult?.({results:[[{transcript:'Create a customer named Bob Smith'}]]});this.onend?.()}}});await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click();await expect(review(page)).toContainText('Bob');await expect(review(page).getByRole('button',{name:'Yes, make these changes'})).toBeEnabled();expect(f.requests).toHaveLength(1);expect(f.executions).toHaveLength(0)})
 
 test('cloud recording uses server transcription and opens draft review, without sending an invoice', async ({ page }) => {
   await signedIn(page)
@@ -93,7 +93,7 @@ test('cloud recording uses server transcription and opens draft review, without 
     }
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Type to Fin' }).click()
+  await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
   await page.getByRole('button', { name: 'Speak instead' }).click()
   await expect(page.getByRole('button', { name: 'Finish recording' })).toBeVisible()
   await page.getByRole('button', { name: 'Finish recording' }).click()
@@ -147,7 +147,7 @@ test('microphone permission is requested directly inside the tap after a delayed
     }
   })
   await page.goto('/')
-  await page.getByRole('button',{name:'Type to Fin'}).click()
+  await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
   const start = page.getByRole('button',{name:'Speak instead'})
   await expect(start).toBeEnabled()
   expect(statusChecks).toBe(1)
@@ -183,7 +183,7 @@ test('browser dictation starts in the tap gesture after unavailable cloud prefli
     }
   })
   await page.goto('/')
-  await page.getByRole('button',{name:'Type to Fin'}).click()
+  await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
   const start=page.getByRole('button',{name:'Speak instead'})
   await expect(start).toBeEnabled()
   await start.click()

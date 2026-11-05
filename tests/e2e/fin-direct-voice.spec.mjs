@@ -1,3 +1,4 @@
+import {openFinVoice} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import {mkdtemp,writeFile,rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
@@ -20,7 +21,7 @@ test.beforeAll(async({playwright},info)=>{
 })
 test.afterAll(async()=>{await browser?.close();if(fixtureDir)await rm(fixtureDir,{recursive:true,force:true})})
 
-for(const width of [320,390])test(`one mobile tap records real audio and submits after a pause at ${width}px`,async()=>{
+for(const width of [320,390])test(`the speaking control records real audio and submits after a pause at ${width}px`,async()=>{
  const context=await browser.newContext({viewport:{width,height:844},permissions:['microphone']})
  try{
   const page=await context.newPage();await mock(page,{ai:true});let uploads=0,bytes=0,questions=0
@@ -39,13 +40,13 @@ for(const width of [320,390])test(`one mobile tap records real audio and submits
    questions++;return route.fulfill({status:200,headers:cors,json:{answer:'Your saved service is landscaping.',sources:[],limits:[],as_of:new Date().toISOString()}})
   })
   await page.goto('http://127.0.0.1:4173/')
-  const dock=page.getByRole('navigation',{name:'Workspace navigation'}),launcher=page.getByRole('button',{name:'Talk to Fin'})
+  const dock=page.getByRole('navigation',{name:'Workspace navigation'}),launcher=page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true})
   await expect(launcher).toBeVisible()
   const bounds=await dock.boundingBox(),button=await launcher.boundingBox()
   expect(bounds.y+bounds.height).toBe(844);expect(button.y+button.height).toBeLessThan(bounds.y);expect(button.height).toBeGreaterThanOrEqual(44)
   await expect(dock.getByRole('button',{name:'Home',exact:true})).toHaveAttribute('aria-current','page')
   await page.screenshot({path:`test-results/mobile-fin-dock-${width}.png`,fullPage:true})
-  await launcher.click()
+  await launcher.click();expect(await page.evaluate(()=>window.__capturedStream)).toBeUndefined();await page.getByRole('button',{name:'Speak instead',exact:true}).click()
   const panel=page.getByRole('dialog',{name:'Fin — your office assistant'})
   await expect(panel.getByText('Listening…',{exact:true})).toBeVisible()
   await expect(panel.getByRole('button',{name:/Tap.*speak|Speak instead|Try microphone/})).toHaveCount(0)
@@ -56,11 +57,11 @@ for(const width of [320,390])test(`one mobile tap records real audio and submits
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   await panel.getByRole('button',{name:'Close',exact:true}).click()
   await dock.getByRole('button',{name:'More',exact:true}).click()
-  await page.getByRole('dialog',{name:'More navigation'}).getByRole('button',{name:'Customers',exact:true}).click()
+  await page.getByRole('dialog',{name:'More navigation'}).getByRole('link',{name:/^Customers/}).click()
   await expect(dock.getByRole('button',{name:'More',exact:true})).toHaveClass(/active/)
   const after=await launcher.boundingBox();expect(after).toEqual(button)
-  await dock.getByRole('button',{name:'More',exact:true}).click();await expect(page.getByRole('dialog',{name:'More navigation'})).toBeVisible()
-  await page.getByRole('button',{name:'Type to Fin',exact:true}).click();await expect(panel.getByRole('textbox',{name:'Describe your invoice or request'})).toBeEnabled();expect(uploads).toBe(1);await expect(panel.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
+
+  await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await expect(panel.getByRole('textbox',{name:'Describe your invoice or request'})).toBeEnabled();expect(uploads).toBe(1);await expect(panel.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
  }finally{await context.close()}
 })
 
@@ -70,7 +71,7 @@ test('cancel releases native audio tracks without uploading',async()=>{
   const page=await context.newPage();const state=await mock(page,{ai:true});let uploads=0
   await page.route('**/functions/v1/transcribe-voice',route=>{if(route.request().method()==='POST'&&!route.request().headers()['content-type']?.includes('application/json'))uploads++;return route.fulfill({status:200,headers:cors,json:{configured:true}})})
   await page.addInitScript(()=>{const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=async options=>{const stream=await original(options);window.__capturedStream=stream;return stream}})
-  await page.goto('http://127.0.0.1:4173/');await page.getByRole('button',{name:'Talk to Fin'}).click()
+  await page.goto('http://127.0.0.1:4173/');await openFinVoice(page)
   await page.getByRole('button',{name:'Cancel recording',exact:true}).click()
   await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toBeEnabled()
   expect(await page.evaluate(()=>window.__capturedStream.getTracks().every(t=>t.readyState==='ended'))).toBe(true)
