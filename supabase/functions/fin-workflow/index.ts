@@ -22,5 +22,5 @@ Deno.serve(workflowHandler({
    finish:(thread:string,request:string,reply:unknown)=>rpc('fin_finish_turn',{p_business:business,p_thread:thread,p_request:request,p_reply:reply}),
    reserve:()=>rpc('reserve_ai_provider_attempt',{p_business_id:business,p_kind:'command'})}
  },
- async complete(input,tools,instructions,schema,timeoutMs){return providerJson('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env('OPENAI_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-5-mini',reasoning:{effort:'low'},instructions,input,tools,parallel_tool_calls:false,store:false,max_output_tokens:6000,text:{format:{type:'json_schema',name:'fin_workflow',strict:true,schema}}})},{timeoutMs:timeoutMs||45000,maxBytes:1048576})}
+ async complete(input,tools,instructions,schema,timeoutMs){return providerJson('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env('OPENAI_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-6-luna',reasoning:{effort:'low'},instructions,input,tools,parallel_tool_calls:false,store:false,max_output_tokens:6000,text:{format:{type:'json_schema',name:'fin_workflow',strict:true,schema}}})},{timeoutMs:timeoutMs||45000,maxBytes:1048576})}
 }))
