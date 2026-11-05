@@ -32,7 +32,7 @@
   .record-list-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .record-list-pagination > span { color: #52677b; font-size: 12px; }
   .record-list-pagination > div { display: flex; gap: 8px; }
-  :is(.invoice-bottom-pagination, .estimate-bottom-pagination) { padding: 14px 16px; border: 1px solid #d8e2e8; border-radius: 15px; background: #fff; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) { padding: 14px 16px; border: 1px solid #d8e2e8; border-radius: 15px; background: #fff; }
 
   .module-record-list { display: grid; gap: 10px; min-width: 0; min-height: 0; overflow: visible; border: 0; background: transparent; }
   .module-record-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, auto) minmax(175px, auto); gap: 18px; align-items: center; min-width: 0; padding: 16px; border: 1px solid #d6e0e6; border-radius: 16px; background: #fff; box-shadow: 0 3px 12px #102c4b05; }
@@ -64,8 +64,15 @@
   .module-job-time strong { font-size: 14px; line-height: 1.25; font-variant-numeric: tabular-nums; }
   .module-job-time span { color: #627789; font-size: 10px; line-height: 1.35; }
   .module-job-copy { display: grid; gap: 4px; min-width: 0; }
-  .module-job-copy > .text-button { justify-self: start; padding: 0; color: #102c4b; font-size: 15px; line-height: 1.4; text-align: left; }
-  .module-job-copy > .text-button:hover { color: #006c5d; text-decoration: underline; text-underline-offset: 3px; }
+  .module-job-copy > .job-card-title { justify-self: start; padding: 0; color: #102c4b; font-size: 15px; line-height: 1.4; text-align: left; }
+  .job-status-followup { font-size: 11px; font-weight: 700; color: #9c261d; }
+  .job-details-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; margin-block: 18px; }
+  .job-details-summary dt { color: #627789; font-size: 12px; }
+  .job-details-summary dd { margin: 4px 0 0; color: #102c4b; overflow-wrap: anywhere; }
+  .job-details-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
+  .job-details-controls label { display: grid; gap: 6px; flex: 1 1 180px; }
+  .job-details-notes { display: grid; gap: 12px; margin-block: 20px; }
+  .job-details-notes > button { justify-self: start; }
   .module-job-copy > span { color: #52677b; font-size: 12px; line-height: 1.45; }
   .module-job-crew { color: #627789; font-size: 10px; line-height: 1.5; }
   .module-job-actions { display: grid; justify-items: stretch; gap: 9px; min-width: 0; }
@@ -130,8 +137,8 @@
   .workspace-module .record-list-controls { align-items: stretch; padding: 12px; }
   .workspace-module .record-list-controls > label { min-width: 100%; }
   .workspace-module .record-list-controls nav { justify-content: space-between; width: 100%; }
-  :is(.invoice-bottom-pagination, .estimate-bottom-pagination) { padding: 12px; }
-  :is(.invoice-bottom-pagination, .estimate-bottom-pagination) > div { flex: 1; justify-content: flex-end; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) { padding: 12px; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) > div { flex: 1; justify-content: flex-end; }
   .module-record-card { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 13px; border-radius: 14px; }
   .module-record-open strong { font-size: 14px; }
   .module-record-main > span { font-size: 11px; }
@@ -145,7 +152,7 @@
   .module-job-time { min-height: 58px; padding: 8px 6px; }
   .module-job-time strong { font-size: 12px; }
   .module-job-time span { font-size: 9px; }
-  .module-job-copy > .text-button { font-size: 14px; }
+  .module-job-copy > .job-card-title { font-size: 14px; }
   .module-job-actions { grid-template-columns: 1fr; gap: 7px; }
   .module-job-actions .job-row-actions { grid-column: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .module-job-actions .job-row-actions > button { min-height: 40px; font-size: 10px; }
