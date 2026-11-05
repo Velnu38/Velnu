@@ -10,16 +10,15 @@ export default function FinancialEntryDialog({business,onClose,onSaved}:{busines
  const [amount,setAmount]=useState(''),[category,setCategory]=useState('Materials & supplies'),[description,setDescription]=useState(''),[notes,setNotes]=useState('')
  const [entryDate,setEntryDate]=useState(()=>DateTime.now().setZone(business.timezone||'America/New_York').toISODate()!)
  const [busy,setBusy]=useState(false),[error,setError]=useState('')
- const inFlight=useRef(false),retry=useRef<{signature:string;id:string}|null>(null)
+ const inFlight=useRef(false),retry=useRef<string|null>(null)
  if(!canAccess(business,'finances'))return null
  async function saveManual(event:FormEvent) {
   event.preventDefault();if(inFlight.current||!direction)return
   inFlight.current=true;setBusy(true);setError('')
   try {
    const payload={business_id:business.id,direction,entry_date:entryDate,category,description,notes,amount:Number(amount)}
-   const signature=JSON.stringify(payload)
-   if(retry.current?.signature!==signature)retry.current={signature,id:crypto.randomUUID()}
-   await addManualEntry({...payload,id:retry.current.id})
+   retry.current ||= crypto.randomUUID()
+   await addManualEntry({...payload,id:retry.current})
   }catch(e){setError(e instanceof Error?e.message:'Unable to save entry.');inFlight.current=false;setBusy(false);return}
   inFlight.current=false;setBusy(false)
   onSaved(entryDate,direction)
