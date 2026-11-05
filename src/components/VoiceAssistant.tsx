@@ -1,3 +1,4 @@
+import {setAssistantWorking} from '../lib/assistantEntry'
 import {createVoicePauseDetector} from '../lib/voicePause'
 import {checkMicrophoneContext,describeMicrophoneFailure,startCompatibleRecorder,type MicrophoneFailure,type MicrophoneStage} from '../lib/microphone'
 import MicrophoneRecovery from './MicrophoneRecovery'
@@ -29,6 +30,7 @@ function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>void}){
 
 export default function VoiceAssistant({ business, onChanged }: { business: CurrentBusiness; onChanged: () => void }) {
   const [open, setOpen] = useState(false)
+  const [entryRevision,setEntryRevision]=useState(0)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [recording, setRecording] = useState(false)
@@ -84,10 +86,11 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     return()=>{active=false}
   },[business.id])
 
+  useEffect(()=>{setAssistantWorking(busy||recording);return()=>setAssistantWorking(false)},[busy,recording])
   useEffect(()=>{
-    const openEntry=(event:Event)=>{const text=(event as CustomEvent<{text?:string}>).detail?.text;if(typeof text!=="string"||text.length>2000)return;setOpen(true);setEntryMode('text');setError('');setText(text)}
+    const openEntry=(event:Event)=>{const incoming=(event as CustomEvent<{text?:string}>).detail?.text;if(typeof incoming!=="string"||incoming.length>2000)return;if(busy||recording)return;setOpen(true);setEntryRevision(v=>v+1);setEntryMode('text');setError('');if(!plan&&!text.trim())setText(incoming);else setVoiceStatus('Finish or clear the current request or review, then choose Ask Fin in the form again. Your entries are preserved.')}
     window.addEventListener('finviant-assistant-entry',openEntry);return()=>window.removeEventListener('finviant-assistant-entry',openEntry)
-  },[])
+  },[busy,recording,plan,text])
 
   useEffect(()=>{
     const openTyping=()=>{setEntryMode('text');setOpen(true)}
@@ -366,7 +369,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const browserDictationAvailable=typeof speechWindow.SpeechRecognition==='function'||typeof speechWindow.webkitSpeechRecognition==='function'
   return <>
     <div className="fin-launcher"><button type="button" className="voice-fab" onClick={openVoice} aria-label="Talk to Fin"><span className="fin-launcher-orb"><FinMark onDark/></span><span className="fin-launcher-caption">Ask <FinName onDark/><small>Tap to speak</small></span></button><button type="button" className="fin-type-entry" onClick={()=>{setEntryMode('text');setOpen(true)}}>Type to Fin</button></div>
-    {open && <FormDialog label="Fin — your office assistant" autoFocusFields={entryMode==='text'} cleanVersion={execution??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
+    {open && <FormDialog key={entryRevision} label="Fin — your office assistant" autoFocusFields={entryMode==='text'} cleanVersion={execution??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
       <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{plan?'Review your request':'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
       {plan&&<FinWorkflowReview plan={plan} timezone={business.timezone||'America/New_York'} busy={busy||recording} hasEdits={!!text.trim()} onConfirm={()=>void confirm()} onCancel={()=>void reject()} onEdit={()=>textAreaRef.current?.focus()}/>}
       {execution&&<section className="fin-execution" aria-label="Fin’s completed steps"><h3 ref={executionHeading} tabIndex={-1}>Saved to this account</h3><ul>{execution.steps.map((step,index)=><li key={index}>{step.label} — {step.status==='awaiting_send_review'?'Ready for delivery review; not sent':'Completed'}{recordHref(step.resource+':'+step.id)&&<a href={recordHref(step.resource+':'+step.id)!} onClick={()=>setOpen(false)}>Open record</a>}</li>)}</ul>{execution.steps.filter((step,index,all)=>['invoices','estimates','change_orders'].includes(step.resource)&&all.map(other=>other.id).lastIndexOf(step.id)===index&&step.operation!=='void_invoice'&&step.operation!=='record_payment').map(step=><CreatedDocumentDelivery key={step.id} business={business} kind={step.resource==='invoices'?'invoice':step.resource==='estimates'?'estimate':'change_order'} documentId={step.id} onChanged={onChanged} onBusyChange={setBusy}/>)}</section>}
