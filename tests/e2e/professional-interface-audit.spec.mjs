@@ -75,9 +75,10 @@ for(const width of [1440,390])test(`workspace route and button audit at ${width}
   await page.screenshot({path:`test-results/audit-workspace-${view}-${width}.png`,fullPage:true})
  }
 })
-for(const width of [1440,390])for(const kind of ['invoice','estimate','job'])test(`dashboard opens ${kind} creation in one click without reloading at ${width}px`,async({page})=>{
+for(const width of [1440,390])for(const kind of ['invoice','estimate','job'])test(`dashboard opens ${kind} creation from the Home chooser without reloading at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page);await page.goto('/');await expect(page.getByRole('region',{name:'Work calendar'})).toBeVisible()
  const origin=await page.evaluate(()=>performance.timeOrigin)
+ await page.getByRole('button',{name:'Create new',exact:true}).click()
  await page.getByRole('navigation',{name:'Create work'}).getByRole('link',{name:'+ New '+kind,exact:true}).click()
  await expect(page.getByRole('dialog')).toBeVisible()
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin)

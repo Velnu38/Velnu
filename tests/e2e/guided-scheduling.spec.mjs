@@ -116,8 +116,8 @@ for(const width of [1440,390])test(`dashboard tiles share surfaces and typograph
   return {background:style.backgroundColor,border:style.borderColor,borderWidth:style.borderWidth,radius:style.borderRadius,font:style.fontFamily,titleFont:title.fontFamily,titleSize:title.fontSize,titleWeight:title.fontWeight,titleColor:title.color}
  }))
  for(const tile of appearance)expect(tile).toEqual(appearance[0])
- const values=await page.locator('.billing-summary strong,.performance-metric strong,.jobs-active-count').evaluateAll(items=>items.map(item=>{const style=getComputedStyle(item);return [style.fontFamily,style.fontSize,style.fontWeight,style.color,item.closest('.has-attention')!==null]}))
- for(const value of values){expect(value.slice(0,3)).toEqual(values[0].slice(0,3));expect(value[3]).toBe(value[4]?'rgb(180, 35, 24)':values[0][3])}
+ const values=await page.locator('.billing-summary strong,.performance-metric strong,.jobs-active-count').evaluateAll(items=>items.map(item=>{const style=getComputedStyle(item);return [style.fontFamily,style.fontSize,style.fontWeight,style.color,item.closest('.has-attention')!==null,!!item.closest('.performance-metric.income,.performance-metric.all')]}))
+ for(const value of values){expect(value.slice(0,3)).toEqual(values[0].slice(0,3));expect(value[3]).toBe(value[4]?'rgb(180, 35, 24)':value[5]?'rgb(0, 122, 101)':'rgb(16, 44, 75)')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/uniform-dashboard-${width}.png`,fullPage:true})
 })

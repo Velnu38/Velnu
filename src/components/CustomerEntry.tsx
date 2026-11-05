@@ -13,12 +13,13 @@ export default function CustomerEntry({customers,value,draft,onChange,onDraft,di
   const selected=customers.find(c=>c.id===value)
   const matches=draft.name.trim()?customers.filter(c=>name(c).toLowerCase().includes(draft.name.trim().toLowerCase())).slice(0,5):[]
   return <fieldset className="customer-entry full" disabled={disabled}><legend>Customer</legend>
+    {customers.length>0&&<label className="saved-customer-choice">Saved customer<select aria-label="Customer" value={value} onChange={e=>onChange(e.target.value)}><option value="">Choose an existing customer or enter a new one below</option>{customers.map(c=><option key={c.id} value={c.id}>{name(c)}</option>)}</select></label>}
     <label>Customer name<input aria-label="Customer name" readOnly={!!value} required={!value&&!draft.company?.trim()} autoComplete="name" maxLength={160} value={selected?name(selected):draft.name} placeholder="Type a new name or choose a saved customer" onChange={e=>{onChange('');onDraft({...draft,name:e.target.value})}}/></label>
     {value&&<button type="button" className="text-button" onClick={()=>{onChange('');onDraft(emptyCustomerDraft())}}>Use a new customer instead</button>}
     {!value&&<label>Company (if applicable)<input value={draft.company||''} maxLength={160} onChange={e=>onDraft({...draft,company:e.target.value})}/></label>}
     {!value&&matches.length>0&&<div className="customer-matches" aria-label="Matching saved customers">{matches.map(c=><button key={c.id} type="button" className="text-button" onClick={()=>onChange(c.id)}>Use {name(c)}</button>)}</div>}
     {!value&&<details><summary>Add email or phone (optional)</summary><div className="form-grid"><label>Customer email<input type="email" autoComplete="email" maxLength={254} value={draft.email} onChange={e=>onDraft({...draft,email:e.target.value})}/></label><label>Customer phone<input type="tel" autoComplete="tel" maxLength={40} value={draft.phone} onChange={e=>onDraft({...draft,phone:e.target.value})}/></label></div></details>}
-    {customers.length>0&&<details open={!!value}><summary>Choose from saved customers</summary><label>Saved customer<select aria-label="Customer" value={value} onChange={e=>onChange(e.target.value)}><option value="">Enter a new customer above</option>{customers.map(c=><option key={c.id} value={c.id}>{name(c)}</option>)}</select></label></details>}
+
     {!value&&<p className="quiet">New customer details are saved with this document.</p>}
   </fieldset>
 }

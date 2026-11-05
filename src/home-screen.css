@@ -1,0 +1,166 @@
+/* Finviant workspace: original Speech F branding, compact cards, clear navigation. */
+@media screen {
+  .finviant-workspace {
+    --ink: #102c4b;
+    --accent: #008673;
+    --accent-dark: #006c5d;
+    --line: #d9e2ea;
+    background: #f4f6fa;
+  }
+  .finviant-workspace .workspace-inner {
+    --control-accent: #008673;
+    --control-border: #d1dde6;
+    padding-top: 28px;
+  }
+  .finviant-workspace .workspace-inner .primary-button { background: #008673; }
+  .finviant-workspace .workspace-inner .primary-button:hover:not(:disabled) { background: #006c5d; }
+  .finviant-workspace .workspace-inner .secondary-button { color: #006c5d; background: #f4faf8; }
+  .finviant-workspace .workspace-inner .attention-action,
+  .finviant-workspace .workspace .workspace-inner .primary-button.attention-action { background: #008673; border-color: #008673; }
+  .finviant-workspace .sidebar { background: #fff; }
+  .finviant-workspace .sidebar nav { gap: 3px; }
+  .finviant-workspace .sidebar nav button { min-height: 46px; font-size: 13px; }
+  .finviant-workspace .sidebar nav button.active { color: #006c5d; background: #e5f5ef; }
+  .finviant-workspace .nav-icon { background: transparent; width: 28px; height: 28px; }
+  .finviant-workspace .nav-icon svg { width: 21px; height: 21px; }
+  .finviant-workspace .topbar { min-height: 82px; height: auto; gap: 18px; padding-block: 10px; }
+  .finviant-workspace .topbar-business { margin-right: auto; }
+  .workspace-assistant:empty { display: none; }
+  .workspace-assistant .fin-launcher { position: static; max-width: none; flex-direction: row; gap: 10px; }
+  .workspace-assistant .fin-launcher > .voice-fab {
+    width: auto; min-height: 58px; height: auto; padding: 5px 12px 5px 5px;
+    flex-direction: row; gap: 8px; border-radius: 16px; box-shadow: none;
+  }
+  .workspace-assistant .fin-launcher-orb { width: 44px; height: 44px; min-width: 44px; padding: 7px; border: 0; }
+  .workspace-assistant .fin-launcher > .voice-fab > .fin-launcher-caption { display: flex; font-size: 13px; max-width: 85px; }
+  .workspace-assistant .fin-launcher-caption small { font-size: 10px; }
+  .workspace-assistant .fin-type-entry { box-shadow: none; min-height: 44px; }
+  .finviant-workspace .private-beta-notice-compact { font-size: 11px; padding: 9px 12px; margin: 10px 0 0; }
+  .finviant-workspace .private-beta-notice-compact strong { margin-bottom: 3px; }
+  .finviant-workspace .private-testing-app { max-width: 1450px; margin: 0 auto; padding-inline: clamp(22px,4vw,54px); }
+  .finviant-workspace .dashboard-page {
+    --tile-border: #d1dde6; --tile-ink: #102c4b; --tile-muted: #52677b;
+    --tile-soft: #f6f9fb; --tile-accent: #008673; --tile-title-size: 22px; --tile-value-size: 24px;
+    gap: 22px;
+  }
+  .dashboard-page .home-eyebrow { margin: 0 0 5px; font-size: 11px; color: #52677b; letter-spacing: .09em; text-transform: uppercase; font-weight: 650; }
+  .dashboard-page .home-intro { font-size: 14px; color: #52677b; margin: 8px 0 0; font-weight: 400; }
+  .home-overview { display: grid; gap: 22px; min-width: 0; align-items: start; }
+  .home-overview > * { min-width: 0; }
+  .home-overview:empty { display: none; }
+  .dashboard-page .dashboard-tile { border-radius: 20px; box-shadow: 0 3px 12px #102c4b05; }
+  .dashboard-page .performance-compact .performance-heading { flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 8px; }
+  .dashboard-page .performance-compact .performance-heading .eyebrow { display: none; }
+  .dashboard-page .performance-compact .financial-range { display: flex; width: 100%; border-radius: 11px; border: 1px solid #d1dde6; padding: 3px; background: #f5f7fa; }
+  .dashboard-page .performance-compact .financial-range button { flex: 1; min-height: 40px; font-size: 14px; color: #52677b; border: 0; box-shadow: none; }
+  .dashboard-page .performance-compact .financial-range button span { font-size: inherit; }
+  .dashboard-page .performance-compact .financial-range button[aria-pressed=true] { background: #008673; color: white; }
+  .dashboard-page .performance-compact .performance-metrics { display: grid; grid-template-columns: minmax(0,1fr); gap: 0; padding-bottom: 4px; }
+  .dashboard-page .performance-compact .performance-metric {
+    display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 3px 12px;
+    padding: 13px 0; min-height: 62px; background: transparent; border: 0;
+    border-radius: 0; border-bottom: 1px solid #e4eaf0; box-shadow: none; transform: none;
+  }
+  .dashboard-page .performance-compact .performance-metric:last-child { border-bottom: 0; }
+  .dashboard-page .performance-compact .performance-metric > span { grid-column: 1; font-size: 15px; color: #102c4b; justify-content: start; gap: 10px; }
+  .dashboard-page .performance-compact .performance-metric > strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: var(--tile-value-size); color: #007a65; }
+  .dashboard-page .performance-compact .performance-metric.expense > strong { color: #102c4b; }
+  .dashboard-page .performance-compact .performance-metric > small { grid-column: 1; font-size: 11px; color: #52677b; justify-content: start; gap: 8px; }
+  .dashboard-page .performance-compact .performance-metric:hover:not(:disabled),
+  .dashboard-page .performance-compact .performance-metric[aria-expanded=true] { background: #f0faf6; }
+  .dashboard-page .performance-compact .performance-scope { padding-top: 6px; }
+  .dashboard-page .performance-compact .performance-loading,
+  .dashboard-page .performance-compact .performance-unavailable { min-height: 72px; padding: 14px 24px; }
+  .home-financial-trend { border-top: 1px solid #e4eaf0; }
+  .home-financial-trend > summary { cursor: pointer; padding: 13px 24px; min-height: 44px; color: #006c5d; font-size: 12px; font-weight: 650; }
+  .dashboard-page .performance-compact .performance-footer { flex-wrap: wrap; gap: 4px; padding-block: 10px; }
+  .dashboard-page .performance-compact .performance-footer p { font-size: 10px; }
+  .dashboard-page .performance-compact .performance-footer button { min-height: 36px; color: #006c5d; white-space: normal; text-align: left; }
+  .home-create { display: flex; }
+  .dashboard-page .home-create-button { width: 100%; min-height: 54px; font-size: 16px; border-radius: 15px; }
+  .home-create-button > span { font-size: 26px; line-height: 1; }
+  .home-create-options { display: grid; gap: 10px; }
+  .home-create-options > :is(a,button) { display: flex; width: 100%; align-items: center; gap: 16px; padding: 16px; background: #f8fafb; color: #102c4b; text-align: left; text-decoration: none; border: 1px solid #d1dde6; border-radius: 13px; min-height: 76px; }
+  .home-create-options > :is(a,button):hover { background: #edf9f4; border-color: #008673; }
+  .home-create-options svg { color: #007a65; flex-shrink: 0; }
+  .home-create-options > :is(a,button) > span:nth-child(2) { display: grid; gap: 5px; flex: 1; }
+  .home-create-options strong { font-size: 16px; }
+  .home-create-options small { font-size: 12px; color: #52677b; font-weight: 400; }
+  .dashboard-page .calendar-heading .eyebrow { display: none; }
+  .dashboard-page .calendar-heading-actions .view-switch button { min-height: 40px; }
+  .dashboard-page .view-switch button[aria-pressed=true] { background: #008673; color: #fff; }
+  .dashboard-page .calendar-day[aria-pressed=true] { color: white; border-color: #008673; background: #008673; }
+  .dashboard-page .calendar-day[aria-pressed=true] .calendar-weekday { color: white; }
+  .dashboard-page .calendar-day { min-height: 72px; }
+  .dashboard-page .calendar-event { background: #f5faf8; border: 1px solid #d9e7e2; color: #102c4b; }
+  .dashboard-page .calendar-event:hover { background: #e8f6ef; }
+  .dashboard-page .calendar-event strong { font-size: 14px; }
+  .dashboard-page .calendar-event time { font-size: 12px; }
+  .dashboard-page .calendar-event small { font-size: 12px; }
+  .dashboard-page .calendar-list-heading h3 { font-size: 12px; }
+  .dashboard-page .worker-select { font-size: 12px; }
+  .dashboard-page .worker-select small { font-size: 11px; font-weight: 400; line-height: 1.5; }
+  .finviant-workspace .mobile-more-sheet { padding: 0; box-shadow: none; border-radius: 0; }
+  .finviant-workspace .mobile-more-grid button { color: #102c4b; min-height: 64px; }
+  .finviant-workspace .mobile-more-grid button.active { color: #006c5d; }
+  .finviant-workspace :is(button,a,input,select,textarea,summary):focus-visible { outline: 2px solid #008673; outline-offset: 3px; }
+  @media(min-width:1200px) {
+    .home-overview:has(> :nth-child(2)) { grid-template-columns: minmax(0,1fr) minmax(0,1.35fr); }
+    .home-overview > .performance-compact:has(.financial-transactions) { grid-column: 1 / -1; }
+    .home-overview:has(.financial-transactions) > .dashboard-calendar { grid-column: 1 / -1; }
+    .home-create { justify-content: flex-end; }
+    .dashboard-page .home-create-button { width: min(100%,360px); }
+  }
+  @media(max-width:900px) {
+    .finviant-workspace .workspace-inner { padding: 24px 16px calc(105px + env(safe-area-inset-bottom)); }
+    .finviant-workspace .private-testing-app { padding-inline: 16px; }
+    .finviant-workspace .topbar { padding: 10px 16px; gap: 8px; }
+    .finviant-workspace .topbar-business { display: none; }
+    .finviant-workspace .workspace-assistant { margin-left: auto; }
+    .workspace-assistant .fin-type-entry { display: none; }
+    .finviant-workspace .mobile-nav { display: grid; gap: 2px; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); border-top: 1px solid #d9e2ea; }
+    .finviant-workspace .mobile-nav > .mobile-destination { min-height: 58px; gap: 5px; border-radius: 12px; }
+    .finviant-workspace .mobile-nav > .mobile-destination small { font-size: 11px; }
+    .finviant-workspace .mobile-nav > .mobile-destination.active { color: #007a65; background: #e9f8f2; }
+    .finviant-workspace .mobile-more-grid { grid-template-columns: 1fr 1fr; }
+    .finviant-workspace .mobile-more-grid button { display: flex; text-align: left; padding: 10px; gap: 10px; }
+    .finviant-workspace .mobile-more-grid button strong { font-size: 12px; }
+    .finviant-workspace .mobile-more-account { flex-wrap: wrap; font-size: 12px; line-height: 1.5; }
+    .finviant-workspace .mobile-more-account > div { width: 100%; }
+  }
+  @media(max-width:650px) {
+    .finviant-workspace .dashboard-page { gap: 16px; --tile-title-size: 20px; --tile-value-size: 20px; }
+    .dashboard-page .dashboard-business-identity h1 { font-size: 27px; }
+    .dashboard-page .dashboard-business-header { flex-direction: row; gap: 10px; }
+    .dashboard-page .dashboard-business-header > button { min-width: 44px; padding-inline: 10px; }
+    .dashboard-page .home-eyebrow { font-size: 10px; }
+    .dashboard-page .home-intro { font-size: 13px; }
+    .dashboard-page .performance-compact .performance-heading { gap: 12px; }
+    .dashboard-page .performance-compact .performance-metric > strong { font-size: var(--tile-value-size); }
+    .home-financial-trend > summary { padding-inline: 16px; }
+    .dashboard-page .calendar-heading-actions { width: auto; flex-wrap: wrap; }
+    .dashboard-page .calendar-agenda-columns { gap: 16px; }
+    .finviant-workspace .workspace-inner .dashboard-calendar > .worker-select { margin-inline: 16px; }
+    .dashboard-page .calendar-day-count { font-size: 10px; }
+    .dashboard-page .calendar-weekday { font-size: 11px; }
+  }
+  @media(max-width:360px) {
+    .finviant-workspace .topbar { padding-inline: 12px; }
+    .workspace-assistant .fin-launcher > .voice-fab { padding-right: 7px; gap: 4px; }
+    .workspace-assistant .fin-launcher > .voice-fab > .fin-launcher-caption { font-size: 12px; }
+    .finviant-workspace .mobile-brand .fin-wordmark { font-size: 23px; }
+    .finviant-workspace .mobile-more-grid { grid-template-columns: 1fr; }
+    .dashboard-page .performance-compact .performance-metric > strong { font-size: var(--tile-value-size); }
+  }
+}
+@media screen {
+  .dashboard-page .performance-compact .performance-footer { align-items: center; justify-content: space-between; }
+  .performance-explanation { font-size: 11px; color: #52677b; max-width: 100%; }
+  .performance-explanation > summary { cursor: pointer; min-height: 36px; align-content: center; }
+  .performance-explanation[open] { flex-basis: 100%; }
+  .dashboard-page .performance-compact .performance-footer .performance-explanation p { margin: 4px 0 8px; }
+}
+@media screen {
+  .finviant-workspace .saved-customer-choice { padding-bottom: 12px; border-bottom: 1px solid #d9e2ea; margin-bottom: 4px; }
+  .finviant-workspace .saved-customer-choice select { border-color: #8fbbb0; background: #f4fbf8; }
+}

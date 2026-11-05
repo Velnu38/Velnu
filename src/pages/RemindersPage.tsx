@@ -19,7 +19,7 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [success, setSuccess] = useState('')
-  const [showForm, setShowForm] = useState(!!initialJob && canWrite(business.role))
+  const [showForm, setShowForm] = useState((!!initialJob || new URLSearchParams(location.search).get('new') === '1') && canWrite(business.role))
   const [form, setForm] = useState({ note: '', due: '', jobId: initialJob?.id || '' })
   const [jobs, setJobs] = useState<ReminderJob[]>(initialJob ? [initialJob] : [])
   const [jobsLoading, setJobsLoading] = useState(false)

@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: { allowedHosts: ['terminal.local'] },
   build: {
     rollupOptions: {
       // The isolated invoice regression page is included only in local browser-test builds.

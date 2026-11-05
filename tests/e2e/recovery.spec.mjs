@@ -88,6 +88,7 @@ test('recorded payment is described as a payment, not a newly created invoice',a
 })
 test('job creation preserves request identity after a lost response',async({page})=>{
  const s=await setup(page,{jobLost:true})
+ await page.getByRole('button',{name:'Create new',exact:true}).click()
  await page.getByRole('link',{name:'+ New job',exact:true}).click()
  await page.getByRole('combobox',{name:'Customer',exact:true}).selectOption(C)
  await page.getByLabel('Job title',{exact:true}).fill('Recovery demonstration')

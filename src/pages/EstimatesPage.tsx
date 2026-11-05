@@ -210,13 +210,13 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   if (showChangeOrders && previewTarget && offersDocumentChangeOrders('estimate', previewTarget.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType: 'estimate', documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id }} onBack={() => setShowChangeOrders(false)} /></Suspense>
 
   return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div></div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}>Create estimate</button>}</div>
     {notice && !previewTarget && <p className="form-message success-text">{notice}</p>}
     {error && !previewTarget && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <CustomerRecordScope customerId={customerScope} customers={customers} view="estimates"/>
     <RecordListControls label="estimates" list={recordList} />
     <section className="list-card" hidden={!!previewTarget}>
-      {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Use New estimate at the top of the dashboard to create your first estimate.</p></div> : recordList.visible.map((estimate) => {
+      {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Select Create estimate to prepare your first estimate.</p></div> : recordList.visible.map((estimate) => {
         const customer = estimate.customers?.[0]
         return <article className="document-row" key={estimate.id}>
           <button type="button" className="row-main estimate-document-open" disabled={previewBusy} onClick={() => openPreview(estimate)}><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span><CreatedStamp value={estimate.created_at} timezone={business.timezone}/></button>
