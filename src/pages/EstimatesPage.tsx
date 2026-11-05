@@ -11,7 +11,7 @@ import FormDialog from '../components/FormDialog'
 import DocumentChangeOrderButton from '../components/DocumentChangeOrderButton'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
-import RecordListControls, { useRecordList } from '../components/RecordListControls'
+import RecordListControls, { RecordListPagination, useRecordList } from '../components/RecordListControls'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import { getDocumentSettings } from '../services/settings'
 import { RecordResourcesDialog } from '../components/RecordResources'
@@ -226,6 +226,14 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const approvedEstimates = estimates.filter(estimate => ['accepted', 'converted'].includes(estimate.status))
   const pipelineEstimates = estimates.filter(estimate => ['draft', 'sent', 'viewed'].includes(estimate.status))
   function chooseFilter(filter: EstimateFilter) { setStatusFilter(filter); recordList.setPage(0) }
+  const emptyFilterMessage = {
+    all: 'No estimates in this view.',
+    pipeline: 'No draft or sent estimates in this view.',
+    draft: 'No draft estimates in this view.',
+    sent: 'No estimates are awaiting customer approval.',
+    approved: 'No approved estimates in this view.',
+    declined: 'No declined or expired estimates in this view.',
+  }[statusFilter]
 
   if (showChangeOrders && previewTarget && offersDocumentChangeOrders('estimate', previewTarget.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType: 'estimate', documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id }} onBack={() => setShowChangeOrders(false)} /></Suspense>
 
@@ -237,12 +245,12 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     <section className="module-summary-grid" aria-label="Estimate summary">
       <button type="button" className="module-summary-card module-summary-card-approval" aria-pressed={statusFilter === 'sent'} onClick={() => chooseFilter('sent')}><span>Awaiting Customer Approval</span><strong>{awaitingApproval.length}</strong><small>{awaitingApproval.length === 1 ? 'estimate' : 'estimates'} sent to customers</small></button>
       <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'approved'} onClick={() => chooseFilter('approved')}><span>Approved</span><strong>{approvedEstimates.length}</strong><small>{approvedEstimates.length === 1 ? 'estimate' : 'estimates'} accepted or invoiced</small></button>
-      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'pipeline'} onClick={() => chooseFilter('pipeline')}><span>Pipeline</span><strong>{estimateMoney.format(pipelineEstimates.reduce((sum, estimate) => sum + Number(estimate.total || 0), 0))}</strong><small>{pipelineEstimates.length} draft and sent {pipelineEstimates.length === 1 ? 'estimate' : 'estimates'}</small></button>
+      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'pipeline'} onClick={() => chooseFilter('pipeline')}><span>Pending Estimate Value</span><strong>{estimateMoney.format(pipelineEstimates.reduce((sum, estimate) => sum + Number(estimate.total || 0), 0))}</strong><small>{pipelineEstimates.length} draft and sent {pipelineEstimates.length === 1 ? 'estimate' : 'estimates'}</small></button>
     </section>
     <nav className="module-status-filters" aria-label="Filter estimates">
-      {([['all','All',estimates.length],['pipeline','Pipeline',pipelineEstimates.length],['draft','Draft',estimates.filter(row=>row.status==='draft').length],['sent','Sent',awaitingApproval.length],['approved','Approved',approvedEstimates.length],['declined','Declined',estimates.filter(row=>['declined','expired'].includes(row.status)).length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
+      {([['all','All',estimates.length],['draft','Draft',estimates.filter(row=>row.status==='draft').length],['declined','Declined / Expired',estimates.filter(row=>['declined','expired'].includes(row.status)).length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
     </nav>
-    <RecordListControls label="estimates" list={recordList} />
+    <RecordListControls label="estimates" list={recordList} showPagination={false} />
     <section className="module-record-list" aria-label="Estimates" hidden={!!previewTarget}>
       {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Select Create estimate to prepare your first estimate.</p></div> : recordList.visible.map((estimate) => {
         const customer = estimate.customers?.[0]
@@ -253,8 +261,9 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <div className="module-record-actions"><span className={`module-record-status ${['accepted','converted'].includes(estimate.status) ? 'is-positive' : ['sent','viewed'].includes(estimate.status) ? 'is-pending' : ''}`}>{currentStatus}</span><button type="button" className="primary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Open estimate</button>{canManageFinances(business.role)&&['accepted'].includes(estimate.status)&&!estimate.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" className="secondary-button compact" onClick={()=>setScheduleTarget(estimate)}>Schedule job</button>}<button type="button" className="secondary-button compact" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button></div>
         </article>
       })}
-      {estimates.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>No {statusFilter === 'all' ? '' : `${statusFilter} `}estimates in this view.</strong><span>Choose another status or view all estimates.</span></div>}
+      {estimates.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>{emptyFilterMessage}</strong><span>Choose another status or view all estimates.</span></div>}
     </section>
+    {!previewTarget && <RecordListPagination label="estimates" list={recordList} className="estimate-bottom-pagination" />}
     {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
     {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} onClose={() => setResourceEstimate(null)} />}
     {showForm && <FormDialog label="Create an estimate" busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
