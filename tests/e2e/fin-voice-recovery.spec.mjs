@@ -1,3 +1,4 @@
+import {openFinVoice} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import {mock,U} from './audit-fixture.mjs'
 
@@ -32,13 +33,13 @@ async function setup(page,{pending=false,denied=false,permissionPending=false}={
 }
 const input=page=>page.getByRole('textbox',{name:'Describe your invoice or request'})
 
-test('the caption starts recording immediately despite stalled preflight; a spoken question and follow-up receive answers',async({page})=>{
+test('the speaking control starts recording immediately despite stalled preflight; a spoken question and follow-up receive answers',async({page})=>{
  await page.setViewportSize({width:390,height:844});await setup(page,{pending:true});const requests=[]
  await page.route('**/functions/v1/fin-workflow',route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   requests.push(route.request().postDataJSON());return route.fulfill({status:200,headers:cors,json:answer})
  })
- await page.goto('/');await page.locator('.fin-launcher-caption').click()
+ await page.goto('/');await openFinVoice(page)
  await expect(page.getByRole('button',{name:'Finish recording',exact:true})).toBeVisible()
  expect(await page.evaluate(()=>window.__mic)).toEqual({calls:1,gesture:true,stops:0})
  await page.getByRole('button',{name:'Finish recording',exact:true}).click()
@@ -56,23 +57,23 @@ test('typing opens without microphone access and a pending answer has a visible 
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   reply=()=>route.fulfill({status:200,headers:cors,json:answer})
  })
- await page.goto('/');await page.getByRole('button',{name:'Type to Fin',exact:true}).click()
+ await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
  expect(await page.evaluate(()=>window.__mic.calls)).toBe(0)
- await input(page).fill('What services do I offer?');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await input(page).fill('What services do I offer?');await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click()
  await expect(page.getByRole('status').filter({hasText:'Fin is checking your account'})).toBeVisible()
  await expect.poll(()=>Boolean(reply)).toBe(true);await reply()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
 })
 
 test('denied microphone permission leaves typing available',async({page})=>{
- await setup(page,{denied:true});await page.goto('/');await page.getByRole('button',{name:'Talk to Fin'}).click()
+ await setup(page,{denied:true});await page.goto('/');await openFinVoice(page)
  await expect(page.getByRole('alert')).toContainText('Microphone access was blocked')
  await expect(input(page)).toBeEnabled();await input(page).fill('What services do I offer?')
- await expect(page.getByRole('button',{name:'Ask Fin',exact:true})).toBeEnabled()
+ await expect(page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true})).toBeEnabled()
 })
 
 test('late microphone permission is cleaned up after the permission deadline',async({page})=>{
- await setup(page,{permissionPending:true});await page.clock.install();await page.goto('/');await page.getByRole('button',{name:'Talk to Fin'}).click()
+ await setup(page,{permissionPending:true});await page.clock.install();await page.goto('/');await openFinVoice(page)
  await expect.poll(()=>page.evaluate(()=>window.__mic.calls)).toBe(1)
  await page.clock.runFor(15010);await expect(page.getByRole('alert')).toContainText('Microphone permission is still pending')
  await expect(input(page)).toBeEnabled();await page.evaluate(()=>window.__allowMic())
@@ -81,7 +82,7 @@ test('late microphone permission is cleaned up after the permission deadline',as
 })
 
 test('recorder failure stops tracks and unlocks the panel',async({page})=>{
- await setup(page);await page.goto('/');await page.getByRole('button',{name:'Talk to Fin'}).click()
+ await setup(page);await page.goto('/');await openFinVoice(page)
  await expect(page.getByRole('button',{name:'Finish recording'})).toBeVisible();await page.evaluate(()=>window.__recorder.onerror())
  await expect(page.getByRole('alert')).toContainText('could not record usable audio');await expect(input(page)).toBeEnabled()
  expect(await page.evaluate(()=>window.__mic.stops)).toBe(1)
@@ -99,14 +100,14 @@ test('a rejected session refreshes once and retries the question with the renewe
   expect(route.request().headers().authorization).toBe('Bearer '+token)
   return route.fulfill({status:200,headers:cors,json:answer})
  })
- await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await input(page).fill('What services do I offer?');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await input(page).fill('What services do I offer?');await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1);expect(refreshes).toBe(1);expect(calls).toBe(2)
 })
 
 test('a stalled answer releases the controls and preserves the question without replaying it',async({page})=>{
  await setup(page);let calls=0
  await page.route('**/functions/v1/fin-workflow',route=>{if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});calls++})
- await page.clock.install();await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click();await input(page).fill('What services do I offer?');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await page.clock.install();await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await input(page).fill('What services do I offer?');await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click()
  await expect.poll(()=>calls).toBe(1);await page.clock.runFor(150010)
  await expect(page.getByRole('alert')).toContainText('Fin took too long');await expect(input(page)).toHaveValue('What services do I offer?');await expect(input(page)).toBeEnabled();expect(calls).toBe(1)
 })
@@ -116,7 +117,7 @@ test('browser dictation releases controls if its end event is missing',async({pa
  await mock(page,{ai:true});await page.addInitScript(()=>{
   window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){}}
  })
- await page.clock.install();await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click()
+ await page.clock.install();await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
  await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click()
  await page.clock.runFor(3010);await expect(input(page)).toBeEnabled();await expect(page.getByRole('alert')).toContainText('No text detected')
 })
@@ -125,8 +126,8 @@ test('a malformed command response leaves the request editable without executing
  await setup(page);let executions=0
  await page.route('**/functions/v1/fin-workflow',route=>route.fulfill({status:200,headers:cors,json:[]}))
  await page.route('**/functions/v1/execute-ai-action',route=>{executions++;return route.fulfill({status:200,headers:cors,json:{}})})
- await page.goto('/');await page.getByRole('button',{name:'Type to Fin'}).click()
- await input(page).fill('Create a customer named Bob Smith');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await input(page).fill('Create a customer named Bob Smith');await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click()
  await expect(page.getByRole('alert')).toContainText('complete response')
  await expect(input(page)).toHaveValue('Create a customer named Bob Smith');await expect(input(page)).toBeEnabled();expect(executions).toBe(0)
 })

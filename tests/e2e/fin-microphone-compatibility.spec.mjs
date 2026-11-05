@@ -1,3 +1,4 @@
+import {openFinVoice} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import {mock} from './audit-fixture.mjs'
 
@@ -53,7 +54,7 @@ async function setup(page,options={}){
 }
 
 test('native phone encoder is tried first and microphone constraints stay simple',async({page})=>{
- const requests=await setup(page);await page.getByRole('button',{name:'Talk to Fin'}).click()
+ const requests=await setup(page);await openFinVoice(page)
  await expect(page.getByRole('button',{name:'Finish recording'})).toBeVisible()
  expect(await page.evaluate(()=>window.__mic.attempts)).toEqual(['native'])
  expect(await page.evaluate(()=>window.__mic.constraints)).toEqual({audio:true})
@@ -65,7 +66,7 @@ test('native phone encoder is tried first and microphone constraints stay simple
 })
 
 test('constructor and start failures try compatible formats without another microphone request',async({page})=>{
- const requests=await setup(page,{defaultFails:true,webmStartFails:true});await page.getByRole('button',{name:'Talk to Fin'}).click()
+ const requests=await setup(page,{defaultFails:true,webmStartFails:true});await openFinVoice(page)
  await expect(page.getByRole('button',{name:'Finish recording'})).toBeVisible()
  expect(await page.evaluate(()=>window.__mic.attempts)).toEqual(['native','audio/webm;codecs=opus','audio/mp4'])
  expect(await page.evaluate(()=>window.__mic.calls)).toBe(1);expect(await page.evaluate(()=>window.__mic.stops)).toBe(0)
@@ -74,7 +75,7 @@ test('constructor and start failures try compatible formats without another micr
 })
 
 test('recording failure offers explicit browser dictation and keeps that choice after preflight',async({page})=>{
- const requests=await setup(page,{allFail:true,pendingStatus:true});await page.getByRole('button',{name:'Talk to Fin'}).click()
+ const requests=await setup(page,{allFail:true,pendingStatus:true});await openFinVoice(page)
  const help=page.getByRole('region',{name:'Microphone help'})
  await expect(help.getByRole('alert')).toContainText('Microphone access was granted')
  await expect(page.getByRole('button',{name:'Retry microphone',exact:true})).toHaveCount(1)
@@ -89,7 +90,7 @@ test('recording failure offers explicit browser dictation and keeps that choice 
 })
 
 test('iPhone denial shows actionable site permission steps and can recover in place',async({page})=>{
- const requests=await setup(page,{deviceError:'NotAllowedError',ios:true});await page.getByRole('button',{name:'Talk to Fin'}).click()
+ const requests=await setup(page,{deviceError:'NotAllowedError',ios:true});await openFinVoice(page)
  const help=page.getByRole('region',{name:'Microphone help'});await expect(help).toContainText('Website Settings → Microphone → Allow')
  await expect(help.getByRole('button',{name:'Use browser dictation'})).toHaveCount(0)
  await help.getByText('Microphone error details',{exact:true}).click();await expect(help).toContainText('Microphone access · NotAllowedError')
@@ -101,34 +102,34 @@ test('iPhone denial shows actionable site permission steps and can recover in pl
 })
 
 test('blocked microphone offers focused typing and never bypasses permission with dictation',async({page})=>{
- const requests=await setup(page,{deviceError:'NotAllowedError'});await page.getByRole('button',{name:'Talk to Fin'}).click()
+ const requests=await setup(page,{deviceError:'NotAllowedError'});await openFinVoice(page)
  await page.getByRole('button',{name:'Type instead'}).click();await expect(input(page)).toBeFocused()
- await input(page).fill('What services do I offer?');await page.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await input(page).fill('What services do I offer?');await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
  expect(await page.evaluate(()=>window.__mic.speechStarts)).toBe(0);expect(requests.uploads).toHaveLength(0)
 })
 
 test('a busy device has different guidance from a blocked permission or encoder error',async({page})=>{
- await setup(page,{deviceError:'NotReadableError'});await page.getByRole('button',{name:'Talk to Fin'}).click()
+ await setup(page,{deviceError:'NotReadableError'});await openFinVoice(page)
  await expect(page.getByRole('alert')).toContainText('Finish any call or recording in another app')
  await expect(page.getByRole('button',{name:'Use browser dictation'})).toHaveCount(0);await expect(input(page)).toBeEnabled()
 })
 
 test('blocked embedding policy offers the direct secure app without requesting microphone access',async({page})=>{
- await setup(page,{policyBlocked:true});await page.getByRole('button',{name:'Talk to Fin'}).click()
+ await setup(page,{policyBlocked:true});await openFinVoice(page)
  await expect(page.getByRole('link',{name:'Open Finviant directly'})).toHaveAttribute('href','https://finviant.com/')
  expect(await page.evaluate(()=>window.__mic.calls)).toBe(0);await expect(input(page)).toBeEnabled()
 })
 
 test('an optional audio monitor failure cannot prevent recording or cleanup',async({page})=>{
- const requests=await setup(page,{badAudioContext:true});await page.getByRole('button',{name:'Talk to Fin'}).click()
+ const requests=await setup(page,{badAudioContext:true});await openFinVoice(page)
  await expect(page.getByRole('button',{name:'Finish recording'})).toBeVisible()
  await page.getByRole('button',{name:'Finish recording'}).click();await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
  expect(requests.uploads).toHaveLength(1);expect(await page.evaluate(()=>window.__mic.stops)).toBe(1)
 })
 
 test('interrupted browser dictation preserves partial words instead of submitting incomplete intent',async({page})=>{
- const requests=await setup(page,{allFail:true});await page.getByRole('button',{name:'Talk to Fin'}).click();await page.getByRole('button',{name:'Use browser dictation'}).click()
+ const requests=await setup(page,{allFail:true});await openFinVoice(page);await page.getByRole('button',{name:'Use browser dictation'}).click()
  await page.evaluate(()=>{const speech=window.__speech;speech.onresult({results:[[{transcript:'Create an invoice for'}]]});speech.stop=()=>speech.onend?.();speech.onerror({error:'network'})})
  await expect(input(page)).toHaveValue('Create an invoice for');await expect(page.getByRole('alert')).toContainText('Check the captured words')
  expect(requests.questions).toHaveLength(0);expect(requests.uploads).toHaveLength(0)

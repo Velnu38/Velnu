@@ -23,17 +23,17 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
  await calendar.getByRole('button',{name:'Month',exact:true}).click()
  await expect(calendar.getByRole('heading',{name:'Monthly calendar'})).toBeVisible()
  await calendar.getByRole('button',{name:'Week',exact:true}).click()
- await expect(page.getByRole('button',{name:'Talk to Fin',exact:true})).toBeVisible()
+ await expect(page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true})).toBeVisible()
  if(width<901){
   const dock=page.getByRole('navigation',{name:'Workspace navigation',exact:true})
   await expect(dock.getByRole('button')).toHaveCount(5)
   for(const label of ['Home','Invoices','Estimates','Jobs','More'])await expect(dock.getByRole('button',{name:label,exact:true})).toBeVisible()
   await dock.getByRole('button',{name:'More',exact:true}).click()
   const more=page.getByRole('dialog',{name:'More navigation'})
-  for(const label of ['Customers','Schedule','Reminders','Payments','Financial performance','Settings','Type to Fin'])await expect(more.getByRole('button',{name:label,exact:true})).toBeVisible()
+  for(const label of ['Customers','Schedule','Help & Support','Company Profile','Team & Access','Text Messaging Setup','Invoice & Estimate Setup','Calendar Connections','Working Hours & Team Availability'])await expect(more.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
   await more.getByRole('button',{name:'Close',exact:true}).click()
  }else{
-  for(const label of ['Home','Customers','Invoices','Estimates','Jobs','Schedule','Reminders','Payments','Financial performance','Settings'])await expect(page.locator('.sidebar').getByRole('button',{name:label,exact:true})).toBeVisible()
+  for(const label of ['Home','Invoices','Estimates','Jobs','More'])await expect(page.locator('.sidebar').getByRole('button',{name:label,exact:true})).toBeVisible()
  }
  await expect(page.locator('.fin-brand:visible img').first()).toHaveAttribute('src','/finviant-mark.svg')
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)

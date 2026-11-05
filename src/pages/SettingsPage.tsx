@@ -1,5 +1,5 @@
 import SmsSetup from '../components/settings/SmsSetup'
-import IntegrationTesting, { integrationTestingAvailable } from '../components/settings/IntegrationTesting'
+import IntegrationTesting from '../components/settings/IntegrationTesting'
 import WorkspaceBack from '../components/WorkspaceBack'
 import SupportCases from '../components/SupportCases'
 import { adminRequest } from '../services/platformAdmin'
@@ -7,7 +7,8 @@ import './platform-admin.css'
 import { useState, useEffect } from "react";
 import IntegrationSettings from "../components/calendar/IntegrationSettings";
 import type { CurrentBusiness } from "../lib/business";
-import { canAccess, isPrimaryOwner } from "../lib/workspaceAccess";
+import MoreNavigation from '../components/MoreNavigation'
+import { canOpenSettingsSection, settingsOptions, settingsSectionFromSearch, type SettingsSection } from '../lib/settingsNavigation'
 import BusinessProfileEditor from "../components/BusinessProfileEditor";
 import TeamSettings from "../components/settings/TeamSettings";
 import DocumentSettings from "../components/settings/DocumentSettings";
@@ -15,31 +16,19 @@ import SubscriptionSettings from "../components/settings/SubscriptionSettings";
 import SchedulingSettings from "../components/scheduling/SchedulingSettings";
 import "../components/settings/settings.css";
 
-type Section = "company" | "team" | "documents" | "calendar" | "scheduling" | "subscription" | "testing" | "support" | "sms";
-const options: { id: Section; title: string; description: string }[] = [
-  { id: "support", title: "Help & support", description: "Report an issue and follow Finviant replies." },
-  { id: "company", title: "Company profile", description: "Business details and services." },
-  { id: "team", title: "Team & access", description: "Invite your team and choose their access." },
-  { id: "sms", title: "Text messaging setup", description: "Verify your owner mobile number before sending SMS." },
-  { id: "documents", title: "Invoice & estimate setup", description: "Document appearance, branding, and taxes." },
-  { id: "calendar", title: "Calendar connections", description: "Google Calendar and Microsoft Outlook." },
-  { id: "scheduling", title: "Scheduling & team availability", description: "Working hours, booking notice, travel time, and time off." },
-  { id: "subscription", title: "Cancel subscription", description: "View your subscription and manage cancellation." },
-];
-
 export default function SettingsPage({ business, onSaved }: {
   business: CurrentBusiness;
   onSaved: (business: CurrentBusiness) => void;
 }) {
   const [operator,setOperator]=useState(false)
   useEffect(()=>{let active=true;void adminRequest<{operator:boolean}>('access').then(r=>{if(active)setOperator(r.operator===true)}).catch(()=>{});return()=>{active=false}},[])
-  const [visited,setVisited]=useState<Set<Section>>(()=>new Set())
-  const [section, setSection] = useState<Section | null>(()=>options.some(o=>o.id===new URLSearchParams(location.search).get("section")) ? new URLSearchParams(location.search).get("section") as Section : new URLSearchParams(location.search).has("sms_setup") ? "sms" : integrationTestingAvailable && new URLSearchParams(location.search).has("integration_test") ? "testing" : null);
-  useEffect(()=>{const value=new URLSearchParams(location.search).get("section");if(options.some(o=>o.id===value))setSection(value as Section)},[])
-  const owner = isPrimaryOwner(business);
-  const allowed = [...options, ...(integrationTestingAvailable ? [{id: "testing" as Section,title: "Integration testing",description: "Private Stripe and approved Twilio SMS tests."}] : [])].filter((option) => option.id === "support" ? true : option.id === "calendar" ? canAccess(business, "calendar") : option.id === "scheduling" ? ['owner','admin','office'].includes(business.role) && canAccess(business,'calendar') && canAccess(business,'jobs') : owner);
+  // AppShell remounts the page on links and browser history changes, after its
+  // unsaved-change guard. Direct URLs retain their original section IDs.
+  const section = settingsSectionFromSearch(window.location.search)
+  const option = settingsOptions.find(option => option.id === section)
+  const permitted = section !== null && canOpenSettingsSection(business, section)
 
-  function content(id: Section) {
+  function content(id: SettingsSection) {
     if (id === "sms") return <SmsSetup businessId={business.id} />;
     if (id === "support") return <SupportCases businessId={business.id} />;
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;
@@ -55,37 +44,11 @@ export default function SettingsPage({ business, onSaved }: {
     <div className="page-stack"><WorkspaceBack />
       <div className="page-heading">
         <p className="eyebrow">{business.name}</p>
-        <h1>Settings</h1>
-        <p className="quiet">Open an option below to make changes.</p>
+        <h1>{option?.title || 'More'}</h1>
+        <p className="quiet">{option?.description || 'Manage your business, setup, and connections.'}</p>
       </div>
       {operator && <p><a className="secondary-button" href="/admin">Open Finviant Admin Dashboard</a></p>}
-      <div className="settings-options">
-        {allowed.map((option) => {
-          const expanded = section === option.id;
-          return (
-            <section className="settings-disclosure" key={option.id}>
-              <h2 className="settings-disclosure-heading">
-                <button
-                  type="button"
-                  id={`settings-${option.id}-trigger`}
-                  className="settings-option"
-                  aria-label={option.title}
-                  aria-expanded={expanded}
-                  aria-controls={`settings-${option.id}-content`}
-                  onClick={() => {setVisited(prev=>new Set([...prev,option.id]));setSection(expanded ? null : option.id)}}
-                >
-                  <span className="settings-option-copy"><strong>{option.title}</strong><span>{option.description}</span></span>
-                  <svg className="settings-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-                </button>
-              </h2>
-              <div id={`settings-${option.id}-content`} className="settings-disclosure-content" role="region" aria-labelledby={`settings-${option.id}-trigger`} hidden={!expanded}>
-                {(expanded || visited.has(option.id)) && content(option.id)}
-              </div>
-            </section>
-          );
-        })}
-      </div>
-      {!owner && <p className="quiet">Your primary business owner manages team access, document setup and the subscription.</p>}
+      {section === null ? <MoreNavigation business={business}/> : permitted ? content(section) : <p role="alert">This area is not included in your access. Contact your primary business owner.</p>}
     </div>
   );
 }

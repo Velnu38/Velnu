@@ -12,7 +12,7 @@ export default function BusinessOnboarding({ onCreated }: { onCreated: (business
       <p>Personalize your invoices and estimates with your company information. You can change these details later in Settings.</p>
       <PrivateBetaNotice compact />
       <BusinessProfileEditor onSaved={onCreated}/>
-      <p className="quiet">After setup, choose payment services under Settings → Invoice and Estimate Setup → Customer Payment Methods.</p>
+      <p className="quiet">After setup, choose payment services under More → Invoice & Estimate Setup → Customer Payment Methods.</p>
     </div>
   </main>
 }

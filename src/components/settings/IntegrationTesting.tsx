@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 
 type Operation={id:string;kind:string;status:string;provider_id:string|null;created_at:string;result:{message?:string}}
 type TestStatus={sms_owner_verified?:boolean;subscription?:{status:string;cancel_at_period_end:boolean}|null;configuration:{stripe:boolean;stripe_webhook:boolean;connect_webhook:boolean;sms:boolean};state:{stripe_account?:string;stripe_customer?:string;stripe_subscription?:string};operations:Operation[];invoices:{id:string;invoice_number:string;balance_due:number}[]}
-export const integrationTestingAvailable=import.meta.env.VITE_SUPABASE_URL==='https://xvybcmyoblfgzokaifsx.supabase.co'||import.meta.env.VITE_PRIVATE_INTEGRATION_TESTING==='true'
+export { integrationTestingAvailable } from '../../lib/settingsNavigation'
 async function invoke(body:Record<string,unknown>){
  const {data,error}=await supabase.functions.invoke('private-integration-testing',{body})
  if(error){const context=(error as {context?:unknown}).context;if(context instanceof Response){const value=await context.clone().json().catch(()=>null);if(value?.error)throw new Error(value.error)}throw new Error('Integration tests could not be reached. Retry status before starting another test.')}

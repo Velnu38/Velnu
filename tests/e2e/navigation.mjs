@@ -18,10 +18,13 @@ export async function createWork(page, kind) {
   await page.getByRole('navigation', { name: 'Create work' }).getByRole('link', { name: '+ New ' + kind, exact: true }).click()
 }
 
-/** Typed Fin entry is in More on phones and beside the desktop voice launcher. */
+/** Ask Fin opens typing without microphone access on every viewport. */
 export async function openFinTyping(page) {
-  if ((page.viewportSize()?.width ?? 1280) <= 900) {
-    await page.getByRole('navigation', { name: 'Workspace navigation' }).getByRole('button', { name: 'More', exact: true }).click()
-  }
-  await page.getByRole('button', { name: 'Type to Fin', exact: true }).click()
+  await page.locator('.fin-launcher').getByRole('button', { name: 'Ask Fin', exact: true }).click()
+}
+
+/** Request microphone access only from the explicit speaking control. */
+export async function openFinVoice(page) {
+  await openFinTyping(page)
+  await page.getByRole('dialog', { name: 'Fin — your office assistant' }).getByRole('button', { name: 'Speak instead', exact: true }).click()
 }

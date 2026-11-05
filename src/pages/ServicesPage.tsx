@@ -20,7 +20,7 @@ export default function ServicesPage() {
         <button type="button" className="marketing-btn marketing-btn-accent" onClick={saveAndContinue}>Continue to account setup <span>↗</span></button>
         <a href="/auth?mode=signin" className="service-existing-login" onClick={()=>setPendingServiceInterests(selected)}>Already have an account? Sign in and save choices</a>
       </div>
-      <p className="services-public-fine">Your choices are temporarily remembered in this browser. After signing in, confirm them in Settings → Company profile to save them to your business account. No payment information is requested.</p>
+      <p className="services-public-fine">Your choices are temporarily remembered in this browser. After signing in, confirm them in More → Company Profile to save them to your business account. No payment information is requested.</p>
     </div>
   </main>
 }
