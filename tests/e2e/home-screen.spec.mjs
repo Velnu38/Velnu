@@ -49,7 +49,10 @@ for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation ch
  await chooser.getByRole('link',{name:'+ New '+kind,exact:true}).click()
  await expect(chooser).toHaveCount(0)
  if(kind==='reminder')await expect(page.getByRole('heading',{name:'Create a reminder',exact:true})).toBeVisible()
- else await expect(page.getByRole('dialog')).toBeVisible()
+ else {
+  await expect(page.getByRole('dialog')).toBeVisible()
+  if(kind!=='job')await expect(page.getByLabel('Customer',{exact:true})).toBeVisible()
+ }
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin)
 })
 test('Home calendar creation reuses the entry editor and Escape restores the trigger',async({page})=>{

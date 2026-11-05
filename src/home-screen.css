@@ -160,3 +160,7 @@
   .performance-explanation[open] { flex-basis: 100%; }
   .dashboard-page .performance-compact .performance-footer .performance-explanation p { margin: 4px 0 8px; }
 }
+@media screen {
+  .finviant-workspace .saved-customer-choice { padding-bottom: 12px; border-bottom: 1px solid #d9e2ea; margin-bottom: 4px; }
+  .finviant-workspace .saved-customer-choice select { border-color: #8fbbb0; background: #f4fbf8; }
+}
