@@ -793,17 +793,17 @@ test('calendar widget fits a phone without horizontal overflow', async ({ page }
   const logo=page.locator('.dashboard-business-header').getByRole('img',{name:'Barone Landscaping and Property Maintenance logo'})
   await expect(logo).toBeVisible()
   await expect.poll(()=>logo.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0)
-  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('navigation',{name:'Create work'}).boundingBox()).y)
+  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Create new',exact:true}).boundingBox()).y)
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 
-test('dashboard layout uses the business name, puts calendar first, and opens only jobs from the tile', async ({ page }) => {
+test('dashboard layout uses the business name, puts financials and calendar above work, and opens jobs from the tile', async ({ page }) => {
   await openDashboard(page)
   const heading=page.getByRole('heading',{level:1,name:'Velnu QA',exact:true})
   await expect(heading).toBeVisible()
   await expect(page.locator('.dashboard-business-header')).not.toContainText(/your attention|caught up|organized/i)
   await expect(page.locator('.dashboard-business-header img')).toHaveCount(0)
-  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('navigation',{name:'Create work'}).boundingBox()).y)
+  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Create new',exact:true}).boundingBox()).y)
   const calendar = page.getByRole('region', { name: 'Work calendar' })
   const workAreas = page.getByRole('region', { name: 'Work areas' })
   expect((await calendar.boundingBox()).y).toBeLessThan((await workAreas.boundingBox()).y)
@@ -951,6 +951,7 @@ test('selected day shows every calendar item while financial detail stays availa
   await expect(calendar.getByRole('button',{name:/Show all.*scheduled/})).toHaveCount(0)
   const details=page.locator('.financial-transactions')
   await expect(details).toHaveCount(0)
+  await page.locator('.home-financial-trend > summary').click()
   await page.locator('.trend-point').first().click()
   await expect(details).toBeVisible()
 })

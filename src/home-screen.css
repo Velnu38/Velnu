@@ -40,7 +40,7 @@
   .finviant-workspace .private-testing-app { max-width: 1450px; margin: 0 auto; padding-inline: clamp(22px,4vw,54px); }
   .finviant-workspace .dashboard-page {
     --tile-border: #d1dde6; --tile-ink: #102c4b; --tile-muted: #52677b;
-    --tile-soft: #f6f9fb; --tile-accent: #008673; --tile-title-size: 22px;
+    --tile-soft: #f6f9fb; --tile-accent: #008673; --tile-title-size: 22px; --tile-value-size: 24px;
     gap: 22px;
   }
   .dashboard-page .home-eyebrow { margin: 0 0 5px; font-size: 11px; color: #52677b; letter-spacing: .09em; text-transform: uppercase; font-weight: 650; }
@@ -63,7 +63,7 @@
   }
   .dashboard-page .performance-compact .performance-metric:last-child { border-bottom: 0; }
   .dashboard-page .performance-compact .performance-metric > span { grid-column: 1; font-size: 15px; color: #102c4b; justify-content: start; gap: 10px; }
-  .dashboard-page .performance-compact .performance-metric > strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 24px; color: #007a65; }
+  .dashboard-page .performance-compact .performance-metric > strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: var(--tile-value-size); color: #007a65; }
   .dashboard-page .performance-compact .performance-metric.expense > strong { color: #102c4b; }
   .dashboard-page .performance-compact .performance-metric > small { grid-column: 1; font-size: 11px; color: #52677b; justify-content: start; gap: 8px; }
   .dashboard-page .performance-compact .performance-metric:hover:not(:disabled),
@@ -129,14 +129,14 @@
     .finviant-workspace .mobile-more-account > div { width: 100%; }
   }
   @media(max-width:650px) {
-    .finviant-workspace .dashboard-page { gap: 16px; --tile-title-size: 20px; }
+    .finviant-workspace .dashboard-page { gap: 16px; --tile-title-size: 20px; --tile-value-size: 20px; }
     .dashboard-page .dashboard-business-identity h1 { font-size: 27px; }
     .dashboard-page .dashboard-business-header { flex-direction: row; gap: 10px; }
     .dashboard-page .dashboard-business-header > button { min-width: 44px; padding-inline: 10px; }
     .dashboard-page .home-eyebrow { font-size: 10px; }
     .dashboard-page .home-intro { font-size: 13px; }
     .dashboard-page .performance-compact .performance-heading { gap: 12px; }
-    .dashboard-page .performance-compact .performance-metric > strong { font-size: 23px; }
+    .dashboard-page .performance-compact .performance-metric > strong { font-size: var(--tile-value-size); }
     .home-financial-trend > summary { padding-inline: 16px; }
     .dashboard-page .calendar-heading-actions { width: auto; flex-wrap: wrap; }
     .dashboard-page .calendar-agenda-columns { gap: 16px; }
@@ -150,7 +150,7 @@
     .workspace-assistant .fin-launcher > .voice-fab > .fin-launcher-caption { font-size: 12px; }
     .finviant-workspace .mobile-brand .fin-wordmark { font-size: 23px; }
     .finviant-workspace .mobile-more-grid { grid-template-columns: 1fr; }
-    .dashboard-page .performance-compact .performance-metric > strong { font-size: 20px; }
+    .dashboard-page .performance-compact .performance-metric > strong { font-size: var(--tile-value-size); }
   }
 }
 @media screen {

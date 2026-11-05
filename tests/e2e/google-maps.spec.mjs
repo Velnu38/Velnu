@@ -83,6 +83,7 @@ test('service location opens a valid Google Maps view and driving directions wit
 test('owner assigns a matching customer property when creating a job', async ({ page }) => {
   const requests = await mockBusinessData(page)
   await page.goto('/')
+  await page.getByRole('button', { name: 'Create new', exact: true }).click()
   await page.getByRole('link', { name: '+ New job', exact: true }).click()
   await page.getByRole('combobox', { name: 'Customer', exact: true }).selectOption(customerId)
   await expect(page.getByLabel('Service location').locator('option[value="' + propertyId + '"]')).toHaveCount(1)
