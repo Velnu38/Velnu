@@ -35,7 +35,7 @@ import ScheduleEstimateDialog from '../components/scheduling/ScheduleEstimateDia
 import { canAccess } from '../lib/workspaceAccess'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import CustomerEntry, { emptyCustomerDraft, newCustomerFields } from '../components/CustomerEntry'
-import PaymentOptionsFields, { type DocumentPayments } from '../components/PaymentOptionsFields'
+import { type DocumentPayments } from '../components/PaymentOptionsFields'
 import { validPaymentLink } from '../lib/paymentLinks'
 
 const ChangeOrdersPage = lazy(() => import('./ChangeOrdersPage'))
@@ -301,7 +301,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         <div className="full"><CustomerPropertySelect businessId={business.id} customerId={customerId} value={propertyId} onChange={setPropertyId} disabled={busy}/></div>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 30 days. A deposit is due before work begins." /></label></div>
         <details className="composer-section"><summary>＋ Add Work Details</summary><DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/></details>
-        <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
+        <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>Preview</button></div>
       </form>

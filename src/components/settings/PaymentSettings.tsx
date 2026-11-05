@@ -1,4 +1,5 @@
 import './settings.css'
+import {useUnsavedChanges} from '../../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from "react";
 import type { CurrentBusiness } from "../../lib/business";
 import {
@@ -25,17 +26,20 @@ export default function PaymentSettings({ business, onSaved, submitLabel="Save p
     return () => { active = false; };
   }, [business.id]);
 
+  const guard=useUnsavedChanges(busy)
+  const setups=value.payment_service_setups??value.payment_links.map(link=>({...link,include_by_default:true}))
+  function setSetup(provider:string,url:string,include:boolean){const next=[...setups.filter(s=>s.provider!==provider),{provider:provider as typeof value.payment_links[number]['provider'],url,include_by_default:include}];setValue({...value,payment_service_setups:next,payment_links:next.filter(s=>s.include_by_default).map(({provider,url})=>({provider,url}))})}
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (busy || !loaded) return;
     setBusy(true); setError(""); setNotice("");
     try {
-      if (value.payment_links.some((link) => !validPaymentLink(link))) {
+      if (setups.some((link) => !validPaymentLink(link))) {
         throw new Error("Use a valid HTTPS payment link from the selected provider.");
       }
       // Save payment fields only; document tax defaults are managed separately.
-      await savePaymentSettings(business.id, value);
-      setNotice("Payment options saved. New invoices use these options; issued invoices keep their saved details.");
+      await savePaymentSettings(business.id, {...value,payment_service_setups:setups});guard.markClean();
+      setNotice("Payment options saved. New invoices use the selected defaults; existing invoices keep their saved payment details.");
       onSaved?.();
     } catch (e) {
       setError((e as Error).message || "Unable to save payment options.");
@@ -43,61 +47,16 @@ export default function PaymentSettings({ business, onSaved, submitLabel="Save p
   }
   if (!loaded) return error ? <p role="alert">{error} <button className="text-button" onClick={() => window.location.reload()}>Reload settings</button></p> : <p role="status">Loading payment options…</p>;
   return (
-    <form className="settings-panel" onSubmit={submit}>
+    <form className="settings-panel" onSubmit={submit} onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
       <p className="quiet">Choose how customers can pay your business. Only the primary Finviant account owner can manage these payment options.</p>
       <section className="settings-inset">
-        <h3>Receive customer payments</h3>
+        <h3>Customer Payment Methods</h3>
         <p className="quiet">
           Use links from your own business payment accounts. Buttons appear on
           invoices only. Payments and provider fees are handled directly between
           you and the provider, outside Finviant.
         </p>
-        {paymentProviders.map((p) => {
-          const link = value.payment_links.find((l) => l.provider === p.id);
-          return (
-            <div className="payment-provider-setting" key={p.id}>
-              <label className="settings-checkbox">
-                <input
-                  type="checkbox"
-                  checked={!!link}
-                  onChange={(e) =>
-                    setValue({
-                      ...value,
-                      payment_links: e.target.checked
-                        ? [...value.payment_links, { provider: p.id, url: "" }]
-                        : value.payment_links.filter(
-                            (l) => l.provider !== p.id,
-                          ),
-                    })
-                  }
-                />
-                <strong>{p.name}</strong>
-              </label>
-              {link && (
-                <label>
-                  {p.name} payment link
-                  <input
-                    type="url"
-                    required
-                    maxLength={1000}
-                    placeholder={p.example}
-                    value={link.url}
-                    onChange={(e) =>
-                      setValue({
-                        ...value,
-                        payment_links: value.payment_links.map((l) =>
-                          l.provider === p.id
-                            ? { ...l, url: e.target.value.trim() }
-                            : l,
-                        ),
-                      })
-                    }
-                  />
-                </label>
-              )}
-            </div>
-          );
-        })}
+        {paymentProviders.map(p=>{const setup=setups.find(s=>s.provider===p.id);return <div className="payment-provider-setting" key={p.id}><h4>{p.name}</h4><label>Business payment link<input type="url" maxLength={1000} value={setup?.url||''} placeholder={p.example} onChange={e=>{if(!e.target.value){const next=setups.filter(s=>s.provider!==p.id);setValue({...value,payment_service_setups:next,payment_links:next.filter(s=>s.include_by_default).map(({provider,url})=>({provider,url}))})}else setSetup(p.id,e.target.value.trim(),setup?.include_by_default||false)}}/></label><label className="settings-checkbox"><input type="checkbox" disabled={!setup?.url||!validPaymentLink(setup)} checked={setup?.include_by_default||false} onChange={e=>setSetup(p.id,setup?.url||'',e.target.checked)}/>Include on new invoices by default</label>{setup&&validPaymentLink(setup)&&<a className="secondary-button compact" href={setup.url} target="_blank" rel="noopener noreferrer">Test {p.name} link</a>}<p className="quiet">{p.id==='paypal'?'A base PayPal.Me link can carry the remaining amount. Customers may need to enter the invoice number.':p.id==='stripe'?'Use a reusable customer-entered-amount Payment Link for varying invoice balances. Finviant adds an invoice reference to buy.stripe.com links; it cannot change a fixed checkout price.':'Use your business profile payment link. Customers may need to enter the amount and invoice number.'}</p></div>})}
         <label>
           Payment instructions
           <textarea
@@ -112,8 +71,7 @@ export default function PaymentSettings({ business, onSaved, submitLabel="Save p
         <p className="quiet">
           Use business/commercial payment accounts. Confirm payment in the
           provider account before recording it as paid in Finviant. A button
-          click does not confirm payment. Fixed-amount links must match the
-          invoice balance.
+          click does not confirm payment. Use reusable links that accept different invoice amounts; a fixed-price link is unsuitable as a general invoice default.
         </p>
       </section>
       <section className="settings-inset">

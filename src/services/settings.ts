@@ -27,15 +27,18 @@ export type PaymentLink = {
   provider: "venmo" | "paypal" | "stripe" | "cashapp";
   url: string;
 };
+export type PaymentServiceSetup = PaymentLink & {include_by_default:boolean};
 export type DocumentSettings = {
+  payment_service_setups: PaymentServiceSetup[] | null;
   default_tax_rate: number;
   pricing_adjustment_percent: number;
   payment_links: PaymentLink[];
   payment_instructions: string;
 };
 export type PaymentSettings = Pick<DocumentSettings,
-  "payment_links" | "payment_instructions" | "pricing_adjustment_percent">;
+  "payment_links" | "payment_instructions" | "pricing_adjustment_percent" | "payment_service_setups">;
 export const emptyDocumentSettings: DocumentSettings = {
+  payment_service_setups: null,
   default_tax_rate: 0,
   pricing_adjustment_percent: 0,
   payment_links: [],
@@ -113,7 +116,7 @@ export async function getDocumentSettings(
   const { data, error } = await supabase
     .from("business_settings")
     .select(
-      "default_tax_rate,pricing_adjustment_percent,payment_links,payment_instructions",
+      "default_tax_rate,pricing_adjustment_percent,payment_links,payment_instructions,payment_service_setups",
     )
     .eq("business_id", businessId)
     .maybeSingle();
@@ -128,6 +131,7 @@ export async function saveDocumentSettings(
 }
 export async function savePaymentSettings(businessId: string, value: PaymentSettings) {
   return saveSettingsFields(businessId, {
+    payment_service_setups: value.payment_service_setups,
     payment_links: value.payment_links,
     payment_instructions: value.payment_instructions,
     pricing_adjustment_percent: value.pricing_adjustment_percent,

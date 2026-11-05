@@ -23,7 +23,7 @@ import { listCustomers } from '../services/customers'
 import { createInvoice, listInvoices } from '../services/invoices'
 import InvoiceDetail from '../components/InvoiceDetail'
 import CustomerEntry, { emptyCustomerDraft, newCustomerFields } from '../components/CustomerEntry'
-import PaymentOptionsFields, { type DocumentPayments } from '../components/PaymentOptionsFields'
+import { type DocumentPayments } from '../components/PaymentOptionsFields'
 import { validPaymentLink } from '../lib/paymentLinks'
 import '../components/scheduling/scheduling.css'
 import { getJob } from '../services/jobs'
@@ -220,7 +220,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
         {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
         <details className="composer-section"><summary>＋ Add Work Details</summary><DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/></details>
         {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
-        <PaymentOptionsFields value={documentPayments} onChange={setDocumentPayments} editable={isPrimaryOwner(business)}/><div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
+        <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>Preview</button></div>
       </form>
