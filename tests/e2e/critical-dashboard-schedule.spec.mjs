@@ -771,7 +771,7 @@ test('calendar settings shows connected identity, calendar choices and persists 
     return route.fulfill({contentType:'application/json',body:JSON.stringify(result)})
   })
   await page.goto('/?view=settings')
-  await page.getByRole('button',{name:/Calendar connections/}).click()
+  await page.getByRole('link',{name:/^Calendar Connections/}).click()
   await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
   await page.getByRole('switch').check()
   await page.getByRole('button',{name:'Save calendar settings'}).click()
@@ -963,9 +963,9 @@ for (const width of [1440,390]) test(`owner settings navigation is clear at ${wi
  await page.route('**/rest/v1/business_settings?**',r=>{if(r.request().method()==='POST')writes.push(r.request().postDataJSON());return r.fulfill({contentType:'application/json',body:JSON.stringify({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})})})
  await page.route('**/rest/v1/businesses?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({...business,...r.request().postDataJSON()})}))
  await page.goto('/?view=settings')
- for(const label of ['Company profile','Team & access','Invoice & estimate setup','Calendar connections','Cancel subscription'])await expect(page.getByRole('button',{name:label,exact:true})).toHaveAttribute('aria-expanded','false')
+ for(const label of ['Company Profile','Team & Access','Invoice & Estimate Setup','Calendar Connections','Subscription'])await expect(page.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
  await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
- await page.getByRole('button',{name:'Invoice & estimate setup',exact:true}).click()
+ await page.getByRole('link',{name:/^Invoice & Estimate Setup/}).click()
  await page.getByLabel('Default tax rate (%)').fill('5.3')
  await page.getByRole('button',{name:'Save document setup'}).click()
  await expect(page.getByRole('status').filter({hasText:'Document setup saved'})).toBeVisible()
@@ -983,7 +983,7 @@ test('owner settings invites reserve a seat and permissions are editable only th
  await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(team)}))
  await page.route('**/rest/v1/rpc/manage_team_member',r=>{changes.push(r.request().postDataJSON());return r.fulfill({contentType:'application/json',body:'null'})})
  await page.route('**/functions/v1/team-management',r=>{const b=r.request().postDataJSON();changes.push(b);team.invitations.push({id:id(903),email:b.email,role:b.role,access_modules:b.modules,expires_at:'2026-11-09T12:00:00Z'});return r.fulfill({contentType:'application/json',body:JSON.stringify({url:'https://finviant.com/auth?invite='+'a'.repeat(64),email_status:'unconfirmed',expires_at:'2026-11-09'})})})
- await page.goto('/?view=settings');await page.getByRole('button',{name:/Team & access/}).click()
+ await page.goto('/?view=settings');await page.getByRole('link',{name:/^Team & Access/}).click()
  await expect(page.getByText('2 of 5 seats')).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await page.screenshot({path:'test-results/team-settings-phone.png',fullPage:true})
@@ -1002,7 +1002,7 @@ test('owner settings invites reserve a seat and permissions are editable only th
 test('owner settings five-seat capacity blocks a sixth invitation',async({page})=>{
  await mockWorkspace(page)
  await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({seat_limit:5,pro:true,members:Array.from({length:5},(_,n)=>({user_id:id(n),email:`member${n}@example.test`,role:n?'office':'owner',primary_owner:n===0,access_modules:[]})),invitations:[]})}))
- await page.goto('/?view=settings');await page.getByRole('button',{name:/Team & access/}).click()
+ await page.goto('/?view=settings');await page.getByRole('link',{name:/^Team & Access/}).click()
  await expect(page.getByText('5 of 5 seats')).toBeVisible();await expect(page.getByRole('button',{name:'Send invitation'})).toHaveCount(0)
 })
 
@@ -1014,7 +1014,7 @@ test('owner settings restricted staff cannot open hidden modules or owner contro
  await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
  expect(state.requests.some(r=>r.path.endsWith('/rpc/get_dashboard_invoice_totals'))).toBe(false)
  await page.goto('/?view=invoices');await expect(page.getByRole('alert')).toContainText('not included in your access')
- await page.goto('/?view=settings');await expect(page.getByRole('button',{name:/Team & access/})).toHaveCount(0);await expect(page.locator('#settings-subscription-trigger')).toHaveCount(0);await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
+ await page.goto('/?view=settings');await expect(page.getByRole('link',{name:/^Team & Access/})).toHaveCount(0);await expect(page.getByRole('link',{name:'Subscription',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
 })
 
 test('owner settings invoice tax defaults and optional cost pricing affect preview and saved lines',async({page})=>{
@@ -1043,8 +1043,8 @@ test('owner settings invoice payment buttons use saved links and do not record p
 test('owner settings cancellation uses explicit confirmation and preserves no-subscription truth',async({page})=>{
  await mockWorkspace(page);const actions=[];let active=true,canceled=false
  await page.route('**/functions/v1/subscription-management',r=>{const b=r.request().postDataJSON();actions.push(b.action);if(b.action==='cancel')canceled=true;return r.fulfill({contentType:'application/json',body:JSON.stringify(active?{active:true,status:'active',can_cancel:true,cancel_at_period_end:canceled,ends_at:'2026-12-02T12:00:00Z'}:{active:false,status:'none',can_cancel:false})})})
- await page.goto('/?view=settings');await page.locator('#settings-subscription-trigger').click();await page.getByRole('region',{name:'Cancel subscription',exact:true}).getByRole('button',{name:'Cancel subscription',exact:true}).click();expect(actions.every(a=>a==='status')).toBe(true);await page.getByRole('button',{name:'Confirm cancellation'}).click();await expect(page.getByRole('status').filter({hasText:'Cancellation scheduled'})).toContainText('Cancellation scheduled');expect(actions.filter(a=>a==='cancel')).toHaveLength(1);await expect(page.getByRole('region',{name:'Cancel subscription',exact:true}).getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
- active=false;await page.reload();await page.locator('#settings-subscription-trigger').click();await expect(page.getByText(/No paid subscription is active/)).toBeVisible();await expect(page.getByRole('region',{name:'Cancel subscription',exact:true}).getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
+ await page.goto('/?view=settings');await page.getByRole('link',{name:'Subscription',exact:true}).click();await page.locator('.settings-panel').getByRole('button',{name:'Cancel subscription',exact:true}).click();expect(actions.every(a=>a==='status')).toBe(true);await page.getByRole('button',{name:'Confirm cancellation'}).click();await expect(page.getByRole('status').filter({hasText:'Cancellation scheduled'})).toContainText('Cancellation scheduled');expect(actions.filter(a=>a==='cancel')).toHaveLength(1);await expect(page.locator('.settings-panel').getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
+ active=false;await page.reload();await expect(page.getByText(/No paid subscription is active/)).toBeVisible();await expect(page.locator('.settings-panel').getByRole('button',{name:'Cancel subscription',exact:true})).toBeDisabled()
 })
 
 test('owner settings invitation acceptance bypasses company creation and separate plan selection',async({page})=>{

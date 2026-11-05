@@ -59,12 +59,12 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
 
 for(const width of [1440,390])test(`navigation returns to the previous workspace page at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page);await page.goto('/')
- if(width===390)await page.getByRole('button',{name:'More',exact:true}).click()
- await page.getByRole('button',{name:'Customers',exact:true}).click();await expect(page.getByRole('heading',{name:'Everyone you work for, in one place.'})).toBeVisible()
- await page.getByRole('button',{name:'← Back',exact:true}).click();await expect(page.getByRole('region',{name:'Guided next steps'})).toBeVisible()
- if(width===390){await page.getByRole('button',{name:'More',exact:true}).click();await expect(page.getByRole('button',{name:'Change Orders',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'Settings',exact:true}).click()}else await page.getByRole('button',{name:'Settings',exact:true}).click()
- await expect(page.getByRole('heading',{name:'Settings',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
- await page.goBack();await expect(page.getByRole('region',{name:'Guided next steps'})).toBeVisible()
+ await page.locator(width>900?'.sidebar':'.mobile-nav').getByRole('button',{name:'More',exact:true}).click()
+ await page.getByRole('dialog',{name:'More navigation'}).getByRole('link',{name:/^Customers/}).click();await expect(page.getByRole('heading',{name:'Everyone you work for, in one place.'})).toBeVisible()
+ await page.getByRole('button',{name:'← Back',exact:true}).click();await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
+ await page.locator(width>900?'.sidebar':'.mobile-nav').getByRole('button',{name:'More',exact:true}).click();await page.getByRole('dialog',{name:'More navigation'}).getByRole('link',{name:/^Company Profile/}).click()
+ await expect(page.getByRole('heading',{name:'Company Profile',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
+ await page.goBack();await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
 })
 for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typed customer and ${kind} payment choices stay together at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view='+kind+'s');await createWork(page, kind)

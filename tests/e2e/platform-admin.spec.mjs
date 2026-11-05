@@ -33,7 +33,7 @@ for(const width of [1440,390]){
   await page.setViewportSize({width,height:900});await mock(page);const ids=[];let fail=true,created=false
   await intercept(page,'platform_admin_request',()=>({error:'Restricted'}))
   await intercept(page,'support_request',b=>{if(b.p_action==='list')return{total:created?1:0,rows:created?[sample]:[]};if(b.p_action==='create'){ids.push(b.p_input.request_id);if(fail){fail=false;return{error:'Temporary failure. Please retry.'}}created=true;return{case:sample,messages:[]}}return{case:sample,messages:[]}})
-  await page.goto('/?view=settings');await page.getByRole('button',{name:'Help & support',exact:true}).click();await page.getByRole('button',{name:'Report an issue',exact:true}).click()
+  await page.goto('/?view=settings');await page.getByRole('link',{name:/^Help & Support/}).click();await page.getByRole('button',{name:'Report an issue',exact:true}).click()
   const dialog=page.getByRole('dialog',{name:'Report an issue'});await dialog.getByLabel('Issue title').fill('Calendar issue');await dialog.getByLabel('What happened?').fill('My reminder disappeared.');await dialog.getByRole('button',{name:'Submit issue'}).click();await expect(dialog.getByRole('alert')).toContainText('Temporary failure');await expect(dialog.getByLabel('What happened?')).toHaveValue('My reminder disappeared.')
   await dialog.getByRole('button',{name:'Submit issue'}).click();await expect(page.getByRole('dialog',{name:'Your support case'})).toBeVisible();expect(ids.length).toBe(2);expect(ids[0]).toBe(ids[1])
  })
