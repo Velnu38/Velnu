@@ -104,17 +104,14 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
   return <div className="page-stack dashboard-page">
     <header className="page-heading split-heading dashboard-business-header">
       <div className="dashboard-business-identity">{logo && <img className="dashboard-business-logo" src={logo} alt={business.name + ' logo'} />}<div><p className="home-eyebrow">Your workspace</p><h1>{business.name}</h1><p className="home-intro">Your business, at a glance.</p></div></div>
-      <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
+      <div className="home-header-actions">{(canCreateBilling || canCreateJob || canCreateEntry) && <button type="button" className="primary-button compact home-create-button" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}><span aria-hidden="true">＋</span> New</button>}<button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
     </header>
     <div className="home-overview">
-      {canAccess(business,'billing') && <BillingHub key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
-      {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
       {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
+      {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
+      {canAccess(business,'billing') && <BillingHub key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
     </div>
 
-    {(canCreateBilling || canCreateJob || canCreateEntry) && <div className="home-create">
-      <button type="button" className="primary-button home-create-button" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}><span aria-hidden="true">＋</span> Create new</button>
-    </div>}
     {showCreate && <FormDialog label="Create new" onClose={() => setShowCreate(false)}>
       <div className="modal-head"><div><p className="eyebrow">{business.name}</p><h2>Create new</h2></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowCreate(false)}>×</button></div>
       <nav className="home-create-options" aria-label="Create work">

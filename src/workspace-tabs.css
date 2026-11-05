@@ -70,8 +70,26 @@
 
   .home-attention-tile .work-card-heading { padding-bottom: 14px; }
   .home-attention-tile .work-card-heading .eyebrow { color: #52677b; }
+  .home-header-actions { display: flex; align-items: center; gap: 8px; }
+  .home-header-actions .home-create-button { min-height: 40px; padding: 0 14px; white-space: nowrap; }
+  .attention-summary-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 22px 13px; border: 0; background: transparent; color: #102c4b; text-align: left; }
+  .attention-summary-toggle > span:first-child { display: grid; gap: 4px; }
+  .attention-summary-toggle .eyebrow { margin: 0; color: #52677b; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+  .attention-summary-toggle .dashboard-tile-title { margin: 0; font-size: 20px; }
+  .attention-summary-toggle small { color: #627789; font-size: 11px; }
+  .attention-summary-chevron { color: #008673; font-size: 24px; font-weight: 700; line-height: 1; }
+  .attention-category-pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0 22px 20px; }
+  .attention-category-pill { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 9px 11px; border: 1px solid #d5e6e0; border-radius: 999px; background: #eef8f4; color: #315d53; font-size: 11px; font-weight: 700; }
+  .attention-category-pill > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .attention-category-pill > strong { display: inline-grid; min-width: 22px; height: 22px; place-items: center; border-radius: 50%; background: #d7eee6; color: #006c5d; font-size: 10px; font-variant-numeric: tabular-nums; }
+  .attention-category-pill.overdue { border-color: #f2d0cb; background: #fff2f0; color: #9c261d; }
+  .attention-category-pill.overdue > strong { background: #f9d7d3; color: #a62219; }
+  .attention-category-pill.follow-up { border-color: #d6e0e6; background: #f4f7f8; color: #52677b; }
+  .attention-category-pill.follow-up > strong { background: #e1eaee; color: #52677b; }
+  .attention-category-pill.invoice { border-color: #f1dfb8; background: #fff8e9; color: #79581a; }
+  .attention-category-pill.invoice > strong { background: #f5e3b7; color: #79581a; }
   .attention-view-switch { display: flex; gap: 7px; padding: 0 22px 14px; border-bottom: 1px solid #e6edf0; }
-  .attention-view-switch button { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px; border: 1px solid #d6e0e6; border-radius: 999px; background: #fff; color: #52677b; font-size: 11px; font-weight: 750; }
+  .attention-view-switch button { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px; border: 1px solid #d6e0e6; border-radius: 999px; background: #fff; color: #52677b; font-size: 11px; font-weight: 750; white-space: nowrap; }
   .attention-view-switch button:hover, .attention-view-switch button[aria-pressed="true"] { border-color: #008673; background: #e9f8f2; color: #006c5d; }
   .attention-view-switch button span { font-size: 10px; font-variant-numeric: tabular-nums; }
   .home-attention-tile .billing-rows { padding-block: 4px; }
@@ -124,7 +142,14 @@
   .module-job-actions .job-row-actions > button { min-height: 40px; font-size: 10px; }
   .module-job-actions .job-row-actions > select { grid-column: 1 / -1; }
   .attention-view-switch { gap: 6px; padding: 0 14px 12px; }
+  .attention-view-switch { overflow-x: auto; }
   .attention-view-switch button { min-height: 38px; padding-inline: 10px; font-size: 10px; }
+  .attention-summary-toggle { padding: 17px 14px 12px; }
+  .attention-summary-toggle .dashboard-tile-title { font-size: 18px; }
+  .attention-category-pills { gap: 6px; padding: 0 14px 15px; }
+  .attention-category-pill { padding: 8px 9px; font-size: 10px; }
+  .home-header-actions { gap: 6px; }
+  .home-header-actions .home-create-button { min-height: 38px; padding-inline: 11px; font-size: 11px; }
   .home-attention-tile .billing-row { grid-template-columns: 26px minmax(0, 1fr) auto; }
   .home-attention-tile .billing-row .billing-attention-action { display: none; }
 }

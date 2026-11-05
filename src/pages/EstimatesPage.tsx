@@ -209,7 +209,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function estimateStatus(estimate: Estimate) {
-    if (estimate.status === 'sent' || estimate.status === 'viewed') return 'Awaiting approval'
+    if (estimate.status === 'sent' || estimate.status === 'viewed') return 'Awaiting customer approval'
     if (estimate.status === 'accepted' || estimate.status === 'converted') return 'Approved'
     return estimate.status.replaceAll('_', ' ')
   }
@@ -235,7 +235,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {error && !previewTarget && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <CustomerRecordScope customerId={customerScope} customers={customers} view="estimates"/>
     <section className="module-summary-grid" aria-label="Estimate summary">
-      <button type="button" className="module-summary-card module-summary-card-approval" aria-pressed={statusFilter === 'sent'} onClick={() => chooseFilter('sent')}><span>Awaiting approval</span><strong>{awaitingApproval.length}</strong><small>{awaitingApproval.length === 1 ? 'estimate' : 'estimates'} sent to customers</small></button>
+      <button type="button" className="module-summary-card module-summary-card-approval" aria-pressed={statusFilter === 'sent'} onClick={() => chooseFilter('sent')}><span>Awaiting Customer Approval</span><strong>{awaitingApproval.length}</strong><small>{awaitingApproval.length === 1 ? 'estimate' : 'estimates'} sent to customers</small></button>
       <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'approved'} onClick={() => chooseFilter('approved')}><span>Approved</span><strong>{approvedEstimates.length}</strong><small>{approvedEstimates.length === 1 ? 'estimate' : 'estimates'} accepted or invoiced</small></button>
       <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'pipeline'} onClick={() => chooseFilter('pipeline')}><span>Pipeline</span><strong>{estimateMoney.format(pipelineEstimates.reduce((sum, estimate) => sum + Number(estimate.total || 0), 0))}</strong><small>{pipelineEstimates.length} draft and sent {pipelineEstimates.length === 1 ? 'estimate' : 'estimates'}</small></button>
     </section>
