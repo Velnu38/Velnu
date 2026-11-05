@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { formatServiceAddress, googleMapsDirectionsUrl, googleMapsEmbedUrl, googleMapsSearchUrl, type ServiceAddress } from '../lib/googleMaps'
 
 /** Navigation always works without a key. The iframe is optional and loads only on click. */
-export default function GoogleMapTools({ address, preview = false, compact = false }: {
+export default function GoogleMapTools({ address, preview = false, compact = false, directionsOnly = false }: {
   address: ServiceAddress
   preview?: boolean
   compact?: boolean
+  directionsOnly?: boolean
 }) {
   const [showMap, setShowMap] = useState(false)
   const formatted = formatServiceAddress(address)
@@ -16,7 +17,7 @@ export default function GoogleMapTools({ address, preview = false, compact = fal
 
   return <div className={'google-maps-tools' + (compact ? ' compact' : '')}>
     <div className="google-maps-actions">
-      <a className="google-maps-link" href={mapUrl} target="_blank" rel="noopener noreferrer" aria-label={'View ' + formatted + ' in Google Maps'}>View on Google Maps <span aria-hidden="true">↗</span></a>
+      {!directionsOnly && <a className="google-maps-link" href={mapUrl} target="_blank" rel="noopener noreferrer" aria-label={'View ' + formatted + ' in Google Maps'}>View on Google Maps <span aria-hidden="true">↗</span></a>}
       <a className="google-maps-link directions" href={directions} target="_blank" rel="noopener noreferrer" aria-label={'Get driving directions to ' + formatted}>Get directions <span aria-hidden="true">↗</span></a>
       {preview && embedUrl && <button type="button" className="google-maps-preview-toggle" onClick={() => setShowMap(v => !v)} aria-expanded={showMap}>{showMap ? 'Hide map' : 'Show map here'}</button>}
     </div>
