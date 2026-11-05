@@ -68,7 +68,7 @@ export default function BillingHub({ business, snapshot, loading, error, onNavig
     href:documentHref(row.kind === 'invoice' ? 'invoices' : 'estimates',row.id) }))
   const rows=filter==='recent'?recent:[...overdue,...approvals]
   const heading=filter==='recent'?'Recent documents':filter==='approvals'?'Customer approvals':'Needs Attention'
-  const empty=filter==='recent'?'No estimates or invoices yet. Use New invoice or New estimate at the top of the dashboard.':filter==='approvals'?'No estimates or change orders are waiting for approval.':'No items need attention.'
+  const empty=filter==='recent'?'No estimates or invoices yet. Choose Create new on Home to prepare an invoice or estimate.':filter==='approvals'?'No estimates or change orders are waiting for approval.':'No items need attention.'
   const total=attentionPage?.total??0
   const currentPage=attentionPage?.page??1
   const pageCount=Math.max(1,Math.ceil(total/5))

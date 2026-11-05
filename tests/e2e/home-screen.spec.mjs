@@ -80,3 +80,10 @@ for(const role of ['technician','viewer'])test(`Home preserves ${role} module an
  }
  expect(state.calls.some(c=>c.path.endsWith('/payments')||c.path.endsWith('/bookkeeping_entries'))).toBe(false)
 })
+
+for(const kind of ['invoice','estimate'])test(`The ${kind} list opens its existing editor directly`,async({page})=>{
+ await mock(page);await page.goto('/?view='+kind+'s')
+ await page.getByRole('button',{name:'Create '+kind,exact:true}).click()
+ await expect(page.getByRole('dialog')).toBeVisible()
+ await expect(page.getByLabel('Customer',{exact:true})).toBeVisible()
+})

@@ -130,12 +130,12 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />
 
   return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div></div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}>Create invoice</button>}</div>
     <CustomerRecordScope customerId={customerScope} customers={customers} view="invoices"/>
     <RecordListControls label="invoices" list={recordList} />
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
     <section className="list-card">
-      {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Use New invoice at the top of the dashboard to create your first invoice.</p></div> : recordList.visible.map((invoice) => {
+      {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Select Create invoice to prepare your first invoice.</p></div> : recordList.visible.map((invoice) => {
         const customer = invoice.customers?.[0]
         return <article className="document-row invoice-list-row" key={invoice.id}>
           <button className="invoice-open" onClick={() => {history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope, invoice.id));setSelectedInvoiceId(invoice.id)}}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={invoice.created_at} timezone={business.timezone}/></div></button>
