@@ -1,5 +1,4 @@
 import {useEffect,useRef,type ComponentProps} from 'react'
-import FinBrand from './FinBrand'
 import DocumentPaper from './DocumentPaper'
 import {validDeliveryEmail} from './DocumentDeliveryOptions'
 import {normalizeMobile} from '../lib/smsPhone'
@@ -11,7 +10,6 @@ export default function CreationPreview({paper,busy,error,saved=false,onBack,onS
  const emailValid=validDeliveryEmail(email),phoneValid=!!normalizeMobile(phone)
  return <section className="creation-preview" data-saving={busy?'true':undefined}>
  <button type="button" className="back-button" data-keep-dialog disabled={busy} onClick={onBack}>← Back to edit</button>
- <div className="creation-brand"><FinBrand wordmark/></div>
  <h2 ref={heading} tabIndex={-1}>{paper.kind==='invoice'?'Invoice':'Estimate'} preview</h2>
  <DocumentPaper {...paper}/>
  {error&&<p role="alert" className="form-message error-text">{error}</p>}
