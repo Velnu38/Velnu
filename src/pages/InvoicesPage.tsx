@@ -27,13 +27,16 @@ import { createJobInvoice } from '../services/schedulingWorkflow'
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
 type Invoice = DocumentDates & { customer_id: string; id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
+type InvoiceFilter = 'all' | 'open' | 'draft' | 'sent' | 'paid' | 'overdue'
 
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
+const invoiceMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function InvoicesPage({ business }: { business: CurrentBusiness }) {
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [statusFilter, setStatusFilter] = useState<InvoiceFilter>('all')
   const [showForm, setShowForm] = useState(false)
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('document'))
   const [busy, setBusy] = useState(false)
@@ -125,24 +128,58 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   }
 
 
-  const recordList = useRecordList(invoices, row => [row.invoice_number, customerName(row.customers?.[0]), row.issue_date, row.status].join(' '))
+  const today = DateTime.now().setZone(business.timezone || 'UTC').toISODate()!
+  function invoiceIsOverdue(invoice: Invoice) {
+    return Number(invoice.balance_due) > 0 && invoice.status !== 'draft' && invoice.status !== 'void'
+      && (invoice.status === 'overdue' || !!invoice.due_date && invoice.due_date < today)
+  }
+  function invoiceStatus(invoice: Invoice) {
+    if (invoice.status === 'void') return 'Void'
+    if (Number(invoice.balance_due) <= 0 || invoice.status === 'paid') return 'Paid'
+    if (invoiceIsOverdue(invoice)) return 'Overdue'
+    if (invoice.status === 'partial') return 'Partly paid'
+    return invoice.status.replaceAll('_', ' ')
+  }
+  const filteredInvoices = useMemo(() => invoices.filter(invoice => {
+    if (statusFilter === 'all') return true
+    if (statusFilter === 'open') return Number(invoice.balance_due) > 0 && !['draft', 'void'].includes(invoice.status)
+    if (statusFilter === 'draft') return invoice.status === 'draft'
+    if (statusFilter === 'sent') return ['sent', 'viewed', 'partial'].includes(invoice.status) && !invoiceIsOverdue(invoice)
+    if (statusFilter === 'paid') return invoice.status === 'paid' || Number(invoice.balance_due) <= 0 && invoice.status !== 'void'
+    return invoiceIsOverdue(invoice)
+  }), [invoices, statusFilter, today])
+  const recordList = useRecordList(filteredInvoices, row => [row.invoice_number, customerName(row.customers?.[0]), row.issue_date, row.due_date, invoiceStatus(row)].join(' '))
+  const openInvoices = invoices.filter(invoice => Number(invoice.balance_due) > 0 && !['draft', 'void'].includes(invoice.status))
+  const overdueInvoices = invoices.filter(invoiceIsOverdue)
+  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' || Number(invoice.balance_due) <= 0 && invoice.status !== 'void')
+  function chooseFilter(filter: InvoiceFilter) { setStatusFilter(filter); recordList.setPage(0) }
 
   if (selectedInvoiceId) return <InvoiceDetail business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />
 
-  return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}>Create invoice</button>}</div>
+  return <div className="page-stack workspace-module invoice-module"><WorkspaceBack />
+    <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create invoice</button>}</div>
     <CustomerRecordScope customerId={customerScope} customers={customers} view="invoices"/>
+    <section className="module-summary-grid" aria-label="Invoice summary">
+      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'open'} onClick={() => chooseFilter('open')}><span>Outstanding</span><strong>{invoiceMoney.format(openInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))}</strong><small>{openInvoices.length} open {openInvoices.length === 1 ? 'invoice' : 'invoices'}</small></button>
+      <button type="button" className="module-summary-card module-summary-card-overdue" aria-pressed={statusFilter === 'overdue'} onClick={() => chooseFilter('overdue')}><span>Overdue</span><strong>{overdueInvoices.length}</strong><small>{invoiceMoney.format(overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))} balance due</small></button>
+      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'paid'} onClick={() => chooseFilter('paid')}><span>Paid invoices</span><strong>{paidInvoices.length}</strong><small>{invoiceMoney.format(paidInvoices.reduce((sum, invoice) => sum + Number(invoice.amount_paid || invoice.total || 0), 0))} collected</small></button>
+    </section>
+    <nav className="module-status-filters" aria-label="Filter invoices">
+      {([['all','All',invoices.length],['open','Open',openInvoices.length],['draft','Draft',invoices.filter(row=>row.status==='draft').length],['sent','Sent',invoices.filter(row=>['sent','viewed','partial'].includes(row.status)&&!invoiceIsOverdue(row)).length],['paid','Paid',paidInvoices.length],['overdue','Overdue',overdueInvoices.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
+    </nav>
     <RecordListControls label="invoices" list={recordList} />
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
-    <section className="list-card">
+    <section className="module-record-list" aria-label="Invoices">
       {invoices.length === 0 ? <div className="empty-state"><div className="empty-icon">I</div><h2>No invoices yet</h2><p>Select Create invoice to prepare your first invoice.</p></div> : recordList.visible.map((invoice) => {
         const customer = invoice.customers?.[0]
-        return <article className="document-row invoice-list-row" key={invoice.id}>
-          <button className="invoice-open" onClick={() => {history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope, invoice.id));setSelectedInvoiceId(invoice.id)}}><div className="row-main"><strong>{invoice.invoice_number || 'Draft invoice'}</strong><span>{customerName(customer)} · {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={invoice.created_at} timezone={business.timezone}/></div></button>
-          <div className="invoice-money"><strong className="money">${Number(invoice.balance_due).toFixed(2)}</strong><span>of ${Number(invoice.total).toFixed(2)} due</span></div>
-          <span className={`status-chip ${invoice.status === 'paid' ? 'paid' : ''}`}>{invoice.status.replaceAll('_', ' ')}</span>
+        const currentStatus = invoiceStatus(invoice)
+        return <article className="document-row invoice-list-row module-record-card" key={invoice.id}>
+          <div className="module-record-main"><button type="button" className="module-record-open" aria-label={`Open invoice ${invoice.invoice_number || ''} for ${customerName(customer)}`} onClick={() => {history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope, invoice.id));setSelectedInvoiceId(invoice.id)}}><strong>{invoice.invoice_number || 'Draft invoice'}</strong></button><span>{customerName(customer)} · Issued {new Date(invoice.issue_date + 'T00:00:00').toLocaleDateString()}{invoice.due_date ? ` · Due ${new Date(invoice.due_date + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={invoice.created_at} timezone={business.timezone}/></div>
+          <div className="module-record-total"><span>Balance due</span><strong>{invoiceMoney.format(Number(invoice.balance_due))}</strong><small>of {invoiceMoney.format(Number(invoice.total))}</small></div>
+          <div className="module-record-actions"><span className={`module-record-status ${invoiceIsOverdue(invoice) ? 'is-overdue' : currentStatus.toLowerCase().includes('paid') ? 'is-positive' : ''}`}>{currentStatus}</span><button type="button" className="primary-button compact" onClick={() => {history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope, invoice.id));setSelectedInvoiceId(invoice.id)}}>Open invoice</button></div>
         </article>
       })}
+      {invoices.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>No {statusFilter === 'all' ? '' : `${statusFilter} `}invoices in this view.</strong><span>Choose another status or view all invoices.</span></div>}
     </section>
     {showForm && <FormDialog label="Invoices form" busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
       <div className="modal-head"><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>

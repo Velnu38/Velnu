@@ -1,5 +1,5 @@
 import { canAccess, workspaceModules } from '../lib/workspaceAccess'
-import BillingHub, { DashboardJobs } from '../components/BillingHub'
+import BillingHub from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { businessLogoUrl, type CurrentBusiness } from '../lib/business'
@@ -107,6 +107,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
       <button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
     </header>
     <div className="home-overview">
+      {canAccess(business,'billing') && <BillingHub key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
       {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
       {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
     </div>
@@ -125,12 +126,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
 
     {showEntry && <Suspense fallback={<p role="status">Opening calendar entry…</p>}><CalendarEntryDialog business={business} day={DateTime.now().setZone(business.timezone || 'America/New_York').toISODate()!} onClose={() => setShowEntry(false)} onSaved={() => setRefreshVersion(value => value + 1)}/></Suspense>}
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
-    <section className="dashboard-work-grid" aria-label="Work areas">
-      {canAccess(business,'billing') && <BillingHub key={workspaceKey} business={business} snapshot={snapshot} loading={loading} error={error} onNavigate={onNavigate} refreshVersion={refreshVersion} />}
-      {canAccess(business,'jobs') && <DashboardJobs snapshot={snapshot} loading={loading} error={error} onOpen={() => onNavigate?.('work')} />}
-    </section>
-
-    {!canAccess(business,'billing')&&canAccess(business,'calendar')&&<section className="dashboard-tile" aria-label="Needs Attention"><h2 className="dashboard-tile-title">Needs Attention</h2><AttentionReminders business={business} reminders={snapshot.dueReminders}/></section>}
+    {!canAccess(business,'billing')&&canAccess(business,'calendar')&&<section className="dashboard-tile home-attention-tile" aria-label="Needs Attention"><div className="work-card-heading"><div><p className="eyebrow">Your next steps</p><h2 className="dashboard-tile-title">Needs Attention</h2></div></div><AttentionReminders business={business} reminders={snapshot.dueReminders}/></section>}
     {error && <p role="alert" className="form-message error-text">{error}</p>}
 
 

@@ -29,3 +29,4 @@ createRoot(container).render(
 import './calendar.css';
 
 import './workspace-consistency.css'
+import './workspace-tabs.css'

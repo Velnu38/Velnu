@@ -41,14 +41,17 @@ type Estimate = DocumentDates & { issuer_snapshot?: Partial<BusinessProfile> | n
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type PreviewItem = { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
+type EstimateFilter = 'all' | 'pipeline' | 'draft' | 'sent' | 'approved' | 'declined'
 
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
+const estimateMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function EstimatesPage({ business }: { business: CurrentBusiness }) {
   const [resourceEstimate, setResourceEstimate] = useState<{ id: string; estimate_number: string | null } | null>(null)
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [statusFilter, setStatusFilter] = useState<EstimateFilter>('all')
   const [showForm, setShowForm] = useState(false)
   const [convertTarget, setConvertTarget] = useState<Estimate | null>(null)
   const [scheduleTarget,setScheduleTarget]=useState<Estimate|null>(null)
@@ -205,30 +208,52 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     } finally { setPreviewBusy(false) }
   }
 
-  const recordList = useRecordList(estimates, row => [row.estimate_number, customerName(row.customers?.[0]), row.issue_date, row.status].join(' '))
+  function estimateStatus(estimate: Estimate) {
+    if (estimate.status === 'sent' || estimate.status === 'viewed') return 'Awaiting approval'
+    if (estimate.status === 'accepted' || estimate.status === 'converted') return 'Approved'
+    return estimate.status.replaceAll('_', ' ')
+  }
+  const filteredEstimates = useMemo(() => estimates.filter(estimate => {
+    if (statusFilter === 'all') return true
+    if (statusFilter === 'pipeline') return ['draft', 'sent', 'viewed'].includes(estimate.status)
+    if (statusFilter === 'draft') return estimate.status === 'draft'
+    if (statusFilter === 'sent') return ['sent', 'viewed'].includes(estimate.status)
+    if (statusFilter === 'approved') return ['accepted', 'converted'].includes(estimate.status)
+    return ['declined', 'expired'].includes(estimate.status)
+  }), [estimates, statusFilter])
+  const recordList = useRecordList(filteredEstimates, row => [row.estimate_number, customerName(row.customers?.[0]), row.issue_date, row.expires_on, estimateStatus(row)].join(' '))
+  const awaitingApproval = estimates.filter(estimate => ['sent', 'viewed'].includes(estimate.status))
+  const approvedEstimates = estimates.filter(estimate => ['accepted', 'converted'].includes(estimate.status))
+  const pipelineEstimates = estimates.filter(estimate => ['draft', 'sent', 'viewed'].includes(estimate.status))
+  function chooseFilter(filter: EstimateFilter) { setStatusFilter(filter); recordList.setPage(0) }
 
   if (showChangeOrders && previewTarget && offersDocumentChangeOrders('estimate', previewTarget.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType: 'estimate', documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id }} onBack={() => setShowChangeOrders(false)} /></Suspense>
 
-  return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}>Create estimate</button>}</div>
+  return <div className="page-stack workspace-module estimates-module"><WorkspaceBack />
+    <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1><p className="module-page-intro">Track approvals, send a quote, or turn approved work into a job.</p></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create estimate</button>}</div>
     {notice && !previewTarget && <p className="form-message success-text">{notice}</p>}
     {error && !previewTarget && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <CustomerRecordScope customerId={customerScope} customers={customers} view="estimates"/>
+    <section className="module-summary-grid" aria-label="Estimate summary">
+      <button type="button" className="module-summary-card module-summary-card-approval" aria-pressed={statusFilter === 'sent'} onClick={() => chooseFilter('sent')}><span>Awaiting approval</span><strong>{awaitingApproval.length}</strong><small>{awaitingApproval.length === 1 ? 'estimate' : 'estimates'} sent to customers</small></button>
+      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'approved'} onClick={() => chooseFilter('approved')}><span>Approved</span><strong>{approvedEstimates.length}</strong><small>{approvedEstimates.length === 1 ? 'estimate' : 'estimates'} accepted or invoiced</small></button>
+      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'pipeline'} onClick={() => chooseFilter('pipeline')}><span>Pipeline</span><strong>{estimateMoney.format(pipelineEstimates.reduce((sum, estimate) => sum + Number(estimate.total || 0), 0))}</strong><small>{pipelineEstimates.length} draft and sent {pipelineEstimates.length === 1 ? 'estimate' : 'estimates'}</small></button>
+    </section>
+    <nav className="module-status-filters" aria-label="Filter estimates">
+      {([['all','All',estimates.length],['pipeline','Pipeline',pipelineEstimates.length],['draft','Draft',estimates.filter(row=>row.status==='draft').length],['sent','Sent',awaitingApproval.length],['approved','Approved',approvedEstimates.length],['declined','Declined',estimates.filter(row=>['declined','expired'].includes(row.status)).length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
+    </nav>
     <RecordListControls label="estimates" list={recordList} />
-    <section className="list-card" hidden={!!previewTarget}>
+    <section className="module-record-list" aria-label="Estimates" hidden={!!previewTarget}>
       {estimates.length === 0 ? <div className="empty-state"><div className="empty-icon">E</div><h2>No estimates yet</h2><p>Select Create estimate to prepare your first estimate.</p></div> : recordList.visible.map((estimate) => {
         const customer = estimate.customers?.[0]
-        return <article className="document-row" key={estimate.id}>
-          <button type="button" className="row-main estimate-document-open" disabled={previewBusy} onClick={() => openPreview(estimate)}><strong>{estimate.estimate_number || 'Draft estimate'}</strong><span>{customerName(customer)} · {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}</span><CreatedStamp value={estimate.created_at} timezone={business.timezone}/></button>
-          <strong className="money">${Number(estimate.total).toFixed(2)}</strong>
-          <div className="document-actions">
-            <button type="button" className="secondary-button compact" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button>
-            <button className="secondary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Preview / Print</button>
-            <span className={`status-chip ${estimate.status === 'accepted' ? 'paid' : ''}`}>{estimate.status}</span>
-
-          </div>
+        const currentStatus = estimateStatus(estimate)
+        return <article className="document-row module-record-card estimate-module-record" key={estimate.id}>
+          <div className="module-record-main"><button type="button" className="module-record-open" disabled={previewBusy} onClick={() => openPreview(estimate)} aria-label={`Open estimate ${estimate.estimate_number || ''} for ${customerName(customer)}`}><strong>{estimate.estimate_number || 'Draft estimate'}</strong></button><span>{customerName(customer)} · Issued {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}{estimate.expires_on ? ` · Expires ${new Date(estimate.expires_on + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={estimate.created_at} timezone={business.timezone}/></div>
+          <div className="module-record-total"><span>Estimate total</span><strong>{estimateMoney.format(Number(estimate.total))}</strong><small>{estimate.status === 'converted' ? 'Invoice created' : 'Customer quote'}</small></div>
+          <div className="module-record-actions"><span className={`module-record-status ${['accepted','converted'].includes(estimate.status) ? 'is-positive' : ['sent','viewed'].includes(estimate.status) ? 'is-pending' : ''}`}>{currentStatus}</span><button type="button" className="primary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Open estimate</button>{canManageFinances(business.role)&&['accepted'].includes(estimate.status)&&!estimate.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" className="secondary-button compact" onClick={()=>setScheduleTarget(estimate)}>Schedule job</button>}<button type="button" className="secondary-button compact" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button></div>
         </article>
       })}
+      {estimates.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>No {statusFilter === 'all' ? '' : `${statusFilter} `}estimates in this view.</strong><span>Choose another status or view all estimates.</span></div>}
     </section>
     {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
     {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} onClose={() => setResourceEstimate(null)} />}
