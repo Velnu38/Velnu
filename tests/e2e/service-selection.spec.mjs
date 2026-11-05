@@ -63,8 +63,8 @@ async function openServicePreferences(page) {
     return json([])
   })
   await page.goto('/auth?mode=signin')
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Company profile', exact: true }).click()
+  await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Company Profile/ }).click()
   await page.getByText('Optional Finviant services',{exact:true}).click()
   return requests
 }

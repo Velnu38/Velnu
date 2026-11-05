@@ -193,8 +193,8 @@ test('mobile More menu exposes invoices and editable company settings', async ({
   await mockWorkspace(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'More' }).click()
-  await page.locator('.mobile-more-grid').getByRole('button', { name: 'Settings', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Company Profile/ }).click()
+  await expect(page.getByRole('heading', { name: 'Company Profile', exact: true })).toBeVisible()
 })
 
 
