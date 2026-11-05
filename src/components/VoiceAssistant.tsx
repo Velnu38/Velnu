@@ -1,9 +1,10 @@
+import FinActionButton from './FinActionButton'
 import {setAssistantWorking} from '../lib/assistantEntry'
 import {createVoicePauseDetector} from '../lib/voicePause'
 import {checkMicrophoneContext,describeMicrophoneFailure,startCompatibleRecorder,type MicrophoneFailure,type MicrophoneStage} from '../lib/microphone'
 import MicrophoneRecovery from './MicrophoneRecovery'
 import CreatedDocumentDelivery from './CreatedDocumentDelivery'
-import {FinMark,FinName} from './FinBrand'
+import {FinMark} from './FinBrand'
 import FormDialog from './FormDialog'
 import { useEffect, useRef, useState } from 'react'
 import {flushSync} from 'react-dom'
@@ -368,7 +369,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const speechWindow=window as typeof window & {SpeechRecognition?:unknown;webkitSpeechRecognition?:unknown}
   const browserDictationAvailable=typeof speechWindow.SpeechRecognition==='function'||typeof speechWindow.webkitSpeechRecognition==='function'
   return <>
-    <div className="fin-launcher"><button type="button" className="voice-fab" onClick={openVoice} aria-label="Talk to Fin"><span className="fin-launcher-orb"><FinMark onDark/></span><span className="fin-launcher-caption">Ask <FinName onDark/><small>Tap to speak</small></span></button><button type="button" className="fin-type-entry" onClick={()=>{setEntryMode('text');setOpen(true)}}>Type to Fin</button></div>
+    <div className="fin-launcher"><FinActionButton onClick={openVoice} aria-label="Talk to Fin" title="Ask Fin · tap to speak"/><button type="button" className="fin-type-entry" onClick={()=>{setEntryMode('text');setOpen(true)}}>Type to Fin</button></div>
     {open && <FormDialog key={entryRevision} label="Fin — your office assistant" autoFocusFields={entryMode==='text'} cleanVersion={execution??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
       <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{plan?'Review your request':'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
       {plan&&<FinWorkflowReview plan={plan} timezone={business.timezone||'America/New_York'} busy={busy||recording} hasEdits={!!text.trim()} onConfirm={()=>void confirm()} onCancel={()=>void reject()} onEdit={()=>textAreaRef.current?.focus()}/>}
@@ -382,7 +383,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       {voiceStatus&&<p className="assistant-help" role="status">{voiceStatus}</p>}
       <p className="assistant-help">{conversation.length?'Ask a follow-up by voice or type below.':'Speak or type a question, invoice, estimate, or task.'}</p>
       <details className="fin-help"><summary>Using Fin and your business data</summary><button type="button" className="text-button" onClick={()=>textAreaRef.current?.focus()}>Use keyboard dictation</button><p className="assistant-help">Ask about your saved business profile, customers, unpaid invoices or upcoming work. Fin uses current records in this business; its answers show the records checked. Teach Fin through Settings → Company profile. Fin respects your role and the modules the account owner enables. Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p></details>
-      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); }} maxLength={6000} placeholder={conversation.length?"Ask a follow-up…":"Ask a question or describe what you need…"} /><button type="button" className="primary-button compact fin-submit" aria-label="Ask Fin" onClick={submitText} disabled={busy || recording || !text.trim()}>{busy&&!recording?'Working…':<>Ask <FinName onDark/></>}</button></div>
+      <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); }} maxLength={6000} placeholder={conversation.length?"Ask a follow-up…":"Ask a question or describe what you need…"} /><FinActionButton aria-label="Ask Fin" onClick={submitText} disabled={busy || recording || !text.trim()} working={busy&&!recording}/></div>
       {conversation.length>0&&<div className="fin-conversation-controls"><span>Fin uses recent messages and current business records.</span><button type="button" className="text-button" disabled={busy||recording} onClick={()=>void newConversation()}>New conversation</button></div>}
       </>}
       {error && <p role="alert" className="form-message error-text">{error}</p>}
