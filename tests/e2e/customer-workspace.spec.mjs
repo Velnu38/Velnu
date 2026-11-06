@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { mock, B, C, E, P, J } from './audit-fixture.mjs'
 const other='99999999-9999-4999-8999-999999999999'
 const version='2026-11-04T15:00:00Z'
-async function setup(page,{conflict=false,failCreate=false}={}){
+async function setup(page,{conflict=false,failCreate=false,deleteConflict=false}={}){
  const state=await mock(page)
  state.customers=[{id:C,first_name:'Jane',last_name:'Doe',company:null,email:'jane@example.test',phone:'7575551234',updated_at:version},{id:other,first_name:'Amy',last_name:'Adams',company:null},{id:J,first_name:null,last_name:null,company:'Bayside LLC'},{id:P,first_name:'Zoe',last_name:' brown ',company:null},{id:E,first_name:'Chris',last_name:null,company:'Zebra Services'}]
  const locations=[{id:P,business_id:B,customer_id:C,label:'Home',address_line1:'123 Example Street',city:'Chesapeake',state:'VA',postal_code:'23322',address_line2:null,access_notes:'Gate 98765',updated_at:version}]
@@ -11,8 +11,11 @@ async function setup(page,{conflict=false,failCreate=false}={}){
  const filtered=(data,q)=>data.filter(row=>['id','customer_id'].every(key=>!q.has(key)||q.get(key)==='eq.'+row[key]))
  await page.route('**/rest/v1/customers?**',r=>{
   const q=new URL(r.request().url()).searchParams
-  if(r.request().method()==='PATCH'){const row=state.customers.find(c=>q.get('id')==='eq.'+c.id);Object.assign(row,r.request().postDataJSON());return reply(r,row)}
-  const rows=filtered(state.customers,q);return reply(r,q.has('id')?rows[0]:rows)
+  if(r.request().method()==='PATCH'){
+   writes.push({method:'PATCH',table:'customers',q:Object.fromEntries(q),body:r.request().postDataJSON()})
+   if(deleteConflict)return reply(r,{code:'PGRST116',message:'zero rows'},406)
+   const row=state.customers.find(c=>q.get('id')==='eq.'+c.id);Object.assign(row,r.request().postDataJSON());return reply(r,row)}
+  const rows=filtered(state.customers,q).filter(row=>q.get('archived')!=='eq.false'||!row.archived);return reply(r,q.has('id')?rows[0]:rows)
  })
  await page.route('**/rest/v1/properties?**',r=>{
   const req=r.request(),q=new URL(req.url()).searchParams
@@ -130,4 +133,27 @@ test('alphabetic surnames stay ahead of numbered imports across pages and after 
  await expect(page.locator('.customer-row strong')).toHaveText(['Zimmerman, Amy'])
  await page.getByLabel('Search customers').fill('')
  expect((await page.locator('.customer-row strong').allTextContents()).slice(0,3)).toEqual(['brown, Zoe','Doe, Jane','Zimmerman, Amy'])
+})
+
+for(const conflict of [false,true])test('delete contact confirms and preserves history; conflict='+conflict,async({page})=>{
+ const {writes,state,locations}=await setup(page,{deleteConflict:conflict})
+ await page.goto('/?view=customers&document='+C)
+ await page.getByRole('button',{name:'Edit customer',exact:true}).click()
+ const dialog=page.getByRole('dialog',{name:'Edit customer',exact:true})
+ await dialog.getByRole('button',{name:'Delete Contact',exact:true}).click()
+ await expect(dialog).toContainText('will be retained')
+ await dialog.getByRole('button',{name:'Keep contact',exact:true}).click()
+ expect(writes).toHaveLength(0)
+ await dialog.getByRole('button',{name:'Delete Contact',exact:true}).click()
+ await dialog.getByRole('button',{name:'Confirm Delete Contact',exact:true}).click()
+ expect(writes).toHaveLength(1)
+ expect(writes[0]).toMatchObject({table:'customers',body:{archived:true},q:{id:'eq.'+C,business_id:'eq.'+B,updated_at:'eq.'+version}})
+ expect(locations).toHaveLength(1)
+ if(conflict){await expect(dialog).toContainText('changed elsewhere');expect(state.customers[0].archived).toBeUndefined()}
+ else{
+  await expect(dialog).toHaveCount(0)
+  await expect(page).toHaveURL(/view=customers$/)
+  await expect(page.locator('.customer-row strong')).not.toContainText(['Doe, Jane'])
+  expect(state.customers.find(c=>c.id===C).email).toBe('jane@example.test')
+ }
 })
