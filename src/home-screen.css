@@ -77,8 +77,9 @@
   .dashboard-page .performance-compact .performance-footer p { font-size: 10px; }
   .dashboard-page .performance-compact .performance-footer button { min-height: 36px; color: #006c5d; white-space: normal; text-align: left; }
   .home-create { display: flex; }
-  .dashboard-page .home-create-button { width: 100%; min-height: 54px; font-size: 16px; border-radius: 15px; }
-  .home-create-button > span { font-size: 26px; line-height: 1; }
+  .dashboard-page .home-create-button { display: grid; place-content: center; justify-items: center; gap: 2px; width: 100%; min-height: 54px; font-size: 16px; line-height: 1.15; border-radius: 15px; }
+  .home-create-label > span { font-size: 1.1em; }
+  .home-create-subtitle { font-size: 11px; font-weight: 600; }
   .home-create-options { display: grid; gap: 10px; }
   .home-create-options > :is(a,button) { display: flex; width: 100%; align-items: center; gap: 16px; padding: 16px; background: #f8fafb; color: #102c4b; text-align: left; text-decoration: none; border: 1px solid #d1dde6; border-radius: 13px; min-height: 76px; }
   .home-create-options > :is(a,button):hover { background: #edf9f4; border-color: #008673; }

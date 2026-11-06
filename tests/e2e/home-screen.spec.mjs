@@ -51,9 +51,33 @@ for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation ch
  if(kind==='reminder')await expect(page.getByRole('heading',{name:'Create a reminder',exact:true})).toBeVisible()
  else {
   await expect(page.getByRole('dialog')).toBeVisible()
-  if(kind!=='job')await expect(page.getByLabel('Customer',{exact:true})).toBeVisible()
+  if(kind!=='job'){
+   const dialog=page.getByRole('dialog',{name:'Create an '+kind,exact:true})
+   await dialog.locator('summary').filter({hasText:'Add Customer'}).click()
+   await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toBeVisible()
+  }
  }
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin)
+})
+for(const width of [320,1440])test(`Home Quick Links opens the existing Customers directory at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900})
+ await mock(page)
+ await page.goto('/')
+ const trigger=page.getByRole('button',{name:'Create new',exact:true})
+ await expect(trigger).toHaveAccessibleDescription('Quick Links')
+ const newLabel=trigger.getByText('New',{exact:false}).first()
+ const subtitle=trigger.getByText('Quick Links',{exact:true})
+ await expect(subtitle).toBeVisible()
+ expect((await subtitle.boundingBox()).y).toBeGreaterThan((await newLabel.boundingBox()).y)
+ const timeOrigin=await page.evaluate(()=>performance.timeOrigin)
+ await subtitle.click()
+ const chooser=page.getByRole('dialog',{name:'Create new',exact:true})
+ await expect(chooser.getByRole('link',{name:'+ New invoice',exact:true})).toBeVisible()
+ await expect(chooser.getByRole('link',{name:'+ New estimate',exact:true})).toBeVisible()
+ await chooser.getByRole('link',{name:'Customers',exact:true}).click()
+ await expect(page.getByRole('region',{name:'Customer directory',exact:true})).toBeVisible()
+ await expect(chooser).toHaveCount(0)
+ expect(await page.evaluate(()=>performance.timeOrigin)).toBe(timeOrigin)
 })
 test('Home calendar creation reuses the entry editor and Escape restores the trigger',async({page})=>{
  await mock(page);await page.goto('/')
