@@ -66,3 +66,10 @@ test('scheduled sending freezes the review, rechecks downgrade and reminders are
  await plan(db,'pro');await db.query('select save_reminder_rule($1,true,3,7,3)',[B]);await db.exec('reset role');await db.query("update invoices set status='sent' where id=$1",[I]);const result=(await db.query<any>('select prepare_due_delivery_tasks() n')).rows[0].n;assert.equal(result,1);assert.equal((await db.query('select * from private.finviant_email_outbox')).rows.length,1);await db.query('select prepare_due_delivery_tasks()');assert.equal((await db.query('select * from private.finviant_email_outbox')).rows.length,1)
  await user(db,O);await assert.rejects(()=>db.query('select save_reminder_rule($1,true,3,7,3)',[B]),/Owner access/)
 }finally{await db.close()}})
+
+for(const status of ['void','paid'])test(`queued email and SMS stop when invoice becomes ${status}`,async()=>{const db=await fixture();try{
+ await invoice(db);await plan(db,'pro');await db.exec('reset role');await db.query("insert into private.managed_delivery_accounts(business_id,email_active,sms_active,sms_from,sms_reply_route) values($1,true,true,'+17575550999','Finviant inbox')",[B]);
+ const emailRequest=crypto.randomUUID(),smsRequest=crypto.randomUUID(),token='d'.repeat(64);await db.query("select prepare_document_email($1,$2,'invoice',$3,$4,'https://finviant.com')",[U,B,I,emailRequest]);
+ await user(db);await db.query("select prepare_personal_document($1,'invoice',$2,$3)",[B,I,token]);await db.query("select record_sms_permission($1,'+17575550123',true)",[B]);await db.exec('reset role');await db.query("select prepare_managed_sms($1,$2,'invoice',$3,$4,$5,'+17575550123')",[U,B,I,smsRequest,token]);
+ await db.query('update invoices set status=$1 where id=$2',[status,I]);assert.equal((await db.query<any>('select claim_document_email($1) s',[emailRequest])).rows[0].s.status,'reconciliation_required');assert.equal((await db.query<any>('select claim_managed_sms($1) s',[smsRequest])).rows[0].s.status,'blocked');
+}finally{await db.close()}})

@@ -63,7 +63,7 @@ test('new owner can enter company branding and business context during onboardin
   await page.getByLabel('Team responsibilities (optional)').fill('Owner handles quotes; electricians do field work.')
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.getByRole('heading', { name: 'Choose your optional Finviant Office services' })).toBeVisible()
-  await page.getByRole('radio', { name: /Individual/ }).check()
+  await page.getByRole('radio', { name: /^Individual / }).check()
   await page.getByRole('button', { name: 'Create my business' }).click()
   await expect(page.getByRole('heading',{name:'Email & Text Setup',exact:true})).toBeVisible()
   await expect(page.getByRole('button',{name:'Save and open workspace'})).toBeDisabled()

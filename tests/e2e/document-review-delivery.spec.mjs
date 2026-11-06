@@ -63,7 +63,7 @@ test('uncertain email uses the same request after closing and reopening the save
   sends.push(route.request().postDataJSON());return reply(route,sends.length===1?{error:'Outcome uncertain. Retry the same send.'}:{status:'accepted',email_id:'receipt-1',recipient:'customer@example.test'},sends.length===1?503:200)
  })
  let delivery=await openReview(page,'invoice');await delivery.getByRole('button',{name:'Send Email',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Outcome uncertain')
- await page.getByRole('button',{name:'← Invoices',exact:true}).click();await page.locator('.invoice-open').first().click()
+ await page.getByRole('button',{name:'← Invoices',exact:true}).click();await page.getByRole('button',{name:/^Open invoice INV-QA/}).click()
  delivery=page.getByRole('region',{name:'Send to customer'});await delivery.getByRole('button',{name:'Send Email',exact:true}).click()
  await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery'})).toBeVisible();expect(sends).toHaveLength(2);expect(sends[0]).toEqual(sends[1])
 })
