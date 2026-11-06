@@ -1,6 +1,7 @@
 import type { CurrentBusiness } from '../lib/business'
 import { canOpenView } from '../lib/workspaceAccess'
-import { canOpenSettingsSection, settingsHref, settingsOptions } from '../lib/settingsNavigation'
+import { useTierUsage } from '../lib/useTierUsage'
+import { canOpenSettingsSection, settingsHref, settingsOptionForPlan, settingsOptions } from '../lib/settingsNavigation'
 import { confirmNavigation } from '../lib/unsavedChanges'
 import { supabase } from '../lib/supabase'
 import WorkspaceIcon from './WorkspaceIcon'
@@ -8,7 +9,10 @@ import './more-navigation.css'
 
 /** Shared by desktop, mobile, and bookmarked /?view=settings entry points. */
 export default function MoreNavigation({ business }: { business: CurrentBusiness }) {
-  const options = settingsOptions.filter(option => canOpenSettingsSection(business, option.id))
+  const plan = useTierUsage(business.id)?.plan
+  const options = settingsOptions
+    .filter(option => canOpenSettingsSection(business, option.id))
+    .flatMap(option => settingsOptionForPlan(option, plan) ?? [])
   const setup = options.filter(option => option.group === 'setup')
   const account = options.filter(option => option.group === 'account')
   const destinations = [

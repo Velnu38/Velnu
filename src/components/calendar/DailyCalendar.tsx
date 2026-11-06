@@ -8,6 +8,7 @@ import type { CurrentBusiness } from '../../lib/business'
 import { calendarRange, workOnDay, remindersOnDay, connectedOnDay, type CalendarView } from '../../lib/calendarView'
 import { loadCalendarRange, loadConnectedCalendarRange } from '../../services/calendar'
 import { completeWorkReminder } from '../../services/reminders'
+import { useTierUsage } from '../../lib/useTierUsage'
 import { getScheduleTeam, type Worker } from '../../services/schedulingWorkflow'
 
 const ReminderDetailsDialog=lazy(()=>import('../ReminderDetailsDialog'))
@@ -29,6 +30,7 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [connectedResult, setConnectedResult] = useState<{key:string;agenda:ConnectedAgenda}|null>(null)
   const [connectedError, setConnectedError] = useState('')
   const [connectedLoading, setConnectedLoading] = useState(true)
+  const teamScheduling = useTierUsage(business.id)?.plan === 'pro'
   const [team,setTeam]=useState<Worker[]>([]),[worker,setWorker]=useState('all')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(value=>{if(!active)return;setTeam(value);if(business.role==='technician')setWorker(value.find(item=>item.is_you)?.id || 'all')}).catch(()=>{});return()=>{active=false}},[business.id,business.role])
   const [entry,setEntry]=useState<{day:string;id?:string}|null>(null)
@@ -72,7 +74,7 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
       .finally(() => { if (active) setConnectedLoading(false) })
     return () => { active = false }
   }, [key, business.id, from, to, zone, version, refreshVersion])
-  const workByDay = useMemo(() => new Map(range.days.map(date => [date.toISODate()!, workOnDay((agenda?.work ?? []).filter(item=>worker==='all'||item.assigned_user_ids?.includes(worker)), date.toISODate()!, zone)])), [agenda, from, to, zone,worker])
+  const workByDay = useMemo(() => new Map(range.days.map(date => [date.toISODate()!, workOnDay((agenda?.work ?? []).filter(item=>!teamScheduling||worker==='all'||item.assigned_user_ids?.includes(worker)), date.toISODate()!, zone)])), [agenda, from, to, zone,worker,teamScheduling])
   const work = workByDay.get(day) ?? []
   const reminders = remindersOnDay(agenda?.reminders ?? [], day, zone)
   const connectedEvents = connectedOnDay(connected?.events ?? [], day, zone)
@@ -89,7 +91,7 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
       <div><p className="eyebrow">Your schedule</p><h2 className="dashboard-tile-title">{view === 'week' ? 'Weekly schedule' : 'Monthly calendar'}</h2></div>
       <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div>{business.role!=='viewer'&&<button type="button" className="calendar-add" onClick={()=>setEntry({day})}>+ Add entry</button>}</div>
     </div>
-    {team.length>0&&<label className="worker-select">Scheduled work for<select value={worker} onChange={e=>setWorker(e.target.value)}><option value="all">Everyone</option>{team.map(item=><option value={item.id} key={item.id}>{item.is_you?'My schedule · ':''}{item.label}</option>)}</select><small>Shared reminders and connected personal events are shown separately.</small></label>}
+    {teamScheduling&&team.length>0&&<label className="worker-select">Scheduled work for<select value={worker} onChange={e=>setWorker(e.target.value)}><option value="all">Everyone</option>{team.map(item=><option value={item.id} key={item.id}>{item.is_you?'My schedule · ':''}{item.label}</option>)}</select><small>Shared reminders and connected personal events are shown separately.</small></label>}
     <div className="calendar-period-nav">
       <div className="calendar-period-title"><button className="calendar-arrow" aria-label={`Previous ${view}`} onClick={() => setDay(selected.minus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>‹</button><strong aria-live="polite">{periodLabel}</strong><button className="calendar-arrow" aria-label={`Next ${view}`} onClick={() => setDay(selected.plus(view === 'week' ? { weeks: 1 } : { months: 1 }).toISODate()!)}>›</button></div>
     </div>

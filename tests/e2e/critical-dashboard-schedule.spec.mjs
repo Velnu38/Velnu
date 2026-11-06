@@ -783,7 +783,7 @@ test('calendar dashboard shows daily work, overdue reminders, completion, and an
 })
 
 test('calendar settings shows connected identity, calendar choices and persists toggle', async ({ page }) => {
-  await mockWorkspace(page)
+  await mockWorkspace(page,{plan:'basic'})
   let saved
   await page.route('**/api/calendar?**', route => {
     const action = new URL(route.request().url()).searchParams.get('action')
@@ -963,7 +963,7 @@ test('selected day shows every calendar item while financial detail stays availa
 
 
 for (const width of [1440,390]) test(`owner settings navigation is clear at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});await mockWorkspace(page)
+ await page.setViewportSize({width,height:900});await mockWorkspace(page,{plan:'pro'})
  const writes=[]
  await page.route('**/rest/v1/business_settings?**',r=>{if(r.request().method()==='POST')writes.push(r.request().postDataJSON());return r.fulfill({contentType:'application/json',body:JSON.stringify({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})})})
  await page.route('**/rest/v1/businesses?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({...business,...r.request().postDataJSON()})}))
@@ -982,7 +982,7 @@ for (const width of [1440,390]) test(`owner settings navigation is clear at ${wi
 
 test('owner settings invites reserve a seat and permissions are editable only through team controls',async({page})=>{
  await page.setViewportSize({width:390,height:844})
- const state=await mockWorkspace(page)
+ const state=await mockWorkspace(page,{plan:'pro'})
  const team={seat_limit:5,pro:true,members:[{user_id:UID,email:'owner@example.test',role:'owner',primary_owner:true,access_modules:['calendar','jobs','billing','finances']},{user_id:id(902),email:'office@example.test',role:'office',primary_owner:false,access_modules:['calendar','billing']}],invitations:[]}
  const changes=[]
  await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(team)}))
@@ -1005,7 +1005,7 @@ test('owner settings invites reserve a seat and permissions are editable only th
 })
 
 test('owner settings five-seat capacity blocks a sixth invitation',async({page})=>{
- await mockWorkspace(page)
+ await mockWorkspace(page,{plan:'pro'})
  await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({seat_limit:5,pro:true,members:Array.from({length:5},(_,n)=>({user_id:id(n),email:`member${n}@example.test`,role:n?'office':'owner',primary_owner:n===0,access_modules:[]})),invitations:[]})}))
  await page.goto('/?view=settings');await page.getByRole('link',{name:/^Team & Access/}).click()
  await expect(page.getByText('5 of 5 seats')).toBeVisible();await expect(page.getByRole('button',{name:'Send invitation'})).toHaveCount(0)

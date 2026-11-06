@@ -49,7 +49,7 @@ test('More navigation protects unsaved company edits', async ({page}) => {
 })
 
 test('restricted member cannot reach owner setup through More or a saved link', async ({page}) => {
-  await mock(page, {owner: false})
+  await mock(page, {owner: false, ai: true})
   await page.route('**/rest/v1/business_members?**', route => route.fulfill({json: {business_id: B, role: 'viewer', access_modules: ['calendar'], businesses: business}}))
   await page.goto('/')
   await moreButton(page).click()

@@ -1,3 +1,4 @@
+import type { VelnuTier } from './pricing'
 import type { CurrentBusiness } from './business'
 import { canAccess, isPrimaryOwner } from './workspaceAccess'
 
@@ -25,6 +26,15 @@ export function canOpenSettingsSection(business: CurrentBusiness, section: Setti
   if (section === 'scheduling') return ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'calendar') && canAccess(business, 'jobs')
   if (section === 'testing' && !testingEnabled) return false
   return isPrimaryOwner(business)
+}
+
+export function settingsOptionForPlan(option: (typeof settingsOptions)[number], plan: VelnuTier | undefined) {
+  if ((option.id === 'team' || option.id === 'sms') && plan !== 'pro') return null
+  if (option.id === 'calendar' && plan !== 'basic' && plan !== 'pro') return null
+  if (option.id === 'scheduling' && plan !== 'pro') {
+    return { ...option, title: 'Working Hours', description: 'Working hours, booking notice, and blocked time.' }
+  }
+  return option
 }
 
 export function settingsSectionFromSearch(search: string): SettingsSection | null {
