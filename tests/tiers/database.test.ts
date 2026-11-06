@@ -59,6 +59,22 @@ test('managed SMS reserves segments once, prevents duplicate provider calls and 
  await db.exec('set role anon');await assert.rejects(()=>db.query('select claim_managed_sms($1)',[request]),/permission denied/)
 }finally{await db.close()}})
 
+test('replayed inbound SMS cannot undo a later STOP or START', async () => {
+ const db=await fixture();try {
+  await db.exec('reset role')
+  await db.query("insert into private.managed_delivery_accounts(business_id,sms_active,sms_from) values($1,true,'+17575550999')",[B])
+  const from='+17575550123', stop='SM'+'b'.repeat(32), start='SM'+'c'.repeat(32), newStop='SM'+'d'.repeat(32)
+  const receive=(body:string,sid:string)=>db.query("select record_managed_sms_inbound($1,'+17575550999',$2,$3)",[from,body,sid])
+  const optedOut=async()=>(await db.query("select 1 from private.sms_opt_outs where phone=$1",[from])).rows.length===1
+  await receive('STOP',stop); assert.equal(await optedOut(),true)
+  await receive('START',start); assert.equal(await optedOut(),false)
+  await receive('STOP',stop); assert.equal(await optedOut(),false)
+  await receive('STOP',newStop); assert.equal(await optedOut(),true)
+  await receive('START',start); assert.equal(await optedOut(),true)
+  assert.equal((await db.query("select * from messages where direction='inbound'")).rows.length,3)
+ } finally {await db.close()}
+})
+
 test('scheduled sending freezes the review, rechecks downgrade and reminders are opt-in',async()=>{const db=await fixture();try{
  await invoice(db);await plan(db,'pro');await assert.rejects(()=>db.query('select save_reminder_rule($1,true,3,7,3)',[B]),/activated Finviant email/)
  await db.exec('reset role');await db.query('insert into private.managed_delivery_accounts(business_id,email_active) values($1,true)',[B]);await user(db);const id=crypto.randomUUID(),due=new Date(Date.now()+3600000).toISOString();await db.query("select schedule_document_email($1,'invoice',$2,$3,$4)",[B,I,id,due]);await db.query("select schedule_document_email($1,'invoice',$2,$3,$4)",[B,I,id,due]);await db.exec('reset role');assert.equal((await db.query('select * from private.delivery_tasks')).rows.length,1)

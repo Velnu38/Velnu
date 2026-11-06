@@ -31,6 +31,7 @@ export async function fixture(){
  await db.exec(await readFile('supabase/migrations/20261106150713_tier_entitlements_and_personal_delivery.sql','utf8'))
  await db.exec(await readFile('supabase/migrations/20261106151510_managed_messaging_and_reminders.sql','utf8'))
  await db.exec(await readFile('supabase/migrations/20261106161000_revalidate_queued_delivery.sql','utf8'))
+ await db.exec(await readFile('supabase/migrations/20261106183334_deduplicate_inbound_sms.sql','utf8'))
  await db.exec(`update private.workspace_feature_flags set enabled=true where name='tier_testing';grant select,insert,update,delete on all tables in schema public to authenticated;create function public.get_plan_usage(target_business_id uuid) returns jsonb language sql as $$select private.get_plan_usage(target_business_id)$$;grant execute on function private.get_plan_usage(uuid) to authenticated;
  create trigger commerce_quota before insert on invoices for each row execute function private.commerce_quota();
  select set_config('request.jwt.claim.sub','${U}',false);`)
