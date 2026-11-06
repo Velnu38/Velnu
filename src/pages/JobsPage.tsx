@@ -1,3 +1,4 @@
+import PlanRestriction from '../components/PlanRestriction'
 import CustomerRecordScope from '../components/CustomerRecordScope'
 import QuickCustomer from '../components/scheduling/QuickCustomer'
 import FormDialog from '../components/FormDialog'
@@ -46,6 +47,9 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [newCrew,setNewCrew]=useState<string[]>([]),[newDuration,setNewDuration]=useState(120)
   const [notice,setNotice]=useState(''),[dispatch,setDispatch]=useState<Job|null>(null),[team,setTeam]=useState<Worker[]>([]),[workerFilter,setWorkerFilter]=useState('all')
   const usage = useTierUsage(business.id)
+  const teamScheduling = usage?.plan === 'pro'
+  const bookingLimit=usage?.plan==='free'&&usage.jobs_limit!==null&&usage.jobs_used>=usage.jobs_limit
+  const assignedWorkers = teamScheduling ? newCrew : team.filter(worker => worker.is_you).map(worker => worker.id)
   const canDispatch=['owner','admin','office'].includes(business.role)&&canAccess(business,'calendar')&&canAccess(business,'jobs')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);setNewCrew(rows.filter(w=>w.is_you).map(w=>w.id))}}).catch(()=>{});return()=>{active=false}},[business.id])
   const query = new URLSearchParams(window.location.search)
@@ -91,7 +95,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
         title: form.title,
         description: form.description,
         scheduled_start: form.scheduled_start ? localInstant(form.scheduled_start, timezone) : undefined,
-        ...(form.scheduled_start&&canDispatch?{assigned_user_ids:newCrew,scheduled_end:DateTime.fromISO(localInstant(form.scheduled_start,timezone)).plus({minutes:newDuration}).toISO()!}:{}),
+        ...(form.scheduled_start&&canDispatch?{assigned_user_ids:assignedWorkers,scheduled_end:DateTime.fromISO(localInstant(form.scheduled_start,timezone)).plus({minutes:newDuration}).toISO()!}:{}),
       })
       pendingSave.current = null
       setGroup('all'); setQuickFilter('active'); setWorkerFilter('all'); recordList.setSearch('')
@@ -116,7 +120,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     finally{saving.current=false;setBusy(false)}
   }
 
-  const filteredJobs = jobs.filter(job => workerFilter === 'all' || job.assigned_user_ids?.includes(workerFilter))
+  const filteredJobs = jobs.filter(job => !teamScheduling || workerFilter === 'all' || job.assigned_user_ids?.includes(workerFilter))
   const grouped: Record<JobGroup | 'all', Job[]> = { all: [], current: [], upcoming: [], history: [] }
   const now = new Date()
   for (const job of filteredJobs) { grouped[jobGroup(job, now, timezone)].push(job); grouped.all.push(job) }
@@ -134,7 +138,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   return (
     <div className="page-stack workspace-module jobs-module"><WorkspaceBack />
       <div className="page-heading split-heading module-page-heading">
-        <div><p className="eyebrow">Jobs</p><Heading>Keep every job moving.</Heading><p className="module-page-intro">See the work ahead, assign a crew, and open job details in one place.</p></div>
+        <div><p className="eyebrow">Jobs</p><Heading>Keep every job moving.</Heading><p className="module-page-intro">{teamScheduling ? 'See the work ahead, assign a crew, and open job details in one place.' : 'See upcoming work, book appointments, and open job details.'}</p></div>
         <div className="work-heading-actions"><button type="button" className="secondary-button compact" disabled={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}>Refresh</button>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={()=>setShowForm(true)}><span aria-hidden="true">＋</span> Create job</button>}</div>
       </div>
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
@@ -145,7 +149,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
         <button type="button" className="module-summary-card module-summary-card-approval" aria-pressed={quickFilter === 'unscheduled'} onClick={() => { setQuickFilter('unscheduled'); setGroup('all'); recordList.setPage(0) }}><span>Needs scheduling</span><strong>{unscheduledJobs.length}</strong><small>jobs without an appointment</small></button>
       </section>
       <nav className="work-filters module-job-filters" aria-label="Job timing">{(['all', 'upcoming', 'history'] as const).map(item => <button type="button" key={item} aria-pressed={quickFilter === null && group === item} onClick={() => { setQuickFilter(null); setGroup(item); recordList.setPage(0) }}>{item === 'all' ? 'All' : item === 'upcoming' ? 'Upcoming' : 'History'}{!loading && !error && <span>{grouped[item].length}</span>}</button>)}</nav>
-      {team.length>0&&<label className="worker-select">Assigned team member<select value={workerFilter} onChange={e=>{setWorkerFilter(e.target.value);recordList.setPage(0)}}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.is_you?'My jobs · ':''}{w.label}</option>)}</select></label>}
+      {teamScheduling&&team.length>0&&<label className="worker-select">Assigned team member<select value={workerFilter} onChange={e=>{setWorkerFilter(e.target.value);recordList.setPage(0)}}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.is_you?'My jobs · ':''}{w.label}</option>)}</select></label>}
       {notice&&<p role="status" className="guided-success">{notice}</p>}
       <p className="work-group-description">{quickFilter === 'today' ? 'Scheduled work for the business day in your timezone.' : quickFilter === 'active' ? 'All unfinished work. Appointments needing a status update appear first.' : quickFilter === 'unscheduled' ? 'Leads that need an appointment before work can begin.' : group === 'all' ? 'All jobs, including completed and canceled work.' : group === 'upcoming' ? 'Jobs scheduled for tomorrow or later that have not started.' : 'Completed and canceled jobs stay here for reference.'}</p>
       {!loading && !error && <RecordListControls label="jobs" list={recordList} showPagination={false} />}
@@ -157,7 +161,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           const action = nextJobAction(job, canWrite(business.role) && canAccess(business,'jobs'), canDispatch)
           const needsUpdate = jobNeedsStatusUpdate(job,now,timezone)
           return <article className="job-row module-job-card" key={job.id}>
-            <div className="row-main module-job-main"><div className="module-job-time">{job.scheduled_start ? <><strong>{new Date(job.scheduled_start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: timezone })}</strong><span>{new Date(job.scheduled_start).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: timezone })}</span></> : <><strong>Needs scheduling</strong><span>Choose an appointment</span></>}</div><div className="module-job-copy"><strong className="job-card-title">{job.title}</strong><span>{customerName}</span>{job.properties?.[0] && <div className="job-location"><span className="job-location-address">{formatServiceAddress(job.properties[0])}</span><GoogleMapTools address={job.properties[0]} compact directionsOnly /></div>}<small className="module-job-crew">{crew.length ? `Crew · ${crew.join(', ')}` : 'Crew not assigned'}</small></div></div>
+            <div className="row-main module-job-main"><div className="module-job-time">{job.scheduled_start ? <><strong>{new Date(job.scheduled_start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: timezone })}</strong><span>{new Date(job.scheduled_start).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: timezone })}</span></> : <><strong>Needs scheduling</strong><span>Choose an appointment</span></>}</div><div className="module-job-copy"><strong className="job-card-title">{job.title}</strong><span>{customerName}</span>{job.properties?.[0] && <div className="job-location"><span className="job-location-address">{formatServiceAddress(job.properties[0])}</span><GoogleMapTools address={job.properties[0]} compact directionsOnly /></div>}{(teamScheduling || crew.length > 0) && <small className="module-job-crew">{crew.length ? `Crew · ${crew.join(', ')}` : 'Crew not assigned'}</small>}</div></div>
             <div className="module-job-actions">
               <span className={`module-record-status ${job.status === 'completed' ? 'is-positive' : job.status === 'lead' ? 'is-pending' : ''}`}>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_',' ')}</span>
               {needsUpdate && <span className="job-status-followup">Past appointment · confirm job status</span>}
@@ -171,7 +175,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       </section>
       {!loading && !error && <RecordListPagination label="jobs" list={recordList} className="jobs-bottom-pagination" />}
       {detailsJob&&<JobDetailsDialog key={detailsJob} business={business} jobId={detailsJob} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
-      {dispatch&&<DispatchJobDialog business={business} job={dispatch} onClose={()=>setDispatch(null)} onSaved={()=>{setNotice('Schedule and crew saved. Confirm any change with your customer.');void refresh().catch(()=>setError('The schedule was saved, but the list could not refresh. Select Refresh to load the updated jobs.'))}}/>}
+      {dispatch&&<DispatchJobDialog business={business} job={dispatch} onClose={()=>setDispatch(null)} onSaved={()=>{setNotice('Schedule saved. Confirm any change with your customer.');void refresh().catch(()=>setError('The schedule was saved, but the list could not refresh. Select Refresh to load the updated jobs.'))}}/>}
       {showForm && <FormDialog label="Create a job" busy={busy} onClose={() => setShowForm(false)}>
         <div className="modal-head"><div><p className="eyebrow">New job</p><h2>Create a job</h2></div><button className="icon-button" onClick={() => setShowForm(false)} aria-label="Close" type="button">×</button></div>
         <form className="form-grid" onSubmit={submit}>
@@ -181,10 +185,10 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           <label className="full">{!form.property_id&&<span><input type="checkbox" checked={noAddress} onChange={e=>setNoAddress(e.target.checked)}/> Continue with no service address (for remote work or an address to confirm)</span>}</label>
           <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace water heater" required /></label>
           <label className="full">Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-          {isPrimaryOwner(business)&&usage?.plan==='free'&&usage.jobs_limit!==null&&usage.jobs_used>=usage.jobs_limit&&<p className="quiet full">You’ve used this month’s Free bookings. <a href="/?view=settings&section=plans">Compare plans for more bookings</a></p>}
-          <label className="full">Schedule ({timezone})<input type="datetime-local" disabled={!canDispatch} value={form.scheduled_start} onChange={(e) => setForm({ ...form, scheduled_start: e.target.value })} /></label>
-          {form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label><fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset></>}{error && <p className="form-message error-text full">{error}</p>}
-          <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy||!!form.scheduled_start&&!form.property_id&&!noAddress||!!form.scheduled_start&&!newCrew.length}>{busy ? 'Saving…' : 'Save job'}</button></div>
+          {bookingLimit&&<PlanRestriction plan="free" required="basic" feature="new job bookings" limit canUpgrade={isPrimaryOwner(business)}/>}
+          <label className="full">Schedule ({timezone})<input type="datetime-local" disabled={!canDispatch||bookingLimit} value={form.scheduled_start} onChange={(e) => setForm({ ...form, scheduled_start: e.target.value })} /></label>
+          {form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label>{teamScheduling && <fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}</>}{error && <p className="form-message error-text full">{error}</p>}
+          <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy||!!form.scheduled_start&&bookingLimit||!!form.scheduled_start&&!form.property_id&&!noAddress||!!form.scheduled_start&&!assignedWorkers.length}>{busy ? 'Saving…' : 'Save job'}</button></div>
         </form>
       </FormDialog>}
     </div>

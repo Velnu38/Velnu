@@ -219,3 +219,33 @@ test('next steps move from scheduling to invoice review and clear only after the
  assert.equal((await next()).completed_count,0)
  }finally{await db.close()}
 })
+
+test('downgrade pauses outstanding customer links and keeps confirmed bookings and solo scheduling usable',async()=>{
+ const db=await fixture(true)
+ try {
+  const bookedEstimate=await estimate(db),bookedOffer=await offer(db,bookedEstimate,[ids.owner,ids.worker])
+  const bookedView=(await db.query('select customer_schedule_offer($1) r',[bookedOffer.token])).rows[0].r
+  await db.query('select customer_schedule_offer($1,$2,$3)',[bookedOffer.token,bookedView.slots[0].id,'Test Customer'])
+  const pendingEstimate=await estimate(db),pending=await offer(db,pendingEstimate)
+  const pendingView=(await db.query('select customer_schedule_offer($1) r',[pending.token])).rows[0].r
+
+  for (const plan of ['basic','free']) {
+   await db.exec('reset role')
+   await db.query('update private.business_entitlements set plan=$1 where business_id=$2',[plan,ids.business])
+   await db.exec('set role authenticated')
+   await assert.rejects(()=>db.query('select approve_scheduling_offer($1,$2,$3,$4)',[pendingEstimate,randomUUID(),pending.input,hash(pending.token)]),/requires Business Pro/)
+   await assert.rejects(()=>suggestions(db,[ids.owner,ids.worker]),/Business Pro/)
+   await assert.rejects(()=>db.query('insert into jobs(business_id,customer_id,title,assigned_user_ids) values($1,$2,$3,$4)',[ids.business,ids.customer,'Crew job',[ids.worker]]),/Business Pro/)
+   await db.exec("reset role;set role anon")
+   await assert.rejects(()=>db.query('select customer_schedule_offer($1)',[pending.token]),/paused/)
+   await assert.rejects(()=>db.query('select customer_schedule_offer($1,$2,$3)',[pending.token,pendingView.slots[0].id,'Test Customer']),/paused/)
+   assert.equal((await db.query('select customer_schedule_offer($1) r',[bookedOffer.token])).rows[0].r.status,'booked')
+   await db.exec('reset role;set role authenticated')
+  }
+
+  const solo={...pending.input,...pending.input.slots[0],workers:[ids.owner]}
+  const booked=(await db.query('select book_approved_estimate($1,$2) r',[pendingEstimate,solo])).rows[0].r
+  assert.ok(booked.job_id)
+  assert.equal((await db.query('select count(*)::int n from jobs')).rows[0].n,2)
+ } finally {await db.close()}
+})

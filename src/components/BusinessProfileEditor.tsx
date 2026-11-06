@@ -1,3 +1,6 @@
+import {isPrimaryOwner} from '../lib/workspaceAccess'
+import PlanRestriction from './PlanRestriction'
+import type {VelnuTier} from '../lib/pricing'
 import StorageUsage from './StorageUsage'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -22,6 +25,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
   const [step, setStep] = useState(0)
   const [logo, setLogo] = useState<File | null>(null)
   const [logoAllowed, setLogoAllowed] = useState(false)
+  const [logoPlan,setLogoPlan]=useState<VelnuTier|null>(null)
   const [localLogoUrl, setLocalLogoUrl] = useState<string | null>(null)
   const [removeLogo, setRemoveLogo] = useState(false)
   const [created, setCreated] = useState<CurrentBusiness | null>(null)
@@ -52,7 +56,10 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
     setLogoAllowed(false)
     if (business) {
       void Promise.resolve(supabase.rpc('get_business_storage_usage', { p_business_id: business.id })).then(({ data, error }) => {
-        if (active) setLogoAllowed(!error && (data?.plan === 'basic' || data?.plan === 'pro') && data?.logo_allowed === true)
+        if (active) {
+          setLogoAllowed(!error && (data?.plan === 'basic' || data?.plan === 'pro') && data?.logo_allowed === true)
+          setLogoPlan(!error && ['free','basic','pro'].includes(data?.plan) ? data.plan : null)
+        }
       }).catch(() => { if (active) setLogoAllowed(false) })
     }
     // Newly created businesses have no paid entitlements during initial signup.
@@ -151,7 +158,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
           {logoUrl && <img src={logoUrl} className="profile-current-logo" alt="Current company logo" />}
           {logoAllowed ? <label>Company logo (optional, up to 2 MB)
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => chooseLogo(e.target.files?.[0] || null)} disabled={busy} />
-          </label> : <p className="form-message">Logo uploads are unavailable on Free. Basic/Pro logo limits and pricing will be published before activation.</p>}
+          </label> : logoPlan==='free' ? <PlanRestriction plan="free" required="basic" feature="Company logo uploads" canUpgrade={!!business&&isPrimaryOwner(business)}/> : <p className="quiet">Logo uploads are currently unavailable.</p>}
         </div>
         {logo && <p className="quiet">Selected logo: {logo.name}</p>}
         {logoUrl && !logo && <button className="text-button" type="button" disabled={busy} onClick={() => { setRemoveLogo(true); setLogo(null) }}>Remove current logo from documents</button>}

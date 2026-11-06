@@ -10,6 +10,7 @@ import { formatServiceAddress } from '../lib/googleMaps'
 import FormDialog from './FormDialog'
 import GoogleMapTools from './GoogleMapTools'
 import RecordResources from './RecordResources'
+import { useTierUsage } from '../lib/useTierUsage'
 import DispatchJobDialog from './scheduling/DispatchJobDialog'
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
 
 export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, onCreateReminder }: Props) {
   const [job, setJob] = useState<Awaited<ReturnType<typeof getJob>> | null>(null)
+  const teamScheduling = useTierUsage(business.id)?.plan === 'pro'
   const [team, setTeam] = useState<Worker[] | null>(null)
   const [notes, setNotes] = useState(''), [error, setError] = useState('')
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState('')
@@ -92,7 +94,7 @@ export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, 
         <p>{job.customers.map(c => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.company).join(', ')}</p>
         <dl className="job-details-summary">
           <div><dt>Status</dt><dd>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_', ' ')}</dd></div>
-          <div><dt>Assigned crew</dt><dd>{crew.length ? crew.join(', ') : job.assigned_user_ids?.length ? 'Crew details unavailable' : 'Crew not assigned'}</dd></div>
+          {(teamScheduling || !!job.assigned_user_ids?.length) && <div><dt>Assigned crew</dt><dd>{crew.length ? crew.join(', ') : job.assigned_user_ids?.length ? 'Crew details unavailable' : 'Crew not assigned'}</dd></div>}
           <div><dt>Scheduled start</dt><dd>{job.scheduled_start ? scheduled(job.scheduled_start) : 'Needs scheduling'}</dd></div>
           <div><dt>Scheduled end</dt><dd>{job.scheduled_end ? scheduled(job.scheduled_end) : 'Not set'}</dd></div>
         </dl>
@@ -103,7 +105,7 @@ export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, 
           {canEdit && <label>Change status<select aria-label={`Status for ${job.title}`} value={job.status} disabled={busy} onChange={event => void changeStatus(event.target.value as JobStatus)}>
             {(Object.entries(jobStatusLabels) as [JobStatus, string][]).map(([status, label]) => <option key={status} value={status} disabled={status === 'scheduled' && !job.scheduled_start}>{label}</option>)}
           </select></label>}
-          {canDispatch && !['completed', 'canceled'].includes(job.status) && <button type="button" className="secondary-button" disabled={busy} onClick={() => setDispatch(true)}>Schedule &amp; crew</button>}
+          {canDispatch && !['completed', 'canceled'].includes(job.status) && <button type="button" className="secondary-button" disabled={busy} onClick={() => setDispatch(true)}>{teamScheduling ? 'Schedule & crew' : 'Schedule job'}</button>}
           {onCreateReminder && canEdit && <button type="button" className="secondary-button" disabled={busy} onClick={() => onCreateReminder({ id: job.id, title: job.title, customer_id: job.customer_id })}>Add reminder</button>}
         </div>
         <form className="job-details-notes" data-unsaved={notes !== (job.description || '')} onSubmit={save}>
@@ -115,7 +117,7 @@ export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, 
       </>}
     </FormDialog>
     {dispatch && job && <DispatchJobDialog business={business} job={job} onClose={() => setDispatch(false)} onSaved={() => {
-      setNotice('Schedule and crew saved. Confirm any change with your customer.')
+      setNotice('Schedule saved. Confirm any change with your customer.')
       setError(''); void reloadAfterChange()
     }} />}
   </>

@@ -1,3 +1,5 @@
+import PlanRestriction from '../components/PlanRestriction'
+import {isPrimaryOwner} from '../lib/workspaceAccess'
 import {useTierUsage} from '../lib/useTierUsage'
 import FinancialEntryDialog from '../components/FinancialEntryDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
@@ -181,7 +183,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       <label>Period <select disabled={restricted} value={restricted?'30':range} onChange={e => setRange(e.target.value as RangeChoice)}>
         <option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All available entries</option>
       </select></label>
-      {restricted&&<p className="quiet">Free shows the last 30 days. Existing records remain stored. <a href="/?view=settings&section=plans">Compare plans</a></p>}
+      {tier?.plan==='free'&&<PlanRestriction plan="free" required="basic" feature="Financial history beyond 30 days" canUpgrade={isPrimaryOwner(business)}/>}
       {restricted&&<button type="button" className="secondary-button compact" disabled={sourceState!=='ready'} onClick={()=>exportCsv(allRows,source)}>Export all stored records</button>}
       <button type="button" className="secondary-button compact" disabled={sourceState !== 'ready' || !visible.length} onClick={() => exportCsv(visible, source)}>Export shown transactions ({visible.length})</button>
     </div>
@@ -200,7 +202,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <button className="primary-button compact" disabled={busy} onClick={synchronize}>{busy ? 'Working…' : 'Sync transactions'}</button>
           <button className="secondary-button compact" disabled={busy} onClick={disconnect}>Disconnect</button>
         </div> : <>
-          {qbStatus?.plan_restricted ? <p className="form-message">QuickBooks integration is a paid service. The Free plan has no third-party imports or metered integration calls. Choosing Basic or Pro interest does not activate it until billing and limits are available.</p> : !qbStatus?.configured ? <p className="form-message">The QuickBooks integration is prepared but cannot connect yet. Finviant Office's administrator must configure Intuit developer credentials and the secure OAuth callback.</p> :
+          {qbStatus?.plan_restricted ? <PlanRestriction plan="free" required="basic" feature="QuickBooks imports" canUpgrade={isPrimaryOwner(business)}/> : !qbStatus?.configured ? <p className="form-message">The QuickBooks integration is prepared but cannot connect yet. Finviant Office's administrator must configure Intuit developer credentials and the secure OAuth callback.</p> :
             <p className="form-message">This preview currently uses <strong>{qbStatus.environment === 'sandbox' ? 'Intuit sandbox testing' : 'the live Intuit production service'}</strong>. Only connect a test account unless the integration has been approved for production.</p>}
           <label className="bookkeeping-consent"><input type="checkbox" checked={costsAcknowledged} onChange={e => setCostsAcknowledged(e.target.checked)} />
             <span>I understand QuickBooks Online requires an eligible Intuit subscription. Separate fees may apply for the selected Intuit plan, payments, add-ons, third-party services or integrations. Charges and eligibility are determined by Intuit and the relevant providers, not included automatically in Finviant Office. I authorize a read-only import of selected QuickBooks transactions.</span></label>

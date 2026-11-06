@@ -1,3 +1,4 @@
+import {planUpgradeHref} from './PlanRestriction'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
 import DraftDocumentEditor from './DraftDocumentEditor'
@@ -105,7 +106,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
         {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
       <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
-      {plan==='free'&&isPrimaryOwner(business)&&<a href="/?view=settings&section=plans">Compare plans for unbranded invoices</a>}
+      {plan==='free'&&isPrimaryOwner(business)&&<a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a>}
       <button type="button" onClick={()=>setShowResources(true)}>Photos &amp; expenses</button>
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>{setPartialPayment(true);setAmount('');setShowPayment(true)}}>Record partial payment</button>}

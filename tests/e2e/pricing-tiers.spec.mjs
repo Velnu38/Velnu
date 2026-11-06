@@ -1,9 +1,9 @@
 import {test,expect} from '@playwright/test'
 import {mock,B,C,E} from './audit-fixture.mjs'
-async function setup(page,{tier='pro',canTest=true,ready=false}={}){
- const base=await mock(page,{ai:true});base.customers[0]={...base.customers[0],phone:'+17575550123'};const state={tier,testing:false,saves:[],sent:[],shares:0,documents:base.documents,calls:base.calls}
+async function setup(page,{tier='pro',canTest=true,ready=false,managed=false}={}){
+ const base=await mock(page,{ai:true});base.customers[0]={...base.customers[0],phone:'+17575550123'};const state={tier,testing:false,saves:[],sent:[],shares:0,appointmentReminders:false,documents:base.documents,calls:base.calls}
  const usage=()=>({plan:state.tier,actual_plan:'pro',testing:state.testing,can_test:canTest,introductory:state.tier==='free',period_end:'2026-12-01',customers_used:1,customers_limit:state.tier==='free'?10:null,jobs_used:0,jobs_limit:state.tier==='free'?5:null,seats_used:1,seats_limit:state.tier==='pro'?5:1,ai_used:0,ai_limit:state.tier==='free'?20:state.tier==='basic'?150:600,voice_used:0,voice_limit:state.tier==='free'?10:state.tier==='basic'?60:180,email_used:0,email_limit:state.tier==='pro'?2000:0,sms_used:0,sms_limit:state.tier==='pro'?200:0})
- const delivery=()=>({plan:state.tier,email:'owner@example.test',phone:'+17575550100',personal_email_ready:ready,personal_sms_ready:ready,managed_email_ready:false,managed_sms_ready:false,acknowledged:ready,reply_to:null,sms_reply_route:null})
+ const delivery=()=>({plan:state.tier,email:'owner@example.test',phone:'+17575550100',personal_email_ready:ready,personal_sms_ready:ready,managed_email_ready:managed,managed_sms_ready:false,acknowledged:ready,reply_to:null,sms_reply_route:null})
  const snap={kind:'invoice',number:'INV-QA',status:'draft',issue_date:'2026-11-06',total:105,subtotal:100,tax_amount:5,amount_paid:0,balance_due:105,company:{name:'Scheduling QA',email:'owner@example.test'},customer:{name:'Test Customer',email:'customer@example.test',phone:'+17575550123'},items:[{description:'Original work',quantity:2,unit_price:50,line_total:100}],payment_links:[],finviant_branding:state.tier==='free'}
  await page.route('https://example.supabase.co/rest/v1/rpc/**',async route=>{const path=new URL(route.request().url()).pathname.split('/').pop(),body=route.request().postDataJSON(),reply=x=>route.fulfill({contentType:'application/json',body:JSON.stringify(x)})
  if(path==='get_plan_usage')return reply(usage())
@@ -36,7 +36,7 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  const state=await setup(page,{tier,ready:true});await page.goto('/?view='+kind+'s');await page.getByRole('button',{name:'Create '+kind,exact:true}).click();const form=page.getByRole('dialog',{name:'Create an '+kind,exact:true});
  await form.locator('summary').filter({hasText:'Add Customer'}).click();await form.getByRole('combobox',{name:'Customer',exact:true}).fill('Test');await form.getByRole('option',{name:/Test Customer/}).click();await form.locator('summary').filter({hasText:'Add Work Details'}).click();await form.getByLabel('Line 1 description',{exact:true}).fill('Lawn maintenance');await form.getByLabel('Line 1 unit price',{exact:true}).fill('250');await form.getByRole('button',{name:'Preview',exact:true}).click();
  await expect(form.locator('.print-document').getByText('Created with Finviant Office Assistant',{exact:true})).toHaveCount(tier==='free'?1:0)
- await expect(form.getByRole('link',{name:'Compare plans for unbranded '+kind+'s'})).toHaveCount(tier==='free'?1:0)
+ await expect(form.getByRole('link',{name:'View Individual upgrade'})).toHaveCount(tier==='free'?1:0)
  await expect(form.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeEnabled();expect(state.documents).toHaveLength(0);await form.getByRole('button',{name:kind==='invoice'?'Send Email':'Send Text',exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1);expect(state.calls.some(c=>c.path.includes('/send-'))).toBe(false);expect(state.sent).toHaveLength(0);
  await expect(form.getByRole('link',{name:/Open the (email|text) draft again/})).toHaveAttribute('href',kind==='invoice'?/^mailto:/:/^sms:/)
  await expect(form.getByRole('button',{name:/^Send (Email|Text)$/})).toHaveCount(0)
@@ -44,4 +44,25 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  await expect.poll(()=>state.sent.length).toBe(1)
  expect(state.sent[0].p_channel).toBe(kind==='invoice'?'email':'sms')
  expect(state.documents).toHaveLength(1)
+})
+
+for (const tier of ['free','basic','pro']) test(`More shows setup appropriate for ${tier}`,async({page})=>{
+ await setup(page,{tier})
+ await page.goto('/?view=settings')
+ const links=page.getByRole('region',{name:'Setup and connections'})
+ await expect(links.getByRole('link',{name:tier==='pro'?/^Working Hours & Team Availability/:/^Working Hours/})).toBeVisible()
+ await expect(links.getByRole('link',{name:/^Team & Access/})).toHaveCount(tier==='pro'?1:0)
+ await expect(links.getByRole('link',{name:/^Text Messaging Setup/})).toHaveCount(tier==='pro'?1:0)
+ await expect(links.getByRole('link',{name:/^Calendar Connections/})).toHaveCount(tier==='free'?0:1)
+ await expect(page.getByRole('link',{name:/^Schedule/})).toBeVisible()
+})
+
+test('a blocked settings link names the current tier and focuses the qualifying plan',async({page})=>{
+ await setup(page,{tier:'free'})
+ await page.goto('/?view=settings&section=calendar')
+ await expect(page.getByRole('heading',{name:'Calendar Connections'})).toBeVisible()
+ await expect(page.getByText('Calendar Connections is unavailable on the Free plan.')).toBeVisible()
+ await page.getByRole('link',{name:'View Individual upgrade'}).click()
+ await expect(page.getByRole('article',{name:'Individual plan'})).toBeFocused()
+ await expect(page.getByRole('button',{name:'Test Individual',exact:true})).toBeEnabled()
 })

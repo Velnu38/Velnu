@@ -14,7 +14,7 @@ function fn(name: string) {
   if (from < 0) throw new Error('Missing baseline function '+name)
   return baseline.slice(from,baseline.indexOf('$function$;',from)+12)
 }
-export async function fixture() {
+export async function fixture(tierScheduling = false) {
   const db = new PGlite()
   await db.exec(`set check_function_bodies=false;create role anon;create role authenticated;create role service_role;
     create schema auth;create schema private;
@@ -54,6 +54,11 @@ export async function fixture() {
   const calendar=await readFile('supabase/migrations/20261102144435_calendar_sync_dashboard.sql','utf8')
   await db.exec(calendar.slice(calendar.indexOf('create view public.calendar_work'),calendar.indexOf('-- A unified projection')))
   await db.exec(migration)
+  if (tierScheduling) {
+    await db.exec(`create function private.effective_plan(b uuid) returns text language sql stable as $$select coalesce((select plan from private.business_entitlements where business_id=b and (valid_until is null or valid_until>now())), 'free')$$;
+    create function private.is_primary_owner(b uuid,actor uuid default auth.uid()) returns boolean language sql stable as $$select exists(select 1 from public.business_members where business_id=b and user_id=actor and role='owner')$$;`)
+    await db.exec(await readFile('supabase/migrations/20261106202233_business_pro_scheduling.sql','utf8'))
+  }
   await db.exec(await readFile('supabase/migrations/20261103004720_dashboard_attention_calendar_sync.sql','utf8'))
   await db.exec(await readFile('supabase/migrations/20261103141230_dashboard_attention_paging.sql','utf8'))
   await db.exec(`insert into auth.users values('${ids.owner}','owner@example.test'),('${ids.worker}','worker@example.test'),('${ids.outsider}','outsider@example.test');

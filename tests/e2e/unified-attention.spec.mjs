@@ -23,7 +23,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   if(path.endsWith('/user_agreement_acceptances'))return reply({id:E,agreement_version:'2026-10-26-v2'})
   if(path.endsWith('/business_members'))return reply({business_id:B,role:'owner',access_modules:['calendar','jobs','billing','finances'],businesses:business})
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
-  if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'free',ai_limit:0,voice_limit:0})
+  if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'pro',ai_limit:0,voice_limit:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
   if(path.endsWith('/rpc/get_dashboard_attention_page')){
    const value=attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}})
