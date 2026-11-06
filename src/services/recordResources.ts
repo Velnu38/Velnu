@@ -1,12 +1,13 @@
-import { getStorageUsage, uploadAttachment, PHOTO_BYTES_LIMIT } from '../lib/businessStorage'
+import { getStorageUsage, uploadAttachment, prepareRecordImage } from '../lib/businessStorage'
 import { supabase } from '../lib/supabase'
+import { asList } from './relations'
 import { collectWorkbookPages } from '../lib/workbookPages'
 
 export type RecordKind = 'job' | 'estimate' | 'invoice'
 export type RecordTarget = { kind: RecordKind; id: string }
 export const recordColumn = (kind: RecordKind) => ({ job: 'job_id', estimate: 'estimate_id', invoice: 'invoice_id' } as const)[kind]
 export type RecordPhoto = { id: string; file_name: string; storage_path: string; created_by: string; created_at: string; url: string | null }
-export type RecordExpense = { id: string; entry_date: string; amount: number | string; description: string; category: string; currency: string }
+export type RecordExpense = { id: string; entry_date: string; amount: number | string; description: string; category: string; currency: string; receiptPath: string | null }
 const bucket = 'finviant-record-photos'
 
 export async function listRecordPhotos(businessId: string, target: RecordTarget): Promise<RecordPhoto[]> {
@@ -22,29 +23,15 @@ export async function listRecordPhotos(businessId: string, target: RecordTarget)
 }
 
 export async function listRecordExpenses(businessId: string, target: RecordTarget) {
-  return await collectWorkbookPages((from, to) => supabase.from('bookkeeping_entries')
-    .select('id,entry_date,amount,description,category,currency', { count: 'exact' })
+  const rows = await collectWorkbookPages((from, to) => supabase.from('bookkeeping_entries')
+    .select('id,entry_date,amount,description,category,currency,record_photos!record_photos_expense_fk(storage_path)', { count: 'exact' })
     .eq('business_id', businessId).eq(recordColumn(target.kind), target.id)
-    .eq('direction', 'expense').order('id').range(from, to)) as RecordExpense[]
+    .eq('direction', 'expense').order('id').range(from, to))
+  return rows.map(row => ({ ...row, receiptPath: asList(row.record_photos)[0]?.storage_path || null })) as RecordExpense[]
 }
 
 export async function uploadRecordPhoto(businessId: string, target: RecordTarget, file: File) {
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a JPG, PNG, or WebP picture.')
-  if (!file.size || file.size > PHOTO_BYTES_LIMIT) throw new Error('Each picture must be between 1 byte and 10 MB.')
-  // Decode and re-encode before persistence: rejects corrupt images and strips GPS/EXIF metadata.
-  const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This picture could not be opened. Export it as JPG or PNG and try again.') })
-  let blob: Blob
-  try {
-    if (bitmap.width * bitmap.height > 50_000_000) throw new Error('Choose a picture smaller than 50 megapixels.')
-    const scale = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale))
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('Your browser could not prepare the picture.')
-    context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height)
-    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-    blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to prepare picture.')), 'image/jpeg', 0.9))
-  } finally { bitmap.close() }
+  const blob = await prepareRecordImage(file)
   const usage = await getStorageUsage(businessId)
   if (blob.size > usage.remaining_bytes) throw new Error('Business storage allowance reached. Remove optional pictures to make room. Existing records and payments remain available.')
   const id = crypto.randomUUID(), path = `${businessId}/${id}.jpg`

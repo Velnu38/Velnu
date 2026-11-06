@@ -57,7 +57,7 @@ export async function updateJobStatus(jobId: string, status: JobInput['status'])
 /** Resolve a source link directly, including jobs beyond the first list page. */
 export async function getJob(businessId: string, id: string) {
   const { data, error } = await supabase.from('jobs')
-    .select('id,title,description,status,scheduled_start,scheduled_end,assigned_user_ids,source_estimate_id,customer_id,customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)')
+    .select('id,title,description,status,scheduled_start,scheduled_end,assigned_user_ids,source_estimate_id,customer_id,customers!jobs_customer_id_fkey(id,first_name,last_name,company,email,phone),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)')
     .eq('business_id', businessId).eq('id', id).single()
   if (error) throw error
   return { ...data, customers: asList(data.customers), properties: asList(data.properties) }

@@ -6,14 +6,21 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DateTime } from 'luxon'
 import { canManageFinances, canWrite, type CurrentBusiness } from '../lib/business'
 import { readableError } from '../lib/errors'
-import { addManualEntry, removeManualEntry } from '../services/bookkeeping'
+import { addManualEntry, removeManualEntry, ReceiptUploadPending } from '../services/bookkeeping'
 import { listRecordExpenses, listRecordPhotos, recordColumn, removeRecordPhoto, uploadRecordPhoto, type RecordExpense, type RecordPhoto, type RecordTarget } from '../services/recordResources'
+import ReceiptScanField from './ReceiptScanField'
+import ReceiptLink from './ReceiptLink'
+import { useTierUsage } from '../lib/useTierUsage'
+import type { ReceiptFile } from '../services/receiptCapture'
 import './record-resources.css'
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function RecordResources({ business, target }: { business: CurrentBusiness; target: RecordTarget }) {
   const finance = canManageFinances(business.role) && canAccess(business,'finances')
+  const plan = useTierUsage(business.id)?.plan
+  const [receipt, setReceipt] = useState<ReceiptFile | null>(null)
+  const [scanning, setScanning] = useState(false), [uploadPending, setUploadPending] = useState(false)
   const photoWrite = target.kind === 'job' ? canWrite(business.role) : finance
   const [photos, setPhotos] = useState<RecordPhoto[]>([])
   const [expenses, setExpenses] = useState<RecordExpense[]>([])
@@ -22,7 +29,7 @@ export default function RecordResources({ business, target }: { business: Curren
   const [version, setVersion] = useState(0), [showExpense, setShowExpense] = useState(false)
   const [form, setForm] = useState({ date: DateTime.now().setZone(business.timezone || 'America/New_York').toISODate()!, amount: '', category: 'Materials', description: '' })
   const [dirty,setDirty]=useState(false)
-  const guard=useUnsavedChanges(busy)
+  const guard=useUnsavedChanges(busy||scanning)
   const operation = useRef(false)
   const pendingExpense = useRef<{ signature: string; id: string } | null>(null)
   const uploadInput = useRef<HTMLInputElement>(null)
@@ -57,21 +64,32 @@ export default function RecordResources({ business, target }: { business: Curren
     if (uploadInput.current) uploadInput.current.value = ''
   }
   function updateExpense(next:typeof form){setForm(next);setDirty(true);guard.markDirty()}
-  function discardExpense(){if(!guard.canClose())return;setShowExpense(false);setForm(v=>({...v,amount:'',description:''}));setDirty(false);guard.markClean()}
+  function discardExpense(){if(!guard.canClose())return;setShowExpense(false);setReceipt(null);setUploadPending(false);pendingExpense.current=null;setForm(v=>({...v,amount:'',description:''}));setDirty(false);guard.markClean()}
   async function saveExpense(event: FormEvent) {
     event.preventDefault()
+    if (scanning) return
     await run(async () => {
       const signature = JSON.stringify({ business: business.id, target, form })
-      if (pendingExpense.current?.signature !== signature) pendingExpense.current = { signature, id: crypto.randomUUID() }
-      await addManualEntry({ id: pendingExpense.current.id, business_id: business.id,
-        direction: 'expense', entry_date: form.date, amount: Number(form.amount), category: form.category,
-        description: form.description, [recordColumn(target.kind)]: target.id })
+      if (!pendingExpense.current || (!receipt && pendingExpense.current.signature !== signature)) {
+        pendingExpense.current = { signature, id: crypto.randomUUID() }
+      }
+      try {
+        await addManualEntry({ id: pendingExpense.current.id, business_id: business.id,
+          direction: 'expense', entry_date: form.date, amount: Number(form.amount), category: form.category,
+          description: form.description, [recordColumn(target.kind)]: target.id }, receipt)
+      } catch (e) {
+        if (e instanceof ReceiptUploadPending) {
+          setUploadPending(true);guard.markClean();setDirty(false)
+        }
+        throw e
+      }
       pendingExpense.current = null;guard.markClean();setDirty(false)
+      setReceipt(null);setUploadPending(false)
       setShowExpense(false); setForm(value => ({ ...value, amount: '', description: '' }))
     }, 'Expense saved to this record and Financial Performance.')
   }
   const totalCents = expenses.reduce((sum, row) => sum + Math.round(Number(row.amount) * 100), 0)
-  return <section data-editor-independent data-unsaved={dirty} data-saving={busy} aria-busy={busy} className="record-resources calendar-no-print" aria-label="Photos and expenses">
+  return <section data-editor-independent data-unsaved={dirty} data-saving={busy||scanning} aria-busy={busy||scanning} className="record-resources calendar-no-print" aria-label="Photos and expenses">
     <div className="record-resources-head"><div><h2>Photos &amp; expenses</h2><p className="quiet">Internal business records. Expenses do not change customer charges.</p></div><button type="button" className="secondary-button compact" disabled={busy || loading} onClick={() => { setError(''); setVersion(v => v + 1) }}>Refresh photos &amp; expenses</button></div>
     {error && <p role="alert" className="form-message error-text">{error}</p>}
     {notice && <p role="status" className="form-message">{notice}</p>}
@@ -87,13 +105,16 @@ export default function RecordResources({ business, target }: { business: Curren
     <div className="record-resources-head"><h3>Expenses{finance && !loading ? ` · ${money.format(totalCents / 100)}` : ''}</h3>{finance && <button type="button" className="primary-button compact" data-keep-dialog disabled={busy} onClick={() => {if(showExpense)discardExpense();else setShowExpense(true)}}>{showExpense ? 'Close expense form' : 'Add expense'}</button>}</div>
     {!finance ? <p className="quiet">Expense records are available to owners, administrators, and office staff.</p> : <>
       {showExpense && <form className="form-grid record-expense-form" onSubmit={saveExpense}>
-        <label>Date<input type="date" value={form.date} required disabled={busy} onChange={e => updateExpense({ ...form, date: e.target.value })} /></label>
-        <label>Amount ($)<input type="number" min="0.01" max="1000000000" step="0.01" value={form.amount} required disabled={busy} onChange={e => updateExpense({ ...form, amount: e.target.value })} /></label>
-        <label>Category<select value={form.category} disabled={busy} onChange={e => updateExpense({ ...form, category: e.target.value })}>{['Materials', 'Labor', 'Equipment', 'Travel', 'Other'].map(category => <option key={category}>{category}</option>)}</select></label>
+        <ReceiptScanField business={business} plan={plan} disabled={busy||scanning||uploadPending} onBusy={setScanning}
+          onPhoto={photo=>{setReceipt(photo);setDirty(true);guard.markDirty()}}
+          onRead={draft=>updateExpense({...form,date:draft.date||'',amount:draft.total||'',description:draft.vendor||form.description})}/>
+        <label>Date<input type="date" value={form.date} required disabled={busy||scanning||uploadPending} onChange={e => updateExpense({ ...form, date: e.target.value })} /></label>
+        <label>Amount ($)<input type="number" min="0.01" max="1000000000" step="0.01" value={form.amount} required disabled={busy||scanning||uploadPending} onChange={e => updateExpense({ ...form, amount: e.target.value })} /></label>
+        <label>Category<select value={form.category} disabled={busy||scanning||uploadPending} onChange={e => updateExpense({ ...form, category: e.target.value })}>{['Materials', 'Labor', 'Equipment', 'Travel', 'Other'].map(category => <option key={category}>{category}</option>)}</select></label>
         <label>Description<input value={form.description} maxLength={4000} required disabled={busy} placeholder="Supplies, subcontractor, mileage…" onChange={e => updateExpense({ ...form, description: e.target.value })} /></label>
-        <div className="modal-actions full"><button type="button" className="secondary-button" data-keep-dialog disabled={busy} onClick={discardExpense}>Cancel</button><button className="primary-button" disabled={busy}>Save expense</button></div>
+        <div className="modal-actions full"><button type="button" className="secondary-button" data-keep-dialog disabled={busy||scanning} onClick={discardExpense}>{uploadPending?'Close':'Cancel'}</button><button className="primary-button" disabled={busy||scanning}>{uploadPending?'Retry receipt upload':'Save expense'}</button></div>
       </form>}
-      {!loading && (expenses.length === 0 ? <p className="quiet">No expenses recorded yet.</p> : <ul className="record-expense-list">{expenses.map(expense => <li key={expense.id}><div><strong>{expense.description}</strong><span>{expense.entry_date} · {expense.category}</span></div><strong>{money.format(Number(expense.amount))}</strong><button type="button" className="text-button" disabled={busy} aria-label={`Remove expense ${expense.description}`} onClick={() => { if (window.confirm('Remove this expense from the record and Financial Performance?')) void run(() => removeManualEntry(business.id, expense.id), 'Expense removed.') }}>Remove</button></li>)}</ul>)}
+      {!loading && (expenses.length === 0 ? <p className="quiet">No expenses recorded yet.</p> : <ul className="record-expense-list">{expenses.map(expense => <li key={expense.id}><div><strong>{expense.description}</strong><span>{expense.entry_date} · {expense.category}</span>{expense.receiptPath&&<ReceiptLink path={expense.receiptPath}/>}</div><strong>{money.format(Number(expense.amount))}</strong><button type="button" className="text-button" disabled={busy} aria-label={`Remove expense ${expense.description}`} onClick={() => { if (window.confirm('Remove this expense from the record and Financial Performance?')) void run(() => removeManualEntry(business.id, expense.id, expense.receiptPath), 'Expense removed.') }}>Remove</button></li>)}</ul>)}
     </>}
   </section>
 }

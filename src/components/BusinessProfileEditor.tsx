@@ -124,7 +124,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
   }
 
   const field = (key: keyof BusinessProfileDraft, title: string, placeholder = '', props: { required?: boolean; type?: string; maxLength?: number } = {}) =>
-    <label key={key}>{title}<input type={props.type || 'text'} value={draft[key]} onChange={e => update(key, e.target.value)}
+    <label key={key}>{title}<input type={props.type || 'text'} value={draft[key] || ''} onChange={e => update(key, e.target.value)}
       placeholder={placeholder} required={props.required} maxLength={props.maxLength ?? 160} disabled={busy} /></label>
 
   return <section className="profile-editor">
@@ -143,6 +143,13 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
           {field('phone', 'Business phone', '(555) 555-1234', { type: 'tel' })}
           {field('email', 'Business email', 'office@example.com', { type: 'email' })}
           {field('website', 'Website', 'yourbusiness.com')}
+          {companyOnly && business && logoPlan && (logoPlan==='free'
+            ? <div className="full"><PlanRestriction plan="free" required="basic" feature="Requesting Google reviews" canUpgrade={isPrimaryOwner(business)} /></div>
+            : <label className="full">Google review link
+                <input type="url" value={draft.google_review_url || ''} onChange={e=>update('google_review_url',e.target.value)}
+                  maxLength={400} disabled={busy} placeholder="https://g.page/r/…/review" />
+                <small>In your Google Business Profile, choose <strong>Get more reviews</strong> and copy your link.</small>
+              </label>)}
           {field('address_line1', 'Street address', '123 Main Street')}
           {field('address_line2', 'Address line 2', 'Suite or unit')}
           {field('city', 'City', 'City')}

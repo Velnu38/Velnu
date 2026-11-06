@@ -14,6 +14,7 @@ const customer = { id: CID, first_name: 'Jane', last_name: 'Doe', company: null 
 const business = { id: BID, name: 'Velnu QA', created_by_user_id: UID, legal_name: null, role: 'owner', profile_completed_at: '2026-10-01T00:00:00Z', document_accent: '#2563eb', logo_path: null }
 const id = n => '88888888-8888-4888-8888-' + String(n).padStart(12, '0')
 const todayISO = () => new Date().toISOString().slice(0, 10)
+const receiptDay = () => DateTime.now().setZone('America/New_York').toISODate()
 const localDatetime = (offsetDays = 1, hours = 10, minutes = 0) => {
   const d = new Date()
   d.setDate(d.getDate() + offsetDays)
@@ -52,7 +53,7 @@ async function mockWorkspace(page, options = {}) {
     attentionNow: options.attentionNow,
     workflow: options.workflow || {approved:[],completed:[]}, attentionFailure:false, attentionDelay:0,
     requests: [],
-    photos: [], expenses: [], storageWrites: 0,
+    photos: [], expenses: [], storageWrites: 0, uploadedReceipts: new Set(), receiptUploadFailures: options.receiptUploadFailures || 0,
     savedJobs: new Map(),
     aggregate: options.aggregate ?? { open_invoices: 0, outstanding_balance: 0 },
     aggregateFailures: options.aggregateFailures || 0,
@@ -91,8 +92,9 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/business_settings')) return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
     if (path.endsWith('/user_plan_preferences')) return reply({ user_id: UID, selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return reply({ id: id(91), agreement_version: '2026-10-26-v2' })
+    if (path.endsWith('/businesses') && method === 'PATCH') return reply({...business,...options.businessProfile,...body})
     if (path.endsWith('/business_members')) return reply({ role: state.role, access_modules: options.accessModules || ['calendar','jobs','billing','finances'], business_id: BID, businesses: {...business,...options.businessProfile} })
-    if (path.endsWith('/rpc/get_plan_usage')) return reply({ plan: 'free', ai_limit: 0, voice_limit: 0, logo_bytes_limit: 0 })
+    if (path.endsWith('/rpc/get_plan_usage')) return reply({ plan: options.plan || 'free', ai_limit: 0, voice_limit: 0, logo_bytes_limit: 0 })
     if (path.endsWith('/rpc/get_invoice_job_context')) {
       const invoice=state.invoices.find(i=>i.id===body.p_invoice)
       return reply({preferences:{duration_minutes:120,buffer_minutes:30,notice_hours:24,work_days:[1,2,3,4,5],start_minutes:480,end_minutes:1020},team:[{id:UID,label:'Owner',role:'owner',is_you:true}],time_off:[],properties:[{id:id(77),label:'Service site',address:'1 Test Street'}],invoice:{id:invoice.id,number:invoice.invoice_number,customer_id:CID,customer_name:'Jane Doe',job_id:invoice.job_id||null,property_id:null,title:'Faucet repair',scope:'Faucet repair × 1'},schedule:null})
@@ -183,8 +185,27 @@ async function mockWorkspace(page, options = {}) {
       const limit = Number(url.searchParams.get('limit') || 50)
       return reply(matching.slice(offset, offset + limit), 200, matching.length)
     }
-    if (path.endsWith('/rpc/get_business_storage_usage')) return reply({ plan: 'pro', limit_bytes: 10000000000, remaining_bytes: 10000000000, used_bytes: 0, pending_bytes: 0, warning: 'none', logo_allowed: true })
-    if (path.endsWith('/functions/v1/upload-attachment')) { state.storageWrites++; return reply({ path: url.searchParams.get('path') }) }
+    if (path.endsWith('/rpc/get_business_storage_usage')) return reply({ plan: options.plan || 'pro', limit_bytes: 10000000000, remaining_bytes: 10000000000, used_bytes: 0, pending_bytes: 0, warning: 'none', logo_allowed: true })
+    if (path.endsWith('/functions/v1/receipt-scan')) return options.scanUnavailable
+      ? reply({error:'Automatic receipt reading is awaiting setup. You can enter the details and save the photo.'},503)
+      : reply({vendor:'Supply Store',date:receiptDay(),total:'48.91',tax:'2.91',items:['Treated wood'],warning:''})
+    if (path.endsWith('/rpc/save_receipt_expense')) {
+      const entry = body.p_entry, path = `${BID}/${entry.id}.jpg`
+      if (!state.expenses.some(item => item.id === entry.id)) state.expenses.push({...entry,record_photos:{storage_path:path}})
+      return reply(path)
+    }
+    if (path.endsWith('/functions/v1/upload-attachment')) {
+      const attachment = url.searchParams.get('path')
+      if (state.expenses.some(row => row.record_photos?.storage_path === attachment)) {
+        if (state.receiptUploadFailures > 0) {
+          state.receiptUploadFailures--
+          return reply({error:'Upload was not confirmed.'},502)
+        }
+        state.uploadedReceipts.add(attachment)
+      }
+      state.storageWrites++
+      return reply({ path: attachment })
+    }
     if (path.endsWith('/record_photos')) {
       if (method === 'POST') { state.photos.push({ ...body, created_by: UID, storage_path: `${BID}/${body.id}.jpg`, created_at: new Date().toISOString() }); return reply(null, 201) }
       if (method === 'DELETE') { const target = url.searchParams.get('id')?.replace('eq.', ''); const deleted = state.photos.filter(p => p.id === target); state.photos = state.photos.filter(p => p.id !== target); return reply(deleted) }
@@ -192,7 +213,13 @@ async function mockWorkspace(page, options = {}) {
       const matching = column ? state.photos.filter(p => p[column] === url.searchParams.get(column).replace('eq.', '')) : state.photos
       return reply(matching, 200, matching.length)
     }
-    if (path.includes('/storage/v1/object/sign/') && method === 'POST') return reply(body.paths.map(path => ({ path, signedURL: `/object/sign/finviant-record-photos/${path}?token=test`, error: null })))
+    if (path.includes('/storage/v1/object/sign/') && method === 'POST') {
+      if (body.paths) return reply(body.paths.map(path => ({ path, signedURL: `/object/sign/finviant-record-photos/${path}?token=test`, error: null })))
+      const file = path.split('/sign/finviant-record-photos/')[1]
+      return state.uploadedReceipts.has(file)
+        ? reply({signedURL:`/object/sign/finviant-record-photos/${file}?token=test`})
+        : reply({message:'Object missing'},404)
+    }
     if (path.includes('/storage/v1/object/sign/') && method === 'GET') return route.fulfill({contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGNkaGhgwAaYsIoOWgkAzIgBEFCQDcoAAAAASUVORK5CYII=', 'base64')})
     if (path.includes('/storage/v1/object/finviant-record-photos')) {
       if (method === 'POST') { state.storageWrites++; return reply({ Key: path.split('/object/')[1], Id: id(999) }, 200) }
@@ -828,7 +855,10 @@ for (const kind of ['job', 'estimate', 'invoice']) {
     const state = await mockWorkspace(page, { jobs: [record], estimates: [record], invoices: [record] })
     const openRecord = async () => {
       await page.goto(kind === 'invoice' ? `/?view=invoices&document=${recordId}` : `/?view=${kind === 'job' ? 'work' : 'estimates'}`)
-      if (kind !== 'invoice') await page.getByRole('button', { name: `Photos and expenses for ${kind === 'job' ? 'Kitchen repair' : 'EST-701'}` }).click()
+      if (kind === 'job') {
+        await page.getByRole('button', { name: 'Open job', exact: true }).click()
+        await page.getByRole('dialog').locator('summary').filter({hasText:'Photos and expenses'}).click()
+      } else if (kind === 'estimate') await page.getByRole('button', { name: 'Photos and expenses for EST-701' }).click()
       else await page.getByRole('button',{name:'Photos & expenses',exact:true}).click()
     }
     await openRecord()
@@ -870,7 +900,8 @@ for (const kind of ['job', 'estimate', 'invoice']) {
 test('record resources: viewer cannot upload photos or add expenses', async ({ page }) => {
   await mockWorkspace(page, { role: 'viewer', jobs: [{ id: id(702), title: 'Read only job', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }] })
   await page.goto('/?view=work')
-  await page.getByRole('button', { name: 'Photos and expenses for Read only job' }).click()
+  await page.getByRole('button', { name: 'Open job', exact: true }).click()
+  await page.getByRole('dialog').locator('summary').filter({hasText:'Photos and expenses'}).click()
   const panel = page.getByRole('region', { name: 'Photos and expenses' })
   await expect(panel.getByLabel('Add pictures')).toHaveCount(0)
   await expect(panel.getByRole('button', { name: 'Add expense', exact: true })).toHaveCount(0)
@@ -1432,4 +1463,94 @@ for (const width of [390, 1440]) test(`Needs Attention category buttons open fil
   await expect(categories.getByRole('button', {name:'Follow-ups due 0', exact:true})).toBeEnabled()
   await hub.getByRole('button', {name:/^Needs attention \d/}).click()
   await expect(hub.getByRole('region', {name:'Needs Attention', exact:true}).getByText('Finished lawn work')).toBeVisible()
+})
+
+const receiptImage = {name:'receipt.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGNkaGhgwAaYsIoOWgkAzIgBEFCQDcoAAAAASUVORK5CYII=','base64')}
+const finishedReviewJob = {
+  id:id(190), title:'Finished deck repair', status:'completed', scheduled_start:null, customer_id:CID,
+  customers:{...customer,email:'jane@example.test',phone:'+17575550100'}, properties:[],
+}
+
+test('Individual receipt scan fills an editable expense and a failed upload retries against the same expense', async ({page}) => {
+  const state = await mockWorkspace(page, {plan:'basic',receiptUploadFailures:1})
+  await page.setViewportSize({width:390,height:844})
+  await page.goto('/')
+  await page.getByRole('region',{name:'Financial Performance'}).getByRole('button',{name:/Add Entry/}).click()
+  await page.getByRole('button',{name:'Add Expense',exact:true}).click()
+  const expense = page.getByRole('dialog',{name:'Add Expense',exact:true})
+  await expense.getByLabel('Scan receipt').setInputFiles(receiptImage)
+  await expect(expense.getByLabel('Amount in USD')).toHaveValue('48.91')
+  await expect(expense.getByLabel('Transaction date')).toHaveValue(receiptDay())
+  await expect(expense.getByLabel('Description')).toHaveValue('Supply Store')
+  await expect(expense.getByRole('img',{name:'Preview selected receipt'})).toBeVisible()
+  await expense.getByText('Details read from the receipt',{exact:true}).click()
+  await expect(expense.getByText('Treated wood')).toBeVisible()
+  await expense.getByLabel('Amount in USD').fill('49.00')
+  await expense.getByRole('button',{name:'Save entry',exact:true}).click()
+  await expect(expense.getByRole('alert')).toContainText('Expense saved')
+  await expense.getByRole('button',{name:'Retry receipt upload'}).click()
+  await expect(expense).toHaveCount(0)
+  expect(state.expenses).toHaveLength(1)
+  expect(state.expenses[0].amount).toBe(49)
+  expect(state.uploadedReceipts.size).toBe(1)
+  const saves=state.requests.filter(request=>request.path.endsWith('/rpc/save_receipt_expense'))
+  expect(saves).toHaveLength(2)
+  expect(saves[1].body).toEqual(saves[0].body)
+  await page.locator('.performance-metric.expense').click()
+  const row=page.locator('.transaction-list > li').filter({hasText:'Supply Store'})
+  await row.getByText('View receipt',{exact:true}).click()
+  await expect(row.getByRole('link',{name:'Open receipt image'})).toHaveAttribute('href',/finviant-record-photos/)
+})
+
+test('Business Pro can save a manual job expense with a receipt while Textract awaits activation', async ({page}) => {
+  const state = await mockWorkspace(page, {plan:'pro',scanUnavailable:true,jobs:[finishedReviewJob]})
+  await page.goto('/?view=work&document='+finishedReviewJob.id)
+  const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
+  await dialog.getByText('Photos and expenses',{exact:true}).click()
+  const panel=dialog.getByRole('region',{name:'Photos and expenses'})
+  await panel.getByRole('button',{name:'Add expense',exact:true}).click()
+  await panel.getByLabel('Scan receipt').setInputFiles(receiptImage)
+  await expect(panel.getByRole('alert')).toContainText('awaiting setup')
+  await panel.getByLabel('Amount ($)').fill('20.50')
+  await panel.getByLabel('Description',{exact:true}).fill('Deck screws')
+  await panel.getByRole('button',{name:'Save expense',exact:true}).click()
+  await expect(panel.getByText('Deck screws',{exact:true})).toBeVisible()
+  expect(state.expenses).toHaveLength(1)
+  expect(state.expenses[0].job_id).toBe(finishedReviewJob.id)
+  expect(state.uploadedReceipts.size).toBe(1)
+})
+
+test('Google review setup and completed-job handoff use an official link and personal apps', async ({page}) => {
+  const link='https://g.page/r/TestOffice123/review'
+  const state=await mockWorkspace(page, {plan:'basic',businessProfile:{google_review_url:link},jobs:[finishedReviewJob]})
+  await page.goto('/?view=settings&section=company')
+  await expect(page.getByLabel('Google review link')).toHaveValue(link)
+  await page.getByLabel('Google review link').fill('https://g.page.evil.example/r/Test/review')
+  await page.getByRole('button',{name:'Save company profile'}).click()
+  await expect(page.getByText(/Paste the review link copied from Google Business Profile/)).toBeVisible()
+  await page.getByLabel('Google review link').fill(link+'?source=share')
+  await page.getByRole('button',{name:'Save company profile'}).click()
+  await expect.poll(()=>state.requests.find(r=>r.path.endsWith('/businesses')&&r.method==='PATCH')?.body.google_review_url).toBe(link)
+  await page.goto('/?view=work&document='+finishedReviewJob.id)
+  await page.getByRole('button',{name:'Request a Google review'}).click()
+  const review=page.getByRole('region',{name:'Google review request'})
+  await expect(review.getByLabel('Review request message')).toHaveValue(/Hi Jane.*share your experience/s)
+  await expect(review.getByRole('link',{name:'Open email'})).toHaveAttribute('href', /^mailto:jane%40example\.test\?/)
+  await expect(review.getByRole('link',{name:'Open text'})).toHaveAttribute('href', /^sms:\+17575550100/)
+  expect(state.requests.some(r=>r.path.includes('/functions/v1/send'))).toBe(false)
+})
+
+test('Free displays upgrade links for receipt scanning and Google reviews and still opens manual expense entry', async ({page}) => {
+  await mockWorkspace(page,{plan:'free',businessProfile:{google_review_url:'https://g.page/r/Test/review'},jobs:[finishedReviewJob]})
+  await page.goto('/?view=work&document='+finishedReviewJob.id)
+  const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
+  await expect(dialog.getByText('Requesting Google reviews is unavailable on the Free plan.')).toBeVisible()
+  await expect(dialog.getByRole('button',{name:'Request a Google review'})).toHaveCount(0)
+  await dialog.getByText('Photos and expenses',{exact:true}).click()
+  const panel=dialog.getByRole('region',{name:'Photos and expenses'})
+  await panel.getByRole('button',{name:'Add expense',exact:true}).click()
+  await expect(panel.getByText('Receipt scanning is unavailable on the Free plan.')).toBeVisible()
+  await expect(panel.getByRole('link',{name:'View Individual upgrade'})).toHaveAttribute('href','/?view=settings&section=plans&tier=basic')
+  await expect(panel.getByLabel('Scan receipt')).toHaveCount(0)
+  await expect(panel.getByLabel('Amount ($)')).toBeEditable()
 })

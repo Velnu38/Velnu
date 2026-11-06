@@ -102,6 +102,7 @@ export const privacySections = [
     title: 'Information involved',
     paragraphs: [
       'Finviant Office may process account email and identifiers; company contact and logo data; business services and team descriptions; customer and job records; estimates, invoices, and payment records entered by users; and operational and security events.',
+      'When you choose to scan a receipt, Finviant sends the receipt image to Amazon Textract for extraction. You review and confirm the expense. The saved receipt is available only to authorized finance users in your workspace.',
       'Where optional voice and AI tools are enabled, recorded audio, transcripts, prompts, and relevant business details may be transferred to the configured AI provider to process the requested task.'
     ]
   },

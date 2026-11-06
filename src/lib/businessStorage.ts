@@ -17,3 +17,23 @@ export async function uploadAttachment(bucket: string, path: string, body: Blob)
     throw new Error(message)
   }
 }
+
+export async function prepareRecordImage(file: File, maxSide = 2400) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a JPG, PNG, or WebP picture.')
+  if (!file.size || file.size > PHOTO_BYTES_LIMIT) throw new Error('Each picture must be between 1 byte and 10 MB.')
+  // Decode and re-encode before persistence: rejects corrupt images and strips GPS/EXIF metadata.
+  const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This picture could not be opened. Export it as JPG or PNG and try again.') })
+  let blob: Blob
+  try {
+    if (bitmap.width * bitmap.height > 50_000_000) throw new Error('Choose a picture smaller than 50 megapixels.')
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Your browser could not prepare the picture.')
+    context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to prepare picture.')), 'image/jpeg', 0.9))
+  } finally { bitmap.close() }
+  return blob
+}
