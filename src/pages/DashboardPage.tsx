@@ -105,8 +105,10 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     <header className="page-heading split-heading dashboard-business-header">
       <div className="dashboard-business-identity">{logo && <img className="dashboard-business-logo" src={logo} alt={business.name + ' logo'} />}<div><p className="home-eyebrow">Your workspace</p><h1>{business.name}</h1><p className="home-intro">Your business, at a glance.</p></div></div>
       <div className="home-header-actions">{(canCreateBilling || canCreateJob || canCreateEntry) && <button type="button" className="primary-button compact home-create-button" aria-label="Create new" aria-describedby="home-quick-links" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}>
-        <span className="home-create-label"><span aria-hidden="true">＋</span> New</span>
-        <span className="home-create-subtitle" id="home-quick-links">Quick Links</span>
+        <span className="home-create-copy">
+          <span className="home-create-label"><span aria-hidden="true">＋</span> New</span>
+          <span className="home-create-subtitle" id="home-quick-links">Quick Links</span>
+        </span>
       </button>}<button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
     </header>
     <div className="home-overview">

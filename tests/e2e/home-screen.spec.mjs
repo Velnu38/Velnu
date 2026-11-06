@@ -59,16 +59,19 @@ for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation ch
  }
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin)
 })
-for(const width of [320,1440])test(`Home Quick Links opens the existing Customers directory at ${width}px`,async({page})=>{
+for(const width of [320,390,1440])test(`Home Quick Links opens the existing Customers directory at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900})
  await mock(page)
  await page.goto('/')
  const trigger=page.getByRole('button',{name:'Create new',exact:true})
  await expect(trigger).toHaveAccessibleDescription('Quick Links')
- const newLabel=trigger.getByText('New',{exact:false}).first()
+ const newLabel=trigger.locator('.home-create-label')
  const subtitle=trigger.getByText('Quick Links',{exact:true})
  await expect(subtitle).toBeVisible()
- expect((await subtitle.boundingBox()).y).toBeGreaterThan((await newLabel.boundingBox()).y)
+ const titleBox=await newLabel.boundingBox()
+ const subtitleBox=await subtitle.boundingBox()
+ expect(subtitleBox.y).toBeGreaterThanOrEqual(titleBox.y+titleBox.height)
+ expect(Math.abs((subtitleBox.x+subtitleBox.width/2)-(titleBox.x+titleBox.width/2))).toBeLessThan(1)
  const timeOrigin=await page.evaluate(()=>performance.timeOrigin)
  await subtitle.click()
  const chooser=page.getByRole('dialog',{name:'Create new',exact:true})
