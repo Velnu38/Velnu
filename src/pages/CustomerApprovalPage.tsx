@@ -5,6 +5,7 @@ import DocumentBrand from '../components/DocumentBrand'
 import type { BusinessProfile } from '../lib/business'
 
 type ApprovalData = {
+  finviant_branding?: boolean
   business_name: string
   business_profile?: Partial<BusinessProfile> | null
   document_type: 'estimate' | 'change_order'
@@ -75,7 +76,7 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
       <div className="approval-heading"><p className="eyebrow">{heading}</p><h1>{number || heading}</h1><p>From <strong>{data.business_name}</strong> for {customerName(data.customer)}</p></div>
       {data.document_type === 'change_order' && <section className="approval-scope"><h2>{doc.title}</h2>{doc.job_title && <p><strong>Job:</strong> {doc.job_title}</p>}{doc.description && <p>{doc.description}</p>}{doc.reason && <p><strong>Reason:</strong> {doc.reason}</p>}{doc.schedule_impact_days !== 0 && <div className="schedule-impact"><strong>Schedule impact</strong><span>{doc.schedule_impact_days > 0 ? '+' : ''}{doc.schedule_impact_days} day{Math.abs(doc.schedule_impact_days) === 1 ? '' : 's'}</span>{doc.schedule_note && <small>{doc.schedule_note}</small>}</div>}</section>}
       {doc.customer_message && data.document_type !== 'estimate' && <p className="customer-message">{doc.customer_message}</p>}
-      {data.document_type==='estimate'?<DocumentPaper business={{...data.business_profile,name:data.business_name}} kind="estimate" customer={data.customer} number={number} issued={doc.issue_date} ending={doc.expires_on} items={data.items} subtotal={doc.subtotal} tax={doc.tax_amount} total={doc.total} message={doc.customer_message}/>:<>
+      {data.document_type==='estimate'?<DocumentPaper finviantBranding={data.finviant_branding} business={{...data.business_profile,name:data.business_name}} kind="estimate" customer={data.customer} number={number} issued={doc.issue_date} ending={doc.expires_on} items={data.items} subtotal={doc.subtotal} tax={doc.tax_amount} total={doc.total} message={doc.customer_message}/>:<>
       <section className="approval-items">
         <div className="approval-row approval-row-head"><span>Description</span><span>Qty</span><span>Price</span><span>Total</span></div>
         {data.items.map((item, index) => <div className="approval-row" key={`${item.description}-${index}`}><span>{item.description}{Number(item.tax_rate) ? <small>{Number(item.tax_rate)}% tax</small> : null}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><span>${Number(item.line_total).toFixed(2)}</span></div>)}

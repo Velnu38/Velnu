@@ -8,7 +8,8 @@ import {announceCalendarChange} from '../services/calendar'
 import FormDialog from './FormDialog'
 import { localInstant } from '../lib/calendarTime'
 import DocumentChangeOrderButton from './DocumentChangeOrderButton'
-import { canAccess } from '../lib/workspaceAccess'
+import {useTierUsage} from '../lib/useTierUsage'
+import { canAccess,isPrimaryOwner } from '../lib/workspaceAccess'
 import './settings/settings.css'
 import {RecordResourcesDialog} from './RecordResources'
 import DocumentActions from './DocumentActions'
@@ -39,6 +40,7 @@ function customerName(customer?: Customer | null) {
 }
 
 export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit=false }: { business:CurrentBusiness; invoiceId:string; onBack:()=>void; initialEdit?:boolean }) {
+  const plan=useTierUsage(business.id)?.plan
   const [detail,setDetail]=useState<Detail|null>(null)
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
@@ -103,6 +105,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
         {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
       <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
+      {plan==='free'&&isPrimaryOwner(business)&&<a href="/?view=settings&section=plans">Compare plans for unbranded invoices</a>}
       <button type="button" onClick={()=>setShowResources(true)}>Photos &amp; expenses</button>
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>{setPartialPayment(true);setAmount('');setShowPayment(true)}}>Record partial payment</button>}
@@ -123,7 +126,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
     {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>{setShowJob(false);void refresh()}} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
 
     <section className="invoice-detail-grid">
-      <div><DocumentPaper business={issuedBrand} kind="invoice" customer={customer} number={invoice.invoice_number} issued={invoice.issue_date} createdAt={invoice.created_at} ending={invoice.due_date} items={detail.items} subtotal={invoice.subtotal} tax={invoice.tax_amount} total={invoice.total} depositCredit={invoice.deposit_credit} paid={invoice.amount_paid} balance={invoice.balance_due} message={invoice.customer_message} paymentLinks={invoice.payment_links} paymentInstructions={invoice.payment_instructions} status={invoice.status}/>{invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}</div>
+      <div><DocumentPaper finviantBranding={plan==='free'} business={issuedBrand} kind="invoice" customer={customer} number={invoice.invoice_number} issued={invoice.issue_date} createdAt={invoice.created_at} ending={invoice.due_date} items={detail.items} subtotal={invoice.subtotal} tax={invoice.tax_amount} total={invoice.total} depositCredit={invoice.deposit_credit} paid={invoice.amount_paid} balance={invoice.balance_due} message={invoice.customer_message} paymentLinks={invoice.payment_links} paymentInstructions={invoice.payment_instructions} status={invoice.status}/>{invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}</div>
       <aside className="invoice-side-stack">
         <article className="detail-card"><p className="eyebrow">Payments</p><h2>Payment history</h2>{detail.payments.length===0?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span></div><strong>${Number(payment.amount).toFixed(2)}</strong></div>)}</div>}</article>
         <article className="detail-card"><p className="eyebrow">Activity</p><h2>Messages</h2>{detail.messages.length===0?<p className="quiet">No invoice messages yet.</p>:<div className="message-list">{detail.messages.map(message=><div className="message-item" key={message.id}><div><strong>{message.channel.toUpperCase()}</strong><span>{message.status==='sent'?'Accepted for delivery':message.status}</span></div><p>{message.body}</p><small><DocumentTime value={message.sent_at||message.created_at} timezone={business.timezone}/></small></div>)}</div>}</article>

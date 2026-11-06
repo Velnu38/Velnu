@@ -2,6 +2,7 @@ import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
 import RecordListControls,{useRecordList} from '../components/RecordListControls'
 import FormDialog from '../components/FormDialog'
+import { useTierUsage } from '../lib/useTierUsage'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { FormEvent, lazy,Suspense,useEffect, useRef, useState } from 'react'
@@ -23,6 +24,7 @@ type Customer = {
 
 export default function CustomersPage({ business }: { business: CurrentBusiness }) {
   const [customers, setCustomers] = useState<Customer[]>([])
+  const usage = useTierUsage(business.id)
   const [showForm, setShowForm] = useState(false)
   const [showImport,setShowImport]=useState(false)
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(()=>new URLSearchParams(location.search).get('document'))
@@ -74,6 +76,7 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
         {canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New customer</button>}
       </div>
       <p className="quiet">Last name A–Z. Contacts without a last name follow by name or company. Numbered records appear last.</p>
+      {isPrimaryOwner(business)&&usage?.plan==='free'&&usage.customers_limit!==null&&usage.customers_used>=usage.customers_limit&&<p className="quiet">You’ve reached the Free active customer limit. <a href="/?view=settings&section=plans">Compare plans for more customers</a></p>}
       {error && !showForm && <p role="alert" className="error-text">{error}</p>}
       <RecordListControls label="customers" list={records}/>
       <section className="list-card customer-directory" aria-label="Customer directory">

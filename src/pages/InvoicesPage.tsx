@@ -277,7 +277,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       </form>
 
       {editCreationCustomer&&customerId&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setEditCreationCustomer(false)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
+      {creationPreview&&<CreationPreview canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
     </FormDialog>}
   </div>
 }
