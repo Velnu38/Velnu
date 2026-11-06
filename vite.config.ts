@@ -2,8 +2,18 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const qaCommit = process.env.FINVIANT_DEPLOYMENT_ENV === 'qa' && process.env.VERCEL_ENV === 'preview'
+  ? process.env.VERCEL_GIT_COMMIT_SHA : undefined
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    qaCommit && {
+      name: 'finviant-qa-commit',
+      transformIndexHtml: () => [{ tag: 'meta', attrs: { name: 'finviant-qa-commit', content: qaCommit } }],
+    },
+  ],
   server: { allowedHosts: ['terminal.local'] },
   build: {
     rollupOptions: {

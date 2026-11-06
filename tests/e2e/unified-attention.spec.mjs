@@ -23,7 +23,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   if(path.endsWith('/user_agreement_acceptances'))return reply({id:E,agreement_version:'2026-10-26-v2'})
   if(path.endsWith('/business_members'))return reply({business_id:B,role:'owner',access_modules:['calendar','jobs','billing','finances'],businesses:business})
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
-  if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'free',ai_limit:0,voice_limit:0})
+  if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'pro',ai_limit:0,voice_limit:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
   if(path.endsWith('/rpc/get_dashboard_attention_page')){
    const value=attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}})
@@ -60,13 +60,14 @@ async function mock(page,{signedIn=true,conflict=false}={}){
 
 for(const width of [1440,390])test(`one attention area below billing and shared job notes at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/')
+ const billing=page.getByRole('article',{name:'Needs attention overview'})
+ await billing.getByRole('button',{name:/^Your next steps Needs Attention/}).click()
  const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention).toContainText('Test Customer')
  await expect(attention.getByText('No items need attention.')).toHaveCount(0)
- const billing=page.getByRole('article',{name:'Estimates and invoices overview'})
- await billing.getByRole('button',{name:/Awaiting approval/}).click()
+ await billing.getByRole('button',{name:/^Awaiting Customer Approval/}).click()
  await expect(billing.getByRole('button',{name:'Schedule job',exact:true})).toHaveCount(0)
- await billing.locator('.billing-metric.overdue').click()
+ await billing.getByRole('group',{name:'Home work queue'}).getByRole('button',{name:/^Needs attention/}).click()
  await expect(page.getByRole('heading',{name:'Your next steps',exact:true})).toHaveCount(0)
  await expect(page.getByRole('heading',{name:'To do',exact:true})).toHaveCount(0)
  await expect(page.getByRole('button',{name:/Needs Attention/}).first()).toBeVisible()

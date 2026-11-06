@@ -17,6 +17,15 @@ const production = {
   VITE_SUPABASE_URL: `https://${productionRef}.supabase.co`,
   FINVIANT_PRODUCTION_GIT_REF: 'release/production', VERCEL_GIT_COMMIT_REF: 'release/production',
 }
+const qaRef = 'qaqaqaqaqaqaqaqaqaqa'
+const qa = {
+  ...staging,
+  FINVIANT_DEPLOYMENT_ENV: 'qa',
+  FINVIANT_SUPABASE_PROJECT_REF: qaRef,
+  FINVIANT_QA_SUPABASE_PROJECT_REF: qaRef,
+  VITE_SUPABASE_URL: `https://${qaRef}.supabase.co`,
+  VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40),
+}
 
 test('local mocked builds remain available without hosted configuration', () => {
   assert.equal(validateDeploymentEnvironment({}).checked, false)
@@ -28,6 +37,9 @@ test('preview and development can use the registered staging project', () => {
 })
 test('production accepts its separate project and release branch', () => {
   assert.equal(validateDeploymentEnvironment(production).projectRef, productionRef)
+})
+test('a QA preview requires its own explicitly registered project', () => {
+  assert.equal(validateDeploymentEnvironment(qa).projectRef, qaRef)
 })
 
 const cases = [
@@ -46,6 +58,16 @@ const cases = [
   ['another privileged public variable', { ...production, VITE_SUPABASE_SERVICE_ROLE_KEY: 'redacted-fixture' }],
   ['secret value under innocent public name', { ...production, VITE_OTHER: 'sk_live_fixture' }],
   ['customer delivery enabled on staging', { ...staging, VITE_ENABLE_CUSTOMER_ACTIONS: 'true' }],
+  ['customer delivery enabled on QA', { ...qa, VITE_ENABLE_CUSTOMER_ACTIONS: 'true' }],
+  ['QA targeting a production build', { ...qa, VERCEL_ENV: 'production' }],
+  ['QA targeting development', { ...qa, VERCEL_ENV: 'development' }],
+  ['QA missing its registered reference', { ...qa, FINVIANT_QA_SUPABASE_PROJECT_REF: undefined }],
+  ['QA missing the deployed revision', { ...qa, VERCEL_GIT_COMMIT_SHA: undefined }],
+  ['production points to the registered QA project', { ...qa, VERCEL_ENV: 'production', FINVIANT_DEPLOYMENT_ENV: 'production', FINVIANT_PRODUCTION_GIT_REF: 'main', VERCEL_GIT_COMMIT_REF: 'main' }],
+  ...[STAGING_PROJECT_REF, 'qusmeexjbwphoezlcmie'].map(ref => [
+    'QA points to a shared environment ' + ref,
+    { ...qa, FINVIANT_SUPABASE_PROJECT_REF: ref, FINVIANT_QA_SUPABASE_PROJECT_REF: ref, VITE_SUPABASE_URL: `https://${ref}.supabase.co` },
+  ]),
   ['production release branch missing', { ...production, FINVIANT_PRODUCTION_GIT_REF: undefined }],
   ['production built from feature branch', { ...production, VERCEL_GIT_COMMIT_REF: 'feature/velnu-stage1' }],
 ]

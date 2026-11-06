@@ -22,6 +22,7 @@ async function mockApi(page, options = {}) {
     requests.push({ path: url.pathname, query: url.searchParams, method: request.method(), body })
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     const json = (data, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(data) })
+    if (url.pathname.endsWith('/rpc/get_delivery_setup')) return json({ plan: 'pro', managed_email_ready: true, managed_sms_ready: false })
     if (url.pathname.endsWith('/recover')) return json({})
     if (url.pathname.endsWith('/user')) return json(user)
     if (url.pathname.endsWith('/logout')) return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' }, body: '' })
@@ -47,7 +48,7 @@ test('forgot password requests an on-site recovery link and gives a generic acco
   await expect(page.getByRole('status')).toContainText('If an account exists')
   const request = requests.find(item => item.path.endsWith('/recover'))
   expect(request.body.email).toBe(user.email)
-  expect(request.query.get('redirect_to')).toBe('http://127.0.0.1:4173/?recovery=1')
+  expect(request.query.get('redirect_to')).toBe(new URL('/?recovery=1', page.url()).href)
 })
 
 test('expired recovery link offers a fresh link instead of a password form', async ({ page }) => {

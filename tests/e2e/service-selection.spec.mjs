@@ -71,15 +71,14 @@ async function openServicePreferences(page) {
 
 test('signed-in owner saves account service interests without purchase or billing', async ({ page }) => {
   const requests = await openServicePreferences(page)
-  await page.getByRole('radio', { name: /À la carte/ }).check()
-  await page.getByRole('checkbox', { name: /Online estimate approvals/ }).check()
+  await page.getByRole('radio', { name: /^Individual/ }).check()
   await page.getByRole('button', { name: 'Save service preferences' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Service preferences saved' })).toBeVisible()
   const writes = requests.filter(x=>x.path.endsWith('/business_service_interests') && x.method==='POST')
   expect(writes).toHaveLength(1)
   expect(writes[0].body).toMatchObject({
     business_id: businessId, updated_by: userId,
-    preferred_plan:'a_la_carte',selected_services:['estimate_approvals'],
+    preferred_plan:'basic',selected_services:[],
   })
   expect(requests.filter(x=>/checkout|subscription|billing|payment_intents/i.test(x.path))).toHaveLength(0)
   expect(await page.evaluate(() => localStorage.getItem('velnu.beta.service-interests.v1'))).toBeNull()
@@ -95,34 +94,15 @@ test('mobile service selector and install guide are responsive', async ({ page }
 })
 
 
-test('company service preferences show proposed assistant prices and Free eligibility without activating purchases', async ({ page }) => {
+test('company service preferences show all three current tiers without activating purchases', async ({ page }) => {
   const requests = await openServicePreferences(page)
-  const assistants = page.locator('.service-assistant-options')
-  const scheduling = assistants.locator('label.service-addon-card').filter({ hasText: 'Scheduling Assistant' }).getByRole('checkbox')
-  const bookkeeping = assistants.locator('label.service-addon-card').filter({ hasText: 'Bookkeeping Assistant' }).getByRole('checkbox')
-
-  await expect(scheduling).toBeDisabled()
-  await expect(bookkeeping).toBeDisabled()
-  await page.getByRole('radio', { name: /Basic/ }).check()
-  await expect(scheduling).toBeEnabled()
-  await scheduling.check()
-  await bookkeeping.check()
-  await expect(assistants.locator('.service-assistant-subtotal')).toContainText('$34.97 / month')
-  await expect(assistants.getByText('$9.99 / mo')).toBeVisible()
-  await expect(assistants.getByText('$14.99 / mo')).toBeVisible()
-
-  await page.getByRole('radio', { name: /Pro/ }).check()
-  await expect(scheduling).toBeChecked()
-  await expect(bookkeeping).toBeChecked()
-  await expect(assistants.locator('.service-assistant-subtotal')).toContainText('$44.97 / month')
-  await expect(assistants.getByText('$7.99 / mo')).toBeVisible()
-  await expect(assistants.getByText('$11.99 / mo')).toBeVisible()
-
-  await page.getByRole('radio', { name: /^Free/ }).check()
-  await expect(scheduling).toBeDisabled()
-  await expect(bookkeeping).toBeDisabled()
-  await expect(scheduling).not.toBeChecked()
-  await expect(bookkeeping).not.toBeChecked()
+  const options = page.getByRole('group', { name: 'Which plan fits your business?' })
+  await expect(options.getByRole('radio', { name: /^Free/ })).toBeChecked()
+  await expect(options.getByText(/\$19\.95\/month/)).toBeVisible()
+  await expect(options.getByText(/\$39\.95\/month/)).toBeVisible()
+  await options.getByRole('radio', { name: /^Business Pro/ }).check()
+  await expect(options.getByRole('radio', { name: /^Business Pro/ })).toBeChecked()
+  await expect(options.getByRole('radio', { name: /^Free/ })).not.toBeChecked()
   expect(requests.filter(x => x.path.endsWith('/business_service_interests') && x.method === 'POST')).toHaveLength(0)
   expect(requests.filter(x => /checkout|subscription|payment_intents/i.test(x.path))).toHaveLength(0)
 })

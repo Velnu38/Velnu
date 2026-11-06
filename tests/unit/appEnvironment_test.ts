@@ -33,3 +33,19 @@ Deno.test('callback overrides reject paths, lookalikes, credentials and local or
     assert(resolveAppEnvironment(staging, origin) === null)
   }
 })
+
+Deno.test('scheduling QA allows one protected preview on an explicitly registered QA project', () => {
+  const ref = 'qaqaqaqaqaqaqaqaqaqa'
+  const project = `https://${ref}.supabase.co`
+  const preview = 'https://finviant-qa-fixture.vercel.app'
+  const qa = resolveAppEnvironment(project, preview, ref)
+  assert(qa?.name === 'qa' && qa.baseUrl === preview && qa.origins.length === 1 && qa.origins[0] === preview)
+  assert(resolveAppEnvironment(project, preview) === null)
+  assert(resolveAppEnvironment(project, undefined, ref) === null)
+  assert(resolveAppEnvironment(project, preview, 'abcdefghijklmnopqrst') === null)
+  assert(resolveAppEnvironment(staging, preview, staging.slice(8, 28)) === null)
+  assert(resolveAppEnvironment(production, preview, production.slice(8, 28)) === null)
+  for (const origin of ['https://finviant.com', preview + '/', preview + '.example.test', 'http://localhost:5173']) {
+    assert(resolveAppEnvironment(project, origin, ref) === null)
+  }
+})

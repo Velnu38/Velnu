@@ -38,7 +38,7 @@ test('Fin opens ordinary invoice creation requests and keeps existing-record wor
  assert.deepEqual(draft?.seed.lines, [{description:'',amount:'',quantity:'1'}])
  assert.equal(finInvoiceDraft('Can you please create an invoice?')?.seed.kind, 'invoice')
  assert.equal(finInvoiceDraft('Open a new invoice for Mike Brewer')?.seed.customerName, 'Mike Brewer')
- for (const request of ['Open invoice INV-1','Show me the invoice for Mike Brewer','Create an invoice from an approved estimate','Create an invoice for Mike and schedule it for tomorrow','Create an estimate for Mike']) {
+ for (const request of ['Open invoice INV-1','Show me the invoice for Mike Brewer','Create an invoice from an approved estimate','Create an invoice from the landscaping job for Mike Brewer','Create an invoice for Mike and schedule it for tomorrow','Create an estimate for Mike']) {
   assert.equal(finInvoiceDraft(request), null, request)
  }
 })

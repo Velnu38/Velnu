@@ -1,3 +1,5 @@
+import { isPrimaryOwner } from '../lib/workspaceAccess'
+import { useTierUsage } from '../lib/useTierUsage'
 import PlansAndUsage from '../components/settings/PlansAndUsage'
 import DeliverySetup from '../components/settings/DeliverySetup'
 import StorageUsage from '../components/StorageUsage'
@@ -11,7 +13,7 @@ import { useState, useEffect } from "react";
 import IntegrationSettings from "../components/calendar/IntegrationSettings";
 import type { CurrentBusiness } from "../lib/business";
 import MoreNavigation from '../components/MoreNavigation'
-import { canOpenSettingsSection, settingsOptions, settingsSectionFromSearch, type SettingsSection } from '../lib/settingsNavigation'
+import { canOpenSettingsSection, settingsHref, settingsOptionForPlan, settingsOptions, settingsSectionFromSearch, type SettingsSection } from '../lib/settingsNavigation'
 import BusinessProfileEditor from "../components/BusinessProfileEditor";
 import TeamSettings from "../components/settings/TeamSettings";
 import DocumentSettings from "../components/settings/DocumentSettings";
@@ -28,7 +30,9 @@ export default function SettingsPage({ business, onSaved }: {
   // AppShell remounts the page on links and browser history changes, after its
   // unsaved-change guard. Direct URLs retain their original section IDs.
   const section = settingsSectionFromSearch(window.location.search)
-  const option = settingsOptions.find(option => option.id === section)
+  const plan = useTierUsage(business.id)?.plan
+  const requestedOption = settingsOptions.find(option => option.id === section)
+  const option = requestedOption && settingsOptionForPlan(requestedOption, plan)
   const permitted = section !== null && canOpenSettingsSection(business, section)
 
   function content(id: SettingsSection) {
@@ -54,7 +58,7 @@ export default function SettingsPage({ business, onSaved }: {
         <p className="quiet">{option?.description || 'Manage your business, setup, and connections.'}</p>
       </div>
       {operator && <p><a className="secondary-button" href="/admin">Open Finviant Admin Dashboard</a></p>}
-      {section === null ? <MoreNavigation business={business}/> : permitted ? content(section) : <p role="alert">This area is not included in your access. Contact your primary business owner.</p>}
+      {section === null ? <MoreNavigation business={business}/> : !permitted ? <p role="alert">This area is not included in your access. Contact your primary business owner.</p> : option ? content(section) : plan ? <p role="status">This setup requires an eligible plan. {isPrimaryOwner(business) && <a href={settingsHref('plans')}>Compare plans</a>}</p> : <p role="status">Checking plan access…</p>}
     </div>
   );
 }

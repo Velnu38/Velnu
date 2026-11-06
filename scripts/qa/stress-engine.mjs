@@ -61,7 +61,7 @@ async function scenario(row){
  globalThis.fetch=async(resource,init)=>{
   const req=new Request(resource,init),url=new URL(req.url)
   assert.equal(url.hostname,'qa.invalid','Service attempted external access')
-  const table=url.pathname.split('/').at(-1);calls.push({table,method:req.method})
+  const table=url.pathname.split('/').at(-1);calls.push({table,method:req.method,limit:url.searchParams.get('limit')})
   if(input?.fault==='timeout')return reply({message:'Simulated database unavailable',code:'QA503'},0,503)
   if(url.pathname.includes('/rpc/')){
    const payload=await req.json();assert.equal(payload.target_business_id,TENANT,'Tenant missing from RPC')
@@ -108,7 +108,13 @@ async function scenario(row){
   else if(fn==='recordPayment'){assert.equal(result.amount,input.amount);assert.equal(calls.length,1)}
   else if(fn==='addManualEntry')assert.equal(calls.length,1)
   else if(fn.includes('Workbook')){assert.equal(result.length,input.size);assert.ok(result.every(x=>x.amount===input.amount));assert.equal(new Set(result.map(x=>x.id)).size,input.size)}
-  else if(fn==='getDashboardSnapshot'){assert.equal(result.outstandingBalance,input.balance);assert.equal(result.openInvoices,input.count);assert.equal(calls.length,7)}
+  else if(fn==='getDashboardSnapshot'){
+   assert.equal(result.outstandingBalance,input.balance)
+   assert.equal(result.openInvoices,input.count)
+   assert.equal(calls.length,9)
+   assert.equal(calls.filter(call=>call.table==='get_dashboard_invoice_totals').length,1)
+   assert.ok(calls.filter(call=>call.method==='GET').every(call=>Number(call.limit)>0&&Number(call.limit)<=20),'Dashboard reads must remain bounded')
+  }
  }finally{globalThis.fetch=original}
 }
 const endpoints=['ai-command','execute-ai-action','create-approval-link','customer-approval','email-recovery-worker','reliability-health','send-document-email','send-invoice-email','transcribe-voice','resend-events','stripe-events','quickbooks']

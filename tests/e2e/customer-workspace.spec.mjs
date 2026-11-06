@@ -60,12 +60,12 @@ for(const width of [1440,390])test(`snapshot routes only selected customer recor
  for(const [kind,view] of [['jobs','work'],['estimates','estimates'],['invoices','invoices']]){
   await page.getByRole('link',{name:`View ${kind} for Jane Doe`}).click();await expect(page).toHaveURL(new RegExp(`view=${view}&customer=${C}`))
   await expect(page.getByLabel('Customer filter')).toContainText('Jane Doe')
-  if(kind==='jobs'){await expect(page.getByRole('button',{name:'Jane current job',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Jane completed job',exact:true})).toBeVisible();await expect(page.getByText('Other customer job',{exact:true})).toHaveCount(0)}
-  else {await expect(page.locator('.list-card')).toContainText(kind==='invoices'?'INV-JANE':'EST-JANE');await expect(page.locator('.list-card')).not.toContainText('OTHER')}
+  if(kind==='jobs'){await expect(page.getByRole('article').filter({hasText:'Jane current job'}).getByRole('button',{name:'Open job',exact:true})).toBeVisible();await page.getByRole('button',{name:/^History/}).click();await expect(page.getByRole('article').filter({hasText:'Jane completed job'}).getByRole('button',{name:'Open job',exact:true})).toBeVisible();await expect(page.getByText('Other customer job',{exact:true})).toHaveCount(0)}
+  else {await expect(page.locator('.module-record-list')).toContainText(kind==='invoices'?'INV-JANE':'EST-JANE');await expect(page.locator('.module-record-list')).not.toContainText('OTHER')}
   const request=reads.filter(r=>r.table===kind).at(-1);expect(request.q.business_id).toBe('eq.'+B);expect(request.q.customer_id).toBe('eq.'+C)
   await page.getByRole('link',{name:'Back to customer',exact:true}).click();await expect(snapshot).toBeVisible()
  }
- await page.getByRole('link',{name:'View invoices for Jane Doe'}).click();await page.getByRole('link',{name:'View all invoices',exact:true}).click();await expect(page).toHaveURL(/view=invoices$/);await expect(page.locator('.list-card')).toContainText('INV-OTHER')
+ await page.getByRole('link',{name:'View invoices for Jane Doe'}).click();await page.getByRole('link',{name:'View all invoices',exact:true}).click();await expect(page).toHaveURL(/view=invoices$/);await expect(page.locator('.module-record-list')).toContainText('INV-OTHER')
 })
 test('new customer and address submit together and reuse the request after failure',async({page})=>{
  const {writes}=await setup(page,{failCreate:true});await page.goto('/?view=customers');await page.getByRole('button',{name:/New customer/}).click()

@@ -21,8 +21,8 @@ test.beforeAll(async({playwright},info)=>{
 })
 test.afterAll(async()=>{await browser?.close();if(fixtureDir)await rm(fixtureDir,{recursive:true,force:true})})
 
-for(const width of [320,390])test(`the speaking control records real audio and submits after a pause at ${width}px`,async()=>{
- const context=await browser.newContext({viewport:{width,height:844},permissions:['microphone']})
+for(const width of [320,390])test(`the speaking control records real audio and submits after a pause at ${width}px`,async({baseURL})=>{
+ const context=await browser.newContext({baseURL,viewport:{width,height:844},permissions:['microphone']})
  try{
   const page=await context.newPage();await mock(page,{ai:true});let uploads=0,bytes=0,questions=0
   await page.addInitScript(()=>{
@@ -39,7 +39,7 @@ for(const width of [320,390])test(`the speaking control records real audio and s
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
    questions++;return route.fulfill({status:200,headers:cors,json:{answer:'Your saved service is landscaping.',sources:[],limits:[],as_of:new Date().toISOString()}})
   })
-  await page.goto('http://127.0.0.1:4173/')
+  await page.goto('/')
   const dock=page.getByRole('navigation',{name:'Workspace navigation'}),launcher=page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true})
   await expect(launcher).toBeVisible()
   const bounds=await dock.boundingBox(),button=await launcher.boundingBox()
@@ -65,13 +65,13 @@ for(const width of [320,390])test(`the speaking control records real audio and s
  }finally{await context.close()}
 })
 
-test('cancel releases native audio tracks without uploading',async()=>{
- const context=await browser.newContext({viewport:{width:390,height:844},permissions:['microphone']})
+test('cancel releases native audio tracks without uploading',async({baseURL})=>{
+ const context=await browser.newContext({baseURL,viewport:{width:390,height:844},permissions:['microphone']})
  try{
   const page=await context.newPage();const state=await mock(page,{ai:true});let uploads=0
   await page.route('**/functions/v1/transcribe-voice',route=>{if(route.request().method()==='POST'&&!route.request().headers()['content-type']?.includes('application/json'))uploads++;return route.fulfill({status:200,headers:cors,json:{configured:true}})})
   await page.addInitScript(()=>{const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=async options=>{const stream=await original(options);window.__capturedStream=stream;return stream}})
-  await page.goto('http://127.0.0.1:4173/');await openFinVoice(page)
+  await page.goto('/');await openFinVoice(page)
   await page.getByRole('button',{name:'Cancel recording',exact:true}).click()
   await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toBeEnabled()
   expect(await page.evaluate(()=>window.__capturedStream.getTracks().every(t=>t.readyState==='ended'))).toBe(true)
@@ -79,8 +79,8 @@ test('cancel releases native audio tracks without uploading',async()=>{
  }finally{await context.close()}
 })
 
-for(const word of ['yes','no'])test(`spoken ${word} applies only to the displayed review`,async()=>{
- const context=await browser.newContext({baseURL:'http://127.0.0.1:4173',viewport:{width:390,height:844},permissions:['microphone']})
+for(const word of ['yes','no'])test(`spoken ${word} applies only to the displayed review`,async({baseURL})=>{
+ const context=await browser.newContext({baseURL,viewport:{width:390,height:844},permissions:['microphone']})
  try{const page=await context.newPage();const f=await workflow(page);let uploads=0;
  await page.route('**/functions/v1/transcribe-voice',route=>{if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors});if(route.request().headers()['content-type']?.includes('application/json'))return route.fulfill({status:200,headers:cors,json:{configured:true}});uploads++;return route.fulfill({status:200,headers:cors,json:{transcript:word,transcription_id:'synthetic-approval'}})});
  await start(page);await expect(review(page)).toBeVisible();await page.getByRole('button',{name:'Speak a follow-up',exact:true}).click();await expect(review(page)).toHaveCount(0,{timeout:25000});expect(uploads).toBe(1);expect(f.requests).toHaveLength(1);expect(f.executions).toHaveLength(word==='yes'?1:0);

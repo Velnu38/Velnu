@@ -1,0 +1,37 @@
+# Finviant release QA
+
+The Finviant Release QA workflow runs the full mocked Chromium regression, a WebKit mobile pass for dashboard, document and customer workflows, and a separate mocked integration check. Both browser engines exercise the built client. These jobs use synthetic fixtures and publish counts and failure artifacts. A push to `qa/finviant-release` or a pull request targeting `ux/private-testing-20261029` triggers regression. Manual runs become available after the workflow reaches GitHub’s default branch.
+
+## Verify branch migration replay
+
+Before configuring the browser run, inspect the QA branch migration history and confirm the schema and privileges match the release. The November 6 QA branch stopped at the historical rollback verification migration. Its repair used the repository bootstrap definitions for bookkeeping and QuickBooks, the issued-document identity patch, the reviewed recurring invoice schema from the private migration history, and the remaining release migrations. The repair restored authenticated grants only after checking the corresponding row-level security policies. Background schedulers were left inactive on the QA branch.
+
+Verify the four attention filters with an owner session, cross-tenant rejection with an unrelated account, and invoice settlement with a repeated payment request ID. Use synthetic records and roll back the database smoke transaction. Reconcile the source migration history before relying on automated branch replay for a new deployment.
+
+## Configure an isolated signed-in run
+
+1. Provision a dedicated Supabase QA branch or project. Apply the release’s migrations and deploy the Edge Functions used by the tested workflows. Keep the database limited to synthetic records. Leave email, SMS, live billing and paid AI integrations disconnected for this test.
+2. Use a dedicated Vercel QA project with Deployment Protection and Protection Bypass for Automation. Create a Git-linked **Preview** deployment of the commit under test with Vercel’s system variables exposed. Configure these variables for that project’s Preview target.
+
+   | Vercel variable | Value |
+   | --- | --- |
+   | `FINVIANT_DEPLOYMENT_ENV` | `qa` |
+   | `FINVIANT_QA_SUPABASE_PROJECT_REF` and `FINVIANT_SUPABASE_PROJECT_REF` | The isolated QA project reference |
+   | `VITE_SUPABASE_URL` | The isolated QA Supabase HTTPS origin |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | The QA project’s publishable key |
+   | `VITE_ENABLE_CUSTOMER_ACTIONS` | `false` |
+
+3. In the isolated Supabase project, set `FINVIANT_QA_SUPABASE_PROJECT_REF` to its reference and `FINVIANT_APP_BASE_URL` to the exact immutable Vercel preview origin. Deploy the release’s `work-scheduling` Edge Function there so job completion can create its invoice. The QA scheduling configuration disables email delivery.
+4. Set up two test businesses whose names begin with `Finviant QA `. Create confirmed email/password accounts, complete onboarding and accept the current workspace terms. The primary business needs an owner with invoices, estimates, jobs, calendar, bookkeeping and access to Fin, office staff with billing, and a technician with jobs and without billing. Give the owner working hours and an available appointment slot. The fourth account is an owner of the independent business with customer access and no membership in the primary business.
+5. Create the GitHub environment `QA`. Restrict it to the trusted QA and private testing branches. Set the environment variables and secrets below. Use the immutable `*.vercel.app` deployment origin, verified against the intended Git commit, without a path or bypass query string.
+
+   | GitHub QA environment entry | Value |
+   | --- | --- |
+   | Variables | `FINVIANT_QA_PREVIEW_URL`, `FINVIANT_QA_SUPABASE_URL`, `FINVIANT_QA_BUSINESS`, `FINVIANT_QA_OUTSIDER_BUSINESS` |
+   | Secrets | `FINVIANT_QA_VERCEL_BYPASS_SECRET` and both `FINVIANT_QA_<ROLE>_EMAIL` and `FINVIANT_QA_<ROLE>_PASSWORD` for `OWNER`, `OFFICE`, `TECHNICIAN` and `OUTSIDER` |
+
+6. Enable the repository variable `FINVIANT_RUN_HOSTED_QA=true` and push to the QA branch. Where manual dispatch is available, select the QA branch and enable `hosted_qa`. The browser verifies the deployed commit matches GitHub’s `GITHUB_SHA` before entering login credentials. For a local hosted run, supply the full commit as `FINVIANT_QA_PREVIEW_COMMIT`. Record the application deployment ID and workflow commit alongside the counts.
+
+The signed-in job uses normal app login and verifies the expected Supabase Auth endpoint, workspace and role before it creates records. The owner test covers customer → estimate → recorded acceptance → job → invoice → recorded payment → bookkeeping. Additional cases verify the four Needs Attention queues, Fin’s saved-customer handoff to the invoice editor, and office, technician and second-business access. The workflow uses a QA-only browser network allowlist and publishes counts for hosted tests. Rotate the automation credential when access changes and reset the synthetic QA data as needed.
+
+Run separate provider delivery and signed webhook tests when test credentials are available. Use the isolated QA environment for concurrent write and capacity measurements before deciding whether to promote a release.

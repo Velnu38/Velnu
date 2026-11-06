@@ -12,7 +12,7 @@ for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(result)})
   })
   await page.goto('/?view=settings&integration_test=returned')
-  const panel=page.getByRole('region',{name:'Integration testing',exact:true})
+  const panel=page.getByRole('region',{name:'Private integration tests',exact:true})
   await expect(panel.getByRole('button',{name:'Prepare test subscription'})).toBeDisabled()
   await expect(panel.getByText('Setup needed: Twilio credentials, sending number and approved recipient list.')).toBeVisible()
   ready=true;await panel.getByRole('button',{name:'Refresh test results'}).click()

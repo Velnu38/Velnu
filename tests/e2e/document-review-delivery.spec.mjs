@@ -69,10 +69,16 @@ test('uncertain email uses the same request after closing and reopening the save
 })
 for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls immediately after saving a ${kind} draft`,async({page})=>{
  const {state,executions}=await workflow(page,{steps:[docStep(kind,[item('Landscaping',100)])],contact:{email:'customer@example.test',phone:'7575550123'}})
- await start(page,`Create ${kind} for Test Customer for landscaping $100`);expect(executions).toHaveLength(0);await save(page)
- const dialog=page.getByRole('dialog',{name:'Fin — your office assistant'})
- await expect(dialog.getByRole('region',{name:'Send to customer'})).toBeVisible();await expect(dialog.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
- await expect(dialog.getByRole('button',{name:'Send Text',exact:true})).toBeVisible();expect(state.documents).toHaveLength(1)
+ await start(page,`Create ${kind} for Test Customer for landscaping $100`)
+ expect(executions).toHaveLength(0)
+ if(kind==='invoice'){
+  const editor=page.getByRole('dialog',{name:'Create an invoice',exact:true})
+  await editor.getByRole('button',{name:'Preview',exact:true}).click()
+  await editor.getByRole('button',{name:'Save Draft',exact:true}).click()
+ }else await save(page)
+ const delivery=page.getByRole('region',{name:'Send to customer'})
+ await expect(delivery).toBeVisible();await expect(delivery.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
+ await expect(delivery.getByRole('button',{name:'Send Text',exact:true})).toBeVisible();expect(state.documents).toHaveLength(1)
  expect(state.calls.some(call=>call.path.includes('/send-'))).toBe(false)
 })
 test('creating a change order opens its review and delivery controls automatically',async({page})=>{
