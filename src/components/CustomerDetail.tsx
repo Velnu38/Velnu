@@ -55,7 +55,7 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
       </article>)}</div>}
     </div>
     </section>
-    {showEdit&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()}/>}
+    {showEdit&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()} onDeleted={onBack}/>}
     {error&&<p role="alert" className="form-message error-text">{error}</p>}
     <section className="detail-card customer-snapshot" aria-label="Customer snapshot">
       <p className="eyebrow">Snapshot</p><h2>Customer snapshot</h2>

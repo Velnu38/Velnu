@@ -76,9 +76,12 @@ export async function updateCustomer(customerId: string, input: CustomerInput, b
   return data
 }
 
-export async function archiveCustomer(customerId: string) {
-  const { error } = await supabase.from('customers').update({ archived: true }).eq('id', customerId)
+export async function archiveCustomer(customerId: string, businessId: string, version: string) {
+  const { data, error } = await supabase.from('customers').update({ archived: true })
+    .eq('id', customerId).eq('business_id', businessId).eq('updated_at', version).select('id').single()
+  if (error?.code === 'PGRST116') throw new Error('This contact changed elsewhere. Close and reopen the editor before deleting.')
   if (error) throw error
+  return data
 }
 
 /** Edit contact details only, preserving notes, preferences and names. */
