@@ -440,10 +440,12 @@ test('06 dashboard manual refresh recovers after failed RPC', async ({ page }) =
 test('07 navigation during a slow dashboard load does not resurrect the old screen', async ({ page }) => {
   const errors = noRuntimeErrors(page)
   await mockWorkspace(page, { aggregateDelay: 850 })
+  const dashboardResponse = page.waitForResponse(response => response.url().endsWith('/rpc/get_dashboard_invoice_totals'))
   await page.goto('/')
-  await page.goto('/?view=schedule')
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Schedule/ }).click()
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
-  await page.waitForTimeout(950)
+  await dashboardResponse
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   expect(errors).toEqual([])
 })
