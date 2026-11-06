@@ -1,4 +1,4 @@
-import { canAccess, workspaceModules } from '../lib/workspaceAccess'
+import { canAccess, canOpenView, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
@@ -104,7 +104,10 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
   return <div className="page-stack dashboard-page">
     <header className="page-heading split-heading dashboard-business-header">
       <div className="dashboard-business-identity">{logo && <img className="dashboard-business-logo" src={logo} alt={business.name + ' logo'} />}<div><p className="home-eyebrow">Your workspace</p><h1>{business.name}</h1><p className="home-intro">Your business, at a glance.</p></div></div>
-      <div className="home-header-actions">{(canCreateBilling || canCreateJob || canCreateEntry) && <button type="button" className="primary-button compact home-create-button" aria-label="Create new" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}><span aria-hidden="true">＋</span> New</button>}<button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
+      <div className="home-header-actions">{(canCreateBilling || canCreateJob || canCreateEntry) && <button type="button" className="primary-button compact home-create-button" aria-label="Create new" aria-describedby="home-quick-links" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}>
+        <span className="home-create-label"><span aria-hidden="true">＋</span> New</span>
+        <span className="home-create-subtitle" id="home-quick-links">Quick Links</span>
+      </button>}<button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
     </header>
     <div className="home-overview">
       {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
@@ -114,10 +117,11 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
 
     {showCreate && <FormDialog label="Create new" onClose={() => setShowCreate(false)}>
       <div className="modal-head"><div><p className="eyebrow">{business.name}</p><h2>Create new</h2></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowCreate(false)}>×</button></div>
-      <nav className="home-create-options" aria-label="Create work">
+      <nav className="home-create-options" aria-label="Create work and quick links">
         {canCreateBilling && <><a href="/?view=invoices&new=1" aria-label="+ New invoice"><WorkspaceIcon kind="invoices"/><span><strong>Invoice</strong><small>Bill a customer for your work</small></span><span aria-hidden="true">›</span></a><a href="/?view=estimates&new=1" aria-label="+ New estimate"><WorkspaceIcon kind="estimates"/><span><strong>Estimate</strong><small>Prepare a quote for a customer</small></span><span aria-hidden="true">›</span></a></>}
         {canCreateJob && <a href="/?view=work&new=1" aria-label="+ New job"><WorkspaceIcon kind="work"/><span><strong>Job</strong><small>Plan and manage customer work</small></span><span aria-hidden="true">›</span></a>}
         {canCreateEntry && <><button type="button" aria-label="+ New calendar entry" onClick={() => { setShowCreate(false); setShowEntry(true) }}><WorkspaceIcon kind="schedule"/><span><strong>Calendar entry</strong><small>Add an appointment or event</small></span><span aria-hidden="true">›</span></button><a href="/?view=reminders&new=1" aria-label="+ New reminder"><WorkspaceIcon kind="reminders"/><span><strong>Reminder</strong><small>Keep track of a follow-up</small></span><span aria-hidden="true">›</span></a></>}
+        {canOpenView(business, 'customers') && <a href="/?view=customers" aria-label="Customers"><WorkspaceIcon kind="customers"/><span><strong>Customers</strong><small>Find customer details, locations, and history</small></span><span aria-hidden="true">›</span></a>}
       </nav>
     </FormDialog>}
 
