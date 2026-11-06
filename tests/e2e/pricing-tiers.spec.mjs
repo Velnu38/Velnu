@@ -11,7 +11,7 @@ async function setup(page,{tier='pro',canTest=true,ready=false}={}){
  if(path==='get_delivery_setup')return reply(delivery())
  if(path==='save_delivery_setup'){state.saves.push(body);ready=true;return reply(delivery())}
  if(path==='get_delivery_automation')return reply({plan:state.tier,ready:false,rule:{enabled:false,after_days:3,repeat_days:7,max_reminders:3},tasks:[]})
- if(path==='get_storage_usage')return reply({used_bytes:0,limit_bytes:state.tier==='free'?100000000:state.tier==='basic'?2000000000:10000000000,pending_bytes:0,warning:'none'})
+ if(path==='get_business_storage_usage'){const limit=state.tier==='free'?100000000:state.tier==='basic'?2000000000:10000000000;return reply({plan:state.tier,used_bytes:0,limit_bytes:limit,remaining_bytes:limit,pending_bytes:0,file_count:0,logo_allowed:state.tier!=='free',warning:'none'})}
  if(path==='prepare_personal_document'){state.shares++;return reply({snapshot:snap,expires_at:'2026-12-06'})}
  if(path==='confirm_personal_document_sent'){state.sent.push(body);return reply(null)}
  if(path==='get_shared_document')return reply({...snap,expires_at:'2026-12-06'})
@@ -19,7 +19,7 @@ async function setup(page,{tier='pro',canTest=true,ready=false}={}){
  });return state
 }
 test('owner tests all three plans and restores access without resetting records',async({page})=>{
- const s=await setup(page);await page.goto('/?view=settings&section=plans');await expect(page.getByRole('heading',{name:'Plans & Usage'})).toBeVisible();await expect(page.locator('.tier-price').filter({hasText:'$19.95'})).toBeVisible();await page.getByRole('button',{name:'Test Free',exact:true}).click();await expect(page.getByRole('button',{name:'Testing Free',exact:true})).toBeDisabled();expect(s.tier).toBe('free');await page.getByRole('button',{name:'Test Individual',exact:true}).click();expect(s.tier).toBe('basic');await page.getByRole('button',{name:'Test Business Pro',exact:true}).click();expect(s.tier).toBe('pro');await page.getByRole('button',{name:'Restore Business Pro access'}).click();expect(s.testing).toBe(false)
+ const s=await setup(page);await page.goto('/?view=settings&section=plans');await expect(page.getByRole('heading',{name:'Plans & Usage'})).toBeVisible();await expect(page.locator('.tier-price').filter({hasText:'$19.95'})).toBeVisible();await page.getByRole('button',{name:'Test Free',exact:true}).click();await expect(page.getByRole('button',{name:'Testing Free',exact:true})).toBeDisabled();expect(s.tier).toBe('free');await expect(page.getByRole('region',{name:'Business storage'})).toContainText('0 MB of 100 MB');await page.getByRole('button',{name:'Test Individual',exact:true}).click();expect(s.tier).toBe('basic');await expect(page.getByRole('region',{name:'Business storage'})).toContainText('0 MB of 2 GB');await page.getByRole('button',{name:'Test Business Pro',exact:true}).click();expect(s.tier).toBe('pro');await expect(page.getByRole('region',{name:'Business storage'})).toContainText('0 MB of 10 GB');await page.getByRole('button',{name:'Restore Business Pro access'}).click();expect(s.testing).toBe(false)
 })
 test('ordinary owners see comparison but cannot grant a test entitlement',async({page})=>{await setup(page,{canTest:false});await page.goto('/?view=settings&section=plans');await expect(page.getByRole('heading',{name:'Plans & Usage'})).toBeVisible();await expect(page.getByRole('button',{name:/^Test (Free|Individual|Business Pro)$/})).toHaveCount(0)})
 test('personal app setup requires acknowledgement and enables explicit final-send workflow',async({page})=>{

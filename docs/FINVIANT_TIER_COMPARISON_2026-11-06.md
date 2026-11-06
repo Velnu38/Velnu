@@ -110,7 +110,7 @@ Additional seat/storage/message prices, annual subscriptions and overage auto-pu
 
 Free and Individual require a compatible, configured personal email/text app on each device used for sending. Business requires approved managed senders, business identity setup, recipient permissions, reply routing and enabled automation rules. Show delivery method and allowances in marketing, plan selection, onboarding and the agreement. Record agreement version and acceptance time; owner agreement acceptance does not replace customer SMS consent.
 
-The chart updates the recommended offering and supersedes conflicting historical proposals in this report for recommendation purposes only. Subscription checkout, provider activation, all non-storage tier enforcement, complete customer/provider end-to-end testing, backup restoration, public launch and native-store readiness remain distinct release gates. Code presence and a passing local test do not establish that a third-party integration is active. No provider payment or customer message should be sent merely to verify the chart.
+The chart updates the recommended offering and supersedes conflicting historical proposals in this report for recommendation purposes only. Tier enforcement and private owner testing are now implemented as described below. Subscription checkout, provider activation, complete customer/provider end-to-end testing, backup restoration, public launch and native-store readiness remain distinct release gates. Code presence and a passing local test do not establish that a third-party integration is active. No provider payment or customer message should be sent merely to verify the chart.
 
 ## Implemented private tier testing
 
