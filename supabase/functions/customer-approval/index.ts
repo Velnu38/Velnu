@@ -32,8 +32,12 @@ Deno.serve(async(req:Request)=>{
     const {data:c}=await supabase.from("customers").select("first_name,last_name,company").eq("id",doc.customer_id).eq("business_id",link.business_id).single();customer=c;
     const {data:j}=await supabase.from("jobs").select("title").eq("id",doc.job_id).eq("business_id",link.business_id).single();document.job_title=j?.title??null;
    }
+   const branding=link.document_type==="estimate"
+    ? await supabase.rpc("approval_document_has_finviant_branding",{p_business:link.business_id})
+    : null;
+   if(branding?.error)return respond(503,{error:"Estimate branding could not be loaded. Try again."});
    const issuedBrand=document?.issuer_snapshot?.name ? document.issuer_snapshot : business;
-   return respond(200,{business_name:issuedBrand?.name??"Business",business_profile:issuedBrand??null,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at,terms_agreed:existing.document_snapshot?.terms_accepted===true}:null});
+   return respond(200,{business_name:issuedBrand?.name??"Business",business_profile:issuedBrand??null,finviant_branding:branding?.data===true,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at,terms_agreed:existing.document_snapshot?.terms_accepted===true}:null});
   }
 
   if(!['approved','declined'].includes(mode))return respond(400,{error:"Invalid approval action"});

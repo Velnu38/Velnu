@@ -7,7 +7,7 @@ import DocumentPaper from './DocumentPaper'
 import {validDeliveryEmail} from './DocumentDeliveryOptions'
 import {normalizeMobile} from '../lib/smsPhone'
 import {customerActionsEnabled} from '../lib/releaseFlags'
-export default function CreationPreview({paper,busy,error,saved=false,onBack,onSave,onEmail,saveForDelivery}:{paper:ComponentProps<typeof DocumentPaper>;busy:boolean;error:string;saved?:boolean;onBack:()=>void;onSave:()=>void;onEmail:()=>void;saveForDelivery:()=>Promise<string|undefined>}){
+export default function CreationPreview({paper,busy,error,saved=false,onBack,onSave,onEmail,saveForDelivery,canUpgrade=false}:{paper:ComponentProps<typeof DocumentPaper>;busy:boolean;error:string;saved?:boolean;onBack:()=>void;onSave:()=>void;onEmail:()=>void;saveForDelivery:()=>Promise<string|undefined>;canUpgrade?:boolean}){
  const [setup,setSetup]=useState<DeliverySetup|null>(null),[setupError,setSetupError]=useState('')
  useEffect(()=>{let active=true;const businessId=paper.business.id;if(!businessId){setSetupError('Reopen this draft to load sending setup.');return}void getDeliverySetup(businessId).then(value=>{if(active)setSetup(value)}).catch(e=>{if(active)setSetupError(e.message)});return()=>{active=false}},[paper.business.id])
  const personal=setup?.plan!=='pro'
@@ -47,7 +47,8 @@ export default function CreationPreview({paper,busy,error,saved=false,onBack,onS
  return <section className="creation-preview" data-saving={locked?'true':undefined}>
  <button type="button" className="back-button" data-keep-dialog disabled={locked} onClick={onBack}>← Back to edit</button>
  <h2 ref={heading} tabIndex={-1}>{paper.kind==='invoice'?'Invoice':'Estimate'} preview</h2>
- <DocumentPaper {...paper}/>
+ <DocumentPaper {...paper} finviantBranding={setup?.plan==='free'}/>
+ {canUpgrade&&setup?.plan==='free'&&<p className="quiet"><a href="/?view=settings&section=plans">Compare plans for unbranded {paper.kind}s</a></p>}
  {error&&<p role="alert" className="form-message error-text">{error}</p>}
  {saved&&!handoff&&<p role="status">This document is saved. Delivery is not confirmed. Retry uses the same document; Back to edit opens its saved record.</p>}
  {setupError&&<p role="alert">{setupError}</p>}<p className="quiet"><a href="/?view=settings&section=delivery">Email &amp; Text Setup</a>. Your selected tier controls how sending works.</p>

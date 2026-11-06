@@ -16,7 +16,8 @@ import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import { jobGroup, type JobGroup } from '../lib/jobGroups'
 import type { ReminderJob } from '../services/reminders'
 import { readableError } from '../lib/errors'
-import { canAccess } from '../lib/workspaceAccess'
+import { canAccess,isPrimaryOwner } from '../lib/workspaceAccess'
+import { useTierUsage } from '../lib/useTierUsage'
 import DispatchJobDialog from '../components/scheduling/DispatchJobDialog'
 import { getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
 import { jobNeedsStatusUpdate, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, nextJobAction, type JobStatus } from '../lib/jobActions'
@@ -44,6 +45,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [error, setError] = useState('')
   const [newCrew,setNewCrew]=useState<string[]>([]),[newDuration,setNewDuration]=useState(120)
   const [notice,setNotice]=useState(''),[dispatch,setDispatch]=useState<Job|null>(null),[team,setTeam]=useState<Worker[]>([]),[workerFilter,setWorkerFilter]=useState('all')
+  const usage = useTierUsage(business.id)
   const canDispatch=['owner','admin','office'].includes(business.role)&&canAccess(business,'calendar')&&canAccess(business,'jobs')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);setNewCrew(rows.filter(w=>w.is_you).map(w=>w.id))}}).catch(()=>{});return()=>{active=false}},[business.id])
   const query = new URLSearchParams(window.location.search)
@@ -179,6 +181,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           <label className="full">{!form.property_id&&<span><input type="checkbox" checked={noAddress} onChange={e=>setNoAddress(e.target.checked)}/> Continue with no service address (for remote work or an address to confirm)</span>}</label>
           <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace water heater" required /></label>
           <label className="full">Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+          {isPrimaryOwner(business)&&usage?.plan==='free'&&usage.jobs_limit!==null&&usage.jobs_used>=usage.jobs_limit&&<p className="quiet full">You’ve used this month’s Free bookings. <a href="/?view=settings&section=plans">Compare plans for more bookings</a></p>}
           <label className="full">Schedule ({timezone})<input type="datetime-local" disabled={!canDispatch} value={form.scheduled_start} onChange={(e) => setForm({ ...form, scheduled_start: e.target.value })} /></label>
           {form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label><fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset></>}{error && <p className="form-message error-text full">{error}</p>}
           <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" disabled={busy||!!form.scheduled_start&&!form.property_id&&!noAddress||!!form.scheduled_start&&!newCrew.length}>{busy ? 'Saving…' : 'Save job'}</button></div>

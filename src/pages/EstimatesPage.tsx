@@ -1,4 +1,5 @@
 import EstimateBilling from '../components/EstimateBilling'
+import {useTierUsage} from '../lib/useTierUsage'
 import CreationPreview from '../components/CreationPreview'
 import {documentEndDate,previewAmounts} from '../lib/documentPreview'
 import {sendReviewedDocument} from '../services/reviewDelivery'
@@ -60,6 +61,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [showForm, setShowForm] = useState(false)
   const [convertTarget, setConvertTarget] = useState<Estimate | null>(null)
   const [scheduleTarget,setScheduleTarget]=useState<Estimate|null>(null)
+  const plan=useTierUsage(business.id)?.plan
   const [previewTarget, setPreviewTarget] = useState<Estimate | null>(null)
   const [showEdit,setShowEdit]=useState(false),[editCustomer,setEditCustomer]=useState(false)
   const [showChangeOrders, setShowChangeOrders] = useState(false)
@@ -310,7 +312,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       </form>
 
       {editCreationCustomer&&customerId&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setEditCreationCustomer(false)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
+      {creationPreview&&<CreationPreview canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
     </FormDialog>}
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
@@ -347,7 +349,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         <DocumentRecord dates={previewTarget} timezone={business.timezone} customerId={previewTarget.customer_id} customerName={customerName(previewTarget.customers?.[0])}/>
         {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManageFinances(business.role)} timezone={business.timezone||'America/New_York'}/>}
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
-        <DocumentPaper business={previewTarget.issuer_snapshot?.name ? {...business,...previewTarget.issuer_snapshot,name:previewTarget.issuer_snapshot.name}:business} kind="estimate" customer={previewTarget.customers?.[0]} number={previewTarget.estimate_number} issued={previewTarget.issue_date} ending={previewTarget.expires_on} items={previewItems} subtotal={previewTarget.subtotal} tax={previewTarget.tax_amount} total={previewTarget.total} message={previewTarget.customer_message}/>
+        {plan==='free'&&isPrimaryOwner(business)&&<p className="quiet"><a href="/?view=settings&section=plans">Compare plans for unbranded estimates</a></p>}
+        <DocumentPaper finviantBranding={plan==='free'} business={previewTarget.issuer_snapshot?.name ? {...business,...previewTarget.issuer_snapshot,name:previewTarget.issuer_snapshot.name}:business} kind="estimate" customer={previewTarget.customers?.[0]} number={previewTarget.estimate_number} issued={previewTarget.issue_date} ending={previewTarget.expires_on} items={previewItems} subtotal={previewTarget.subtotal} tax={previewTarget.tax_amount} total={previewTarget.total} message={previewTarget.customer_message}/>
 
       </section>
     </FormDialog>}

@@ -1,3 +1,4 @@
+import {isPrimaryOwner} from '../lib/workspaceAccess'
 import CustomerPicker from './CustomerPicker'
 import { uniqueCustomerName } from '../lib/customerSuggestions'
 import CreationPreview from './CreationPreview'
@@ -102,6 +103,6 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
 
 
  <div className="preview-actions">{!saved&&<button type="button" className="secondary-button" onClick={onCancel}>Back</button>}<button type="submit" className={emailValid?'secondary-button':'primary-button'} disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!canManageFinances(business.role)}>Preview</button></div></fieldset></form>
- {preview&&<CreationPreview busy={busy} error={error} saved={!!saved} paper={{business,kind,customer:selected?{...selected,email,phone}:{first_name:customerName,email,phone},issued:issueDate,ending:dueDate,items,...previewAmounts(items),paymentLinks:defaults?.payment_links,paymentInstructions:defaults?.payment_instructions}} onBack={()=>{if(saved)onSaved(saved,kind);else setPreview(false)}} onSave={()=>void save(false)} saveForDelivery={()=>save(false,true)} onEmail={()=>void save(true)}/>}
+ {preview&&<CreationPreview canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!saved} paper={{business,kind,customer:selected?{...selected,email,phone}:{first_name:customerName,email,phone},issued:issueDate,ending:dueDate,items,...previewAmounts(items),paymentLinks:defaults?.payment_links,paymentInstructions:defaults?.payment_instructions}} onBack={()=>{if(saved)onSaved(saved,kind);else setPreview(false)}} onSave={()=>void save(false)} saveForDelivery={()=>save(false,true)} onEmail={()=>void save(true)}/>}
  </section>
 }
