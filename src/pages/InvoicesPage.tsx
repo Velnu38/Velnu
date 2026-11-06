@@ -163,10 +163,11 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); retryRef.current = null
   }
 
-  async function submit(sendEmail=false) {
+  async function submit(sendEmail=false, stayOnPreview=false) {
      if(saving.current)return;saving.current=true;setBusy(true); setError('')
     try {
       if(savedCreation.current){
+        if(stayOnPreview)return savedCreation.current
         if(sendEmail)await sendReviewedDocument(business.id, 'invoice',savedCreation.current,creationCustomer?.email||'');
         await finishCreation(savedCreation.current); return
       }
@@ -195,6 +196,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       }
       const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,...payments}) : await createInvoice(business.id,input)
       savedCreation.current=created.id
+      if(stayOnPreview)return created.id
       if(sendEmail)await sendReviewedDocument(business.id, 'invoice',created.id,creationCustomer?.email||'')
       await finishCreation(created.id)
     } catch (err) {
@@ -275,7 +277,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       </form>
 
       {editCreationCustomer&&customerId&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setEditCreationCustomer(false)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} onEmail={()=>void submit(true)}/>}
+      {creationPreview&&<CreationPreview busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
     </FormDialog>}
   </div>
 }

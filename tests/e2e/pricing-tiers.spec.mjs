@@ -36,4 +36,10 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  const state=await setup(page,{tier,ready:true});await page.goto('/?view='+kind+'s');await page.getByRole('button',{name:'Create '+kind,exact:true}).click();const form=page.getByRole('dialog',{name:'Create an '+kind,exact:true});
  await form.locator('summary').filter({hasText:'Add Customer'}).click();await form.getByRole('combobox',{name:'Customer',exact:true}).fill('Test');await form.getByRole('option',{name:/Test Customer/}).click();await form.locator('summary').filter({hasText:'Add Work Details'}).click();await form.getByLabel('Line 1 description',{exact:true}).fill('Lawn maintenance');await form.getByLabel('Line 1 unit price',{exact:true}).fill('250');await form.getByRole('button',{name:'Preview',exact:true}).click();
  await expect(form.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeEnabled();expect(state.documents).toHaveLength(0);await form.getByRole('button',{name:kind==='invoice'?'Send Email':'Send Text',exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1);expect(state.calls.some(c=>c.path.includes('/send-'))).toBe(false);expect(state.sent).toHaveLength(0);
+ await expect(form.getByRole('link',{name:/Open the (email|text) draft again/})).toHaveAttribute('href',kind==='invoice'?/^mailto:/:/^sms:/)
+ await expect(form.getByRole('button',{name:/^Send (Email|Text)$/})).toHaveCount(0)
+ await form.getByRole('button',{name:'I sent it — mark sent'}).click()
+ await expect.poll(()=>state.sent.length).toBe(1)
+ expect(state.sent[0].p_channel).toBe(kind==='invoice'?'email':'sms')
+ expect(state.documents).toHaveLength(1)
 })

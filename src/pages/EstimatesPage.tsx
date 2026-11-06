@@ -140,10 +140,11 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId(''); setExpiresOn(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate')); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
-  async function submit(sendEmail=false) {
+  async function submit(sendEmail=false, stayOnPreview=false) {
      if(saving.current)return;saving.current=true;setBusy(true); setError(''); setNotice('')
     try {
       if(savedCreation.current){
+        if(stayOnPreview)return savedCreation.current
         if(sendEmail)await sendReviewedDocument(business.id, 'estimate',savedCreation.current,creationCustomer?.email||'');
         await finishCreation(savedCreation.current); return
       }
@@ -173,6 +174,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         })),
       })
       savedCreation.current=created.id
+      if(stayOnPreview)return created.id
       if(sendEmail)await sendReviewedDocument(business.id, 'estimate',created.id,creationCustomer?.email||'')
       await finishCreation(created.id)
     } catch (err) {
@@ -308,7 +310,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       </form>
 
       {editCreationCustomer&&customerId&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setEditCreationCustomer(false)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} onEmail={()=>void submit(true)}/>}
+      {creationPreview&&<CreationPreview busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
     </FormDialog>}
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
