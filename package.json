@@ -21,7 +21,8 @@
     "test:records": "node --import tsx --test tests/records/*.test.ts",
     "test:settings": "node --import tsx --test tests/settings/*.test.ts",
     "test:scheduling": "node --import tsx --test tests/scheduling/*.test.ts",
-    "test:integrations": "node --import tsx --test tests/integrations/*.test.ts"
+    "test:integrations": "node --import tsx --test tests/integrations/*.test.ts",
+    "test:billing-ui": "node tests/billing-ui/dom.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "7.1.2",
@@ -45,6 +46,7 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
+    "jsdom": "26.1.0",
     "supabase": "3.0.0",
     "tailwindcss": "4.3.3",
     "tsx": "4.23.15",
