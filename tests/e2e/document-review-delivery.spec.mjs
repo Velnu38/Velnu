@@ -84,7 +84,7 @@ for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls imm
 test('creating a change order opens its review and delivery controls automatically',async({page})=>{
  const {state}=await setup(page);await page.goto('/?view=invoices&document='+E);await page.getByRole('button',{name:'Change order',exact:true}).click()
  const form=page.getByRole('dialog',{name:'Create change order'});await form.getByLabel('Line 1 description').fill('Two fixtures');await form.getByLabel('Line 1 unit price').fill('50')
- await form.getByRole('button',{name:'Create change order',exact:true}).click()
+ await form.getByRole('button',{name:'Save and review',exact:true}).click()
  const review=page.getByRole('dialog',{name:'Review change order'});await expect(review).toBeVisible();await expect(review.getByRole('button',{name:'Send Email'})).toBeEnabled();await expect(review.getByText('Two fixtures',{exact:true})).toBeVisible();expect(state.changes).toHaveLength(1)
 })
 test('switching change orders ignores a late line-item response from the previous review',async({page})=>{

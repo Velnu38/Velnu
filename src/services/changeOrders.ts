@@ -71,13 +71,44 @@ export type DocumentChangeSource={business_id:string;document_id:string;kind:'in
 export async function getDocumentChangeContext(kind:'invoice'|'estimate',id:string):Promise<DocumentChangeSource>{
  const {data,error}=await supabase.rpc('get_document_change_context',{p_kind:kind,p_document:id});if(error)throw error;return data
 }
-export async function createDocumentChangeOrder(kind:'invoice'|'estimate',id:string,request:string,input:{title:string;description:string;reason:string;schedule_impact_days:number;schedule_note:string;items:ChangeOrderLineInput[]}){
- validateDocumentInput({customer_id:id,items:input.items})
- const {data,error}=await supabase.rpc('create_document_change_order',{p_kind:kind,p_document:id,p_request:request,p_input:input});if(error)throw error;return data
+export type ChangeSourceLine = {id:string;description:string;quantity:number;unit_price:number;tax_rate:number}
+export type ChangeLineRevision = {id:string;previous:ChangeSourceLine;quantity:number;unit_price:number}
+
+export async function getChangeOrderSourceLines(kind:'invoice'|'estimate',id:string):Promise<ChangeSourceLine[]> {
+ const {data,error}=await supabase.rpc('get_change_order_source_lines',{p_kind:kind,p_document:id})
+ if(error)throw error
+ if(!Array.isArray(data))throw new Error('The original line items could not be loaded.')
+ return data
+}
+
+export async function createDocumentChangeOrder(kind:'invoice'|'estimate',id:string,request:string,input:{title:string;description:string;reason:string;schedule_impact_days:number;schedule_note:string;items:ChangeOrderLineInput[]},revision?:ChangeLineRevision){
+ if(!revision || input.items.length)validateDocumentInput({customer_id:id,items:input.items})
+ const {data,error}=await supabase.rpc(revision?'create_linked_change_order':'create_document_change_order',{p_kind:kind,p_document:id,p_request:request,p_input:input,...(revision?{p_revision:revision}:{})});if(error)throw error;return data
 }
 
 export async function listChangeOrderItems(businessId:string,id:string){
  const {data,error}=await supabase.from('change_order_items').select('id,description,quantity,unit_price,tax_rate,line_total').eq('business_id',businessId).eq('change_order_id',id).order('sort_order',{ascending:true})
  if(error)throw error
  return data??[]
+}
+
+export type ChangeOrderBilling = {
+ action:'awaiting_approval'|'billed'|'included_on_final'|'verify_existing'|'add_to_draft'|'create_invoice'|'manual_review'
+ invoice_id?:string
+ number?:string|null
+ total?:number
+ change_total?:number
+ status?:string
+}
+
+export async function getChangeOrderBilling(id:string):Promise<ChangeOrderBilling> {
+ const {data,error}=await supabase.rpc('get_change_order_billing',{p_change:id})
+ if(error)throw error
+ return data
+}
+
+export async function billApprovedChangeOrder(id:string,action:'add_to_draft'|'create_invoice',total:number):Promise<ChangeOrderBilling> {
+ const {data,error}=await supabase.rpc('bill_approved_change_order',{p_change:id,p_action:action,p_expected_total:total})
+ if(error)throw error
+ return data
 }

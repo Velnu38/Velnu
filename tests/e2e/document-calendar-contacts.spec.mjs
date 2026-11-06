@@ -25,6 +25,8 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/business_members'))return reply({business_id:B,role:owner?'owner':'office',access_modules:['calendar','jobs','billing','finances'],businesses:business})
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[{provider:'stripe',url:'https://buy.stripe.com/owner-link'}],payment_instructions:'Use your invoice number'})
   if(path.endsWith('/rpc/get_document_change_context'))return reply({business_id:B,document_id:body.p_document,kind:body.p_kind,number:body.p_kind==='invoice'?'INV-QA':'EST-QA',customer_id:C,customer_name:'Test Customer',job_id:null,estimate_id:body.p_kind==='estimate'?E:null,work_status:completedWork?'completed':'unscheduled',can_change:!completedWork,total:105,address:'1 Test Street',items:[{description:'Original work',quantity:2,unit_price:50,tax_rate:5}]})
+  if(path.endsWith('/rpc/get_change_order_source_lines'))return reply([{id:P,description:'Original work',quantity:2,unit_price:50,tax_rate:5}])
+  if(path.endsWith('/rpc/create_linked_change_order')){state.changes.push(body);return reply({id:P,status:'draft',total:52.50})}
   if(path.endsWith('/rpc/create_document_change_order')){state.changes.push(body);return reply({id:P,status:'draft',total:20})}
   if(path.endsWith('/rpc/create_document')){state.documents.push(body);return reply({id:E,status:'draft',total:250})}
   if(path.endsWith('/rpc/import_customer_contacts')){state.imported.push(...body.p_contacts);return reply({imported:body.p_contacts.length,skipped:0,already_imported:0})}
@@ -83,7 +85,7 @@ for(const kind of ['invoice','estimate'])test(`${kind} change order automaticall
  await page.getByRole('button',{name:'Change order',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Create change order'});await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('Test Customer');await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('1 Test Street');await expect(dialog.getByLabel('Job',{exact:true})).toHaveCount(0)
  await dialog.getByPlaceholder('Description',{exact:true}).fill('Additional work only');await dialog.getByPlaceholder('Unit price',{exact:true}).fill('20')
- await dialog.getByRole('button',{name:'Create change order',exact:true}).click();await expect.poll(()=>state.changes.length).toBe(1)
+ await dialog.getByRole('button',{name:'Save and review',exact:true}).click();await expect.poll(()=>state.changes.length).toBe(1)
  expect(state.changes[0].p_kind).toBe(kind);expect(state.changes[0].p_document).toBe(E);expect(state.changes[0].p_input.items[0].description).toBe('Additional work only');expect(state.changes[0].p_input).not.toHaveProperty('customer_id')
 })
 test('completed work has no new change-order action',async({page})=>{
@@ -157,4 +159,23 @@ test('viewer selects dates with the keyboard and sees that day without creation 
  await page.route('**/api/calendar?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({events:[],issues:[],connections:0})}))
  await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'}),date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first()
  await date.focus();await page.keyboard.press('Enter');await expect(date).toHaveAttribute('aria-pressed','true');await expect(calendar.getByText('Read-only scheduled visit',{exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.getByRole('button',{name:'+ Add entry'})).toHaveCount(0)
+})
+
+test('editing an original item previews only the difference and blocks accidental credits',async({page})=>{
+ const state=await mock(page);await page.goto('/?view=invoices')
+ await page.getByRole('button',{name:/^Open invoice INV-QA/}).click()
+ await page.getByRole('button',{name:'Change order',exact:true}).click()
+ const dialog=page.getByRole('dialog',{name:'Create change order'})
+ await dialog.getByLabel('Current item').selectOption(P)
+ await expect(dialog.getByLabel('Revised quantity')).toHaveValue('2')
+ await expect(dialog.getByLabel('Revised unit price')).toHaveValue('50')
+ await dialog.getByLabel('Revised quantity').fill('1')
+ await expect(dialog.getByRole('button',{name:'Save and review'})).toBeDisabled()
+ await expect(dialog.getByText(/Price reductions and scope-only changes/)).toBeVisible()
+ await dialog.getByLabel('Revised quantity').fill('3')
+ await expect(dialog.getByText(/Difference: \+\$52\.50/)).toBeVisible()
+ await dialog.getByRole('button',{name:'Save and review'}).click()
+ await expect.poll(()=>state.changes.length).toBe(1)
+ expect(state.changes[0].p_revision).toMatchObject({id:P,quantity:3,unit_price:50})
+ expect(state.changes[0].p_input.items).toEqual([])
 })
