@@ -89,7 +89,7 @@ test('additional addresses stay with their customer and are available when selec
  await page.getByRole('button',{name:'+ Add address',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add address',exact:true})
  await dialog.getByLabel('Location name (optional)',{exact:true}).fill('Rental');await dialog.getByLabel('Street address',{exact:true}).fill('789 Rental Street');await dialog.getByRole('button',{name:'Save address',exact:true}).click();await expect(dialog).toHaveCount(0)
  await expect(page.getByText('123 Example Street',{exact:true})).toBeVisible();await expect(page.getByText('789 Rental Street',{exact:true})).toBeVisible();expect(locations).toHaveLength(2);expect(writes[0].body.customer_id).toBe(C);expect(writes[0].body.business_id).toBe(B)
- await page.goto('/?view=work&new=1');await page.getByRole('combobox',{name:'Customer',exact:true}).selectOption(C);await expect(page.getByLabel('Service location',{exact:true}).getByRole('option',{name:/789 Rental Street/})).toHaveCount(1)
+ await page.goto('/?view=work&new=1');await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+C+'"]').click();await expect(page.getByLabel('Service location',{exact:true}).getByRole('option',{name:/789 Rental Street/})).toHaveCount(1)
 })
 
 for(const width of [390,1440])test(`customer rows have visible dividers, last-name labels and keyboard access at ${width}px`,async({page})=>{

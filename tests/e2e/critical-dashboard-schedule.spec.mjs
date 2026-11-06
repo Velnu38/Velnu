@@ -1023,7 +1023,7 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await page.route('**/rest/v1/rpc/create_document',r=>{payload=r.request().postDataJSON();return r.fulfill({contentType:'application/json',body:JSON.stringify({id:id(910)})})})
  await page.goto('/?view=invoices');await createWork(page, 'invoice')
  await expect(page.getByLabel('Customer',{exact:true})).toBeVisible()
- await page.getByLabel('Customer',{exact:true}).selectOption(CID)
+ await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+CID+'"]').click()
  await page.getByPlaceholder('Description',{exact:true}).fill('Service work');await page.getByPlaceholder('Unit price',{exact:true}).fill('100')
  await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3')
  await expect(page.locator('.estimate-total strong')).toHaveText('$105.30')

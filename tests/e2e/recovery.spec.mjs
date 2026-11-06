@@ -90,7 +90,7 @@ test('job creation preserves request identity after a lost response',async({page
  const s=await setup(page,{jobLost:true})
  await page.getByRole('button',{name:'Create new',exact:true}).click()
  await page.getByRole('link',{name:'+ New job',exact:true}).click()
- await page.getByRole('combobox',{name:'Customer',exact:true}).selectOption(C)
+ await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+C+'"]').click()
  await page.getByLabel('Job title',{exact:true}).fill('Recovery demonstration')
  await page.getByRole('button',{name:'Save job',exact:true}).click()
  await expect(page.locator('.modal .error-text')).toBeVisible()

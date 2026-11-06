@@ -68,6 +68,7 @@ for(const width of [1440,390])test(`navigation returns to the previous workspace
 })
 for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typed customer and ${kind} payment choices stay together at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view='+kind+'s');await createWork(page, kind)
+ await page.getByRole('button',{name:'Create a new customer',exact:true}).click()
  await page.getByLabel('Customer name',{exact:true}).fill('New Typed Customer')
  await page.getByPlaceholder('Description',{exact:true}).fill('Only this work');await page.getByPlaceholder('Unit price',{exact:true}).fill('250')
  await page.getByText('How customers can pay',{exact:true}).click();await page.getByRole('checkbox',{name:'Stripe',exact:true}).check();await page.getByLabel('Stripe payment link',{exact:true}).fill('https://buy.stripe.com/owner-link');await page.getByLabel('Payment instructions',{exact:true}).fill('Use your invoice number')

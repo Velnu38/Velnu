@@ -20,8 +20,9 @@ import { canAccess } from '../lib/workspaceAccess'
 import DispatchJobDialog from '../components/scheduling/DispatchJobDialog'
 import { getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
 import { jobNeedsStatusUpdate, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, nextJobAction, type JobStatus } from '../lib/jobActions'
+import CustomerPicker from '../components/CustomerPicker'
 
-type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
+type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
 type Job = ReminderJob & { status: string; scheduled_start: string | null; scheduled_end?: string | null; assigned_user_ids?: string[]; customers: Customer | Customer[] | null; properties?: Property[] | null }
 type JobQuickFilter = 'today' | 'active' | 'unscheduled' | null
@@ -172,7 +173,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       {showForm && <FormDialog label="Create a job" busy={busy} onClose={() => setShowForm(false)}>
         <div className="modal-head"><div><p className="eyebrow">New job</p><h2>Create a job</h2></div><button className="icon-button" onClick={() => setShowForm(false)} aria-label="Close" type="button">×</button></div>
         <form className="form-grid" onSubmit={submit}>
-          <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value, property_id: '' })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{[customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company}</option>)}</select></label>
+          <CustomerPicker customers={customers} value={form.customer_id} required disabled={busy} onChange={customer_id => setForm(prev => ({ ...prev, customer_id, property_id: '' }))} />
           <QuickCustomer businessId={business.id} onCreated={customer=>{setCustomers(value=>[...value,customer]);setForm(value=>({...value,customer_id:customer.id,property_id:''}))}}/>
           <CustomerPropertySelect businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
           <label className="full">{!form.property_id&&<span><input type="checkbox" checked={noAddress} onChange={e=>setNoAddress(e.target.checked)}/> Continue with no service address (for remote work or an address to confirm)</span>}</label>

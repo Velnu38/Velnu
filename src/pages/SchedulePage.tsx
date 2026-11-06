@@ -11,8 +11,9 @@ import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import { localInstant } from '../lib/calendarTime'
 import { DateTime } from 'luxon'
 import { readableError } from '../lib/errors'
+import CustomerPicker from '../components/CustomerPicker'
 
-type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
+type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
 type Appointment = { id: string; title: string; starts_at: string; ends_at: string | null; status: string; customers: Customer[] | null; jobs?: Array<{ id: string; title: string; properties?: Property[] }> | null }
 
@@ -123,7 +124,7 @@ export default function SchedulePage({ business, embedded = false }: { business:
     {showForm && <FormDialog label="Add a job to the calendar" busy={busy} onClose={() => { setShowForm(false); resetForm() }}>
       <div className="modal-head"><div><p className="eyebrow">Schedule work</p><h2>Add a job to the calendar</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form className="form-grid" onSubmit={submit}>
-        <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value, property_id: '' })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{name(customer)}</option>)}</select></label>
+        <CustomerPicker customers={customers} value={form.customer_id} required disabled={busy} onChange={customer_id => setForm(prev => ({ ...prev, customer_id, property_id: '' }))} />
         <CustomerPropertySelect businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
         <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace garbage disposal" required /></label>
         <label>Starts<input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} required /></label>

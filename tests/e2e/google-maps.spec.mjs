@@ -85,7 +85,7 @@ test('owner assigns a matching customer property when creating a job', async ({ 
   await page.goto('/')
   await page.getByRole('button', { name: 'Create new', exact: true }).click()
   await page.getByRole('link', { name: '+ New job', exact: true }).click()
-  await page.getByRole('combobox', { name: 'Customer', exact: true }).selectOption(customerId)
+  await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
   await expect(page.getByLabel('Service location').locator('option[value="' + propertyId + '"]')).toHaveCount(1)
   await page.getByLabel('Service location').selectOption(propertyId)
   await page.getByRole('textbox', { name: 'Job title' }).fill('Replace faucet')
