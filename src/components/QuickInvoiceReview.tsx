@@ -73,7 +73,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  {seed.warnings.length>0&&<p className="form-message" role="note">{seed.warnings.join(' ')}</p>}
  <form onSubmit={saveDraft} className="quick-invoice-fields" hidden={preview}><fieldset disabled={busy} className="form-dialog-fields">
  <fieldset className="form-dialog-fields" disabled={!!saved}>{customerMode==='choose'&&<CustomerPicker customers={customers} value={customerId} required disabled={loading||busy} initialQuery={seed.customerName} onChange={id=>{setCustomerId(id);setError('')}}/>}
- {!customerId&&<button type="button" className="text-button" disabled={loading||busy} onClick={()=>setCustomerMode(mode=>mode==='new'?'choose':'new')}>{customerMode==='new'?'Search saved customers':'Create a new customer'}</button>}
+ {!customerId&&<button type="button" className="text-button" disabled={loading||busy} onMouseDown={event=>event.preventDefault()} onClick={()=>setCustomerMode(mode=>mode==='new'?'choose':'new')}>{customerMode==='new'?'Search saved customers':'Create a new customer'}</button>}
  {!customerId&&customerMode==='choose'&&<p className="form-message">Who is this for? Choose a customer. Your charges and total are ready below.</p>}
  {!customerId&&customerMode==='new'&&<label>New customer name or company<input value={customerName} onChange={e=>setCustomerName(e.target.value)} required maxLength={160}/></label>}
  <details className="voice-contact-details" open={contactOpen} onToggle={e=>setContactOpen(e.currentTarget.open)}><summary>{email.trim()||phone.trim()?'Customer contact details':'Add email or phone to send (optional)'}</summary>

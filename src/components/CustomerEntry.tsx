@@ -15,7 +15,7 @@ export default function CustomerEntry({customers,value,draft,onChange,onDraft,di
   return <fieldset className="customer-entry full" disabled={disabled}><legend>Customer</legend>
     {!creating && <CustomerPicker customers={customers} value={value} required disabled={disabled} initialQuery={draft.name}
       onQueryChange={name => onDraft({...draft,name})} onChange={onChange} />}
-    {!value && <button type="button" className="text-button" onClick={() => setCreating(current => !current)}>{creating ? 'Search saved customers' : 'Create a new customer'}</button>}
+    {!value && <button type="button" className="text-button" onMouseDown={event => event.preventDefault()} onClick={() => setCreating(current => !current)}>{creating ? 'Search saved customers' : 'Create a new customer'}</button>}
     {creating && !value && <>
       <label>New customer name<input aria-label="Customer name" required={!draft.company?.trim()} autoComplete="name" maxLength={160} value={draft.name} onChange={event => onDraft({...draft,name:event.target.value})}/></label>
       <label>Company (if applicable)<input value={draft.company||''} maxLength={160} onChange={event=>onDraft({...draft,company:event.target.value})}/></label>

@@ -7,7 +7,7 @@ test('job customer requires a selection, supports keyboard and clears stale link
  await page.goto('/?view=work&new=1')
  const input=page.getByRole('combobox',{name:'Customer',exact:true})
  await input.fill('Test')
- await expect(page.getByRole('option')).toHaveCount(2)
+ await expect(page.getByRole('listbox',{name:'Matching saved customers'}).getByRole('option')).toHaveCount(2)
  expect(await input.evaluate(el=>el.checkValidity())).toBe(false)
  await input.fill('757555');await input.press('ArrowDown');await input.press('Enter')
  await expect(input).toHaveValue('Test Customer')
@@ -18,7 +18,7 @@ test('job customer requires a selection, supports keyboard and clears stale link
  await expect(page.getByText(/No saved customer matches/)).toBeVisible()
 })
 test('Fin suggests duplicate names with contact details and inserts the chosen saved record for review',async({page})=>{
- const state=await mock(page);state.customers.push(duplicate)
+ const state=await mock(page,{ai:true});state.customers.push(duplicate)
  await page.goto('/');await openFinTyping(page)
  const request=page.getByRole('textbox',{name:'Describe your invoice or request'})
  await request.fill('Create an invoice for Test Customer for mowing $100')
