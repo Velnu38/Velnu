@@ -249,3 +249,74 @@ test('downgrade pauses outstanding customer links and keeps confirmed bookings a
   assert.equal((await db.query('select count(*)::int n from jobs')).rows[0].n,2)
  } finally {await db.close()}
 })
+
+test('crew changes preserve the appointment and reject conflicts, while rescheduling preserves the crew', async () => {
+ const db=await fixture(true)
+ try {
+  const quote=await estimate(db), link=await offer(db,quote)
+  const customerView=(await db.query('select customer_schedule_offer($1) r',[link.token])).rows[0].r
+  const original=customerView.slots[0]
+  await db.query('select customer_schedule_offer($1,$2,$3)',[link.token,original.id,'Test Customer'])
+  const job=(await db.query('select job_id from estimates where id=$1',[quote])).rows[0].job_id
+  const originalAppointment=(await db.query('select id from appointments where job_id=$1',[job])).rows[0].id
+  const assign=(workers:string[],previous:string[])=>db.query('select assign_job_crew($1,$2,$3,$4,$5)',[job,workers,original.starts_at,original.ends_at,previous])
+  const read=async()=>(await db.query(`select j.assigned_user_ids,j.status job_status,a.id,a.status,a.assigned_user_id,
+     j.scheduled_start=a.starts_at and j.scheduled_end=a.ends_at as in_sync,a.starts_at,a.ends_at
+     from jobs j join appointments a on a.job_id=j.id where j.id=$1`,[job])).rows[0]
+  const blocker=await estimate(db)
+  await db.query('select book_approved_estimate($1,$2)',[blocker,{...original,title:'Other job',property_id:ids.site,workers:[ids.worker]}])
+  const before=await read()
+  await assert.rejects(()=>assign([ids.worker],[ids.owner]),{code:'23P01'})
+  assert.deepEqual(await read(),before)
+  await db.query("update jobs set status='canceled' where id=(select job_id from estimates where id=$1)",[blocker])
+
+  await assign([ids.worker],[ids.owner])
+  await assign([ids.worker],[ids.owner])
+  assert.deepEqual(await read(),{...before,assigned_user_ids:[ids.worker],assigned_user_id:ids.worker})
+  assert.deepEqual((await db.query('select customer_schedule_offer($1) r',[link.token])).rows[0].r.confirmed,{starts_at:original.starts_at,ends_at:original.ends_at})
+
+  const next=(await suggestions(db,[ids.worker]))[0]
+  const reschedule=(s:any)=>db.query('select save_job_appointment($1,$2,$3,$4,$5,false)',[job,s.starts_at,s.ends_at,original.starts_at,original.ends_at])
+  await reschedule(next)
+  await reschedule(next)
+  const after=await read()
+  assert.equal(after.id,originalAppointment)
+  assert.equal(after.in_sync,true)
+  assert.equal(after.status,before.status)
+  assert.equal(after.job_status,before.job_status)
+  assert.deepEqual(after.assigned_user_ids,[ids.worker])
+  assert.deepEqual((await db.query('select customer_schedule_offer($1) r',[link.token])).rows[0].r.confirmed,next)
+  await assert.rejects(()=>reschedule((link.input.slots as any[])[2]),{code:'40001'})
+  await assert.rejects(()=>assign([ids.owner],[ids.worker]),{code:'40001'})
+  assert.equal((await db.query('select count(*)::int n from appointments where job_id=$1',[job])).rows[0].n,1)
+ } finally {await db.close()}
+})
+
+test('preassignment creates no booking, and access and downgrade rules apply at the RPC boundary', async () => {
+ const db=await fixture(true)
+ try {
+  const job=(await db.query('insert into jobs(business_id,customer_id,title) values($1,$2,$3) returning id',[ids.business,ids.customer,'Unbooked job'])).rows[0].id
+  const assign=(workers:string[],previous:string[])=>db.query('select assign_job_crew($1,$2,null,null,$3)',[job,workers,previous])
+  await actor(db,ids.outsider)
+  await assert.rejects(()=>assign([ids.outsider],[]),{code:'42501'})
+  await actor(db,ids.worker)
+  await assert.rejects(()=>assign([ids.worker],[]),{code:'42501'})
+  await actor(db,ids.owner)
+  await assert.rejects(()=>assign([ids.outsider],[]),{code:'42501'})
+  await assign([ids.worker],[])
+  const unscheduled=(await db.query('select scheduled_start,scheduled_end,assigned_user_ids from jobs where id=$1',[job])).rows[0]
+  assert.deepEqual(unscheduled,{scheduled_start:null,scheduled_end:null,assigned_user_ids:[ids.worker]})
+  assert.equal((await db.query('select count(*)::int n from appointments where job_id=$1',[job])).rows[0].n,0)
+  await assert.rejects(()=>assign([ids.owner],[]),{code:'40001'})
+
+  const time=(await suggestions(db))[0]
+  const save=(consent:boolean)=>db.query('select save_job_appointment($1,$2,$3,null,null,$4)',[job,time.starts_at,time.ends_at,consent])
+  await db.exec("reset role;update private.business_entitlements set plan='free';set role authenticated;")
+  await assert.rejects(()=>assign([ids.owner],[ids.worker]),{code:'42501'})
+  await assert.rejects(()=>save(false),{code:'42501'})
+  await save(true)
+  assert.deepEqual((await db.query('select assigned_user_ids from jobs where id=$1',[job])).rows[0].assigned_user_ids,[ids.owner])
+  await db.exec('reset role;set role anon')
+  await assert.rejects(()=>save(true),{code:'42501'})
+ } finally {await db.close()}
+})
