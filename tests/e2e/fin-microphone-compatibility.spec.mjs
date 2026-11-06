@@ -1,3 +1,4 @@
+import {installPcmFixture} from './audio-fixture.mjs'
 import {openFinVoice} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import {mock} from './audit-fixture.mjs'
@@ -40,14 +41,14 @@ async function setup(page,options={}){
     this.stream=stream;this.mimeType=optionsValue?.mimeType||'audio/mp4';this.state='inactive'
    }
    start(){this.state='recording';if(options.webmStartFails&&this.mimeType==='audio/webm;codecs=opus')throw new DOMException('Cannot start this encoder','NotSupportedError')}
-   stop(){this.state='inactive';this.ondataavailable?.({data:new Blob([new Uint8Array(512)],{type:this.mimeType})});this.onstop?.()}
+   stop(){this.state='inactive';this.ondataavailable?.({data:new Blob([window.__pcmFixture()],{type:this.mimeType})});this.onstop?.()}
   }
   window.SpeechRecognition=window.webkitSpeechRecognition=class{
    start(){window.__speech=this;window.__mic.speechStarts++;window.__mic.speechGesture=navigator.userActivation.isActive}
    stop(){this.onresult?.({results:[[{transcript:'What services do I offer?'}]]});this.onend?.()}
   }
-  if(options.badAudioContext)window.AudioContext=class{
-   state='running';resume(){return Promise.resolve()};createMediaStreamSource(){throw Error('Audio analyser unavailable')};close(){throw Error('Audio context could not close')}
+  if(options.badAudioContext)window.AudioContext=class extends window.AudioContext{
+   createMediaStreamSource(){throw Error('Audio analyser unavailable')};close(){throw Error('Audio context could not close')}
   }
  },options)
  await page.goto('/');return requests
@@ -62,7 +63,7 @@ test('native phone encoder is tried first and microphone constraints stay simple
  expect(await page.evaluate(()=>window.__mic.panelOpen)).toBe(true);expect(await page.evaluate(()=>window.__mic.keyboardFocused)).toBe(false)
  await page.getByRole('button',{name:'Finish recording'}).click()
  await expect(page.getByRole('region',{name:'Fin’s answer'})).toHaveCount(1)
- expect(requests.uploads).toHaveLength(1);expect(requests.uploads[0]).toContain('audio/mp4');expect(requests.uploads[0]).toContain('finviant-command.m4a')
+ expect(requests.uploads).toHaveLength(1);expect(requests.uploads[0]).toContain('audio/wav');expect(requests.uploads[0]).toContain('finviant-command.wav')
 })
 
 test('constructor and start failures try compatible formats without another microphone request',async({page})=>{
@@ -134,3 +135,5 @@ test('interrupted browser dictation preserves partial words instead of submittin
  await expect(input(page)).toHaveValue('Create an invoice for');await expect(page.getByRole('alert')).toContainText('Check the captured words')
  expect(requests.questions).toHaveLength(0);expect(requests.uploads).toHaveLength(0)
 })
+
+test.beforeEach(async({page})=>installPcmFixture(page))

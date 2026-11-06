@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises'
 import {fixture,plan,user,B,U,O} from './fixture'
 test('single-user tiers suspend other team access without deleting memberships; Pro restores it',async()=>{const db=await fixture();try{
  const sql=await readFile('supabase/migrations/20261106155000_included_tier_access.sql','utf8');const functions=sql.match(/CREATE OR REPLACE FUNCTION[\s\S]*?\$function\$;/g)||[]
- for(const f of functions){if(f.includes('private.execute_confirmed_action'))continue;await db.exec(f)}
+ for(const f of functions){if(/FUNCTION private.(execute_confirmed_action|create_recurring_invoice|process_recurring_plan|set_recurring_invoice_status)/.test(f))continue;await db.exec(f)}
  await db.query('insert into user_agreement_acceptances(user_id,terms_accepted,ai_disclosure_acknowledged,electronic_records_consent) values($1,true,true,true)',[O])
  await db.exec("update user_agreement_acceptances set agreement_version='2026-11-06-v5'");
  await plan(db,'free');await user(db,O);assert.equal((await db.query<any>('select private.is_business_member($1) ok',[B])).rows[0].ok,false);assert.equal((await db.query<any>("select private.member_module_access($1,$2,'billing') ok",[B,O])).rows[0].ok,false)

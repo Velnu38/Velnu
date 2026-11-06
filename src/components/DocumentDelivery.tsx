@@ -30,12 +30,12 @@ export default function DocumentDelivery({businessId,kind,documentId,email,phone
  if(setupError)return <p role="alert">{setupError} <button className="text-button" onClick={()=>setRetry(v=>v+1)}>Retry sending setup</button></p>
  if(!setup)return <p role="status">Checking sending options…</p>
  if(setup.plan!=='pro'||personal)return <><PersonalDocumentDelivery businessId={businessId} kind={kind} documentId={documentId} email={email} phone={phone} setup={setup} disabled={disabled} onEditContact={onEditContact} onSent={onSent} onBusyChange={value=>{setBusy(value);onBusyChange?.(value)}}/>{setup.plan==='pro'&&<button type="button" className="text-button" onClick={()=>setPersonal(false)}>Use Finviant sending</button>}</>
- return <div data-saving={busy?'true':undefined}>
+ return <section aria-label="Send to customer" data-saving={busy?'true':undefined}>
   <DocumentDeliveryOptions hideSms kind={kind} email={email} phone={phone} disabled={disabled||!setup.managed_email_ready} contactDisabled={disabled||busy} emailDisabled={!!receipt} sending={busy} emailLabel={receipt?'Email '+(receipt.status==='delivered'?'delivered':'accepted'):error?'Retry email':'Send Email'} onEmail={()=>void send()} onEditContact={onEditContact}/>
   <ManagedSmsDelivery businessId={businessId} kind={kind} documentId={documentId} phone={phone} ready={setup.managed_sms_ready} disabled={disabled||busy} onSent={onSent} onBusyChange={value=>{setBusy(value);onBusyChange?.(value)}}/>
   <p className="quiet">Sends directly from Finviant after sender activation. <a href="/?view=settings&section=delivery">Review sending setup</a></p><button type="button" className="text-button" disabled={busy} onClick={()=>setPersonal(true)}>Use my email or text app instead</button>
   <ScheduledEmail businessId={businessId} kind={kind} documentId={documentId} ready={setup.managed_email_ready&&customerActionsEnabled}/>
   {error&&<p role="alert" className="form-message error-text">{error}</p>}
   {receipt&&<div><p role="status" className="form-message success-text">Email {receipt.status==='delivered'?'delivered':'accepted for delivery'} to {receipt.recipient}.{receipt.warning&&' '+receipt.warning} {refreshWarning}</p><button type="button" className="text-button" onClick={()=>{if(!window.confirm('Send another email to this customer? The previous email was already accepted.'))return;clearReviewedSend(businessId,kind,documentId);setReceipt(null);setRefreshWarning('')}}>Prepare another email</button></div>}
- </div>
+ </section>
 }

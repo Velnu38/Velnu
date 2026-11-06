@@ -1,18 +1,18 @@
 # Finviant — recommended three-tier launch offering
 
-Prepared November 6, 2026. Recommended names: **Free**, **Individual**, **Business**. Individual corresponds to Basic in existing code; Business corresponds to Pro. Prices are USD per business, billed monthly. These are recommendations, not active checkout prices or a claim that all tier restrictions and integrations are live. Existing private testers retain their authorized access.
+Prepared November 6, 2026. Recommended names: **Free**, **Individual**, **Business Pro**. Individual corresponds to Basic in existing code; Business Pro corresponds to Pro. Prices are USD per business. Business Pro also offers $399.50 upfront annually (two months free; $79.90 saved). These are recommendations, not active checkout prices or a claim that all tier restrictions and integrations are live. Existing private testers retain their authorized access.
 
 | Plan | Recommended price | Intended customer | Main value |
 |---|---:|---|---|
 | Free | $0/month | Occasional work or trying Finviant | Complete manual estimate-to-payment workflow for a small customer list |
 | Individual | $19.95/month | One busy owner/operator | More capacity, reporting and Fin assistance; send through personal apps |
-| Business | $39.95/month | A team or owner who wants automated delivery | Five users, direct sending, customer reminders and larger shared allowances |
+| Business Pro | $39.95/month | A team or owner who wants automated delivery | Five users, direct sending, customer reminders and larger shared allowances |
 
 The tables below describe recommended inclusion. **Activation** means provider configuration and live validation are required. **Future** means additional development/verification is needed and the feature must not be advertised as available at launch.
 
 ## Customers, documents and payments
 
-| Function | Free | Individual | Business |
+| Function | Free | Individual | Business Pro |
 |---|---|---|---|
 | Business workspaces | 1 | 1 | 1 |
 | Included users, including owner | 1 | 1 | 5 |
@@ -41,7 +41,7 @@ Payment links lead to the business's payment provider. **Mark Paid records money
 
 ## Sending and automation
 
-| Function | Free | Individual | Business |
+| Function | Free | Individual | Business Pro |
 |---|---|---|---|
 | Same invoice/estimate workflow and Send Email / Send Text controls | Included | Included | Included |
 | Personal email/text app sharing | Included; user finishes sending in app | Included; user finishes sending in app | Included as an alternative |
@@ -50,8 +50,8 @@ Payment links lead to the business's payment provider. **Mark Paid records money
 | Included managed customer emails | 0 | 0 | 2,000 recipient deliveries/month |
 | Included managed customer texts | 0 | 0 | 200 US SMS segments/month |
 | Managed delivery status and failure handling | Not applicable to personal apps | Not applicable to personal apps | Included after activation |
-| Automatic overdue-payment, appointment and estimate follow-up messages | No; manual sharing available | No; manual sharing available | Included after activation and owner enables rules |
-| Scheduled/background customer dispatch | Not included | Not included | Included after activation |
+| Automatic overdue invoice email reminders | No; manual sharing available | No; manual sharing available | Included after activation and owner enables rules |
+| Scheduled/background customer email dispatch | Not included | Not included | Included after activation |
 | Authentication/password-reset and essential service emails | Included separately | Included separately | Included separately |
 | Extra managed messages | Upgrade to Business | Upgrade to Business | Optional prepaid purchase only if offered; rates disclosed before purchase |
 
@@ -59,7 +59,7 @@ Use identical controls with concise route-specific help: “Opens your app to fi
 
 ## Jobs, scheduling, Fin and finances
 
-| Function | Free | Individual | Business |
+| Function | Free | Individual | Business Pro |
 |---|---|---|---|
 | Job records, status, work details, materials and notes | Included for permitted work | Included | Included |
 | Scheduled jobs | 5/month | No advertised monthly count cap | No advertised monthly count cap |
@@ -68,7 +68,7 @@ Use identical controls with concise route-specific help: “Opens your app to fi
 | Approved estimate → scheduled job; completed job → draft invoice | Included within job allowance | Included | Included |
 | Working hours, time off, booking notice and travel buffers | Basic owner availability | Included for owner | Included for team |
 | Customer choice of offered appointment times / guided scheduling | Within job allowance; share offer manually | Included; share offer manually | Included; managed sharing after activation |
-| Recurring invoice drafts and optional associated scheduling | Not included | Included; user sends each occurrence | Included; automatic dispatch only when activated and enabled |
+| Recurring invoice drafts and optional associated scheduling | Not included | Included; user sends each occurrence | Included; review each recurring draft before scheduling its email |
 | Google Calendar / Microsoft Outlook connections | Not included | After activation | After activation |
 | Worker assignment, invitations, roles and module permissions | Owner only | Owner only | Included; primary owner manages access |
 | Fin: typed assistant, business questions and saved-record lookup | 20 introductory requests once | 150 requests/month | 600 requests/month shared |
@@ -88,7 +88,7 @@ The Financial Performance feature reports recorded income and expenses. Do not d
 
 ## Storage and allowance rules
 
-| Function / limitation | Free | Individual | Business |
+| Function / limitation | Free | Individual | Business Pro |
 |---|---|---|---|
 | Total retained attachment storage per business | **100 MB** | **2 GB** | **10 GB** |
 | Maximum incoming photo | 10 MB | 10 MB | 10 MB |
@@ -111,3 +111,13 @@ Additional seat/storage/message prices, annual subscriptions and overage auto-pu
 Free and Individual require a compatible, configured personal email/text app on each device used for sending. Business requires approved managed senders, business identity setup, recipient permissions, reply routing and enabled automation rules. Show delivery method and allowances in marketing, plan selection, onboarding and the agreement. Record agreement version and acceptance time; owner agreement acceptance does not replace customer SMS consent.
 
 The chart updates the recommended offering and supersedes conflicting historical proposals in this report for recommendation purposes only. Subscription checkout, provider activation, all non-storage tier enforcement, complete customer/provider end-to-end testing, backup restoration, public launch and native-store readiness remain distinct release gates. Code presence and a passing local test do not establish that a third-party integration is active. No provider payment or customer message should be sent merely to verify the chart.
+
+## Implemented private tier testing
+
+Settings → Plans & Usage provides Test Free, Test Individual and Test Business Pro to an authorized private-testing primary owner. The effective tier is enforced on the server. Restore access returns to the original entitlement. Changing tiers does not charge the owner, reset usage or delete records. One-user tiers suspend other team members; Business Pro restores eligible memberships.
+
+Email & Text Setup appears after company onboarding and remains accessible in Settings. Personal-app drafts need a final Send in the configured app. Only explicit user confirmation records a personal send; delivery remains unverified. Customer links expire after 30 days and are invalidated by changed document content. Site-level private access protection still applies.
+
+Managed SMS, scheduled customer email and opt-in overdue invoice email reminders are implemented with quotas and server-side sender activation checks. Real provider sending remains paused until sender registration, replies, delivery webhooks and activation are verified. Automatic appointment/estimate follow-ups and automatic dispatch of every recurring occurrence are not included in this implementation. Manual scheduling invitations and recurring draft generation remain available as shown above.
+
+No Stripe subscription checkout or automatic paid activation is introduced by tier testing. No prepaid top-ups or automatic overage charges are enabled.

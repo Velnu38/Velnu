@@ -47,6 +47,8 @@ export const tierComparison = [
  ['Financial Performance','Last 30 days','Full history','Full history'],
  ['Manual income/expenses, record export','Included','Included','Included'],
  ['Team roles and invitations','—','—','Included'],
+ ['Recurring invoice drafts','—','Included; review before sending','Included; review before sending'],
+ ['QuickBooks read-only import','—','After provider setup','After provider setup'],
  ['External calendar connections','—','After provider setup','After provider setup'],
 ] as const
 

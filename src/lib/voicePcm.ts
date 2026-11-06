@@ -10,5 +10,5 @@ export async function voicePcm(audio:Blob):Promise<{audio:Blob;seconds:number}>{
   text(0,'RIFF');v.setUint32(4,buffer.byteLength-8,true);text(8,'WAVE');text(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,16000,true);v.setUint32(28,32000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);text(36,'data');v.setUint32(40,samples.length*2,true)
   for(let i=0;i<samples.length;i++){const n=Math.max(-1,Math.min(1,samples[i]));v.setInt16(44+i*2,Math.round(n*(n<0?32768:32767)),true)}
   return{audio:new Blob([buffer],{type:'audio/wav'}),seconds:samples.length/16000}
- }catch(e){throw e instanceof Error?e:new Error('This device could not prepare the recording. Try again or type your request.')}finally{await context.close()}
+ }catch(e){throw e instanceof Error?e:new Error('This device could not prepare the recording. Try again or type your request.')}finally{try{await context.close()}catch{/* Cleanup cannot invalidate a normalized recording. */}}
 }

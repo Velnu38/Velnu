@@ -259,7 +259,7 @@ Deno.serve(async (req: Request) => {
     });
     const { data: usage, error: usageError } = await scopedClient.rpc("get_plan_usage", { target_business_id: businessId });
     if (usageError || !usage) return result(503, { error: "Unable to verify integration entitlement." });
-    if (usage.plan !== "pro") {
+    if (!["basic", "pro"].includes(usage.plan)) {
       if (action === "status") return result(200, {
         configured: false, connected: false, environment: INTUIT_ENVIRONMENT,
         company_id: null, connection_environment: null, last_sync_at: null, last_sync_count: 0,

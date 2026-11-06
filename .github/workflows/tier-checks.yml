@@ -21,4 +21,4 @@ jobs:
       - run: node --import tsx --test tests/tiers/*.test.ts tests/predictive/matching.test.ts tests/settings/fin-workflow.test.ts
       - run: npm run typecheck:calendar && npm run test:calendar && npm run test:storage && npm run test:deployment
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test tests/e2e/pricing-tiers.spec.mjs tests/e2e/predictive-customers.spec.mjs tests/e2e/document-creation-preview.spec.mjs
+      - run: npx playwright test tests/e2e/pricing-tiers.spec.mjs tests/e2e/predictive-customers.spec.mjs tests/e2e/document-creation-preview.spec.mjs tests/e2e/business-profile.spec.mjs

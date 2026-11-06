@@ -31,6 +31,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/appointments')){if(method==='POST'){const entry={...body,updated_at:new Date().toISOString()};state.entries.push(entry);return reply(entry,201)}return reply([])}
   if(path.endsWith('/calendar_work'))return reply(state.entries.map(e=>({source_key:'appointment:'+e.id,title:e.title,starts_at:e.starts_at,ends_at:e.ends_at,status:'scheduled',document_kind:'work',document_id:e.id,job_id:null,assigned_user_ids:[U]})))
   if(path.endsWith('/functions/v1/transcribe-voice'))return reply({configured:false})
+  if(path.endsWith('/rpc/get_delivery_setup'))return reply({plan:'pro',email:'owner@example.test',phone:'+17575550100',personal_email_ready:false,personal_sms_ready:false,managed_email_ready:true,managed_sms_ready:false,acknowledged:true,reply_to:'owner@example.test',sms_reply_route:null})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:ai?'pro':'free',ai_limit:ai?100:0,ai_used:0,voice_limit:ai?100:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
   if(path.endsWith('/rpc/get_dashboard_attention_page'))return reply(attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[]}}))
