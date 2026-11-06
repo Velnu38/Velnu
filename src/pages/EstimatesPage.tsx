@@ -1,3 +1,4 @@
+import EstimateBilling from '../components/EstimateBilling'
 import CreationPreview from '../components/CreationPreview'
 import {documentEndDate,previewAmounts} from '../lib/documentPreview'
 import {sendReviewedDocument} from '../services/reviewDelivery'
@@ -312,7 +313,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
       <div className="conversion-summary"><span>{convertTarget.estimate_number || 'Estimate'}</span><strong>${Number(convertTarget.total).toFixed(2)}</strong><p>{customerName(convertTarget.customers?.[0])}</p></div>
-      <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">Finviant Office will copy every line item and tax rate into a new draft invoice. The database recalculates the final invoice total.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Save draft invoice'}</button></div></form>
+      <form onSubmit={convert} className="conversion-form"><label>Invoice due date<input type="date" value={convertDueDate} onChange={(e) => setConvertDueDate(e.target.value)} /></label><p className="quiet">The final draft includes the approved estimate, approved change orders, and credit for the paid deposit. Settle or void any outstanding deposit invoice first. Review the draft before sending it.</p>{error && <p className="form-message error-text">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Creating…' : 'Save draft invoice'}</button></div></form>
     </FormDialog>}
 
 
@@ -329,7 +330,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           {canManageFinances(business.role)&&previewTarget.status==='sent'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
           {canManageFinances(business.role)&&['accepted','converted'].includes(previewTarget.status)&&!previewTarget.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" disabled={busy} onClick={()=>setScheduleTarget(previewTarget)}>Schedule job</button>}
           {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={`/?view=work&document=${encodeURIComponent(previewTarget.job_id)}`}>Open linked job</a>}
-          {canManageFinances(business.role)&&previewTarget.status==='accepted'&&<button type="button" disabled={busy} onClick={()=>{setError('');setNotice('');setConvertTarget(previewTarget)}}>Create invoice</button>}
+          {canManageFinances(business.role)&&previewTarget.status==='accepted'&&<button type="button" disabled={busy} onClick={()=>{setError('');setNotice('');setConvertTarget(previewTarget)}}>Create final invoice</button>}
           <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
           <button type="button" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button>
         </>} secondary={canManageFinances(business.role)?<>
@@ -342,6 +343,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         {notice&&<p role="status" className="form-message success-text">{notice}</p>}
         {error&&<p role="alert" className="form-message error-text">{error}</p>}
         <DocumentRecord dates={previewTarget} timezone={business.timezone} customerId={previewTarget.customer_id} customerName={customerName(previewTarget.customers?.[0])}/>
+        {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManageFinances(business.role)} timezone={business.timezone||'America/New_York'}/>}
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
         <DocumentPaper business={previewTarget.issuer_snapshot?.name ? {...business,...previewTarget.issuer_snapshot,name:previewTarget.issuer_snapshot.name}:business} kind="estimate" customer={previewTarget.customers?.[0]} number={previewTarget.estimate_number} issued={previewTarget.issue_date} ending={previewTarget.expires_on} items={previewItems} subtotal={previewTarget.subtotal} tax={previewTarget.tax_amount} total={previewTarget.total} message={previewTarget.customer_message}/>
 
