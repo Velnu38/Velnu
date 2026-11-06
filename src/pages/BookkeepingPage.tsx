@@ -1,3 +1,4 @@
+import {useTierUsage} from '../lib/useTierUsage'
 import FinancialEntryDialog from '../components/FinancialEntryDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -42,6 +43,7 @@ function exportCsv(rows: WorkbookLine[], source: WorkbookSource) {
 }
 
 export default function BookkeepingPage({ business }: { business: CurrentBusiness }) {
+  const tier=useTierUsage(business.id),restricted=!tier||tier.plan==='free'
   const canSee = permitted.includes(business.role)
   const canManageQuickBooks = managers.includes(business.role)
   const [source, setSource] = useState<WorkbookSource>(new URLSearchParams(window.location.search).has('quickbooks') ? 'quickbooks' : 'velnu')
@@ -90,12 +92,12 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
   const summary = (amount: number) => sourceState === 'ready' ? usd.format(amount) : loading ? 'Loading…' : 'Unavailable'
   const allRows = source === 'velnu' ? velnuRows : qbRows
   const visible = useMemo(() => {
-    if (range === 'all') return allRows
+    if (!restricted && range === 'all') return allRows
     const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - Number(range))
+    cutoff.setDate(cutoff.getDate() - Number(restricted?'30':range))
     const from = [cutoff.getFullYear(), String(cutoff.getMonth() + 1).padStart(2, '0'), String(cutoff.getDate()).padStart(2, '0')].join('-')
     return allRows.filter(row => row.entry_date >= from)
-  }, [allRows, range])
+  }, [allRows, range, restricted])
 
   const totals = useMemo(() => {
     // Currency and data-source isolation: QuickBooks items are *never* combined
@@ -176,9 +178,11 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
       <button type="button" className={source === 'quickbooks' ? 'active' : ''} aria-pressed={source === 'quickbooks'} onClick={() => setSource('quickbooks')}>QuickBooks Online</button>
     </section>
     <div className="bookkeeping-toolbar">
-      <label>Period <select value={range} onChange={e => setRange(e.target.value as RangeChoice)}>
+      <label>Period <select disabled={restricted} value={restricted?'30':range} onChange={e => setRange(e.target.value as RangeChoice)}>
         <option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All available entries</option>
       </select></label>
+      {restricted&&<p className="quiet">Free shows the last 30 days. Existing records remain stored. <a href="/?view=settings&section=plans">Compare plans</a></p>}
+      {restricted&&<button type="button" className="secondary-button compact" disabled={sourceState!=='ready'} onClick={()=>exportCsv(allRows,source)}>Export all stored records</button>}
       <button type="button" className="secondary-button compact" disabled={sourceState !== 'ready' || !visible.length} onClick={() => exportCsv(visible, source)}>Export shown transactions ({visible.length})</button>
     </div>
 

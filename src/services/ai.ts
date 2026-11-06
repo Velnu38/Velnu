@@ -1,3 +1,4 @@
+import {voicePcm} from '../lib/voicePcm'
 import { supabase } from '../lib/supabase'
 import {validDraft} from '../../supabase/functions/fin-assistant/core'
 import type {VoiceSeed} from '../lib/voiceDocument'
@@ -97,6 +98,8 @@ export async function getTranscriptionStatus(businessId: string): Promise<{ conf
 
 export async function transcribeVoice(businessId: string, audio: Blob, durationSeconds?: number, prompt?: string) {
   const form = new FormData()
+  const normalized = await voicePcm(audio)
+  audio=normalized.audio;durationSeconds=normalized.seconds
   const mime = (audio.type || '').toLowerCase()
   const extension = mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : mime.includes('ogg') ? 'ogg' : mime.includes('wav') ? 'wav' : mime.includes('mpeg') ? 'mp3' : mime.includes('flac') ? 'flac' : 'webm'
   form.append('audio', audio, 'finviant-command.' + extension)

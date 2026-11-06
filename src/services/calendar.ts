@@ -50,6 +50,7 @@ export async function calendarRequest<T>(
   const result = await response.json();
   if (!response.ok) {
     const messages: Record<string, string> = {
+      paid_calendar_required: "External calendar connections require Individual or Business Pro. Your Finviant calendar remains available.",
       calendar_setup_required:
         "Calendar connections are awaiting server setup. Your Finviant schedule remains available.",
       calendar_not_configured:

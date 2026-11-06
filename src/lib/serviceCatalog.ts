@@ -18,10 +18,9 @@ export const serviceCatalog: Array<{
   { id: 'sms_messages', name: 'Customer text messaging', description: 'Paid service: outgoing SMS and replies; verified owner mobile, usage limits and customer messaging consent required.', stage: 'Paid · Planned', tag: 'Messaging' },
 ]
 export const plans: Array<{ id: PlanInterest; label: string; description: string }> = [
-  { id: 'free', label: 'Free', description: 'Manual tools only · 0 AI, customer approvals, and metered services' },
-  { id: 'basic', label: 'Basic', description: '$9.99/month proposed · 200 AI credits per month' },
-  { id: 'pro', label: 'Pro', description: '$24.99/month proposed · 1,000 AI credits per month' },
-  { id: 'a_la_carte', label: 'À la carte', description: 'Choose add-ons individually · No charges during beta' },
+ {id:'free',label:'Free',description:'$0 · Personal email/text apps · 10 active customers'},
+ {id:'basic',label:'Individual',description:'$19.95/month · Solo owner · Personal email/text apps'},
+ {id:'pro',label:'Business Pro',description:'$39.95/month · Finviant sending after activation · 5 users'},
 ]
 export const defaultServiceInterest: ServiceInterest = { plan: 'free', services: [] }
 const key = 'velnu.beta.service-interests.v1'

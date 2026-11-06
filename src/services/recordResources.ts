@@ -1,3 +1,4 @@
+import { getStorageUsage, uploadAttachment, PHOTO_BYTES_LIMIT } from '../lib/businessStorage'
 import { supabase } from '../lib/supabase'
 import { collectWorkbookPages } from '../lib/workbookPages'
 
@@ -29,7 +30,7 @@ export async function listRecordExpenses(businessId: string, target: RecordTarge
 
 export async function uploadRecordPhoto(businessId: string, target: RecordTarget, file: File) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a JPG, PNG, or WebP picture.')
-  if (!file.size || file.size > 10 * 1024 * 1024) throw new Error('Each picture must be between 1 byte and 10 MB.')
+  if (!file.size || file.size > PHOTO_BYTES_LIMIT) throw new Error('Each picture must be between 1 byte and 10 MB.')
   // Decode and re-encode before persistence: rejects corrupt images and strips GPS/EXIF metadata.
   const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This picture could not be opened. Export it as JPG or PNG and try again.') })
   let blob: Blob
@@ -44,18 +45,16 @@ export async function uploadRecordPhoto(businessId: string, target: RecordTarget
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
     blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to prepare picture.')), 'image/jpeg', 0.9))
   } finally { bitmap.close() }
+  const usage = await getStorageUsage(businessId)
+  if (blob.size > usage.remaining_bytes) throw new Error('Business storage allowance reached. Remove optional pictures to make room. Existing records and payments remain available.')
   const id = crypto.randomUUID(), path = `${businessId}/${id}.jpg`
   const { error: metadataError } = await supabase.from('record_photos').insert({
     id, business_id: businessId, [recordColumn(target.kind)]: target.id,
     file_name: file.name.slice(0, 240), byte_size: blob.size, media_type: 'image/jpeg',
   })
   if (metadataError) throw metadataError
-  const { error } = await supabase.storage.from(bucket).upload(path, blob, { contentType: 'image/jpeg', upsert: false })
-  if (error) {
-    // Remove a possibly committed object first. Keep metadata if cleanup fails so the user can retry removal.
-    try { await removeRecordPhoto(businessId, { id, storage_path: path }) } catch { /* visible on refresh */ }
-    throw new Error('Picture upload was not confirmed. Refresh the photos before trying again.')
-  }
+  // Keep metadata on uncertain delivery so a committed photo remains discoverable.
+  await uploadAttachment(bucket, path, blob)
 }
 
 export async function removeRecordPhoto(businessId: string, photo: Pick<RecordPhoto, 'id' | 'storage_path'>) {

@@ -19,3 +19,5 @@ create policy own on public.estimates for select to authenticated using(exists(s
 create policy own on public.invoices for select to authenticated using(exists(select 1 from public.business_members where business_id=invoices.business_id and user_id=auth.uid()));
 create policy own on public.jobs for select to authenticated using(exists(select 1 from public.business_members where business_id=jobs.business_id and user_id=auth.uid()));
 create policy own on public.appointments for select to authenticated using(exists(select 1 from public.business_members where business_id=appointments.business_id and user_id=auth.uid()));
+
+create function private.effective_plan(uuid) returns text language sql as $$select 'pro'::text$$;

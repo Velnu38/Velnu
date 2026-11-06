@@ -11,6 +11,8 @@ export default function AiAssistantAccess({ business, onChanged, onAvailabilityC
   onChanged: () => void
   onAvailabilityChange?: (available: boolean) => void
 }) {
+  const [revision,setRevision]=useState(0)
+  useEffect(()=>{const changed=()=>setRevision(v=>v+1);window.addEventListener('finviant-tier-changed',changed);return()=>window.removeEventListener('finviant-tier-changed',changed)},[])
   const [access, setAccess] = useState<'checking' | 'paid' | 'unavailable'>('checking')
   useEffect(() => { setAssistantAvailable(access === 'paid');onAvailabilityChange?.(access === 'paid');return()=>setAssistantAvailable(false) }, [access, onAvailabilityChange])
   useEffect(() => {
@@ -19,14 +21,14 @@ export default function AiAssistantAccess({ business, onChanged, onAvailabilityC
     if(!['owner','admin','office','technician','viewer'].includes(business.role)){setAccess('unavailable');return()=>{active=false}}
     void Promise.resolve(supabase.rpc('get_plan_usage', { target_business_id: business.id })).then(({ data, error }) => {
       if (!active) return
-      if (error || data?.plan !== 'pro' || Number(data?.ai_limit || 0) <= 0 || Number(data?.voice_limit || 0) <= 0) {
+      if (error || Number(data?.ai_limit || 0) <= 0 || Number(data?.voice_limit || 0) <= 0) {
         setAccess('unavailable')
       } else {
         setAccess('paid')
       }
     }).catch(() => { if (active) setAccess('unavailable') })
     return () => { active = false }
-  }, [business.id,business.role])
+  }, [business.id,business.role,revision])
 
   if (access === 'paid') return <VoiceAssistant key={`${business.id}:${business.role}:${(business.access_modules||[]).slice().sort().join(",")}`} business={business} onChanged={onChanged} />
   // Unentitled accounts never expose an apparently functional AI button.

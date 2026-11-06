@@ -1,3 +1,4 @@
+import {useTierUsage} from '../lib/useTierUsage'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { DateTime } from 'luxon'
 import type { CurrentBusiness } from '../lib/business'
@@ -44,6 +45,7 @@ function FinancialTrend({ buckets, selected, onSelect }: { buckets: FinancialBuc
 
 export default function FinancialPerformance({ business, onOpenWorkbook, refreshVersion = 0, compact = false }: { business: CurrentBusiness; onOpenWorkbook?: () => void; refreshVersion?: number; compact?: boolean }) {
   const [newEntry,setNewEntry]=useState(false),[notice,setNotice]=useState('')
+  const tier=useTierUsage(business.id),restricted=!tier||tier.plan==='free'
   const zone = business.timezone || 'America/New_York'
   const [day, setDay] = useState(() => DateTime.now().setZone(zone).toISODate()!)
   const [period, setPeriod] = useState<FinancialPeriod>(compact ? 1 : 6)
@@ -53,7 +55,7 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   const [selected, setSelected] = useState<string | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [search, setSearch] = useState(''), [source, setSource] = useState('all'), [page, setPage] = useState(0)
-  const range = financialRange(period, day, zone)
+  const range = restricted?{from:DateTime.fromISO(day,{zone}).minus({days:29}).toISODate()!,to:DateTime.fromISO(day,{zone}).plus({days:1}).toISODate()!,timezone:zone,label:'Last 30 days'}:financialRange(period, day, zone)
   const requestKey = [business.id, business.role, business.access_modules?.join(','), range.from, range.to, zone].join(':')
   const ready = !loading && !error && result?.key === requestKey
   const rows = useMemo(() => result?.key === requestKey ? result.rows.filter(row => row.currency === 'USD' && row.entry_date >= range.from && row.entry_date < range.to) : [], [result, requestKey, range.from, range.to])
@@ -72,7 +74,7 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [business.id, requestKey, range.from, range.to, zone, refreshVersion, version])
-  const buckets = useMemo(() => financialBuckets(rows, period, day, zone), [rows, period, day, zone])
+  const buckets = useMemo(() => restricted?Array.from({length:30},(_,i)=>{const d=DateTime.fromISO(day,{zone}).minus({days:29-i}),date=d.toISODate()!,totals=financialTotals(rows.filter(r=>r.entry_date===date));return{key:date,label:d.toFormat('d'),fullLabel:d.toFormat('MMMM d, yyyy'),from:date,to:d.plus({days:1}).toISODate()!,income:totals.income,expenses:totals.expenses}}):financialBuckets(rows, period, day, zone), [rows, period, day, zone,restricted])
   const bucket = buckets.find(item => item.key === selected)
   const scopeRows = bucket ? rows.filter(row => row.entry_date >= bucket.from && row.entry_date < bucket.to) : rows
   const totals = financialTotals(scopeRows)
@@ -83,7 +85,8 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   function expand(kind: Detail) { setDetail(value => value === kind ? null : kind); resetFilters() }
   function selectBucket(key: string) { setSelected(value => value === key ? null : key); setDetail('all'); resetFilters() }
   return <section className={`financial-performance interactive-performance dashboard-tile${compact ? ' performance-compact' : ''}`} aria-labelledby="financial-performance-title">
-    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2 className="dashboard-tile-title" id="financial-performance-title">Financial Performance</h2>{canAccess(business,"finances")&&<button type="button" className="calendar-add" onClick={()=>setNewEntry(true)}>+ Add Entry</button>}</div><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
+    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2 className="dashboard-tile-title" id="financial-performance-title">Financial Performance</h2>{canAccess(business,"finances")&&<button type="button" className="calendar-add" onClick={()=>setNewEntry(true)}>+ Add Entry</button>}</div><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" disabled={restricted} aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
+    {restricted&&<p className="quiet">Free includes the last 30 days. <a href="/?view=settings&section=plans">Individual includes full financial history.</a> Your original records remain available for viewing and export.</p>}
     {notice&&<p role="status" className="form-message">{notice}</p>}
     {newEntry&&<FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction)=>{setNewEntry(false);setSelected(null);resetFilters();setNotice(`${direction==='income'?'Income':'Expense'} saved.${date<range.from||date>=range.to?' This transaction is outside the selected period. View all income & expenses to find it.':' Totals are refreshing.'}`);setVersion(v=>v+1)}}/>}
     {error ? <div className="performance-unavailable" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setVersion(value => value + 1)}>Retry financial data</button></div> : !ready ? <div className="performance-loading" role="status">Loading financial transactions…</div> : !compact ? <FinancialTrend buckets={buckets} selected={bucket?.key || null} onSelect={selectBucket}/> : null}

@@ -25,7 +25,7 @@ export function json(
     },
   });
 }
-export async function actor(req: Request, businessId: string) {
+export async function actor(req: Request, businessId: string, requirePaid = true) {
   const authorization = req.headers.get("authorization") || "";
   if (!authorization.startsWith("Bearer "))
     throw new CalendarError("sign_in_required", false, 0, 401);
@@ -41,11 +41,12 @@ export async function actor(req: Request, businessId: string) {
   if (error || !data.user)
     throw new CalendarError("sign_in_required", false, 0, 401);
   const { rows } = await database().query(
-    "select role from public.business_members where business_id=$1 and user_id=$2 and 'calendar'=any(access_modules)",
+    "select role,private.effective_plan(business_id) as plan from public.business_members where business_id=$1 and user_id=$2 and 'calendar'=any(access_modules)",
     [businessId, data.user.id],
   );
   if (!rows[0])
     throw new CalendarError("workspace_access_denied", false, 0, 403);
+  if(requirePaid && rows[0].plan === "free") throw new CalendarError("paid_calendar_required", false, 0, 403);
   return { id: data.user.id, role: rows[0].role as string };
 }
 export function checkOrigin(req: Request) {

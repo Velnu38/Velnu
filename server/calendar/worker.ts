@@ -87,10 +87,14 @@ export async function runSyncBatch(runtime: Runtime = defaultRuntime) {
         }
         const membership = (
           await db.query(
-            "select role,access_modules from public.business_members where business_id=$1 and user_id=$2",
+            "select role,access_modules,private.effective_plan(business_id) as plan from public.business_members where business_id=$1 and user_id=$2",
             [integration.business_id, integration.user_id],
           )
         ).rows[0];
+        if(membership?.plan==='free' && integration.state!=='disconnecting') {
+          await finish(db, task, true, 'paid_calendar_required', 3600, false);
+          return;
+        }
         const svc = runtime.provider(db, integration);
         const active =
           membership && membership.access_modules.includes("calendar") &&
