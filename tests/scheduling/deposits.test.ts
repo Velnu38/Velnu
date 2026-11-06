@@ -23,7 +23,7 @@ async function setup(){const db=await fixture();await db.exec('reset role;');
   await db.exec('create table public.payments ('+paymentTable[1]+');alter table payments add primary key(id);grant select,insert,update on payments to authenticated;')
   for(const name of ['public.record_manual_payment','private.commerce_paid_recalc','private.commerce_payment_guard']) await db.exec(fn(baseline,name))
   await db.exec('create trigger payments_guard before insert or update or delete on payments for each row execute function private.commerce_payment_guard();create trigger payment_recalc after insert or update or delete on payments for each row execute function private.commerce_paid_recalc();')
-  await db.exec(await readFile('supabase/migrations/20261106130140_estimate_deposit_final_balance.sql','utf8'))
+  await db.exec(await readFile('supabase/migrations/20261106131110_estimate_deposit_final_balance.sql','utf8'))
   await db.exec('set role authenticated;');return db
 }
 
