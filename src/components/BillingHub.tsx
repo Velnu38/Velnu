@@ -8,7 +8,7 @@ import { getAttentionPage, type AttentionPage } from '../services/dashboardAtten
 import WorkflowNextSteps from './scheduling/WorkflowNextSteps'
 import AttentionReminders from './AttentionReminders'
 
-type Filter = 'attention' | 'approvals'
+type Filter = 'attention' | 'approvals' | 'schedule' | 'invoice' | 'overdue' | 'follow_up'
 type Row = { key: string; kind: string; number: string; customer: string; detail: string; amount: number; amountLabel: string; status: string; tone: string; href: string }
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const names: Record<string,string> = { draft:'Draft', sent:'Sent', viewed:'Viewed', accepted:'Approved', converted:'Invoiced', declined:'Declined', expired:'Expired', partial:'Partly paid', paid:'Paid', overdue:'Overdue', void:'Void', lead:'Not started', scheduled:'Scheduled', in_progress:'In progress' }
@@ -28,7 +28,7 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
   const [pageLoading,setPageLoading]=useState(true)
   const [pageError,setPageError]=useState('')
   const [retry,setRetry]=useState(0)
-  const pageFilter=filter==='approvals'?'approvals':'attention'
+  const pageFilter=filter
   useEffect(()=>{
     if(!canSee)return
     let active=true,request=0
@@ -46,7 +46,7 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
     window.addEventListener('finviant-work-changed',update);window.addEventListener('focus',update);document.addEventListener('visibilitychange',update)
     return()=>{active=false;request++;clearInterval(timer);window.removeEventListener('finviant-work-changed',update);window.removeEventListener('focus',update);document.removeEventListener('visibilitychange',update)}
   },[business.id,canSee,pageNumber,pageFilter,refreshVersion,retry])
-  function changeFilter(value:Filter){if(value!==filter){setAttentionPage(null);setPageError('')}setPageNumber(1);setFilter(value)}
+  function changeFilter(value:Filter){if(value!==filter){setAttentionPage(null);setPageLoading(true);setPageError('')}setPageNumber(1);setFilter(value)}
   const items=attentionPage?.items || []
   const overdueInvoices=items.flatMap(item=>item.kind==='invoice'?[item.data]:[])
   const pendingApprovals=items.flatMap(item=>item.kind==='estimate'||item.kind==='change_order'?[item.data]:[])
@@ -63,8 +63,8 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
     amount:Number(row.total), amountLabel:'Quoted total', status:'Awaiting customer approval', tone:'approval', href:row.document_type === 'estimate' ? documentHref('estimates',row.id)
       : row.estimate_id ? documentHref('estimates',row.estimate_id) : '/?view=change_orders' }))
   const rows=filter==='approvals'?approvals:overdue
-  const heading=filter==='approvals'?'Awaiting Customer Approval':'Needs Attention'
-  const empty=filter==='approvals'?'No estimates or change orders are waiting for approval.':'No items need attention.'
+  const heading={attention:'Needs Attention',approvals:'Awaiting Customer Approval',schedule:'Schedule work',invoice:'Finish invoices',overdue:'Overdue payments',follow_up:'Follow-ups due'}[filter]
+  const empty=filter==='approvals'?'No estimates or change orders are waiting for approval.':filter==='attention'?'No items need attention.':`No items in ${heading.toLowerCase()}.`
   const total=attentionPage?.total??0
   const currentPage=attentionPage?.page??1
   const pageCount=Math.max(1,Math.ceil(total/5))
@@ -75,24 +75,24 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
       <span className="attention-summary-chevron" aria-hidden="true">{expanded?'⌃':'⌄'}</span>
     </button>
     {!canSee ? <p className="work-card-empty">Billing details are available to owners, administrators, and office staff.</p> : <>
-      {!expanded && <div className="attention-category-pills" aria-label="Needs Attention categories">
+      <div className="attention-category-pills" aria-label="Needs Attention categories">
         {[
           ['Schedule work', attentionPage?.category_counts.schedule, 'schedule'],
           ['Finish invoices', attentionPage?.category_counts.invoice, 'invoice'],
           ['Overdue payments', attentionPage?.category_counts.overdue, 'overdue'],
-          ['Follow-ups due', attentionPage?.category_counts.follow_up, 'follow-up'],
-        ].map(([label,count,key])=><span key={String(key)} className={`attention-category-pill ${key}`}><span>{label}</span><strong>{countsUnavailable?'—':count}</strong></span>)}
-      </div>}
+          ['Follow-ups due', attentionPage?.category_counts.follow_up, 'follow_up'],
+        ].map(([label,count,key])=><button type="button" key={String(key)} className={`attention-category-pill ${String(key).replace('_','-')}`} aria-pressed={expanded&&filter===key} onClick={()=>{changeFilter(key as Filter);setExpanded(true)}}><span>{label}</span><strong>{countsUnavailable?'—':count}</strong></button>)}
+      </div>
       {expanded && <>
       <div className="attention-view-switch" role="group" aria-label="Home work queue">
-        <button type="button" aria-pressed={filter==='attention'} onClick={()=>changeFilter('attention')}>Needs attention <span>{countsUnavailable?'—':attentionCount}</span></button>
+        <button type="button" aria-pressed={filter==='attention'} onClick={()=>changeFilter('attention')}>All needs attention <span>{countsUnavailable?'—':attentionCount}</span></button>
         <button type="button" aria-pressed={filter==='approvals'} onClick={()=>changeFilter('approvals')}>Awaiting Customer Approval <span>{countsUnavailable?'—':approvalCount}</span></button>
       </div>
       <div role="region" aria-label={heading} aria-busy={pageLoading}>
         {pageError ? <p role="alert" className="work-card-empty">{pageError} <button type="button" className="text-button" onClick={()=>setRetry(value=>value+1)}>Retry</button></p> : null}
         {pageLoading && !attentionPage ? <p role="status" className="work-card-empty">Loading attention items…</p> : <>
-        {filter==='attention'&&<><WorkflowNextSteps business={business} data={workflow} embedded/><AttentionReminders business={business} reminders={reminders}/></>}
-        {rows.length === 0 && filter === 'attention' && items.length > 0 ? null : rows.length === 0 && !pageError ? <div className="billing-empty"><span className="billing-empty-icon" aria-hidden="true">✓</span><p>{empty}</p></div> : <ul className="billing-rows">{rows.map(row => <li key={row.key} className={row.kind==='Invoice'?'billing-reminder-row':undefined}><a className="billing-row" href={row.href} aria-label={`Open ${row.kind.toLowerCase()} ${row.number} for ${row.customer}`}>
+        {filter!=='approvals'&&<><WorkflowNextSteps business={business} data={workflow} embedded/><AttentionReminders business={business} reminders={reminders}/></>}
+        {rows.length === 0 && filter !== 'approvals' && items.length > 0 ? null : rows.length === 0 && !pageError ? <div className="billing-empty"><span className="billing-empty-icon" aria-hidden="true">✓</span><p>{empty}</p></div> : <ul className="billing-rows">{rows.map(row => <li key={row.key} className={row.kind==='Invoice'?'billing-reminder-row':undefined}><a className="billing-row" href={row.href} aria-label={`Open ${row.kind.toLowerCase()} ${row.number} for ${row.customer}`}>
           <span className={`billing-document-icon ${row.kind === 'Invoice' ? 'invoice' : 'estimate'}`} aria-hidden="true">{row.kind === 'Invoice' ? 'I' : row.kind === 'Estimate' ? 'E' : 'C'}</span>
           <span className="billing-row-copy"><strong>{row.customer}</strong><span>{row.kind} · {row.number}</span><small>{row.detail}</small></span>
           <span className={`billing-status ${row.tone}`}>{row.status}</span>

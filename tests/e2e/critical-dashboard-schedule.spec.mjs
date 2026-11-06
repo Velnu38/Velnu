@@ -1388,3 +1388,31 @@ test('customer snapshot opens complete filtered document lists and retains origi
  }
  await page.screenshot({path:'test-results/customer-workspace-desktop.png',fullPage:true})
 })
+
+for(const width of [1440,390])test(`attention category buttons open matching paginated queues at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900})
+ const workflow={approved:Array.from({length:6},(_,n)=>({id:id(4000+n),estimate_number:`APP-${n}`,customer_name:'Customer',offer:null})),completed:[{id:id(4100),title:'Completed work',invoice_id:id(4200),invoice_status:'draft'}]}
+ const state=await mockWorkspace(page,{workflow,reminders:[reminder(4300)],invoices:[{id:id(4400),invoice_number:'LATE-1',status:'sent',due_date:'2000-01-01',balance_due:100,customers:customer}]})
+ await page.goto('/')
+ const hub=page.getByRole('article',{name:'Needs attention overview'})
+ for(const [label,filter,total] of [['Schedule work','schedule',6],['Finish invoices','invoice',1],['Overdue payments','overdue',1],['Follow-ups due','follow_up',1]]){
+  const button=hub.getByRole('button',{name:new RegExp(label)})
+  await button.click()
+  await expect(button).toHaveAttribute('aria-pressed','true')
+  const region=hub.getByRole('region',{name:label,exact:true})
+  await expect(region).toBeVisible()
+  await expect(region.getByRole('navigation',{name:'Attention pages'})).toContainText(`of ${total}`)
+  expect(state.requests.some(r=>r.body?.p_filter===filter)).toBeTruthy()
+  if(filter==='schedule'){
+   await region.getByRole('button',{name:'Next',exact:true}).click()
+   await expect(region).toContainText('Page 2 of 2')
+   await expect(region).toContainText('APP-5')
+  }
+ }
+ await hub.getByRole('button',{name:/All needs attention/}).click()
+ await expect(hub.getByRole('region',{name:'Needs Attention',exact:true})).toContainText('of 9')
+ state.reminders=[]
+ await hub.getByRole('button',{name:/Follow-ups due/}).focus()
+ await page.keyboard.press('Enter')
+ await expect(hub.getByRole('region',{name:'Follow-ups due',exact:true})).toContainText('No items in follow-ups due.')
+})
