@@ -47,7 +47,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  const valid=items.length>0&&items.length<=50&&items.every(i=>i.description&&validDecimal(i.unit_price,0,10000000)&&validDecimal(i.quantity,0.01,100000))&&taxRate.trim()!==''&&validDecimal(Number(taxRate),0,100)&&total!==null&&(!!customerId||(customerMode==='new'&&!!customerName.trim()))
  const change=(index:number,key:keyof VoiceLine,value:string)=>setLines(prev=>prev.map((l,i)=>i===index?{...l,[key]:value}:l))
  async function saveDraft(e:FormEvent){e.preventDefault();if(valid&&!mismatch&&contactsValid)setPreview(true);else setError('Review the customer, amounts and contact details.')}
- async function save(sendEmail:boolean){if(saving.current||loading||!defaults||!canManageFinances(business.role))return
+ async function save(sendEmail:boolean,stayOnPreview=false){if(saving.current||loading||!defaults||!canManageFinances(business.role))return
   if(!valid||mismatch||!contactsValid){setError('Check each description, amount and the calculated total before saving.');return}
   if(!customerId&&!customerName.trim()){setError('Choose a customer or enter a customer name.');return}
   if(sendEmail&&(!emailValid||!customerActionsEnabled))return
@@ -61,6 +61,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
    const signature=JSON.stringify({kind,...input});if(retry.current?.signature!==signature)retry.current={signature,id:crypto.randomUUID()}
    const document=saved??(kind==='invoice'?await createInvoice(business.id,{...input,request_id:retry.current.id}):await createEstimate(business.id,{...input,request_id:retry.current.id}))
    setSaved(document)
+   if(stayOnPreview)return document.id
    if(sendEmail){
     const receipt=await sendReviewedDocument(business.id,kind,document.id,email.trim(),sendId.current)
     onSaved(document,kind,receipt)
@@ -101,6 +102,6 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
 
 
  <div className="preview-actions">{!saved&&<button type="button" className="secondary-button" onClick={onCancel}>Back</button>}<button type="submit" className={emailValid?'secondary-button':'primary-button'} disabled={busy||loading||!defaults||!valid||mismatch||!contactsValid||!canManageFinances(business.role)}>Preview</button></div></fieldset></form>
- {preview&&<CreationPreview busy={busy} error={error} saved={!!saved} paper={{business,kind,customer:selected?{...selected,email,phone}:{first_name:customerName,email,phone},issued:issueDate,ending:dueDate,items,...previewAmounts(items),paymentLinks:defaults?.payment_links,paymentInstructions:defaults?.payment_instructions}} onBack={()=>{if(saved)onSaved(saved,kind);else setPreview(false)}} onSave={()=>void save(false)} onEmail={()=>void save(true)}/>}
+ {preview&&<CreationPreview busy={busy} error={error} saved={!!saved} paper={{business,kind,customer:selected?{...selected,email,phone}:{first_name:customerName,email,phone},issued:issueDate,ending:dueDate,items,...previewAmounts(items),paymentLinks:defaults?.payment_links,paymentInstructions:defaults?.payment_instructions}} onBack={()=>{if(saved)onSaved(saved,kind);else setPreview(false)}} onSave={()=>void save(false)} saveForDelivery={()=>save(false,true)} onEmail={()=>void save(true)}/>}
  </section>
 }
