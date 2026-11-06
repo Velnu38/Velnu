@@ -1,3 +1,4 @@
+import ReceiptLink from '../components/ReceiptLink'
 import PlanRestriction from '../components/PlanRestriction'
 import {isPrimaryOwner} from '../lib/workspaceAccess'
 import {useTierUsage} from '../lib/useTierUsage'
@@ -116,7 +117,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     if (!row.removable || busy || !window.confirm('Delete this manually entered record? This cannot be undone.')) return
     setBusy(true); setError('')
     try {
-      await removeManualEntry(business.id, row.id)
+      await removeManualEntry(business.id, row.id, row.receiptPath)
       await refresh()
       setNotice('Manual entry deleted.')
     } catch (err) {
@@ -232,7 +233,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
         </tr></thead><tbody>{visible.map(row => <tr key={row.source + row.id}>
           <td>{row.entry_date}</td><td><strong>{row.description}</strong><small>{row.category}</small></td>
           <td><span className={'bookkeeping-kind ' + row.direction}>{row.direction === 'income' ? 'Income' : 'Expense'}</span></td>
-          <td><small>{row.source_label}</small></td><td className={'amount ' + row.direction}>{row.direction === 'expense' ? '−' : '+'}{money(row.amount, row.currency)}</td>
+          <td><small>{row.source_label}</small>{row.receiptPath&&<ReceiptLink path={row.receiptPath}/>}</td><td className={'amount ' + row.direction}>{row.direction === 'expense' ? '−' : '+'}{money(row.amount, row.currency)}</td>
           <td>{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
         </tr>)}</tbody></table></div>}
     </section>

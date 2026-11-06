@@ -50,6 +50,8 @@ export const tierComparison = [
  ['Automatic customer appointment reminders','—','—','Owner-enabled email after sender activation'],
  ['Financial Performance','Last 30 days','Full history','Full history'],
  ['Manual income/expenses, record export','Included','Included','Included'],
+ ['Receipt scanning','—','50/month','200/month shared'],
+ ['Google review requests','—','Your email or text app','Your email or text app'],
  ['Team roles and invitations','—','—','Included'],
  ['Recurring invoice drafts','—','Included; review before sending','Included; review before sending'],
  ['QuickBooks read-only import','—','After provider setup','After provider setup'],

@@ -16,5 +16,6 @@ export interface WorkbookLine {
   source_reference?: string
   payment_method?: string | null
   notes?: string | null
+  receiptPath?: string | null
 }
 

@@ -10,6 +10,7 @@ import { formatServiceAddress } from '../lib/googleMaps'
 import FormDialog from './FormDialog'
 import PlanRestriction from './PlanRestriction'
 import GoogleMapTools from './GoogleMapTools'
+import GoogleReviewRequest from './GoogleReviewRequest'
 import RecordResources from './RecordResources'
 import { useTierUsage } from '../lib/useTierUsage'
 import DispatchJobDialog, { type JobScheduleMode } from './scheduling/DispatchJobDialog'
@@ -112,6 +113,7 @@ export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, 
           {canChangeSchedule && teamScheduling && <button type="button" className="secondary-button" disabled={busy} onClick={() => setDispatch('crew')}>Assign crew</button>}
           {onCreateReminder && canEdit && <button type="button" className="secondary-button" disabled={busy} onClick={() => onCreateReminder({ id: job.id, title: job.title, customer_id: job.customer_id })}>Add reminder</button>}
         </div>
+        {job.status==='completed' && ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'jobs') && plan && <GoogleReviewRequest business={business} plan={plan} customer={job.customers[0]} />}
         {canChangeSchedule && plan && !teamScheduling && <PlanRestriction plan={plan} required="pro" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)} />}
         <form className="job-details-notes" data-unsaved={notes !== (job.description || '')} onSubmit={save}>
           <label>Job notes and materials needed<textarea value={notes} maxLength={4000} rows={7} disabled={busy || !canEdit} onChange={event => { setNotes(event.target.value); setNotice('') }} placeholder="Scope, materials to bring, access instructions, and updates…" /></label>

@@ -2,6 +2,8 @@ import { DateTime } from 'luxon'
 import { isRecord, validCalendarDate, validDecimal, readFinancialNumber } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
+import { uploadAttachment } from '../lib/businessStorage'
+import type { ReceiptFile } from './receiptCapture'
 import { collectWorkbookPages } from '../lib/workbookPages'
 
 import type { EntryDirection, WorkbookLine } from '../lib/workbookTypes'
@@ -60,7 +62,7 @@ export async function listVelnuWorkbook(businessId: string, period?: WorkbookRan
     }),
     collectWorkbookPages((from, to) => {
       let query = supabase.from('bookkeeping_entries')
-        .select('id,entry_date,direction,amount,currency,category,description,notes,job_id,estimate_id,invoice_id,jobs!bookkeeping_job_tenant_fk(title),estimates!bookkeeping_estimate_tenant_fk(estimate_number),invoices!bookkeeping_invoice_tenant_fk(invoice_number)', { count: 'exact' })
+        .select('id,entry_date,direction,amount,currency,category,description,notes,job_id,estimate_id,invoice_id,jobs!bookkeeping_job_tenant_fk(title),estimates!bookkeeping_estimate_tenant_fk(estimate_number),invoices!bookkeeping_invoice_tenant_fk(invoice_number),record_photos!record_photos_expense_fk(storage_path)', { count: 'exact' })
         .eq('business_id', businessId)
       if (period) query = query.gte('entry_date', period.from).lt('entry_date', period.to)
       return query.order('id', { ascending: true }).range(from, to)
@@ -100,6 +102,7 @@ export async function listVelnuWorkbook(businessId: string, period?: WorkbookRan
     source_view: row.job_id ? 'work' as const : row.estimate_id ? 'estimates' as const : row.invoice_id ? 'invoices' as const : undefined,
     source_reference: asList(row.jobs)[0]?.title || asList(row.estimates)[0]?.estimate_number || asList(row.invoices)[0]?.invoice_number || '',
     notes: row.notes as string | null,
+    receiptPath: asList(row.record_photos)[0]?.storage_path || null,
     removable: true,
   }))
   return [...received, ...extra].sort((a, b) => b.entry_date.localeCompare(a.entry_date))
@@ -123,7 +126,9 @@ export async function listQuickBooksWorkbook(businessId: string): Promise<Workbo
   })).sort((a, b) => b.entry_date.localeCompare(a.entry_date))
 }
 
-export async function addManualEntry(input: BookkeepingInput) {
+export class ReceiptUploadPending extends Error {}
+
+export async function addManualEntry(input: BookkeepingInput, receipt?: ReceiptFile | null) {
   if (!isRecord(input) || !validDecimal(input.amount, 0.01, 1000000000)) throw new Error('Enter a positive amount with no more than two decimal places.')
   const links = [input.job_id, input.estimate_id, input.invoice_id].filter((id): id is string => !!id)
   if (links.length > 1 || links.some(id => !/^[0-9a-f-]{36}$/i.test(id)) || (links.length && input.direction !== 'expense')) throw new Error('Choose one valid record for this expense.')
@@ -145,6 +150,21 @@ export async function addManualEntry(input: BookkeepingInput) {
     job_id: input.job_id || null,
     estimate_id: input.estimate_id || null,
     invoice_id: input.invoice_id || null,
+  }
+  if (receipt) {
+    const { data: path, error } = await supabase.rpc('save_receipt_expense', {
+      p_entry: payload, p_file_name: receipt.name, p_byte_size: receipt.blob.size,
+    })
+    if (error) throw new Error(error.message)
+    if (path !== `${input.business_id}/${input.id}.jpg`) throw new Error('The receipt destination could not be confirmed.')
+    try {
+      await uploadAttachment('finviant-record-photos', path, receipt.blob)
+    } catch {
+      // A retry can encounter an object created by the first upload.
+      const { data } = await supabase.storage.from('finviant-record-photos').createSignedUrl(path, 60)
+      if (!data?.signedUrl) throw new ReceiptUploadPending('Expense saved. The receipt upload is pending. Retry to attach the receipt to this expense.')
+    }
+    return
   }
   const { error } = await supabase.from('bookkeeping_entries').insert(payload)
   if (!error) return
@@ -169,7 +189,11 @@ export async function addManualEntry(input: BookkeepingInput) {
   }
 }
 
-export async function removeManualEntry(businessId: string, id: string) {
+export async function removeManualEntry(businessId: string, id: string, receiptPath?: string | null) {
+  if (receiptPath === `${businessId}/${id}.jpg`) {
+    const { error } = await supabase.storage.from('finviant-record-photos').remove([receiptPath])
+    if (error) throw new Error('The receipt could not be removed. Retry before deleting the expense.')
+  }
   const { error } = await supabase.from('bookkeeping_entries')
     .delete().eq('business_id', businessId).eq('id', id)
   if (error) throw error

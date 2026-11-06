@@ -1,4 +1,5 @@
 import { uploadAttachment, LOGO_BYTES_LIMIT } from './businessStorage'
+import { normalizeGoogleReviewUrl } from './googleReviews'
 import { supabase } from './supabase'
 
 export type BusinessRole = 'owner' | 'admin' | 'office' | 'technician' | 'viewer'
@@ -12,6 +13,7 @@ export interface BusinessProfile {
   email: string | null
   phone: string | null
   website: string | null
+  google_review_url?: string | null
   address_line1: string | null
   address_line2: string | null
   city: string | null
@@ -40,6 +42,7 @@ export interface BusinessProfileDraft {
   email: string
   phone: string
   website: string
+  google_review_url?: string
   address_line1: string
   address_line2: string
   city: string
@@ -62,12 +65,13 @@ export const emptyBusinessProfile: BusinessProfileDraft = {
   team_size: '', team_roles: '',
 }
 
-const fields = 'id,created_by_user_id,timezone,name,legal_name,email,phone,website,address_line1,address_line2,city,state,postal_code,logo_path,document_accent,document_footer,business_description,services_offered,service_area,team_size,team_roles,profile_completed_at'
+const fields = 'id,created_by_user_id,timezone,name,legal_name,email,phone,website,google_review_url,address_line1,address_line2,city,state,postal_code,logo_path,document_accent,document_footer,business_description,services_offered,service_area,team_size,team_roles,profile_completed_at'
 
 export function draftFromBusiness(business: BusinessProfile): BusinessProfileDraft {
   return {
     name: business.name || '', legal_name: business.legal_name || '',
     email: business.email || '', phone: business.phone || '', website: business.website || '',
+    google_review_url: business.google_review_url || '',
     address_line1: business.address_line1 || '', address_line2: business.address_line2 || '',
     city: business.city || '', state: business.state || '', postal_code: business.postal_code || '',
     document_accent: business.document_accent || '#2563eb',
@@ -91,6 +95,7 @@ function cleanProfile(draft: BusinessProfileDraft) {
     name,
     legal_name: optional(draft.legal_name), email: optional(draft.email),
     phone: optional(draft.phone), website: optional(draft.website),
+    ...(draft.google_review_url === undefined ? {} : { google_review_url: normalizeGoogleReviewUrl(draft.google_review_url) }),
     address_line1: optional(draft.address_line1), address_line2: optional(draft.address_line2),
     city: optional(draft.city), state: optional(draft.state), postal_code: optional(draft.postal_code),
     document_accent: draft.document_accent.toLowerCase(),
