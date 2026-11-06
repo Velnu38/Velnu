@@ -6,6 +6,7 @@ import WorkspaceIcon from './WorkspaceIcon'
 import '../home-screen.css'
 import FormDialog from './FormDialog'
 import {confirmNavigation,hasUnsavedChanges} from '../lib/unsavedChanges'
+import type { FinInvoiceDraft } from '../lib/voiceDocument'
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
 import { lazy, Suspense, useState, useEffect, useRef, type MouseEvent } from 'react'
 import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
@@ -73,6 +74,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   const [company, setCompany] = useState(business)
   const [view, setView] = useState<View>(initialView())
   const [refreshVersion, setRefreshVersion] = useState(0)
+  const invoiceHandoff = useRef<{ revision: number; draft: FinInvoiceDraft } | null>(null)
   const [showMobileMore, setShowMobileMore] = useState(false)
 
   const [accessRemoved, setAccessRemoved] = useState(false)
@@ -111,6 +113,18 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     setShowMobileMore(false)
   }
 
+  function openFinInvoice(draft: FinInvoiceDraft) {
+    if (accessRemoved || !canOpenView(company, 'invoices') || !confirmNavigation('fin')) return false
+    navigationIndex.current++
+    window.history.pushState({finviantIndex:navigationIndex.current}, '', '/?view=invoices')
+    lastLocation.current = location.href
+    invoiceHandoff.current = {revision: refreshVersion + 1, draft}
+    setView('invoices')
+    setRefreshVersion(refreshVersion + 1)
+    setShowMobileMore(false)
+    return true
+  }
+
   function openAppLink(event: MouseEvent) {
     if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return
     const link=(event.target as Element).closest('a[href]')
@@ -133,7 +147,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     if (view === 'reminders') return <RemindersPage business={company} />
     if (view === 'change_orders')return <ChangeOrdersPage business={company}/>
     if (view === 'estimates') return <EstimatesPage business={company} />
-    if (view === 'invoices') return <InvoicesPage business={company} />
+    if (view === 'invoices') return <InvoicesPage business={company} finDraft={invoiceHandoff.current?.revision === refreshVersion ? invoiceHandoff.current.draft : undefined} />
     if (view === 'bookkeeping') return <BookkeepingPage key={company.id + ':' + company.role} business={company} />
     return <PaymentsPage business={company} onOpenWorkbook={() => navigate('bookkeeping')} />
   }
@@ -147,7 +161,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><FinBrand wordmark/></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div>
-          <div className="workspace-assistant">{!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}</div>
+          <div className="workspace-assistant">{!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onOpenInvoice={openFinInvoice} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}</div>
         </header>
         <div className="private-testing-app"><PrivateBetaNotice compact /></div><TierBanner businessId={company.id}/>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>

@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test'
 import {workflow,start,save,review,docStep,cors} from './fin-workflow-fixture.mjs'
 import {C,E} from './audit-fixture.mjs'
-async function prepared(page,kind='invoice',contact={email:'customer@example.test',phone:null}){const f=await workflow(page,{steps:[docStep(kind)],contact});await start(page,`Create ${kind} for Test Customer: landscaping $200 and painting $100`);return f}
+async function prepared(page,kind='invoice',contact={email:'customer@example.test',phone:null}){const f=await workflow(page,{steps:[docStep(kind)],contact});await start(page,`Create ${kind} for Test Customer: landscaping $200 and painting $100${kind==='invoice'?' and schedule it for tomorrow':''}`);return f}
 const delivery=page=>page.getByRole('region',{name:'Send to customer'})
 for(const kind of ['invoice','estimate'])for(const width of [390,1440])test(`Fin saved ${kind} sends email from the same screen once at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:950});const f=await prepared(page,kind),sends=[]

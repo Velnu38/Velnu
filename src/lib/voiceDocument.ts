@@ -1,8 +1,48 @@
+import { customerOptionName, normalizeCustomerSearch, type CustomerOption } from './customerSuggestions'
 import {normalizeSpokenMoney as normalizeWords} from '../../supabase/functions/fin-assistant/core'
 import {parseQuickInvoice,isQuickInvoiceCommand} from './quickInvoice'
 export type VoiceKind='invoice'|'estimate'
 export type VoiceLine={description:string;amount:string;quantity:string}
 export type VoiceSeed={kind:VoiceKind;customerName:string;lines:VoiceLine[];statedTotal:string|null;taxRate:string|null;warnings:string[]}
+export type FinInvoiceDraft = { command: string; seed: VoiceSeed; customerId?: string }
+
+function invoiceRequest(command: string) {
+ const request = command.trim()
+  .replace(/^(?:(?:hey\s+fin|fin)[,\s]+)?(?:(?:can|could|would) you\s+|i (?:need|want) to\s+)?(?:please\s+)?/i, '')
+  .replace(/^i (?:need|want)\s+(?=(?:an?\s+)?new\s+invoice\b)/i, 'open ')
+  .replace(/^(?:open|go to)\s+(?:the\s+)?invoices?(?:\s+page)?\s*(?:,\s*(?:and\s+)?|and\s+|then\s+)(?:then\s+)?/i, '')
+  .replace(/\s+please[.!?]*$/i, '')
+  .replace(/\s+(?:and|then)\s+(?:email|text|send)\s+(?:it|the invoice)(?:\s+to (?:them|the customer))?[.!?]*$/i, '')
+ const create = /^(?:(?:create|make|draft|prepare|write|generate|start)\s+(?:me\s+)?(?:(?:an?|the)\s+)?(?:new\s+)?|(?:open\s+(?:an?\s+)?)?new\s+)invoice\b/i
+ const linked = /\b(?:from|using)\s+(?:(?:an?|the|my)\s+)?(?:approved\s+)?(?:estimate|quote|job|invoice)\b/i
+ const compound = /\b(?:and|then)\s+(?:schedule|convert|record a payment|create (?:another|a second|a customer))\b/i
+ return create.test(request) && !linked.test(request) && !compound.test(request) ? request : null
+}
+
+export function finInvoiceDraft(command: string, customerId?: string): FinInvoiceDraft | null {
+ const request = invoiceRequest(command)
+ return request ? {command, seed: parseVoiceDocument(request), customerId} : null
+}
+
+export function resolveFinInvoiceSeed(draft: FinInvoiceDraft, customers: CustomerOption[]): VoiceSeed {
+ if (draft.seed.customerName) return draft.seed
+ const request = invoiceRequest(draft.command)
+ const recipient = request?.match(/^(.*?\binvoice\s+(?:for|to)\s+)(.+)$/is)
+ if (!recipient) return draft.seed
+ // A spoken request may omit the separator between the customer's name and the first charge.
+ const tokens = [...recipient[2].matchAll(/\S+(?:\s+|$)/g)]
+ const names = new Set(customers.flatMap(customer => [customerOptionName(customer), customer.company || '']).map(normalizeCustomerSearch))
+ for (const token of tokens.reverse()) {
+  const split = token.index + token[0].length
+  const name = recipient[2].slice(0, split).trim()
+  const charges = recipient[2].slice(split)
+  if (names.has(normalizeCustomerSearch(name)) && /\$|\bdollars?\b/i.test(normalizeWords(charges))) {
+   return parseVoiceDocument(recipient[1] + name + ': ' + charges)
+  }
+ }
+ return draft.seed
+}
+
 export function voiceDocumentKind(text:string):VoiceKind{return /\b(?:estimate|quote)\b/i.test(text.match(/\b(?:invoice|bill|estimate|quote)\b/i)?.[0]||'')?'estimate':'invoice'}
 export function isVoiceDocumentCommand(text:string){
  if(/\bconvert\b|\bfrom\s+(?:an?\s+)?(?:estimate|invoice)\b/i.test(text))return false
@@ -16,14 +56,14 @@ export function parseVoiceDocument(input:string):VoiceSeed{
  if(unsafe)warnings.push('Payments, deposits, discounts or negative amounts need manual review. Enter each service charge below.')
  // Customer identity must never consume a price. A missing customer is a
  // normal draft state: preserve the entire charge text and ask in review.
- const candidate=raw.match(/\b(?:invoice|bill|estimate|quote)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|due|total|amount|at|with|including|on|description|service|work|to)\b|\s+\$|[,.;:!?]|$)/i)
+ const candidate=raw.match(/\b(?:invoice|bill|estimate|quote)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|due|total|amount|at|with|including|on|description|service|work|to)\b|\s+\$|[,;:]|[.!?]+$|$)/i)
  const candidateName=candidate?.[1]?.trim()||''
  const after=candidate?raw.slice(candidate.index!+candidate[0].length):''
  const startsWithCharge=/^[\s$+−-]*\d/.test(candidateName)
  const hasCurrency=/\$|^\d[\d,.]*\s+dollars?$/i.test(normalizeWords(candidateName))
  // A service directly followed by a price is ambiguous with a customer's
  // name. Only consume explicit name separators; Fin can interpret the rest.
- const namedBoundary=/^\s*(?:for\b|to\b|[:;,])/i.test(after)
+ const namedBoundary = /^\s*(?:for\b|to\b|due\b|with\b|including\b|total\b|[:;,]|[.!?]*$)/i.test(after)
  const customerMatch=candidate&&!startsWithCharge&&!hasCurrency&&namedBoundary?candidate:null
  const customerName=customerMatch?candidateName:''
  const headerEnd=customerMatch?customerMatch.index!+customerMatch[0].length:0

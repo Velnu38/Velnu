@@ -33,6 +33,6 @@ export function matchingCustomers(customers: CustomerOption[], query: string) {
 export function uniqueCustomerName(customers: CustomerOption[], name: string) {
   const term = normalizeCustomerSearch(name)
   if (!term) return undefined
-  const matches = customers.filter(customer => normalizeCustomerSearch(customerOptionName(customer)) === term)
+  const matches = customers.filter(customer => [customerOptionName(customer), customer.company].some(value => value && normalizeCustomerSearch(value) === term))
   return matches.length === 1 ? matches[0] : undefined
 }

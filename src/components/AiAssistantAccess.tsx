@@ -2,13 +2,15 @@ import {setAssistantAvailable} from '../lib/assistantEntry'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { CurrentBusiness } from '../lib/business'
+import type { FinInvoiceDraft } from '../lib/voiceDocument'
 import VoiceAssistant from './VoiceAssistant'
 
 /** A paid plan preference is not an entitlement. The backend quota/entitlement
  * function is the source of truth. Hide API-backed AI when it isn't available. */
-export default function AiAssistantAccess({ business, onChanged, onAvailabilityChange }: {
+export default function AiAssistantAccess({ business, onChanged, onOpenInvoice, onAvailabilityChange }: {
   business: CurrentBusiness
   onChanged: () => void
+  onOpenInvoice: (draft: FinInvoiceDraft) => boolean
   onAvailabilityChange?: (available: boolean) => void
 }) {
   const [revision,setRevision]=useState(0)
@@ -30,7 +32,7 @@ export default function AiAssistantAccess({ business, onChanged, onAvailabilityC
     return () => { active = false }
   }, [business.id,business.role,revision])
 
-  if (access === 'paid') return <VoiceAssistant key={`${business.id}:${business.role}:${(business.access_modules||[]).slice().sort().join(",")}`} business={business} onChanged={onChanged} />
+  if (access === 'paid') return <VoiceAssistant key={`${business.id}:${business.role}:${(business.access_modules||[]).slice().sort().join(",")}`} business={business} onChanged={onChanged} onOpenInvoice={onOpenInvoice} />
   // Unentitled accounts never expose an apparently functional AI button.
   // The AI Office Assistant is described under My services and on the homepage.
   return null

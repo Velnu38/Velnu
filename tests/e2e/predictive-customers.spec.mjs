@@ -17,7 +17,7 @@ test('job customer requires a selection, supports keyboard and clears stale link
  expect(await input.evaluate(el=>el.checkValidity())).toBe(false)
  await expect(page.getByText(/No saved customer matches/)).toBeVisible()
 })
-test('Fin suggests duplicate names with contact details and inserts the chosen saved record for review',async({page})=>{
+test('Fin suggests duplicate names with contact details and opens the invoice editor with the chosen record',async({page})=>{
  const state=await mock(page,{ai:true});state.customers.push(duplicate)
  await page.goto('/');await openFinTyping(page)
  const request=page.getByRole('textbox',{name:'Describe your invoice or request'})
@@ -25,7 +25,12 @@ test('Fin suggests duplicate names with contact details and inserts the chosen s
  const suggestions=page.getByRole('region',{name:'Suggested customers for Fin'})
  await expect(suggestions.getByRole('button')).toHaveCount(2)
  await suggestions.getByRole('button').filter({hasText:'other@example.test'}).click()
- await expect(request).toHaveValue(new RegExp(duplicate.id))
+ const editor=page.getByRole('dialog',{name:'Create an invoice'})
+ await expect(page).toHaveURL(/view=invoices/)
+ await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('Test Customer')
+ await expect(editor.locator('.customer-picker-selected')).toContainText('other@example.test')
+ await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('100')
+ await expect(request).toHaveCount(0)
  expect(state.documents).toHaveLength(0)
 })
 test('invoice creation requires explicit new customer choice',async({page})=>{

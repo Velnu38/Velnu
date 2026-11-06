@@ -1,3 +1,5 @@
+import { resolveFinInvoiceSeed, type FinInvoiceDraft } from '../lib/voiceDocument'
+import { customerOptionName, matchingCustomers, uniqueCustomerName } from '../lib/customerSuggestions'
 import CustomerEditDialog from '../components/CustomerEditDialog'
 import CreationPreview from '../components/CreationPreview'
 import {documentEndDate,previewAmounts} from '../lib/documentPreview'
@@ -37,10 +39,15 @@ type InvoiceFilter = 'all' | 'open' | 'draft' | 'sent' | 'paid' | 'overdue'
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
 const invoiceMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-export default function InvoicesPage({ business }: { business: CurrentBusiness }) {
+export default function InvoicesPage({ business, finDraft }: { business: CurrentBusiness; finDraft?: FinInvoiceDraft }) {
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [customerLoad, setCustomerLoad] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [finRequest, setFinRequest] = useState('')
+  const [finWarnings, setFinWarnings] = useState<string[]>([])
+  const [spokenTotal, setSpokenTotal] = useState<string | null>(null)
+  const openedFinDraft = useRef(false)
   const [statusFilter, setStatusFilter] = useState<InvoiceFilter>('all')
   const [showForm, setShowForm] = useState(false)
   const [editCreatedInvoice,setEditCreatedInvoice]=useState(false)
@@ -71,6 +78,36 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   useEffect(()=>{if(!showForm||!new URLSearchParams(location.search).has('handoff'))return;try{const raw=sessionStorage.getItem(`finviant:invoice-handoff:${business.id}`);if(raw){const data=JSON.parse(raw);setHandoff(data.command);setNotes('Dictated request: '+data.command);setCustomerDraft({...emptyCustomerDraft(),name:data.customerName||''});setLines([{...blankLine(),description:data.description||'',tax_rate:String(defaultTax)}]);sessionStorage.removeItem(`finviant:invoice-handoff:${business.id}`)}}catch{setError('Unable to restore the dictated request. Paste it into the notes before continuing.')}const u=new URL(location.href);u.searchParams.delete('handoff');history.replaceState(history.state,'',u.pathname+u.search)},[showForm,business.id,defaultTax])
   const newLine = (): Line => ({...blankLine(),tax_rate:String(defaultTax)})
   const [lines, setLines] = useState<Line[]>([blankLine()])
+  useEffect(() => {
+    if (!finDraft || openedFinDraft.current || !defaultsReady || customerLoad === 'loading' || !canManageFinances(business.role)) return
+    openedFinDraft.current = true
+    resetForm()
+    setFinRequest(finDraft.command)
+    const seed = resolveFinInvoiceSeed(finDraft, customers)
+    const chosenId = finDraft.customerId
+    const selected = chosenId ? customers.find(customer => customer.id === chosenId) : uniqueCustomerName(customers, seed.customerName)
+    setCustomerId(selected?.id || '')
+    setCustomerDraft({...emptyCustomerDraft(), name: seed.customerName})
+    const warnings = [...seed.warnings]
+    if (seed.customerName && !selected && customerLoad === 'ready') {
+      if (matchingCustomers(customers, seed.customerName).length) warnings.push('Choose the correct saved customer from the suggestions.')
+      else warnings.push('No saved customer matched that name. Check the spelling or add a new customer.')
+    }
+    setFinWarnings(warnings)
+    setSpokenTotal(seed.statedTotal)
+    setLines(seed.lines.slice(0, 50).map(line => ({
+      description: line.description, quantity: line.quantity, unit_price: line.amount,
+      tax_rate: seed.taxRate === null ? String(defaultTax) : seed.taxRate,
+    })))
+    const statedDue = finDraft.command.match(/\bdue(?:\s+(?:date|on))?\s*:?\s*(\d{4}-\d{2}-\d{2})\b/i)?.[1]
+    if (statedDue && DateTime.fromISO(statedDue).isValid && statedDue >= issueDate) {
+      setDueDate(statedDue)
+      dateEdited.current = true
+    } else if (/\bdue\b/i.test(finDraft.command)) {
+      setFinWarnings([...warnings, 'Check the due date against your request.'])
+    }
+    setShowForm(true)
+  }, [finDraft, defaultsReady, customerLoad, customers, defaultTax, business.role, issueDate])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
   const [sourceJob,setSourceJob]=useState<{id:string;title:string}|null>(null)
   const openingJob=useRef(false)
@@ -84,9 +121,16 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
   },[business.id,business.role,defaultsReady,defaultTax])
 
   async function refresh() {
-    const [invoiceRows, customerRows] = await Promise.all([listInvoices(business.id, customerScope), listCustomers(business.id)])
-    setInvoices(invoiceRows as Invoice[])
-    setCustomers(customerRows as Customer[])
+    await Promise.all([
+      listInvoices(business.id, customerScope).then(rows => setInvoices(rows as Invoice[])),
+      listCustomers(business.id).then(rows => {
+        setCustomers(rows as Customer[])
+        setCustomerLoad('ready')
+      }).catch(error => {
+        setCustomerLoad('failed')
+        throw error
+      }),
+    ])
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
@@ -115,6 +159,7 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
 
   function resetForm() {
     setCreationPreview(false); savedCreation.current=null; dateEdited.current=false
+    setFinRequest(''); setFinWarnings([]); setSpokenTotal(null); setHandoff('')
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); retryRef.current = null
   }
 
@@ -214,11 +259,15 @@ export default function InvoicesPage({ business }: { business: CurrentBusiness }
     <RecordListPagination label="invoices" list={recordList} className="invoice-bottom-pagination" />
     {showForm && <FormDialog label="Create an invoice" autoFocusFields={false} busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
       <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
+      {!creationPreview && finRequest && <details className="quiet"><summary>Original request to Fin</summary><p>{finRequest}</p></details>}
+      {!creationPreview && finRequest && customerLoad === 'failed' && <p role="alert">Saved customers could not load. <button type="button" className="text-button" onClick={() => void refresh().catch(() => setError('Could not refresh the invoice list or saved customers.'))}>Retry loading saved customers</button></p>}
+      {!creationPreview && finWarnings.length > 0 && <ul className="form-message">{finWarnings.map(warning => <li key={warning}>{warning}</li>)}</ul>}
+      {!creationPreview && spokenTotal && previewTotal !== null && Math.round(Number(spokenTotal) * 100) !== Math.round(previewTotal * 100) && <p role="status" className="form-message">Your stated total was {invoiceMoney.format(Number(spokenTotal))}. Check it against the calculated total below.</p>}
       {handoff&&<p className="form-message">Dictated request: {handoff}. Review each charge as a separate line.</p>}
       <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
-        <details className="composer-section"><summary>{customerId || customerDraft.name || customerDraft.company ? 'Customer · '+(creationCustomer?.first_name || creationCustomer?.company || 'Selected') : '＋ Add Customer'}</summary><div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} disabled={busy||!!sourceJob}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer(true)}>Edit customer contact</button>}</div></details><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
+        <details className="composer-section" open={finRequest ? true : undefined}><summary>{customerId || customerDraft.name || customerDraft.company ? 'Customer · '+(creationCustomer ? customerOptionName({...creationCustomer,id:customerId,company:creationCustomer.company || null}) : customerDraft.name || 'Selected') : '＋ Add Customer'}</summary><div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} showSuggestions={!!finRequest && !!customerDraft.name && !customerId} disabled={busy||!!sourceJob||!!finRequest&&customerLoad!=='ready'}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer(true)}>Edit customer contact</button>}</div></details><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
         {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
-        <details className="composer-section"><summary>＋ Add Work Details</summary><DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/></details>
+        <details className="composer-section" open={finRequest ? true : undefined}><summary>＋ Add Work Details</summary><DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/></details>
         {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}

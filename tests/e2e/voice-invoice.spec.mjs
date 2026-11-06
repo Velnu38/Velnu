@@ -1,5 +1,5 @@
 import {installPcmFixture} from './audio-fixture.mjs'
-import {workflow,start,review,save,docStep,item,step,reply} from './fin-workflow-fixture.mjs'
+import {workflow,start,review,step} from './fin-workflow-fixture.mjs'
 import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
@@ -14,10 +14,49 @@ async function signedIn(page) {
   await page.addInitScript(value => localStorage.setItem('sb-example-auth-token', JSON.stringify(value)), session)
 }
 
-test('dictated invoice opens the verified plan and stays draft until confirmed',async({page})=>{
- const f=await workflow(page,{steps:[docStep('invoice',[item('Faucet repair',150)])]});await page.addInitScript(()=>{window.SpeechRecognition=window.webkitSpeechRecognition=class{start(){}stop(){this.onresult?.({results:[[{transcript:'Create invoice for Test Customer faucet repair $150'}]]});this.onend?.()}}});await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await page.getByRole('button',{name:'Speak instead'}).click();await page.getByRole('button',{name:'Finish recording'}).click();await expect(review(page)).toContainText('Total: $150.00');expect(f.state.documents).toHaveLength(0);await save(page);await expect(page.getByRole('region',{name:'Fin’s completed steps'})).toBeVisible();expect(f.state.documents).toHaveLength(1);expect(f.state.documents[0].payload.items[0].description).toBe('Faucet repair');expect(f.state.calls.filter(c=>c.path.includes('/send-'))).toHaveLength(0)
+test('dictation opens the invoice editor with saved customer and charges before saving', async ({page}) => {
+ const f = await workflow(page)
+ await page.addInitScript(() => {
+  window.SpeechRecognition = window.webkitSpeechRecognition = class {
+   start() {}
+   stop() {
+    this.onresult?.({results:[[{transcript:'Open invoice and create a new invoice for Test Customer labor $300 and materials $200'}]]})
+    this.onend?.()
+   }
+  }
+ })
+ await page.goto('/')
+ await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await page.getByRole('button',{name:'Speak instead'}).click()
+ await page.getByRole('button',{name:'Finish recording'}).click()
+ const editor = page.getByRole('dialog',{name:'Create an invoice'})
+ await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('Test Customer')
+ await expect(editor.locator('.customer-picker-selected')).toContainText('customer@example.test')
+ await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('300')
+ await expect(editor.getByLabel('Line 2 unit price',{exact:true})).toHaveValue('200')
+ await expect(editor).toContainText('$500.00')
+ expect(f.state.documents).toHaveLength(0)
+ await editor.getByRole('button',{name:'Preview',exact:true}).click()
+ await expect(editor.getByRole('heading',{name:'Invoice preview'})).toBeVisible()
+ await editor.getByRole('button',{name:'Save Draft',exact:true}).click()
+ await expect.poll(() => f.state.documents.length).toBe(1)
+ expect(f.state.documents[0].payload.items.map(line => line.description)).toEqual(['labor','materials'])
+ expect(f.requests).toHaveLength(0)
+ expect(f.state.calls.filter(c=>c.path.includes('/send-'))).toHaveLength(0)
 })
-test('multiple stated amounts remain separate in the verified plan',async({page})=>{await workflow(page,{steps:[docStep('invoice',[item('Labor',300),item('Materials',200)])]});await start(page,'Create invoice for Test Customer labor $300 and materials $200');await expect(review(page)).toContainText('Labor');await expect(review(page)).toContainText('Materials');await expect(review(page)).toContainText('Total: $500.00')})
+
+for (const request of ['Create an invoice', 'Open invoice and create a new invoice for Test Customer']) {
+ test(`typing “${request}” opens the invoice editor`, async ({page}) => {
+  const f = await workflow(page)
+  await start(page, request)
+  const editor = page.getByRole('dialog',{name:'Create an invoice'})
+  await expect(editor).toBeVisible()
+  await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue(request.includes('Test Customer') ? 'Test Customer' : '')
+  await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('')
+  expect(f.state.documents).toHaveLength(0)
+  expect(f.requests).toHaveLength(0)
+ })
+}
 
 test('Safari no-speech error shows a keyboard microphone fallback instead of a silent failure', async ({ page }) => {
   await signedIn(page)
@@ -66,7 +105,8 @@ test('cloud recording uses server transcription and opens draft review, without 
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
     if (path.endsWith('/business_members')) return json({ business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } })
     if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: 'pro', ai_limit: 50, voice_limit: 50, logo_bytes_limit: 131072 })
-    if (path.endsWith('/functions/v1/fin-workflow')) return json(reply([docStep('invoice',[item('Faucet repair',150)])]))
+    if (path.endsWith('/business_settings')) return json({ default_tax_rate:0, payment_links:[], payment_instructions:'' })
+    if (path.endsWith('/customers')) return json([{id:newCustomerId, first_name:'Bob', last_name:'Smith'}])
     if (path.endsWith('/functions/v1/transcribe-voice')) {
       return request.headers()['content-type']?.includes('application/json')
         ? json({ configured: true, model: 'gpt-transcribe' })
@@ -98,7 +138,9 @@ test('cloud recording uses server transcription and opens draft review, without 
   await page.getByRole('button', { name: 'Speak instead' }).click()
   await expect(page.getByRole('button', { name: 'Finish recording' })).toBeVisible()
   await page.getByRole('button', { name: 'Finish recording' }).click()
-  await expect(review(page)).toContainText('Total: $150.00')
+  const editor = page.getByRole('dialog',{name:'Create an invoice'})
+  await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('Bob Smith')
+  await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('150')
   expect(calls.filter(x => x.path.endsWith('/functions/v1/transcribe-voice'))).toHaveLength(2)
   expect(calls.filter(x => x.path.endsWith('/invoices') && x.method === 'POST')).toHaveLength(0)
   expect(calls.filter(x => x.path.includes('/send-invoice-email'))).toHaveLength(0)

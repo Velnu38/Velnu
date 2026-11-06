@@ -1,3 +1,4 @@
+import { finInvoiceDraft } from '../lib/voiceDocument'
 import { useEffect, useState } from 'react'
 import { listCustomers } from '../services/customers'
 import { customerOptionName, matchingCustomers, type CustomerOption } from '../lib/customerSuggestions'
@@ -7,7 +8,7 @@ export default function FinCustomerSuggestions({businessId, text, disabled, onSe
   businessId: string
   text: string
   disabled: boolean
-  onSelect: (text: string) => void
+  onSelect: (text: string, customerId: string) => void
 }) {
   const [records, setRecords] = useState<{businessId: string; customers: CustomerOption[]} | null>(null)
   const [failed, setFailed] = useState(false)
@@ -20,8 +21,9 @@ export default function FinCustomerSuggestions({businessId, text, disabled, onSe
   }, [businessId])
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      const invoice = finInvoiceDraft(text)
       const match = text.match(/\b(?:invoice|estimate|job)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|with|due|on|at|total)\b|[,;$\n]|$)/i)
-      setQuery(match?.[1]?.trim() || (text.trim().split(/\s+/).length <= 4 ? text.trim() : ''))
+      setQuery(invoice ? invoice.seed.customerName : match?.[1]?.trim() || (text.trim().split(/\s+/).length <= 4 ? text.trim() : ''))
     }, 180)
     return () => window.clearTimeout(timer)
   }, [text])
@@ -33,7 +35,7 @@ export default function FinCustomerSuggestions({businessId, text, disabled, onSe
     {customers.map(customer => <button type="button" key={customer.id} onClick={() => {
       const name = customerOptionName(customer)
       const details = [customer.email, customer.phone].filter(Boolean).join(' · ')
-      onSelect(text + '\n[Saved customer record ' + customer.id + ': ' + name + (details ? ' · ' + details : '') + ']')
+      onSelect(text + '\n[Saved customer record ' + customer.id + ': ' + name + (details ? ' · ' + details : '') + ']', customer.id)
     }}><strong>Use {customerOptionName(customer)}</strong><span>{[customer.company, customer.email, customer.phone].filter(Boolean).join(' · ') || 'Customer record ' + customer.id.slice(-8)}</span></button>)}
   </div></section>
 }

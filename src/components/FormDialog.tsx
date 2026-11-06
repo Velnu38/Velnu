@@ -2,9 +2,9 @@ import AskFinButton from './AskFinButton'
 import {useEffect,useRef,type ReactNode} from 'react'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 /** Shared native dialog: focus containment, Escape, and safe explicit dismissal. */
-export default function FormDialog({label,busy=false,onClose,wide=false,children,disableFields=true,cleanVersion,autoFocusFields=true}:{label:string;busy?:boolean;onClose:()=>void;wide?:boolean;children:ReactNode;disableFields?:boolean;cleanVersion?:unknown;autoFocusFields?:boolean}) {
+export default function FormDialog({label,busy=false,onClose,wide=false,children,disableFields=true,cleanVersion,autoFocusFields=true,navigationScope}:{label:string;busy?:boolean;onClose:()=>void;wide?:boolean;children:ReactNode;disableFields?:boolean;cleanVersion?:unknown;autoFocusFields?:boolean;navigationScope?:string}) {
  const ref=useRef<HTMLDialogElement>(null)
- const guard=useUnsavedChanges(busy)
+ const guard=useUnsavedChanges(busy,navigationScope)
  const canClose=()=>!ref.current?.querySelector('[data-saving="true"]')&&guard.canClose(!!ref.current?.querySelector('[data-unsaved="true"]'))
  useEffect(()=>{guard.markClean()},[cleanVersion])
  useEffect(()=>{const previous=document.activeElement;ref.current?.showModal();if(autoFocusFields)ref.current?.querySelector<HTMLElement>('input:not([type=checkbox]):not([disabled]),textarea:not([disabled]),select:not([disabled])')?.focus();return()=>{if(previous instanceof HTMLElement&&previous.isConnected)previous.focus()}},[])

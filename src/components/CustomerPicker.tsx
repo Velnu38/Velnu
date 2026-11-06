@@ -2,20 +2,21 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { customerOptionName, matchingCustomers, type CustomerOption } from '../lib/customerSuggestions'
 import './customer-picker.css'
 
-export default function CustomerPicker({ customers, value, onChange, required = false, disabled = false, initialQuery = '', onQueryChange }: {
+export default function CustomerPicker({ customers, value, onChange, required = false, disabled = false, initialQuery = '', onQueryChange, initiallyOpen = false }: {
   customers: CustomerOption[]
   value: string
   onChange: (id: string) => void
   required?: boolean
   disabled?: boolean
   initialQuery?: string
+  initiallyOpen?: boolean
   onQueryChange?: (query: string) => void
 }) {
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const selected = customers.find(customer => customer.id === value)
   const [query, setQuery] = useState(initialQuery)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(initiallyOpen)
   const [active, setActive] = useState(-1)
   useEffect(() => { setQuery(initialQuery); setActive(-1) }, [initialQuery])
   const matches = useMemo(() => matchingCustomers(customers, query), [customers, query])

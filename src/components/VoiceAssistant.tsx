@@ -1,3 +1,5 @@
+import { finInvoiceDraft, type FinInvoiceDraft } from '../lib/voiceDocument'
+import { canAccess } from '../lib/workspaceAccess'
 import FinCustomerSuggestions from './FinCustomerSuggestions'
 import FinActionButton from './FinActionButton'
 import {setAssistantWorking} from '../lib/assistantEntry'
@@ -29,7 +31,7 @@ type BrowserRecognizer = {
 function SafeFinText({text}:{text:string}){return <>{text.split(/(\*\*[^*\n]{1,100}\*\*)/g).map((part,i)=>part.startsWith('**')&&part.endsWith('**')?<strong key={i}>{part.slice(2,-2)}</strong>:part)}</>}
 function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>void}){return <section className="fin-answer" aria-label="Fin’s answer"><p className="eyebrow">Fin · Your office assistant</p><p className="fin-answer-text"><SafeFinText text={result.answer}/></p>{result.clarification&&<p className="fin-clarification"><strong>{result.clarification}</strong></p>}{result.sources?.length>0&&<details><summary>Based on saved records</summary><ul>{result.sources.map(s=><li key={s.key}>{s.label}{recordHref(s.key)&&<a href={recordHref(s.key)!} onClick={onNavigate}>Open record</a>}</li>)}</ul></details>}{result.navigation?.map(key=>Object.hasOwn(uiCatalog,key)&&<a key={key} className="secondary-button" href={navigationHref(key)!} onClick={onNavigate}>Open {uiCatalog[key as keyof typeof uiCatalog]}</a>)}<details><summary>Records checked and limits</summary><p>Checked {new Date(result.as_of).toLocaleString()}</p><ul>{result.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>}
 
-export default function VoiceAssistant({ business, onChanged }: { business: CurrentBusiness; onChanged: () => void }) {
+export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: { business: CurrentBusiness; onChanged: () => void; onOpenInvoice: (draft: FinInvoiceDraft) => boolean }) {
   const [open, setOpen] = useState(false)
   const [entryRevision,setEntryRevision]=useState(0)
   const [text, setText] = useState('')
@@ -105,10 +107,17 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
     setError(''); setVoiceStatus(''); setText('')
   }
 
-  async function parseCommand(command: string, source: AiCommandSource) {
+  async function parseCommand(command: string, source: AiCommandSource, customerId?: string) {
     if (mutationInFlight.current) return
     if(plan&&/^yes[.! ]*$/i.test(command.trim())){setText('');await confirm({id:plan.id,version:plan.version});return}
     if(plan&&/^no[.! ]*$/i.test(command.trim())){setText('');await reject();return}
+    const invoice = finInvoiceDraft(command, customerId)
+    if (invoice && canAccess(business, 'billing')) {
+      if (onOpenInvoice(invoice)) {
+        setOpen(false); reset()
+      }
+      return
+    }
     setError('');setMicrophoneFailure(null);setVoiceStatus('');setPlan(null);setExecution(null)
     setBusy(true);setWorkingMessage('Fin is checking your account and preparing the next step…');mutationInFlight.current=true
     const request=retryRequest.current?.text===command?retryRequest.current:{text:command,id:crypto.randomUUID()}
@@ -370,7 +379,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
   const browserDictationAvailable=typeof speechWindow.SpeechRecognition==='function'||typeof speechWindow.webkitSpeechRecognition==='function'
   return <>
     <div className="fin-launcher"><FinActionButton onClick={openAssistant} aria-label="Ask Fin" title="Ask Fin · speak or type"/></div>
-    {open && <FormDialog key={entryRevision} label="Fin — your office assistant" autoFocusFields={entryMode==='text'} cleanVersion={execution??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
+    {open && <FormDialog key={entryRevision} label="Fin — your office assistant" navigationScope="fin" autoFocusFields={entryMode==='text'} cleanVersion={execution??conversation} busy={busy||recording} disableFields={false} onClose={()=>setOpen(false)} wide><section className="assistant-panel">
       <div className="assistant-head"><div><p className="eyebrow">Fin · Your office assistant</p><h2>{plan?'Review your request':'What can I help you with?'}</h2></div><button className="icon-button" disabled={busy||recording} onClick={() => {if(!busy&&!recording)setOpen(false)}} type="button" aria-label="Close">×</button></div>
       {plan&&<FinWorkflowReview plan={plan} timezone={business.timezone||'America/New_York'} busy={busy||recording} hasEdits={!!text.trim()} onConfirm={()=>void confirm()} onCancel={()=>void reject()} onEdit={()=>textAreaRef.current?.focus()}/>}
       {execution&&<section className="fin-execution" aria-label="Fin’s completed steps"><h3 ref={executionHeading} tabIndex={-1}>Saved to this account</h3><ul>{execution.steps.map((step,index)=><li key={index}>{step.label} — {step.status==='awaiting_send_review'?'Ready for delivery review; not sent':'Completed'}{recordHref(step.resource+':'+step.id)&&<a href={recordHref(step.resource+':'+step.id)!} onClick={()=>setOpen(false)}>Open record</a>}</li>)}</ul>{execution.steps.filter((step,index,all)=>['invoices','estimates','change_orders'].includes(step.resource)&&all.map(other=>other.id).lastIndexOf(step.id)===index&&step.operation!=='void_invoice'&&step.operation!=='record_payment').map(step=><CreatedDocumentDelivery key={step.id} business={business} kind={step.resource==='invoices'?'invoice':step.resource==='estimates'?'estimate':'change_order'} documentId={step.id} onChanged={onChanged} onBusyChange={setBusy}/>)}</section>}
@@ -384,7 +393,7 @@ export default function VoiceAssistant({ business, onChanged }: { business: Curr
       <p className="assistant-help">{conversation.length?'Ask a follow-up by voice or type below.':'Speak or type a question, invoice, estimate, or task.'}</p>
       <details className="fin-help"><summary>Using Fin and your business data</summary><button type="button" className="text-button" onClick={()=>textAreaRef.current?.focus()}>Use keyboard dictation</button><p className="assistant-help">Ask about your saved business profile, customers, unpaid invoices or upcoming work. Fin uses current records in this business; its answers show the records checked. Teach Fin through More → Company Profile. Fin respects your role and the modules the account owner enables. Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p></details>
       <div className="command-box"><textarea ref={textAreaRef} aria-label="Describe your invoice or request" value={text} disabled={busy||recording} onChange={(e) => { setText(e.target.value); }} maxLength={6000} placeholder={conversation.length?"Ask a follow-up…":"Ask a question or describe what you need…"} /><FinActionButton aria-label="Ask Fin" onClick={submitText} disabled={busy || recording || !text.trim()} working={busy&&!recording}/></div>
-      <FinCustomerSuggestions key={business.id} businessId={business.id} text={text} disabled={busy||recording} onSelect={value=>{setText(value);textAreaRef.current?.focus()}}/>
+      <FinCustomerSuggestions key={business.id} businessId={business.id} text={text} disabled={busy||recording} onSelect={(value, customerId)=>{if(canAccess(business, 'billing') && finInvoiceDraft(text)) void parseCommand(text, 'text', customerId); else {setText(value);textAreaRef.current?.focus()}}}/>
       {conversation.length>0&&<div className="fin-conversation-controls"><span>Fin uses recent messages and current business records.</span><button type="button" className="text-button" disabled={busy||recording} onClick={()=>void newConversation()}>New conversation</button></div>}
       </>}
       {error && <p role="alert" className="form-message error-text">{error}</p>}

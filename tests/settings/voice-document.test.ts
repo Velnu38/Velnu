@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {parseVoiceDocument,isVoiceDocumentCommand} from '../../src/lib/voiceDocument'
+import {parseVoiceDocument,isVoiceDocumentCommand,finInvoiceDraft,resolveFinInvoiceSeed} from '../../src/lib/voiceDocument'
 import {previewDocumentTotal} from '../../src/lib/financialValidation'
 const sum=(s:ReturnType<typeof parseVoiceDocument>)=>previewDocumentTotal(s.lines.map(l=>({quantity:Number(l.quantity),unit_price:l.amount===''?NaN:Number(l.amount),tax_rate:Number(s.taxRate||0)})))
 test('voice invoices and estimates retain each separate service charge and never add the spoken total as a line',()=>{
@@ -30,4 +30,23 @@ test('missing customers never consume currency; the reported failure totals all 
  }
  const service=parseVoiceDocument('Create invoice for landscaping $200 and painting $100');assert.equal(service.customerName,'');assert.equal(sum(service),300)
  const equal=parseVoiceDocument('Create invoice for $100 landscaping and $100 painting');assert.equal(equal.customerName,'');assert.equal(sum(equal),200)
+})
+
+test('Fin opens ordinary invoice creation requests and keeps existing-record workflows separate', () => {
+ const draft = finInvoiceDraft('Open invoice and create a new invoice for Mike Brewer.')
+ assert.equal(draft?.seed.customerName, 'Mike Brewer')
+ assert.deepEqual(draft?.seed.lines, [{description:'',amount:'',quantity:'1'}])
+ assert.equal(finInvoiceDraft('Can you please create an invoice?')?.seed.kind, 'invoice')
+ assert.equal(finInvoiceDraft('Open a new invoice for Mike Brewer')?.seed.customerName, 'Mike Brewer')
+ for (const request of ['Open invoice INV-1','Show me the invoice for Mike Brewer','Create an invoice from an approved estimate','Create an invoice for Mike and schedule it for tomorrow','Create an estimate for Mike']) {
+  assert.equal(finInvoiceDraft(request), null, request)
+ }
+})
+
+test('a saved name separates dictated charges even when speech has no punctuation', () => {
+ const draft = finInvoiceDraft('Create an invoice for Mike Brewer mowing $100 and trimming $40')!
+ const seed = resolveFinInvoiceSeed(draft, [{id:'mike', first_name:'Mike', last_name:'Brewer', company:null}])
+ assert.equal(seed.customerName, 'Mike Brewer')
+ assert.deepEqual(seed.lines.map(line => [line.description,line.amount]), [['mowing','100'],['trimming','40']])
+ assert.equal(resolveFinInvoiceSeed(draft, []).customerName, '')
 })
