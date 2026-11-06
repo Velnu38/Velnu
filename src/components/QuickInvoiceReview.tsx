@@ -1,3 +1,5 @@
+import CustomerPicker from './CustomerPicker'
+import { uniqueCustomerName } from '../lib/customerSuggestions'
 import CreationPreview from './CreationPreview'
 import {DateTime} from 'luxon'
 import {documentEndDate,previewAmounts} from '../lib/documentPreview'
@@ -17,14 +19,13 @@ import {normalizeMobile} from '../lib/smsPhone'
 import {sendReviewedDocument,type ReviewDeliveryReceipt} from '../services/reviewDelivery'
 type Customer={id:string;first_name:string|null;last_name:string|null;company:string|null;email?:string|null;phone?:string|null;updated_at?:string}
 type SavedDocument={id:string;invoice_number?:string|null;estimate_number?:string|null;balance_due?:number;total?:number}
-const customerLabel=(c:Customer)=>[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company||'Unnamed customer'
 const blank=():VoiceLine=>({description:'',amount:'',quantity:'1'})
 export default function QuickInvoiceReview({business,command,initialSeed,parserNotice,onCancel,onSaved}:{business:CurrentBusiness;command:string;initialSeed?:VoiceSeed;parserNotice?:string;onCancel:()=>void;onSaved:(document:SavedDocument,kind:VoiceKind,delivery?:ReviewDeliveryReceipt)=>void}){
  const seed=useMemo(()=>initialSeed??parseVoiceDocument(command),[command,initialSeed]),kind=seed.kind
  const [preview,setPreview]=useState(false)
  const [issueDate]=useState(()=>DateTime.now().setZone(business.timezone||'UTC').toISODate()!)
  const [customers,setCustomers]=useState<Customer[]>([]),[loading,setLoading]=useState(true),[customerId,setCustomerId]=useState(''),[defaults,setDefaults]=useState<DocumentSettings|null>(null)
- const [customerMode,setCustomerMode]=useState<'choose'|'new'>(seed.customerName?'new':'choose')
+ const [customerMode,setCustomerMode]=useState<'choose'|'new'>('choose')
  const [customerName,setCustomerName]=useState(seed.customerName),[lines,setLines]=useState(seed.lines),[quantities,setQuantities]=useState(seed.lines.some(l=>Number(l.quantity)!==1))
  const [taxRate,setTaxRate]=useState(seed.taxRate??'0'),[taxVisible,setTaxVisible]=useState(seed.taxRate===''||Number(seed.taxRate)>0),[dueDate,setDueDate]=useState(()=>documentEndDate(issueDate,kind)),[busy,setBusy]=useState(false),[error,setError]=useState('')
  useUnsavedChanges(busy)
@@ -39,7 +40,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  const saving=useRef(false),customerRetry=useRef<{name:string;id:string}|null>(null),retry=useRef<{signature:string;id:string}|null>(null)
  useEffect(()=>{let active=true;void Promise.all([listCustomers(business.id),getDocumentSettings(business.id)]).then(([rows,settings])=>{
   if(!active)return;setDefaults(settings);const tax=seed.taxRate??String(settings.default_tax_rate);setTaxRate(tax);setTaxVisible(tax===''||Number(tax)>0)
-  const data=rows as Customer[];setCustomers(data);const match=data.find(c=>customerLabel(c).trim().toLowerCase()===seed.customerName.toLowerCase());if(match)setCustomerId(match.id)
+  const data=rows as Customer[];setCustomers(data);const match=uniqueCustomerName(data,seed.customerName);setCustomerId(match?.id||'');setCustomerMode('choose')
  }).catch(e=>{if(active)setError((e as Error).message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[business.id,command])
  const items=lines.map(l=>({description:l.description.trim(),quantity:Number(l.quantity),unit_price:l.amount.trim()===''?NaN:Number(l.amount),tax_rate:Number(taxRate)}))
  const total=previewDocumentTotal(items),mismatch=statedTotal!==null&&total!==null&&(statedTotal===''||Math.round(Number(statedTotal)*100)!==Math.round(total*100))
@@ -71,7 +72,8 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  <details className="voice-original"><summary>Your request</summary><p className="quick-invoice-original">{command}</p>{parserNotice&&<p className="quick-invoice-note">{parserNotice}</p>}</details>
  {seed.warnings.length>0&&<p className="form-message" role="note">{seed.warnings.join(' ')}</p>}
  <form onSubmit={saveDraft} className="quick-invoice-fields" hidden={preview}><fieldset disabled={busy} className="form-dialog-fields">
- <fieldset className="form-dialog-fields" disabled={!!saved}><label>Customer<select value={customerId||(customerMode==='new'?'__new__':'')} disabled={loading} onChange={e=>{const v=e.target.value;setCustomerId(v==='__new__'?'':v);setCustomerMode(v==='__new__'?'new':'choose');setError('')}}><option value="">Choose a customer</option>{customers.map(c=><option key={c.id} value={c.id}>{customerLabel(c)}</option>)}<option value="__new__">Create a new customer</option></select></label>
+ <fieldset className="form-dialog-fields" disabled={!!saved}>{customerMode==='choose'&&<CustomerPicker customers={customers} value={customerId} required disabled={loading||busy} initialQuery={seed.customerName} onChange={id=>{setCustomerId(id);setError('')}}/>}
+ {!customerId&&<button type="button" className="text-button" disabled={loading||busy} onMouseDown={event=>event.preventDefault()} onClick={()=>setCustomerMode(mode=>mode==='new'?'choose':'new')}>{customerMode==='new'?'Search saved customers':'Create a new customer'}</button>}
  {!customerId&&customerMode==='choose'&&<p className="form-message">Who is this for? Choose a customer. Your charges and total are ready below.</p>}
  {!customerId&&customerMode==='new'&&<label>New customer name or company<input value={customerName} onChange={e=>setCustomerName(e.target.value)} required maxLength={160}/></label>}
  <details className="voice-contact-details" open={contactOpen} onToggle={e=>setContactOpen(e.currentTarget.open)}><summary>{email.trim()||phone.trim()?'Customer contact details':'Add email or phone to send (optional)'}</summary>
