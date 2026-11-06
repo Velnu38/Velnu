@@ -1,3 +1,6 @@
+import PlansAndUsage from '../components/settings/PlansAndUsage'
+import DeliverySetup from '../components/settings/DeliverySetup'
+import StorageUsage from '../components/StorageUsage'
 import SmsSetup from '../components/settings/SmsSetup'
 import IntegrationTesting from '../components/settings/IntegrationTesting'
 import WorkspaceBack from '../components/WorkspaceBack'
@@ -29,6 +32,9 @@ export default function SettingsPage({ business, onSaved }: {
   const permitted = section !== null && canOpenSettingsSection(business, section)
 
   function content(id: SettingsSection) {
+    if (id === "plans") return <PlansAndUsage businessId={business.id}/>;
+    if (id === "delivery") return <DeliverySetup businessId={business.id}/>;
+    if (id === "storage") return <StorageUsage key={business.id} businessId={business.id} detailed />;
     if (id === "sms") return <SmsSetup businessId={business.id} />;
     if (id === "support") return <SupportCases businessId={business.id} />;
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;

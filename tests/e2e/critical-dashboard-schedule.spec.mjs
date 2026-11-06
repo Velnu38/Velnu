@@ -183,6 +183,8 @@ async function mockWorkspace(page, options = {}) {
       const limit = Number(url.searchParams.get('limit') || 50)
       return reply(matching.slice(offset, offset + limit), 200, matching.length)
     }
+    if (path.endsWith('/rpc/get_business_storage_usage')) return reply({ plan: 'pro', limit_bytes: 10000000000, remaining_bytes: 10000000000, used_bytes: 0, pending_bytes: 0, warning: 'none', logo_allowed: true })
+    if (path.endsWith('/functions/v1/upload-attachment')) { state.storageWrites++; return reply({ path: url.searchParams.get('path') }) }
     if (path.endsWith('/record_photos')) {
       if (method === 'POST') { state.photos.push({ ...body, created_by: UID, storage_path: `${BID}/${body.id}.jpg`, created_at: new Date().toISOString() }); return reply(null, 201) }
       if (method === 'DELETE') { const target = url.searchParams.get('id')?.replace('eq.', ''); const deleted = state.photos.filter(p => p.id === target); state.photos = state.photos.filter(p => p.id !== target); return reply(deleted) }

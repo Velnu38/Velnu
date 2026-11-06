@@ -94,7 +94,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
 
  {mismatch&&<div className="form-message error-text" role="alert">Spoken total: {statedTotal===''?'needs review':'$'+Number(statedTotal).toFixed(2)}. It does not match the calculated total. Check the lines, or explicitly choose the calculated total.<button type="button" className="secondary-button" onClick={()=>setStatedTotal(null)}>Use calculated total</button></div>}
  </fieldset>
- <p className="quick-invoice-note">Review the customer, charges and total. Send email saves this {kind} and sends it in one step. Save draft does not send anything.</p>
+ <p className="quick-invoice-note">Review the customer, charges and total. Sending follows your plan and sending setup. Personal-app delivery requires a final Send in your app. Save draft does not send anything.</p>
  {saved&&<p className="form-message">Your {kind} is saved. Email delivery is not confirmed. Retry below using the same document, or finish and check its activity before sending again.</p>}
  {error&&<p role="alert" className="form-message error-text">{error}</p>}
  <div className="voice-document-total" role="status"><span>Total</span><strong>{total===null?'Add missing amounts':'$'+total.toFixed(2)}</strong></div>

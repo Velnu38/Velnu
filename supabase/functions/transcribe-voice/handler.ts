@@ -1,3 +1,4 @@
+import {pcmDuration} from './pcm.ts';
 import {
   providerJson,
   ProviderRequestError,
@@ -215,7 +216,7 @@ export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
         ? Number(usage.voice_limit)
         : NaN;
       if (
-        usage.plan !== "pro" || !Number.isSafeInteger(voiceLimit) ||
+        !Number.isSafeInteger(voiceLimit) ||
         voiceLimit <= 0
       ) {
         if (isJson && body?.action === "status") {
@@ -228,7 +229,7 @@ export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
         return respond(403, {
           code: "paid_plan_required",
           error:
-            "Cloud AI transcription is not included in Free. It requires an activated paid plan.",
+            "Voice transcription requires an available voice allowance.",
         });
       }
 
@@ -290,18 +291,12 @@ export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
         });
       }
 
-      const duration = body.get("duration_seconds");
-      const seconds = duration === null || String(duration) === ""
-        ? null
-        : Number(duration);
-      if (
-        seconds !== null &&
-        (!Number.isFinite(seconds) || seconds <= 0 || seconds > 120)
-      ) {
-        return respond(400, {
-          error: "Recordings must be 2 minutes or shorter.",
-        });
-      }
+      let seconds: number;
+      try { seconds=pcmDuration(new Uint8Array(await audio.arrayBuffer())); }
+      catch(error){return respond(422,{error:(error as Error).message});}
+      const voiceRequest = crypto.randomUUID();
+      const { error: quotaError } = await db.rpc("reserve_tier_request", {p_business:businessId,p_request:voiceRequest,p_feature:"voice",p_units:Math.ceil(seconds)});
+      if (quotaError) return respond(429, {error:"Voice allowance reached. Review Plans & Usage; typed Fin requests remain available."});
 
       // Failed and uncertain provider attempts remain counted; row locking prevents overshoot.
       const { data: reservation, error: budgetError } = await db.rpc(

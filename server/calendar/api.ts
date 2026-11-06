@@ -117,7 +117,7 @@ async function callback(req: Request, url: URL) {
     if (
       !(
         await db.query(
-          "select 1 from public.business_members where business_id=$1 and user_id=$2 and 'calendar'=any(access_modules)",
+          "select 1 from public.business_members where business_id=$1 and user_id=$2 and 'calendar'=any(access_modules) and private.effective_plan(business_id)<>'free'",
           [oauth.business_id, oauth.user_id],
         )
       ).rowCount
@@ -195,7 +195,7 @@ export async function calendarApi(req: Request): Promise<Response> {
         ? Object.fromEntries(url.searchParams)
         : await body(req);
     const bid = uuid(input.businessId),
-      user = await actor(req, bid);
+      user = await actor(req, bid, !["disconnect", "list"].includes(action));
     if (action === "connect" && req.method === "POST") {
       const p = providerName(input.provider),
         state = randomSecret(),

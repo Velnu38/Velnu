@@ -20,7 +20,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm run test:integrations && npm run test:scheduling && npm run test:services && npm run test:calendar && npm run test:records && npm run test:settings && npm run test:deployment && npm run typecheck:calendar
+      - run: npm run test:integrations && npm run test:scheduling && npm run test:services && npm run test:calendar && npm run test:records && npm run test:storage && npm run test:settings && npm run test:deployment && npm run typecheck:calendar
       # PGlite avoids nodejs/node#66366; production builds still run on Node 24.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:

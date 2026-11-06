@@ -1,3 +1,4 @@
+import { uploadAttachment, LOGO_BYTES_LIMIT } from './businessStorage'
 import { supabase } from './supabase'
 
 export type BusinessRole = 'owner' | 'admin' | 'office' | 'technician' | 'viewer'
@@ -142,13 +143,10 @@ export async function uploadBusinessLogo(business: CurrentBusiness, file: File):
   const valid: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
   const extension = valid[file.type]
   if (!extension) throw new Error('Choose a PNG, JPG, or WebP logo.')
-  if (file.size > 2 * 1024 * 1024) throw new Error('The logo must be smaller than 2 MB.')
+  if (file.size > LOGO_BYTES_LIMIT) throw new Error('The logo must be smaller than 2 MB.')
   if (file.size === 0) throw new Error('The image file is empty.')
   const path = business.id + '/logo-' + crypto.randomUUID() + '.' + extension
-  const { error } = await supabase.storage.from('velnu-business-logos').upload(path, file, {
-    contentType: file.type, upsert: false, cacheControl: '3600',
-  })
-  if (error) throw error
+  await uploadAttachment('velnu-business-logos', path, file)
   return path
 }
 

@@ -1,3 +1,4 @@
+import StorageUsage from './StorageUsage'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
@@ -50,8 +51,8 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
     let active = true
     setLogoAllowed(false)
     if (business) {
-      void Promise.resolve(supabase.rpc('get_plan_usage', { target_business_id: business.id })).then(({ data, error }) => {
-        if (active) setLogoAllowed(!error && (data?.plan === 'basic' || data?.plan === 'pro') && Number(data?.logo_bytes_limit || 0) > 0)
+      void Promise.resolve(supabase.rpc('get_business_storage_usage', { p_business_id: business.id })).then(({ data, error }) => {
+        if (active) setLogoAllowed(!error && (data?.plan === 'basic' || data?.plan === 'pro') && data?.logo_allowed === true)
       }).catch(() => { if (active) setLogoAllowed(false) })
     }
     // Newly created businesses have no paid entitlements during initial signup.
@@ -77,7 +78,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
       setError('Logo must be PNG, JPG or WebP. SVG files are not accepted.')
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 2_000_000) {
       setError('Your logo must be no larger than 2 MB.')
       return
     }
@@ -145,6 +146,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
       {step === 1 && <>
         <h2>Personalize invoices and estimates</h2>
         <p className="quiet">Your company name, address, phone, accent color and document footer work on Free. Hosted logo uploads require an activated paid plan because they use paid storage and bandwidth.</p>
+        {business && <StorageUsage businessId={business.id} />}
         <div className="profile-logo-row">
           {logoUrl && <img src={logoUrl} className="profile-current-logo" alt="Current company logo" />}
           {logoAllowed ? <label>Company logo (optional, up to 2 MB)
@@ -194,7 +196,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
       </>}
       {step === 3 && <>
         <h2>Choose your optional Finviant Office services</h2>
-        <p className="quiet">Pick the tools that interest your company. The core web app works independently of these choices. Pricing is not set and selecting a feature does not charge you or activate an unfinished service.</p>
+        <p className="quiet">Pick the tools that interest your company. The core web app works independently of these choices. The planned prices and limits appear below. Selecting a preference does not charge you or change your active access.</p>
         {servicesLoading
           ? <p className="form-message">Loading your saved choices…</p>
           : <ServicePicker compact value={interests} onChange={setInterests}/>}

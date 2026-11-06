@@ -1,3 +1,4 @@
+import {installPcmFixture} from './audio-fixture.mjs'
 import {workflow,start,review,save,docStep,item,step,reply} from './fin-workflow-fixture.mjs'
 import { test, expect } from '@playwright/test'
 
@@ -87,7 +88,7 @@ test('cloud recording uses server transcription and opens draft review, without 
       start() { this.state = 'recording' }
       stop() {
         this.state = 'inactive'
-        this.ondataavailable?.({ data: new Blob([new Uint8Array(512)], { type: this.mimeType }) })
+        this.ondataavailable?.({ data: new Blob([window.__pcmFixture()], { type: this.mimeType }) })
         this.onstop?.()
       }
     }
@@ -141,7 +142,7 @@ test('microphone permission is requested directly inside the tap after a delayed
       start(){this.state='recording'}
       stop(){
         this.state='inactive'
-        this.ondataavailable?.({data:new Blob([new Uint8Array(500)],{type:this.mimeType})})
+        this.ondataavailable?.({data:new Blob([window.__pcmFixture()],{type:this.mimeType})})
         this.onstop?.()
       }
     }
@@ -191,3 +192,5 @@ test('browser dictation starts in the tap gesture after unavailable cloud prefli
   await page.getByRole('button',{name:'Finish recording'}).click()
   await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toHaveValue('Give me a business summary')
 })
+
+test.beforeEach(async({page})=>installPcmFixture(page))

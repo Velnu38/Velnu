@@ -1,3 +1,5 @@
+import PersonalDocumentDelivery from './PersonalDocumentDelivery'
+import {getDeliverySetup,type DeliverySetup} from '../services/tiers'
 import {useEffect,useRef,useState} from 'react'
 import FormDialog from './FormDialog'
 import CustomerEditDialog from './CustomerEditDialog'
@@ -9,6 +11,8 @@ import type {ReviewDeliveryReceipt} from '../services/reviewDelivery'
 import './invoice-reminder.css'
 export default function InvoiceReminderDialog({business,invoiceId,onClose,onSent}:{business:CurrentBusiness;invoiceId:string;onClose:()=>void;onSent:()=>void}){
  const [review,setReview]=useState<InvoiceReminderReview|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[receipt,setReceipt]=useState<ReviewDeliveryReceipt|null>(null),[editContact,setEditContact]=useState(false)
+ const[setup,setSetup]=useState<DeliverySetup|null>(null)
+ useEffect(()=>{let active=true;void getDeliverySetup(business.id).then(s=>{if(active)setSetup(s)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[business.id])
  const flight=useRef(false)
  async function load(){setLoading(true);setError('');try{setReview(await getInvoiceReminderReview(business.id,invoiceId))}catch(e){setReview(null);setError(e instanceof Error?e.message:'Unable to load reminder.')}finally{setLoading(false)}}
  useEffect(()=>{let active=true;void getInvoiceReminderReview(business.id,invoiceId).then(r=>{if(active)setReview(r)}).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[business.id,invoiceId])
@@ -22,7 +26,8 @@ export default function InvoiceReminderDialog({business,invoiceId,onClose,onSent
  <p className="quiet">{review.last_reminder?`Last reminder: ${new Date(review.last_reminder.at).toLocaleString(undefined,{timeZone:business.timezone||'America/New_York'})} · ${review.last_reminder.channel.toUpperCase()} · ${review.last_reminder.status==='sent'?'accepted for delivery':review.last_reminder.status}`:'No successful reminders recorded for this invoice.'}</p>
  <section className="reminder-message" aria-label="Reminder preview"><strong>Subject: {review.subject}</strong><p>{review.body}</p></section>
  {!receipt&&<button type="button" className="text-button" disabled={busy} onClick={()=>setEditContact(true)}>Edit customer contact</button>}
- <div className="reminder-actions"><div><button type="button" className="primary-button" disabled={busy||loading||!!receipt||!customerActionsEnabled||!validDeliveryEmail(review.email||'')} onClick={()=>void send()}>{busy?'Sending…':'Send Email'}</button><small>{!validDeliveryEmail(review.email||'')?'Add a valid customer email.':!customerActionsEnabled?'Email delivery is not enabled for this private test app.':`To: ${review.email}`}</small></div><div><button type="button" className="primary-button" disabled>Send SMS</button><small>{review.phone?'SMS delivery is awaiting setup.':'Add a mobile number; SMS delivery is awaiting setup.'}</small></div></div>
+ {setup&&<PersonalDocumentDelivery businessId={business.id} kind="invoice" documentId={invoiceId} email={review.email} phone={review.phone} setup={setup} disabled={busy} onEditContact={()=>setEditContact(true)} onSent={onSent} onBusyChange={setBusy} reminder={{subject:review.subject,body:review.body}}/>}
+ {setup?.plan==='pro'&&<div className="reminder-actions"><button type="button" className="primary-button" disabled={busy||loading||!!receipt||!setup.managed_email_ready||!customerActionsEnabled||!validDeliveryEmail(review.email||'')} onClick={()=>void send()}>{busy?'Sending…':'Send Email with Finviant'}</button><small>Requires activated Finviant email sending.</small></div>}
  {receipt&&<p role="status" className="form-message success-text">Reminder {receipt.status==='delivered'?'delivered':'accepted for delivery'} to {receipt.recipient}. {receipt.warning||''} The invoice balance and due date are unchanged.</p>}
  {editContact&&<CustomerEditDialog businessId={business.id} customerId={review.customer_id} onClose={()=>setEditContact(false)} onSaved={()=>void load()}/>}</>}
  <p className="quiet">Review the message and recipient before sending. The reminder uses this invoice; it does not create another invoice or record payment.</p>

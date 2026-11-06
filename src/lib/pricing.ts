@@ -20,52 +20,37 @@ export type TierAllowance = {
 }
 
 export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
-  free: {
-    tier: 'free', name: 'Free', priceMonthlyUsd: 0,
-    documentsPerMonth: 10, customerLimit: 250, aiCreditsPerMonth: 0,
-    fileStorageMb: 0, onlineApprovalsPerMonth: 0, hostedLogo: false,
-    status: 'Manual tools · No metered AI',
-    features: [
-      '10 invoices and estimates combined each month',
-      'Up to 250 customers',
-      'Company contact details and text branding',
-      'Printable invoices and estimates',
-      '0 AI credits, online approvals, SMS, or automated email',
-    ],
-  },
-  basic: {
-    tier: 'basic', name: 'Basic', priceMonthlyUsd: 9.99,
-    documentsPerMonth: 250, customerLimit: 1000, aiCreditsPerMonth: 200,
-    fileStorageMb: 500, onlineApprovalsPerMonth: 0, hostedLogo: true,
-    status: 'Planned · AI-assisted essentials',
-    features: [
-      '250 business documents monthly',
-      'Up to 1,000 customers',
-      '200 AI credits each month',
-      'Voice-to-invoice and voice-to-estimate drafts (in testing)',
-      'Business-aware AI assistant (in testing)',
-      'Custom logo and up to 500 MB file storage',
-      'No online estimate acceptances',
-      'Optional Scheduling and Bookkeeping AI Assistants priced separately',
-    ],
-  },
-  pro: {
-    tier: 'pro', name: 'Pro', priceMonthlyUsd: 24.99,
-    documentsPerMonth: 1000, customerLimit: 5000, aiCreditsPerMonth: 1000,
-    fileStorageMb: 5120, onlineApprovalsPerMonth: 50, hostedLogo: true,
-    status: 'Planned · Expanded AI and client tools',
-    features: [
-      '1,000 business documents monthly',
-      'Up to 5,000 customers',
-      '1,000 AI credits each month',
-      'Expanded voice and AI assistance (in testing)',
-      'Company logo and up to 5 GB file storage',
-      '50 online estimate acceptances monthly (not live yet)',
-      'Customer email, reminders and team tools (planned)',
-      'Discounted Scheduling and Bookkeeping AI Assistant add-ons',
-    ],
-  },
+ free: {tier:'free',name:'Free',priceMonthlyUsd:0,documentsPerMonth:Infinity,customerLimit:10,aiCreditsPerMonth:20,fileStorageMb:100,onlineApprovalsPerMonth:Infinity,hostedLogo:false,status:'Try the complete workflow',features:['10 active customers · 5 new job bookings/month','Invoices, estimates, approval and payment links','Send through your own email and text apps','20 introductory Fin requests · 10 voice minutes once','100 MB attachments · 30-day financial view · 1 user']},
+ basic: {tier:'basic',name:'Individual',priceMonthlyUsd:19.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:150,fileStorageMb:2000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'For a busy solo business',features:['No customer, document or job count cap','Send through your own email and text apps','150 Fin requests · 60 voice minutes/month','2 GB attachments · Custom logo · Full financial history','1 user · Manual customer follow-ups']},
+ pro: {tier:'pro',name:'Business Pro',priceMonthlyUsd:39.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:600,fileStorageMb:10000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'Let Finviant send and follow up',features:['Everything in Individual · 5 users including owner','Finviant email and SMS after sender activation','2,000 email recipients · 200 US SMS segments/month','600 Fin requests · 180 voice minutes/month shared','10 GB attachments · Scheduled sending and reminders']},
 }
+export const businessAnnualPrice = 399.50
+export const tierComparison = [
+ ['Monthly price','$0','$19.95','$39.95'],
+ ['Annual price','—','—','$399.50 upfront ($33.29/month equivalent)'],
+ ['Users','1','1','5 including owner'],
+ ['Active customers','10','No count cap','No count cap'],
+ ['New job bookings','5/month','No count cap','No count cap'],
+ ['Invoices, estimates, change orders','Included','Included','Included'],
+ ['Approval, deposit/final invoice, Mark Paid','Included','Included','Included'],
+ ['PDF/print, shared links, payment links','Included','Included','Included'],
+ ['Customer email and text','Your apps','Your apps','Finviant after activation; your apps available'],
+ ['Automatic overdue invoice emails','—','—','Owner-enabled rules after activation'],
+ ['Managed email recipient deliveries','—','—','2,000/month shared'],
+ ['Managed US SMS segments','—','—','200/month shared'],
+ ['Fin requests','20 once','150/month','600/month shared'],
+ ['Voice transcription','10 minutes once','60 minutes/month','180 minutes/month shared'],
+ ['Attachment storage','100 MB','2 GB','10 GB shared'],
+ ['Picture size','10 MB','10 MB','10 MB'],
+ ['Uploaded company logo','—','2 MB','2 MB'],
+ ['Calendar, jobs, internal reminders','Included within job allowance','Included','Included'],
+ ['Financial Performance','Last 30 days','Full history','Full history'],
+ ['Manual income/expenses, record export','Included','Included','Included'],
+ ['Team roles and invitations','—','—','Included'],
+ ['Recurring invoice drafts','—','Included; review before sending','Included; review before sending'],
+ ['QuickBooks read-only import','—','After provider setup','After provider setup'],
+ ['External calendar connections','—','After provider setup','After provider setup'],
+] as const
 
 export type TopUp = {
   id: AddOnId
@@ -103,7 +88,7 @@ export const formatMoney = (amount: number) => '$' + amount.toFixed(2)
 export const formatMonthlyPrice = (tier: VelnuTier) =>
   tier === 'free' ? 'Free' : formatMoney(monthlyPlans[tier].priceMonthlyUsd)
 export const formatStorage = (mb: number) =>
-  mb === 0 ? 'No hosted file storage' : mb >= 1024 ? (mb / 1024).toLocaleString() + ' GB' : mb + ' MB'
+  mb === 0 ? 'No hosted file storage' : mb >= 1000 ? (mb / 1000).toLocaleString() + ' GB' : mb + ' MB'
 
 /** Velnu credits are NOT raw OpenAI model tokens. Proposed accounting:
  * 1 AI text interpretation = 1 credit

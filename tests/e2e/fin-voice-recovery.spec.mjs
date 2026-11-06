@@ -1,3 +1,4 @@
+import {installPcmFixture} from './audio-fixture.mjs'
 import {openFinVoice} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import {mock,U} from './audit-fixture.mjs'
@@ -27,7 +28,7 @@ async function setup(page,{pending=false,denied=false,permissionPending=false}={
    static isTypeSupported(){return true}
    constructor(stream,options){this.stream=stream;this.mimeType=options?.mimeType||'audio/webm';this.state='inactive';window.__recorder=this}
    start(){this.state='recording'}
-   stop(){this.state='inactive';this.ondataavailable?.({data:new Blob([new Uint8Array(512)],{type:this.mimeType})});this.onstop?.()}
+   stop(){this.state='inactive';this.ondataavailable?.({data:new Blob([window.__pcmFixture()],{type:this.mimeType})});this.onstop?.()}
   }
  },{denied,permissionPending})
 }
@@ -131,3 +132,5 @@ test('a malformed command response leaves the request editable without executing
  await expect(page.getByRole('alert')).toContainText('complete response')
  await expect(input(page)).toHaveValue('Create a customer named Bob Smith');await expect(input(page)).toBeEnabled();expect(executions).toBe(0)
 })
+
+test.beforeEach(async({page})=>installPcmFixture(page))

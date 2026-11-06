@@ -10,7 +10,7 @@ Deno.serve(workflowHandler({
   const {data:auth,error}=await db.auth.getUser();if(error||!auth.user)return null
   const {data:member,error:membershipError}=await db.from('business_members').select('role,access_modules').eq('business_id',business).eq('user_id',auth.user.id).maybeSingle()
   if(membershipError||!member||!['owner','admin','office','technician','viewer'].includes(member.role))return null
-  const {data:usage,error:usageError}=await db.rpc('get_plan_usage',{target_business_id:business});if(usageError||usage?.plan!=='pro'||Number(usage?.ai_limit)<=0)return null
+  const {data:usage,error:usageError}=await db.rpc('get_plan_usage',{target_business_id:business});if(usageError||Number(usage?.ai_limit)<=0)return null
   if(!env('OPENAI_API_KEY'))throw Error('Fin’s language service is awaiting server setup.')
   const {data:profile,error:profileError}=await db.from('businesses').select('name,timezone,business_description,services_offered,service_area,team_roles').eq('id',business).single();if(profileError)throw profileError
   const {data:settings,error:settingsError}=await db.from('business_settings').select('default_tax_rate').eq('business_id',business).maybeSingle();if(settingsError)throw settingsError

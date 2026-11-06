@@ -1,3 +1,4 @@
+import TierBanner from './TierBanner'
 import FinBrand from './FinBrand'
 import MoreNavigation from './MoreNavigation'
 import { settingsHref, type SettingsSection } from '../lib/settingsNavigation'
@@ -148,7 +149,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         <header className="topbar"><div className="mobile-brand"><FinBrand wordmark/></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div>
           <div className="workspace-assistant">{!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}</div>
         </header>
-        <div className="private-testing-app"><PrivateBetaNotice compact /></div>
+        <div className="private-testing-app"><PrivateBetaNotice compact /></div><TierBanner businessId={company.id}/>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>
       <nav className="mobile-nav" aria-label="Workspace navigation">

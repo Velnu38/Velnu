@@ -1,3 +1,4 @@
+import StorageUsage from '../StorageUsage'
 import PaymentSettings from './PaymentSettings'
 import {isPrimaryOwner} from '../../lib/workspaceAccess'
 import {useUnsavedChanges} from '../../lib/unsavedChanges'
@@ -26,8 +27,8 @@ export default function DocumentSettings({
   useEffect(() => {
     let active = true;
     setLogoAllowed(false);
-    void Promise.resolve(supabase.rpc("get_plan_usage", { target_business_id: business.id })).then(({ data, error }) => {
-      if (active) setLogoAllowed(!error && ["basic", "pro"].includes(data?.plan) && Number(data?.logo_bytes_limit || 0) > 0);
+    void Promise.resolve(supabase.rpc("get_business_storage_usage", { p_business_id: business.id })).then(({ data, error }) => {
+      if (active) setLogoAllowed(!error && ["basic", "pro"].includes(data?.plan) && data?.logo_allowed === true);
     }).catch(() => { if (active) setLogoAllowed(false) });
     return () => { active = false };
   }, [business.id]);
@@ -115,6 +116,7 @@ export default function DocumentSettings({
               }
             />
           </label>
+          <StorageUsage businessId={business.id} version={busy ? 1 : 0} />
           {logoAllowed ? <label>
             Company logo (PNG, JPG or WebP, up to 2 MB)
             <input

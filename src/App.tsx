@@ -1,3 +1,4 @@
+import SharedDocumentPage from './pages/SharedDocumentPage'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
@@ -29,6 +30,7 @@ export default function App() {
   const publicPath = window.location.pathname
   const approvalToken = initialQuery.get('approval')
   const bookingToken = initialQuery.get('booking')
+  const shareToken = initialQuery.get('document_share')
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [recovery, setRecovery] = useState(initialRecovery)
@@ -43,7 +45,7 @@ export default function App() {
   const userId = session?.user.id ?? null
 
   useEffect(() => {
-    if (approvalToken || bookingToken || ['/legal', '/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
+    if (shareToken || approvalToken || bookingToken || ['/legal', '/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
     let active = true
     let eventReceived = false
     // Keep the auth callback synchronous to avoid holding the session lock.
@@ -138,6 +140,7 @@ export default function App() {
   }
 
   if (bookingToken) return <Suspense fallback={<main className="loading-page">Opening appointment…</main>}><CustomerBookingPage token={bookingToken} /></Suspense>
+  if (shareToken) return <SharedDocumentPage token={shareToken}/>
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
   if (['/legal', '/terms', '/privacy'].includes(publicPath)) return <LegalPage />
   if (publicPath === '/services') return <LandingPage />
