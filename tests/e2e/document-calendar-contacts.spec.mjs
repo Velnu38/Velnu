@@ -23,7 +23,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/user_plan_preferences'))return reply({selected_tier:'pro'})
   if(path.endsWith('/user_agreement_acceptances'))return reply({id:E,agreement_version:'2026-10-26-v2'})
   if(path.endsWith('/business_members'))return reply({business_id:B,role:owner?'owner':'office',access_modules:['calendar','jobs','billing','finances'],businesses:business})
-  if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
+  if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[{provider:'stripe',url:'https://buy.stripe.com/owner-link'}],payment_instructions:'Use your invoice number'})
   if(path.endsWith('/rpc/get_document_change_context'))return reply({business_id:B,document_id:body.p_document,kind:body.p_kind,number:body.p_kind==='invoice'?'INV-QA':'EST-QA',customer_id:C,customer_name:'Test Customer',job_id:null,estimate_id:body.p_kind==='estimate'?E:null,work_status:completedWork?'completed':'unscheduled',can_change:!completedWork,total:105,address:'1 Test Street',items:[{description:'Original work',quantity:2,unit_price:50,tax_rate:5}]})
   if(path.endsWith('/rpc/create_document_change_order')){state.changes.push(body);return reply({id:P,status:'draft',total:20})}
   if(path.endsWith('/rpc/create_document')){state.documents.push(body);return reply({id:E,status:'draft',total:250})}
@@ -71,15 +71,15 @@ for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typ
  await page.getByRole('button',{name:'Create a new customer',exact:true}).click()
  await page.getByLabel('Customer name',{exact:true}).fill('New Typed Customer')
  await page.getByPlaceholder('Description',{exact:true}).fill('Only this work');await page.getByPlaceholder('Unit price',{exact:true}).fill('250')
- await page.getByText('How customers can pay',{exact:true}).click();await page.getByRole('checkbox',{name:'Stripe',exact:true}).check();await page.getByLabel('Stripe payment link',{exact:true}).fill('https://buy.stripe.com/owner-link');await page.getByLabel('Payment instructions',{exact:true}).fill('Use your invoice number')
- await page.getByRole('button',{name:'Save draft '+kind,exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1)
+ await page.getByRole('button',{name:'Preview',exact:true}).click()
+ await page.getByRole('button',{name:'Save Draft',exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1)
  const input=state.documents[0].payload;expect(input.new_customer.first_name).toBe('New');expect(input.new_customer.last_name).toBe('Typed Customer');expect(input.payment_links).toEqual([{provider:'stripe',url:'https://buy.stripe.com/owner-link'}]);expect(input.items[0].description).toBe('Only this work')
  expect(state.calls.filter(c=>c.path.endsWith('/customers')&&c.method==='POST')).toHaveLength(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 for(const kind of ['invoice','estimate'])test(`${kind} change order automatically uses the original document without selecting a job`,async({page})=>{
  const state=await mock(page);await page.goto('/?view='+kind+'s')
- if(kind==='invoice')await page.locator('.invoice-open').first().click();else await page.getByRole('button',{name:/Preview/}).first().click()
+ if(kind==='invoice')await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();else await page.getByRole('button',{name:/^Open estimate EST-QA/}).click()
  await page.getByRole('button',{name:'Change order',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Create change order'});await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('Test Customer');await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('1 Test Street');await expect(dialog.getByLabel('Job',{exact:true})).toHaveCount(0)
  await dialog.getByPlaceholder('Description',{exact:true}).fill('Additional work only');await dialog.getByPlaceholder('Unit price',{exact:true}).fill('20')
@@ -87,7 +87,7 @@ for(const kind of ['invoice','estimate'])test(`${kind} change order automaticall
  expect(state.changes[0].p_kind).toBe(kind);expect(state.changes[0].p_document).toBe(E);expect(state.changes[0].p_input.items[0].description).toBe('Additional work only');expect(state.changes[0].p_input).not.toHaveProperty('customer_id')
 })
 test('completed work has no new change-order action',async({page})=>{
- await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.locator('.invoice-open').first().click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Change order',exact:true})).toHaveCount(0)
+ await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Change order',exact:true})).toHaveCount(0)
 })
 for(const width of [1440,390])test(`select a calendar date then use Add entry to save a manual event at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'});await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
@@ -97,7 +97,7 @@ for(const width of [1440,390])test(`select a calendar date then use Add entry to
 })
 test('activated calendar AI opens the existing assistant with the selected date for review',async({page})=>{
  await mock(page,{ai:true});await page.goto('/');await page.getByRole('button',{name:'+ Add entry',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await dialog.getByLabel('Title',{exact:true}).fill('Mow the lawn');await dialog.getByRole('button',{name:'Ask Fin',exact:true}).click()
- await expect(page.locator('.assistant-panel')).toBeVisible();await expect(page.locator('.assistant-panel textarea')).toHaveValue(/Create a event titled Mow the lawn on \d{4}-\d{2}-\d{2}T09:00 until .*America\/New_York/)
+ await expect(page.locator('.assistant-panel')).toBeVisible();await expect(page.locator('.assistant-panel textarea')).toHaveValue(/Title: Mow the lawn\s+Starts: \d{4}-\d{2}-\d{2}T09:00\s+Ends: \d{4}-\d{2}-\d{2}T10:00[\s\S]+not permission to save/)
 })
 for(const width of [1440,390])test(`owner reviews phone contact cards before importing at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=customers');await page.getByRole('button',{name:'Import contacts',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Import phone contacts'});const card=(name,email)=>'BEGIN:VCARD\nVERSION:3.0\nFN:'+name+'\nEMAIL:'+email+'\nEND:VCARD\n'

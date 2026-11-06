@@ -91,7 +91,7 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
   return <article className="billing-hub dashboard-tile home-attention-tile" aria-label="Needs attention overview">
     {reminderInvoice&&<InvoiceReminderDialog business={business} invoiceId={reminderInvoice} onClose={()=>setReminderInvoice(null)} onSent={()=>{setRetry(v=>v+1);window.dispatchEvent(new Event('finviant-work-changed'))}}/>}
     <button type="button" className="attention-summary-toggle" aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>
-      <span><span className="eyebrow">Your next steps</span><strong className="dashboard-tile-title">Needs Attention</strong><small>{countsUnavailable?'Loading action counts…':`${attentionCount} ${attentionCount===1?'action':'actions'} need your attention`}</small></span>
+      <span><span className="eyebrow">Your next steps</span><strong className="dashboard-tile-title">Needs Attention</strong><small>{countsUnavailable?'Loading action counts…':`${attentionCount} ${attentionCount===1?'action needs':'actions need'} your attention`}</small></span>
       <span className="attention-summary-chevron" aria-hidden="true">{expanded?'⌃':'⌄'}</span>
     </button>
     {!canSee ? <p className="work-card-empty">Billing details are available to owners, administrators, and office staff.</p> : <>
@@ -119,7 +119,7 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
           <span className="billing-row-copy"><strong>{row.customer}</strong><span>{row.kind} · {row.number}</span><small>{row.detail}</small></span>
           <span className={`billing-status ${row.tone}`}>{row.status}</span>
           <span className="billing-row-amount"><strong>{usd.format(row.amount)}</strong><small>{row.amountLabel}</small></span>{row.kind!=='Invoice'&&<span className="attention-action billing-attention-action">Review approval</span>}
-        </a>{row.kind==='Invoice'&&<button type="button" className="primary-button compact" onClick={()=>setReminderInvoice(row.key.slice(8))}>Send Reminder</button>}</li>)}</ul>}
+        </a>{row.kind==='Invoice'&&<button type="button" className="primary-button attention-action" onClick={()=>setReminderInvoice(row.key.slice(8))}>Send Reminder</button>}</li>)}</ul>}
         </>}
         {attentionPage&&<nav className="attention-pagination" aria-label="Attention pages">
           <p aria-live="polite">{total?`Showing ${(currentPage-1)*5+1}–${Math.min(currentPage*5,total)} of ${total}`:'0 items'}<small>Page {currentPage} of {pageCount}</small></p>

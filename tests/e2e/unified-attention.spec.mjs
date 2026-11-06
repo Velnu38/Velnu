@@ -60,13 +60,14 @@ async function mock(page,{signedIn=true,conflict=false}={}){
 
 for(const width of [1440,390])test(`one attention area below billing and shared job notes at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/')
+ const billing=page.getByRole('article',{name:'Needs attention overview'})
+ await billing.getByRole('button',{name:/^Your next steps Needs Attention/}).click()
  const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention).toContainText('Test Customer')
  await expect(attention.getByText('No items need attention.')).toHaveCount(0)
- const billing=page.getByRole('article',{name:'Estimates and invoices overview'})
- await billing.getByRole('button',{name:/Awaiting approval/}).click()
+ await billing.getByRole('button',{name:/^Awaiting Customer Approval/}).click()
  await expect(billing.getByRole('button',{name:'Schedule job',exact:true})).toHaveCount(0)
- await billing.locator('.billing-metric.overdue').click()
+ await billing.getByRole('group',{name:'Home work queue'}).getByRole('button',{name:/^Needs attention/}).click()
  await expect(page.getByRole('heading',{name:'Your next steps',exact:true})).toHaveCount(0)
  await expect(page.getByRole('heading',{name:'To do',exact:true})).toHaveCount(0)
  await expect(page.getByRole('button',{name:/Needs Attention/}).first()).toBeVisible()

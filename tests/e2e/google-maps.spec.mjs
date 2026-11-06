@@ -59,7 +59,8 @@ async function mockBusinessData(page) {
 test('service location opens a valid Google Maps view and driving directions without revealing access notes', async ({ page }) => {
   await mockBusinessData(page)
   await page.goto('/')
-  await page.locator('.sidebar').getByRole('button', { name: 'Customers', exact: true }).click()
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Customers/ }).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()
   await expect(page.getByRole('region',{name:'Customer contact'}).getByRole('heading', { name: 'Address',exact:true })).toBeVisible()
   await expect(page.getByText('123 Example Street', { exact: true })).toBeVisible()
@@ -113,7 +114,7 @@ test('mobile Customers contains service locations and route links without horizo
   await mockBusinessData(page)
   await page.goto('/')
   await page.locator('.mobile-nav').getByRole('button', { name: 'More', exact: true }).click()
-  await page.locator('.mobile-more-grid').getByRole('button', { name: 'Customers', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Customers/ }).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()
   await expect(page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)

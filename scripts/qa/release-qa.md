@@ -2,6 +2,12 @@
 
 The Finviant Release QA workflow runs the full mocked Chromium regression, a WebKit mobile pass for dashboard, document and customer workflows, and a separate mocked integration check. Both browser engines exercise the built client. These jobs use synthetic fixtures and publish counts and failure artifacts. A push to `qa/finviant-release` or a pull request targeting `ux/private-testing-20261029` triggers regression. Manual runs become available after the workflow reaches GitHub’s default branch.
 
+## Verify branch migration replay
+
+Before configuring the browser run, inspect the QA branch migration history and confirm the schema and privileges match the release. The November 6 QA branch stopped at the historical rollback verification migration. Its repair used the repository bootstrap definitions for bookkeeping and QuickBooks, the issued-document identity patch, the reviewed recurring invoice schema from the private migration history, and the remaining release migrations. The repair restored authenticated grants only after checking the corresponding row-level security policies. Background schedulers were left inactive on the QA branch.
+
+Verify the four attention filters with an owner session, cross-tenant rejection with an unrelated account, and invoice settlement with a repeated payment request ID. Use synthetic records and roll back the database smoke transaction. Reconcile the source migration history before relying on automated branch replay for a new deployment.
+
 ## Configure an isolated signed-in run
 
 1. Provision a dedicated Supabase QA branch or project. Apply the release’s migrations and deploy the Edge Functions used by the tested workflows. Keep the database limited to synthetic records. Leave email, SMS, live billing and paid AI integrations disconnected for this test.
