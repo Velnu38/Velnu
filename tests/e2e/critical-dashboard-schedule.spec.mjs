@@ -1390,3 +1390,46 @@ test('customer snapshot opens complete filtered document lists and retains origi
  }
  await page.screenshot({path:'test-results/customer-workspace-desktop.png',fullPage:true})
 })
+
+for (const width of [390, 1440]) test(`Needs Attention category buttons open filtered queues at ${width}px`, async ({page}) => {
+  await page.setViewportSize({width, height:900})
+  const state = await mockWorkspace(page, {
+    workflow: {
+      approved: Array.from({length:6}, (_, n) => ({id:id(5000+n), estimate_number:`APPROVED-${n}`, customer_name:'Jane Doe', offer:null})),
+      completed: [{id:id(5010), title:'Finished lawn work', invoice_id:id(5011)}],
+    },
+    invoices: [{id:id(5012), invoice_number:'INV-LATE', status:'sent', due_date:'2000-01-01', balance_due:100, customers:customer}],
+    reminders: [reminder(5013)],
+  })
+  await page.goto('/')
+  const hub = page.getByRole('article', {name:'Needs attention overview'})
+  const categories = hub.getByRole('group', {name:'Needs Attention categories'})
+  for (const [label, filter, item, count] of [
+    ['Schedule work','schedule','APPROVED-0',6],
+    ['Finish invoices','invoice','Finished lawn work',1],
+    ['Overdue payments','overdue','INV-LATE',1],
+    ['Follow-ups due','follow_up','Call customer 5013',1],
+  ]) {
+    const button = categories.getByRole('button', {name:`${label} ${count}`, exact:true})
+    if (filter === 'schedule') {
+      await button.focus()
+      await page.keyboard.press('Enter')
+    } else await button.click()
+    await expect(button).toHaveAttribute('aria-pressed','true')
+    const queue = hub.getByRole('region', {name:label, exact:true})
+    await expect(queue).toContainText(item)
+    await expect(queue.getByRole('listitem')).toHaveCount(Math.min(5,count))
+    expect(state.requests.some(request => request.body?.p_filter === filter && request.body?.p_page === 1)).toBe(true)
+    if (filter === 'schedule') {
+      await queue.getByRole('button', {name:'Next', exact:true}).click()
+      await expect(queue).toContainText('APPROVED-5')
+      await expect(queue.getByRole('listitem')).toHaveCount(1)
+    }
+  }
+  state.reminders = []
+  await page.evaluate(() => window.dispatchEvent(new Event('finviant-work-changed')))
+  await expect(hub.getByText('No follow-ups are due.')).toBeVisible()
+  await expect(categories.getByRole('button', {name:'Follow-ups due 0', exact:true})).toBeEnabled()
+  await hub.getByRole('button', {name:/^Needs attention \d/}).click()
+  await expect(hub.getByRole('region', {name:'Needs Attention', exact:true}).getByText('Finished lawn work')).toBeVisible()
+})

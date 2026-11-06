@@ -1,4 +1,5 @@
 import test from 'node:test'
+import {readFile} from 'node:fs/promises'
 import assert from 'node:assert/strict'
 import {fixture,ids,actor,estimate} from './fixture'
 const page=async(db:any,n=1,filter='attention',size=5)=>(await db.query('select get_dashboard_attention_page($1,$2,$3,$4) r',[ids.business,n,size,filter])).rows[0].r
@@ -35,8 +36,22 @@ test('attention paging reaches every category beyond preview caps, with stable t
   assert.equal(seen.size,95);assert.deepEqual(byKind,{approved:23,completed:22,reminder:12,invoice:14,change_order:11,estimate:13})
   const approvals=await page(db,5,'approvals');assert.equal(approvals.total,24);assert.equal(approvals.items.length,4);assert.equal(approvals.attention_count,95)
   assert.ok(approvals.items.every((i:any)=>['estimate','change_order'].includes(i.kind)))
+  await db.exec('reset role')
+  await db.exec(await readFile('supabase/migrations/20261106115832_attention_category_filters.sql','utf8'))
+  await db.exec('set role authenticated')
+  for(const [filter,kind,total] of [['schedule','approved',23],['invoice','completed',22],['overdue','invoice',14],['follow_up','reminder',12]] as const) {
+   const result=await page(db,2,filter)
+   assert.equal(result.total,total)
+   assert.equal(result.page,2)
+   assert.equal(result.items.length,5)
+   assert.ok(result.items.every((item:any)=>item.kind===kind))
+   assert.deepEqual(result.category_counts,{schedule:23,invoice:22,overdue:14,follow_up:12})
+   assert.equal(result.attention_count,71)
+   assert.equal(result.approval_count,24)
+  }
   await db.query("update reminders set status='completed' where business_id=$1",[ids.business])
-  const clamped=await page(db,19);assert.equal(clamped.page,17);assert.equal(clamped.total,83);assert.equal(clamped.items.length,3)
+  const clamped=await page(db,19);assert.equal(clamped.page,12);assert.equal(clamped.total,59);assert.equal(clamped.items.length,4)
+  assert.equal((await page(db,1,'follow_up')).total,0)
  }finally{await db.close()}
 })
 

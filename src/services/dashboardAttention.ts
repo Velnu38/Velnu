@@ -9,8 +9,9 @@ export type AttentionItem =
   | {kind:'invoice';data:DashboardSnapshot['overdueInvoices'][number]}
   | {kind:'estimate'|'change_order';data:DashboardSnapshot['pendingApprovals'][number]}
 export type AttentionCategoryCounts = {schedule:number;invoice:number;overdue:number;follow_up:number}
+export type AttentionFilter = 'attention' | 'approvals' | keyof AttentionCategoryCounts
 export type AttentionPage = {page:number;page_size:number;total:number;attention_count:number;approval_count:number;category_counts:AttentionCategoryCounts;items:AttentionItem[]}
-export async function getAttentionPage(business:string,page:number,filter:'attention'|'approvals'):Promise<AttentionPage> {
+export async function getAttentionPage(business:string,page:number,filter:AttentionFilter):Promise<AttentionPage> {
   const {data,error}=await supabase.rpc('get_dashboard_attention_page',{p_business:business,p_page:page,p_page_size:5,p_filter:filter})
   if(error)throw new Error(error.message || 'Needs Attention could not be loaded.')
   if(!data || !Array.isArray(data.items) || !Number.isInteger(data.total) || !Number.isInteger(data.page) || data.page<1 || data.page_size!==5

@@ -11,7 +11,8 @@ export function attentionPage(args,{workflow={approved:[],completed:[]},invoices
    ...changeOrders.filter(c=>c.status==='sent').map(c=>({kind:'change_order',data:{...customers(c),document_type:'change_order',number:c.change_order_number}}))].sort((a,b)=>a.data.issue_date.localeCompare(b.data.issue_date)||a.kind.localeCompare(b.kind)||a.data.id.localeCompare(b.data.id))
  ]
  const all=[];for(let n=0;n<Math.max(0,...groups.map(g=>g.length));n++)for(const group of groups)if(group[n])all.push(group[n])
- const items=args.p_filter==='approvals'?groups[4]:all
+ const categoryItems = {schedule:groups[0], invoice:groups[1], overdue:groups[3], follow_up:groups[2]}
+ const items=args.p_filter==='approvals'?groups[4]:categoryItems[args.p_filter] ?? all.filter(item=>item.kind!=='estimate'&&item.kind!=='change_order')
  const size=args.p_page_size||5,page=Math.max(1,Math.min(args.p_page||1,Math.ceil(items.length/size)))
- return {page,page_size:size,total:items.length,attention_count:all.length,approval_count:groups[4].length,items:items.slice((page-1)*size,page*size)}
+ return {page,page_size:size,total:items.length,attention_count:groups.slice(0,4).reduce((count,group)=>count+group.length,0),category_counts:Object.fromEntries(Object.entries(categoryItems).map(([key,rows])=>[key,rows.length])),approval_count:groups[4].length,items:items.slice((page-1)*size,page*size)}
 }
