@@ -14,9 +14,12 @@ function invoiceRequest(command: string) {
   .replace(/\s+please[.!?]*$/i, '')
   .replace(/\s+(?:and|then)\s+(?:email|text|send)\s+(?:it|the invoice)(?:\s+to (?:them|the customer))?[.!?]*$/i, '')
  const create = /^(?:(?:create|make|draft|prepare|write|generate|start)\s+(?:me\s+)?(?:(?:an?|the)\s+)?(?:new\s+)?|(?:open\s+(?:an?\s+)?)?new\s+)invoice\b/i
+ const intent = request.match(create)
+ if (!intent) return null
  const linked = /\b(?:from|using)\s+(?:(?:an?|the|my)\s+)?(?:approved\s+)?(?:estimate|quote|job|invoice)\b/i
+ const describedRecord = /^\s+(?:from|using)\s+(?:[\p{L}\d'-]+\s+){1,8}(?:estimate|quote|job|invoice)\b/iu
  const compound = /\b(?:and|then)\s+(?:schedule|convert|record a payment|create (?:another|a second|a customer))\b/i
- return create.test(request) && !linked.test(request) && !compound.test(request) ? request : null
+ return linked.test(request) || describedRecord.test(request.slice(intent[0].length)) || compound.test(request) ? null : request
 }
 
 export function finInvoiceDraft(command: string, customerId?: string): FinInvoiceDraft | null {

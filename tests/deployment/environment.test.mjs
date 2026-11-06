@@ -24,6 +24,7 @@ const qa = {
   FINVIANT_SUPABASE_PROJECT_REF: qaRef,
   FINVIANT_QA_SUPABASE_PROJECT_REF: qaRef,
   VITE_SUPABASE_URL: `https://${qaRef}.supabase.co`,
+  VERCEL_GIT_COMMIT_SHA: 'a'.repeat(40),
 }
 
 test('local mocked builds remain available without hosted configuration', () => {
@@ -61,6 +62,7 @@ const cases = [
   ['QA targeting a production build', { ...qa, VERCEL_ENV: 'production' }],
   ['QA targeting development', { ...qa, VERCEL_ENV: 'development' }],
   ['QA missing its registered reference', { ...qa, FINVIANT_QA_SUPABASE_PROJECT_REF: undefined }],
+  ['QA missing the deployed revision', { ...qa, VERCEL_GIT_COMMIT_SHA: undefined }],
   ['production points to the registered QA project', { ...qa, VERCEL_ENV: 'production', FINVIANT_DEPLOYMENT_ENV: 'production', FINVIANT_PRODUCTION_GIT_REF: 'main', VERCEL_GIT_COMMIT_REF: 'main' }],
   ...[STAGING_PROJECT_REF, 'qusmeexjbwphoezlcmie'].map(ref => [
     'QA points to a shared environment ' + ref,

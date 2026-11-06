@@ -54,9 +54,12 @@ async function mock(page,{signedIn=true,conflict=false}={}){
  })
  return state
 }
+const scheduleWork=page=>page.getByRole('group',{name:'Needs Attention categories'}).getByRole('button',{name:/^Schedule work/})
+const scheduleQueue=page=>page.getByRole('region',{name:'Schedule work',exact:true})
 for(const width of [1440,390])test(`guided booking proposes crew availability and needs explicit owner approval at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/')
- const next=page.getByRole('region',{name:'Guided next steps'});await expect(next).toContainText('Test Customer')
+ await scheduleWork(page).click()
+ const next=scheduleQueue(page);await expect(next).toContainText('Test Customer')
  expect(state.calls.filter(c=>/approve_scheduling_offer|work-scheduling/.test(c.path))).toHaveLength(0)
  await next.getByRole('button',{name:'Schedule job',exact:true}).click()
  const dialog=page.getByRole('dialog');await expect(dialog.getByRole('group',{name:'Available appointment times'})).toBeVisible()
@@ -72,8 +75,9 @@ for(const width of [1440,390])test(`guided booking proposes crew availability an
  await page.screenshot({path:`test-results/guided-scheduling-${width}.png`,fullPage:true})
 })
 test('phone agreement books once and sends no customer message',async({page})=>{
- const state=await mock(page);await page.goto('/');await page.getByRole('region',{name:'Guided next steps'}).getByRole('button',{name:'Schedule job',exact:true}).click()
- await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+ const state=await mock(page);await page.goto('/');await scheduleWork(page).click()
+ await scheduleQueue(page).getByRole('button',{name:'Schedule job',exact:true}).click()
+ await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
  const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Time already agreed',exact:true}).click()
  await expect(dialog.locator('input[type=radio]:checked')).toHaveCount(1)
  const confirm=dialog.getByRole('button',{name:'Confirm booking',exact:true})
@@ -83,8 +87,8 @@ test('phone agreement books once and sends no customer message',async({page})=>{
  expect(state.calls.filter(c=>c.path.endsWith('/rpc/book_approved_estimate'))).toHaveLength(1)
  expect(state.calls.filter(c=>c.path.endsWith('/functions/v1/work-scheduling'))).toHaveLength(0)
  await dialog.getByRole('button',{name:'Close scheduling'}).click()
- await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
- await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+ await expect(scheduleQueue(page)).toContainText('No work needs scheduling.')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 0')
  const calendar=page.getByRole('region',{name:'Work calendar'})
  await calendar.getByRole('button',{name:'Next week',exact:true}).click()
  await calendar.getByRole('button',{name:'Next week',exact:true}).click()
@@ -93,31 +97,30 @@ test('phone agreement books once and sends no customer message',async({page})=>{
 
 test('an older next-step response cannot restore a booking resolved by a newer refresh',async({page})=>{
  const state=await mock(page);await page.goto('/')
- await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+ await scheduleWork(page).click()
+ await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
  await expect.poll(()=>state.pendingWorkflow).toBe(0)
  state.workflowDelay=800
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
  await expect.poll(()=>state.pendingWorkflow).toBe(1)
  state.booked=true
  await page.evaluate(()=>window.dispatchEvent(new Event('finviant-work-changed')))
- await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
- await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+ await expect(scheduleQueue(page)).toContainText('No work needs scheduling.')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 0')
  await expect.poll(()=>state.pendingWorkflow).toBe(0)
- await expect(page.getByRole('region',{name:'Guided next steps'})).toHaveCount(0)
- await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+ await expect(scheduleQueue(page)).toContainText('No work needs scheduling.')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 0')
 })
 
 for(const width of [1440,390])test(`dashboard tiles share surfaces and typography at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page);await page.goto('/')
- await expect(page.getByRole('region',{name:'Guided next steps'})).toBeVisible()
- await expect(page.locator('.dashboard-tile')).toHaveCount(4)
+ await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
+ await expect(page.locator('.home-overview .dashboard-tile')).toHaveCount(3)
  const appearance=await page.locator('.dashboard-tile').evaluateAll(tiles=>tiles.map(tile=>{
   const style=getComputedStyle(tile),title=getComputedStyle(tile.querySelector('.dashboard-tile-title'))
   return {background:style.backgroundColor,border:style.borderColor,borderWidth:style.borderWidth,radius:style.borderRadius,font:style.fontFamily,titleFont:title.fontFamily,titleSize:title.fontSize,titleWeight:title.fontWeight,titleColor:title.color}
  }))
  for(const tile of appearance)expect(tile).toEqual(appearance[0])
- const values=await page.locator('.billing-summary strong,.performance-metric strong,.jobs-active-count').evaluateAll(items=>items.map(item=>{const style=getComputedStyle(item);return [style.fontFamily,style.fontSize,style.fontWeight,style.color,item.closest('.has-attention')!==null,!!item.closest('.performance-metric.income,.performance-metric.all')]}))
- for(const value of values){expect(value.slice(0,3)).toEqual(values[0].slice(0,3));expect(value[3]).toBe(value[4]?'rgb(180, 35, 24)':value[5]?'rgb(0, 122, 101)':'rgb(16, 44, 75)')}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/uniform-dashboard-${width}.png`,fullPage:true})
 })
@@ -142,6 +145,7 @@ test('stale customer slot reports a conflict and never claims confirmation',asyn
 test('a typed customer stays in the estimate draft without losing line-item work',async({page})=>{
  await mock(page);await page.goto('/?view=estimates');await createWork(page, 'estimate')
  await page.getByPlaceholder('Description',{exact:true}).fill('Keep this scope');await page.getByPlaceholder('Unit price',{exact:true}).fill('250')
+ await page.getByRole('button',{name:'Create a new customer',exact:true}).click()
  await page.getByLabel('Customer name',{exact:true}).fill('New Customer')
  await page.getByText('Add email or phone (optional)',{exact:true}).click()
  await page.getByLabel('Customer email',{exact:true}).fill('new@example.test')

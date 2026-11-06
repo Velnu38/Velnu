@@ -1,4 +1,4 @@
-import { finInvoiceDraft } from '../lib/voiceDocument'
+import { finInvoiceDraft, resolveFinInvoiceSeed } from '../lib/voiceDocument'
 import { useEffect, useState } from 'react'
 import { listCustomers } from '../services/customers'
 import { customerOptionName, matchingCustomers, type CustomerOption } from '../lib/customerSuggestions'
@@ -12,7 +12,7 @@ export default function FinCustomerSuggestions({businessId, text, disabled, onSe
 }) {
   const [records, setRecords] = useState<{businessId: string; customers: CustomerOption[]} | null>(null)
   const [failed, setFailed] = useState(false)
-  const [query, setQuery] = useState('')
+  const [debouncedText, setDebouncedText] = useState('')
   useEffect(() => {
     let active = true
     setRecords(null); setFailed(false)
@@ -20,22 +20,24 @@ export default function FinCustomerSuggestions({businessId, text, disabled, onSe
     return () => { active = false }
   }, [businessId])
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const invoice = finInvoiceDraft(text)
-      const match = text.match(/\b(?:invoice|estimate|job)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|with|due|on|at|total)\b|[,;$\n]|$)/i)
-      setQuery(invoice ? invoice.seed.customerName : match?.[1]?.trim() || (text.trim().split(/\s+/).length <= 4 ? text.trim() : ''))
-    }, 180)
+    const timer = window.setTimeout(() => setDebouncedText(text), 180)
     return () => window.clearTimeout(timer)
   }, [text])
-  if (disabled || query.length < 2 || /\[Saved customer record /.test(text)) return null
+  if (disabled || !text.trim() || debouncedText !== text || /\[Saved customer record /.test(text)) return null
+  const savedCustomers = records?.businessId === businessId ? records.customers : []
+  const invoice = finInvoiceDraft(text)
+  const match = text.match(/\b(?:invoice|estimate|job)\s+(?:for|to)\s+(.+?)(?=\s+(?:for|with|due|on|at|total)\b|[,;$\n]|$)/i)
+  const query = invoice ? resolveFinInvoiceSeed(invoice, savedCustomers).customerName
+    : match?.[1]?.trim() || (text.trim().split(/\s+/).length <= 4 ? text.trim() : '')
+  if (query.length < 2) return null
   if (failed) return <p className="quiet">Customer suggestions could not load. Fin can still look up your request.</p>
-  const customers = records?.businessId === businessId ? matchingCustomers(records.customers, query) : []
+  const customers = matchingCustomers(savedCustomers, query)
   if (!customers.length) return null
   return <section className="customer-picker" aria-label="Suggested customers for Fin"><p className="quiet">Use a saved customer in this request</p><div className="customer-picker-options">
     {customers.map(customer => <button type="button" key={customer.id} onClick={() => {
       const name = customerOptionName(customer)
       const details = [customer.email, customer.phone].filter(Boolean).join(' · ')
       onSelect(text + '\n[Saved customer record ' + customer.id + ': ' + name + (details ? ' · ' + details : '') + ']', customer.id)
-    }}><strong>Use {customerOptionName(customer)}</strong><span>{[customer.company, customer.email, customer.phone].filter(Boolean).join(' · ') || 'Customer record ' + customer.id.slice(-8)}</span></button>)}
+    }}><strong>{invoice ? 'Create invoice for ' : 'Use '}{customerOptionName(customer)}</strong><span>{[customer.company, customer.email, customer.phone].filter(Boolean).join(' · ') || 'Customer record ' + customer.id.slice(-8)}</span></button>)}
   </div></section>
 }

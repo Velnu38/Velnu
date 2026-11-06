@@ -47,7 +47,7 @@ test('forgot password requests an on-site recovery link and gives a generic acco
   await expect(page.getByRole('status')).toContainText('If an account exists')
   const request = requests.find(item => item.path.endsWith('/recover'))
   expect(request.body.email).toBe(user.email)
-  expect(request.query.get('redirect_to')).toBe('http://127.0.0.1:4173/?recovery=1')
+  expect(request.query.get('redirect_to')).toBe(new URL('/?recovery=1', page.url()).href)
 })
 
 test('expired recovery link offers a fresh link instead of a password form', async ({ page }) => {

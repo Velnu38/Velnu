@@ -26,6 +26,9 @@ export function validateDeploymentEnvironment(env) {
     if (ref !== env.FINVIANT_QA_SUPABASE_PROJECT_REF || !isIsolatedQaProjectRef(ref)) {
       throw new Error('QA previews require an explicitly registered isolated Supabase project')
     }
+    if (!/^[a-f0-9]{40}$/.test(env.VERCEL_GIT_COMMIT_SHA || '')) {
+      throw new Error('QA previews require the full Vercel Git commit SHA')
+    }
   } else if (production ? ref === STAGING_PROJECT_REF || ref === env.FINVIANT_QA_SUPABASE_PROJECT_REF : ref !== STAGING_PROJECT_REF) {
     throw new Error('Production and staging must use separate registered Supabase projects')
   }

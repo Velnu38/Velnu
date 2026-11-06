@@ -19,6 +19,8 @@ export function readReleaseQaTarget(env = process.env) {
       || !isIsolatedQaProjectRef(database.hostname.slice(0, -'.supabase.co'.length))) {
     throw new Error('Use an isolated Supabase QA project outside the shared staging and production projects')
   }
+  const commit = env.GITHUB_SHA || env.FINVIANT_QA_PREVIEW_COMMIT
+  if (!commit || !/^[a-f0-9]{40}$/.test(commit)) throw new Error('The full commit SHA of the QA preview is required')
   const business = env.FINVIANT_QA_BUSINESS?.trim()
   const outsiderBusiness = env.FINVIANT_QA_OUTSIDER_BUSINESS?.trim()
   if (!business?.startsWith('Finviant QA ')) throw new Error('FINVIANT_QA_BUSINESS must name a dedicated Finviant QA workspace')
@@ -38,5 +40,5 @@ export function readReleaseQaTarget(env = process.env) {
   if (new Set(Object.values(accounts).map(({ email }) => email.toLowerCase())).size !== Object.keys(accounts).length) {
     throw new Error('Each QA role needs a separate login')
   }
-  return { preview: preview.origin, database: database.origin, business, outsiderBusiness, bypass, accounts }
+  return { preview: preview.origin, database: database.origin, commit, business, outsiderBusiness, bypass, accounts }
 }

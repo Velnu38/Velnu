@@ -9,15 +9,19 @@ async function signIn(page, role) {
   // Establish the bypass cookie only on the exact QA origin. Never add this
   // header to browser requests that could go to Supabase or another origin.
   const anonymous = await context.request.get(target.preview, { maxRedirects: 0 })
-  expect([401, 403].includes(anonymous.status()), 'Vercel must challenge unauthenticated QA access').toBe(true)
-  const allowed = await context.request.get(target.preview, {
+  const location = anonymous.headers().location
+  const redirect = location ? new URL(location, target.preview) : null
+  const sso = anonymous.status() >= 300 && anonymous.status() < 400 && redirect?.origin === 'https://vercel.com'
+    && ['/login', '/sso-api'].includes(redirect.pathname)
+  expect(sso || [401, 403].includes(anonymous.status()), 'Vercel must challenge unauthenticated QA access').toBe(true)
+  const allowed = await context.request.get('/auth?mode=signin', {
     maxRedirects: 0,
     headers: {
       'x-vercel-protection-bypass': target.bypass,
       'x-vercel-set-bypass-cookie': 'true',
     },
   })
-  expect(allowed.status(), 'QA automation credential must reach the preview').toBeLessThan(400)
+  expect(allowed.ok(), 'QA automation credential must reach the preview').toBe(true)
 
   await context.route('**/*', async route => {
     const url = new URL(route.request().url())
@@ -27,6 +31,7 @@ async function signIn(page, role) {
     return route.continue()
   })
   await page.goto('/auth?mode=signin')
+  await expect(page.locator('meta[name="finviant-qa-commit"]')).toHaveAttribute('content', target.commit)
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
   const { email, password } = target.accounts[role]
   try {
@@ -49,11 +54,12 @@ async function signIn(page, role) {
   await expect(page.locator('.topbar-business .role-pill')).toHaveText(role === 'outsider' ? 'owner' : role)
 }
 
-async function addCustomer(page, name) {
+async function addCustomer(page, name, email = '') {
   await page.goto('/?view=customers')
   await page.getByRole('button', { name: /New customer/ }).click()
   const form = page.getByRole('dialog', { name: 'Add a customer', exact: true })
   await form.getByLabel('First name', { exact: true }).fill(name)
+  if (email) await form.getByLabel('Email', { exact: true }).fill(email)
   await form.getByLabel('Street address (optional)', { exact: true }).fill('100 Synthetic QA Way')
   await form.getByLabel('City', { exact: true }).fill('Test City')
   await form.getByLabel('State', { exact: true }).fill('VA')
@@ -153,6 +159,53 @@ test('owner records a synthetic job from customer creation through payment and r
     await expect(entries).toHaveCount(1)
     await expect(entries.first()).toContainText('+$150.00')
   })
+})
+
+test('the owner can open each Needs Attention category backed by the live QA database', async ({ page }) => {
+  await signIn(page, 'owner')
+  const categories = page.getByRole('group', { name: 'Needs Attention categories', exact: true })
+  for (const [label, filter] of [
+    ['Schedule work', 'schedule'],
+    ['Finish invoices', 'invoice'],
+    ['Overdue payments', 'overdue'],
+    ['Follow-ups due', 'follow_up'],
+  ]) {
+    const category = categories.getByRole('button', { name: new RegExp('^' + label + ' \\d+$') })
+    const [result] = await Promise.all([
+      page.waitForResponse(response => {
+        const url = new URL(response.url())
+        return url.origin === target.database && url.pathname === '/rest/v1/rpc/get_dashboard_attention_page'
+          && response.request().method() === 'POST' && response.request().postDataJSON()?.p_filter === filter
+      }),
+      category.click(),
+    ])
+    expect(result.ok(), 'QA database accepted the ' + label + ' filter').toBe(true)
+    await expect(category).toHaveAttribute('aria-pressed', 'true')
+    const queue = page.getByRole('region', { name: label, exact: true })
+    await expect(queue).toHaveAttribute('aria-busy', 'false')
+    await expect(queue.getByRole('alert')).toHaveCount(0)
+  }
+})
+
+test('Fin offers a real saved QA customer and opens a prefilled invoice draft', async ({ page }) => {
+  const tag = randomUUID().slice(0, 8)
+  const customer = 'Fin customer QA ' + tag
+  const email = 'finviant-qa-' + tag + '@example.test'
+  await signIn(page, 'owner')
+  await addCustomer(page, customer, email)
+  await page.goto('/')
+  await page.locator('.fin-launcher').getByRole('button', { name: 'Ask Fin', exact: true }).click()
+  const assistant = page.getByRole('dialog', { name: 'Fin — your office assistant' })
+  await assistant.getByRole('textbox', { name: 'Describe your invoice or request' }).fill(
+    'Open invoice and create a new invoice for ' + customer + ' mowing $100',
+  )
+  await assistant.getByRole('button', { name: new RegExp('^Create invoice for ' + customer) }).click()
+  await expect(page).toHaveURL(/view=invoices/)
+  const editor = page.getByRole('dialog', { name: 'Create an invoice', exact: true })
+  await expect(editor.getByRole('combobox', { name: 'Customer', exact: true })).toHaveValue(customer)
+  await expect(editor.locator('.customer-picker-selected')).toContainText(email)
+  await expect(editor.getByLabel('Line 1 description', { exact: true })).toHaveValue('mowing')
+  await expect(editor.getByLabel('Line 1 unit price', { exact: true })).toHaveValue('100')
 })
 
 test('office staff with billing access can open Invoices', async ({ page }) => {

@@ -4,7 +4,7 @@ import { dispatchQueuedEmail } from '../_shared/emailDispatch.ts'
 import { schedulingHandler } from './handler.ts'
 
 const url=Deno.env.get('SUPABASE_URL') || '', anon=Deno.env.get('SUPABASE_ANON_KEY') || '', service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-const environment=resolveAppEnvironment(url,Deno.env.get('FINVIANT_APP_BASE_URL'))
+const environment=resolveAppEnvironment(url,Deno.env.get('FINVIANT_APP_BASE_URL'),Deno.env.get('FINVIANT_QA_SUPABASE_PROJECT_REF'))
 const resend=Deno.env.get('RESEND_API_KEY') || ''
 if(!environment || !url || !anon || !service) {
   Deno.serve(()=>new Response(JSON.stringify({error:'Scheduling service is awaiting setup.'}),{status:503,headers:{'content-type':'application/json'}}))
@@ -12,7 +12,7 @@ if(!environment || !url || !anon || !service) {
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
   Deno.serve(schedulingHandler({
     origin:environment.baseUrl,allowedOrigins:environment.origins,
-    emailEnabled:Deno.env.get('FINVIANT_CUSTOMER_EMAIL_ENABLED')==='true' && !!resend && !!Deno.env.get('RESEND_WEBHOOK_SECRET'),
+    emailEnabled:environment.name!=='qa' && Deno.env.get('FINVIANT_CUSTOMER_EMAIL_ENABLED')==='true' && !!resend && !!Deno.env.get('RESEND_WEBHOOK_SECRET'),
     async authorize(authorization) {
       if(!authorization.startsWith('Bearer ')) return null
       const caller=createClient(url,anon,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}})
