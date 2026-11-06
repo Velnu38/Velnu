@@ -173,3 +173,8 @@
 @media (prefers-reduced-motion: reduce) {
   .module-summary-card { transition: none; }
 }
+
+.attention-category-pill { cursor: pointer; min-height: 44px; font-family: inherit; }
+.attention-category-pill:hover { filter: brightness(.96); }
+.attention-category-pill:focus-visible { outline: 3px solid #007f70; outline-offset: 3px; }
+.attention-category-pill[aria-pressed="true"] { box-shadow: inset 0 0 0 2px currentColor; }
