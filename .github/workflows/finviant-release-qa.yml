@@ -1,0 +1,120 @@
+name: Finviant Release QA
+
+on:
+  pull_request:
+    branches: [ux/private-testing-20261029]
+  push:
+    branches: [qa/finviant-release]
+  workflow_dispatch:
+    inputs:
+      hosted_qa:
+        description: Run signed-in tests against the protected QA preview
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finviant-release-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  browser-regression:
+    name: Browser regression (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [chromium, webkit, integrations]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:deployment
+        if: matrix.suite == 'chromium'
+      - name: Install WebKit and system dependencies
+        if: matrix.suite == 'webkit'
+        run: npx playwright install --with-deps webkit
+      - name: Run browser tests with simulated services
+        env:
+          QA_BROWSER_SUITE: ${{ matrix.suite }}
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/release-qa.json
+        run: |
+          case "$QA_BROWSER_SUITE" in
+            chromium) FINVIANT_TEST_CHANNEL=chrome npx playwright test --workers=4 ;;
+            webkit)
+              npx playwright test --config=playwright.mobile.config.mjs --workers=3 \
+                tests/e2e/critical-dashboard-schedule.spec.mjs tests/e2e/document-creation-preview.spec.mjs \
+                tests/e2e/home-screen.spec.mjs tests/e2e/predictive-customers.spec.mjs
+              ;;
+            integrations) FINVIANT_TEST_CHANNEL=chrome npx playwright test --config=playwright.integrations.config.mjs --workers=2 ;;
+          esac
+      - name: Summarize browser results
+        if: always()
+        env:
+          QA_BROWSER_SUITE: ${{ matrix.suite }}
+        run: node scripts/qa/release-summary.mjs "Browser regression ($QA_BROWSER_SUITE)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: finviant-regression-${{ matrix.suite }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  hosted-qa:
+    name: Signed-in release assessment
+    if: >-
+      github.repository == 'Velnu38/Velnu' &&
+      (github.ref == 'refs/heads/qa/finviant-release' || github.ref == 'refs/heads/ux/private-testing-20261029') &&
+      ((github.event_name == 'workflow_dispatch' && inputs.hosted_qa) ||
+       (github.event_name == 'push' && vars.FINVIANT_RUN_HOSTED_QA == 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: QA
+    concurrency:
+      group: finviant-hosted-qa
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run against the isolated QA preview
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+          FINVIANT_QA_PREVIEW_URL: ${{ vars.FINVIANT_QA_PREVIEW_URL }}
+          FINVIANT_QA_SUPABASE_URL: ${{ vars.FINVIANT_QA_SUPABASE_URL }}
+          FINVIANT_QA_BUSINESS: ${{ vars.FINVIANT_QA_BUSINESS }}
+          FINVIANT_QA_OUTSIDER_BUSINESS: ${{ vars.FINVIANT_QA_OUTSIDER_BUSINESS }}
+          FINVIANT_QA_VERCEL_BYPASS_SECRET: ${{ secrets.FINVIANT_QA_VERCEL_BYPASS_SECRET }}
+          FINVIANT_QA_OWNER_EMAIL: ${{ secrets.FINVIANT_QA_OWNER_EMAIL }}
+          FINVIANT_QA_OWNER_PASSWORD: ${{ secrets.FINVIANT_QA_OWNER_PASSWORD }}
+          FINVIANT_QA_OFFICE_EMAIL: ${{ secrets.FINVIANT_QA_OFFICE_EMAIL }}
+          FINVIANT_QA_OFFICE_PASSWORD: ${{ secrets.FINVIANT_QA_OFFICE_PASSWORD }}
+          FINVIANT_QA_TECHNICIAN_EMAIL: ${{ secrets.FINVIANT_QA_TECHNICIAN_EMAIL }}
+          FINVIANT_QA_TECHNICIAN_PASSWORD: ${{ secrets.FINVIANT_QA_TECHNICIAN_PASSWORD }}
+          FINVIANT_QA_OUTSIDER_EMAIL: ${{ secrets.FINVIANT_QA_OUTSIDER_EMAIL }}
+          FINVIANT_QA_OUTSIDER_PASSWORD: ${{ secrets.FINVIANT_QA_OUTSIDER_PASSWORD }}
+        run: npx playwright test --config=playwright.hosted-qa.config.mjs
+      - name: Summarize signed-in results
+        if: always()
+        run: node scripts/qa/release-summary.mjs "Signed-in release assessment"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: finviant-signed-in-qa
+          path: test-results/hosted-qa-counts.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -2,6 +2,11 @@ import { pathToFileURL } from 'node:url'
 
 // This project is deliberately retained as staging, including its existing data.
 export const STAGING_PROJECT_REF = 'xvybcmyoblfgzokaifsx'
+const PRODUCTION_PROJECT_REF = 'qusmeexjbwphoezlcmie'
+
+export function isIsolatedQaProjectRef(ref) {
+  return /^[a-z]{20}$/.test(ref) && ![STAGING_PROJECT_REF, PRODUCTION_PROJECT_REF].includes(ref)
+}
 
 export function validateDeploymentEnvironment(env) {
   const target = env.VERCEL_ENV
@@ -10,13 +15,18 @@ export function validateDeploymentEnvironment(env) {
     throw new Error('A recognized VERCEL_ENV is required for hosted builds')
   }
   const production = target === 'production'
-  const expectedEnvironment = production ? 'production' : 'staging'
+  const qa = env.FINVIANT_DEPLOYMENT_ENV === 'qa'
+  const expectedEnvironment = target === 'preview' && qa ? 'qa' : production ? 'production' : 'staging'
   if (env.FINVIANT_DEPLOYMENT_ENV !== expectedEnvironment) {
     throw new Error('FINVIANT_DEPLOYMENT_ENV does not match the Vercel target')
   }
   const ref = env.FINVIANT_SUPABASE_PROJECT_REF || ''
   if (!/^[a-z]{20}$/.test(ref)) throw new Error('A valid explicit Supabase project reference is required')
-  if (production ? ref === STAGING_PROJECT_REF : ref !== STAGING_PROJECT_REF) {
+  if (qa) {
+    if (ref !== env.FINVIANT_QA_SUPABASE_PROJECT_REF || !isIsolatedQaProjectRef(ref)) {
+      throw new Error('QA previews require an explicitly registered isolated Supabase project')
+    }
+  } else if (production ? ref === STAGING_PROJECT_REF || ref === env.FINVIANT_QA_SUPABASE_PROJECT_REF : ref !== STAGING_PROJECT_REF) {
     throw new Error('Production and staging must use separate registered Supabase projects')
   }
   if (env.VITE_SUPABASE_URL !== `https://${ref}.supabase.co`) {
@@ -34,7 +44,7 @@ export function validateDeploymentEnvironment(env) {
     }
   }
   if (!production && env.VITE_ENABLE_CUSTOMER_ACTIONS === 'true') {
-    throw new Error('Customer delivery must remain disabled in shared staging deployments')
+    throw new Error('Customer delivery must remain disabled in staging and QA deployments')
   }
   if (production) {
     const releaseBranch = env.FINVIANT_PRODUCTION_GIT_REF
