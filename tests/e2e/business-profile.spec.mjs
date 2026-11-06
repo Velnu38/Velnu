@@ -27,6 +27,8 @@ async function mockBusiness(page, existing = false, paid = existing) {
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
     if (path.endsWith('/business_members')) return json(existing ? { role: 'owner', business_id: businessId, businesses: record } : null)
+    if (path.endsWith('/rpc/get_business_storage_usage')) return json({ plan: paid === 'basic' ? 'basic' : paid ? 'pro' : 'free', limit_bytes: paid ? 2000000000 : 100000000, remaining_bytes: paid ? 2000000000 : 100000000, used_bytes: 0, pending_bytes: 0, warning: 'none', logo_allowed: !!paid })
+    if (path.endsWith('/functions/v1/upload-attachment')) return json({ path: new URL(req.url()).searchParams.get('path') })
     if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: paid === 'basic' ? 'basic' : paid ? 'pro' : 'free', ai_limit: paid ? 50 : 0, voice_limit: paid ? 50 : 0, logo_bytes_limit: paid ? 131072 : 0 })
     if (path.endsWith('/business_service_interests')) return json(method === 'POST' ? {} : null, method === 'POST' ? 201 : 200)
     if (path.endsWith('/businesses') && (method === 'POST' || method === 'PATCH')) {
@@ -98,7 +100,7 @@ test('existing owner edits company details and context, then document branding i
   expect(updates.at(-1).body.logo_path).toMatch(/^11111111-1111-4111-8111-111111111111\/logo-/)
   expect(updates.at(-1).body.phone).toBe('757-555-0199')
   expect(updates.at(-1).body.services_offered).toContain('Electrical inspections')
-  expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  expect(writes.some(x => x.path.endsWith('/functions/v1/upload-attachment'))).toBe(true)
 })
 
 test('free owner has manual branding but no hosted logo uploads or paid AI assistant', async ({ page }) => {
@@ -125,5 +127,5 @@ test('activated Basic tier can upload company logo when backend grants storage q
   })
   await page.getByRole('button', { name: 'Save document setup' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Document setup saved' })).toBeVisible()
-  expect(writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  expect(writes.some(x => x.path.endsWith('/functions/v1/upload-attachment'))).toBe(true)
 })

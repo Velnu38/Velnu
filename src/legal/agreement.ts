@@ -1,5 +1,5 @@
-export const AGREEMENT_VERSION = '2026-10-27-v3'
-export const AGREEMENT_EFFECTIVE_DATE = 'October 27, 2026'
+export const AGREEMENT_VERSION = '2026-11-06-v4'
+export const AGREEMENT_EFFECTIVE_DATE = 'November 6, 2026'
 
 export const termsSections = [
   {
@@ -53,6 +53,9 @@ export const termsSections = [
     paragraphs: [
       'Finviant Office is in private development testing. Features identified as in development or coming soon may be changed, delayed, or unavailable. Free, Basic, and Pro entitlements and any paid subscription terms will be published before payment is requested. Accepting these terms does not authorize a charge.',
       'Preview access may be interrupted, changed, suspended, or withdrawn. Keep copies of important records, especially where retention is legally required.',
+      'Attachment storage is shared by all users in one business: Free includes 100 MB, Individual (Basic) includes 2 GB and Business (Pro) includes 10 GB under the active entitlement. These are total retained-storage allowances, not monthly upload credits. MB means 1,000,000 bytes and GB means 1,000,000,000 bytes. Hosted photos and logos count at their stored size; unfinished uploads may reserve space until reconciled. Core customer, estimate, invoice and payment records do not count toward this attachment allowance.',
+      'Each picture upload may be up to 10 MB and each hosted logo up to 2 MB. Logos require an eligible plan. Finviant may resize or compress pictures before storing them. Keep separate copies if original image quality or metadata is important. A full allowance pauses new uploads, while existing records, downloads and payment functions remain accessible subject to their normal access requirements. Reaching a quota or moving to a smaller allowance does not automatically delete files or authorize an overage charge. Remove optional attachments to free space; additional capacity is available only if separately offered and expressly purchased.',
+      'Personal-app delivery prepares content for a compatible email or messaging app. You finish sending there; opening a draft does not prove a message was sent or delivered. Your device and provider requirements apply. Finviant-managed delivery, where enabled, requires sender setup and recipient permissions, uses the displayed delivery allowance, and may incur only separately disclosed and authorized charges. Automated customer reminders require managed delivery and an enabled reminder rule.',
       'Paid subscriptions, when launched, will disclose billing cycle, trial terms, renewal, cancellation timing, taxes, any included usage and overage charges before purchase. Existing draft pricing or a selected plan preference is not an active subscription.'
     ]
   },

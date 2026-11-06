@@ -23,7 +23,7 @@ export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
   free: {
     tier: 'free', name: 'Free', priceMonthlyUsd: 0,
     documentsPerMonth: 10, customerLimit: 250, aiCreditsPerMonth: 0,
-    fileStorageMb: 0, onlineApprovalsPerMonth: 0, hostedLogo: false,
+    fileStorageMb: 100, onlineApprovalsPerMonth: 0, hostedLogo: false,
     status: 'Manual tools · No metered AI',
     features: [
       '10 invoices and estimates combined each month',
@@ -36,7 +36,7 @@ export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
   basic: {
     tier: 'basic', name: 'Basic', priceMonthlyUsd: 9.99,
     documentsPerMonth: 250, customerLimit: 1000, aiCreditsPerMonth: 200,
-    fileStorageMb: 500, onlineApprovalsPerMonth: 0, hostedLogo: true,
+    fileStorageMb: 2000, onlineApprovalsPerMonth: 0, hostedLogo: true,
     status: 'Planned · AI-assisted essentials',
     features: [
       '250 business documents monthly',
@@ -44,7 +44,7 @@ export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
       '200 AI credits each month',
       'Voice-to-invoice and voice-to-estimate drafts (in testing)',
       'Business-aware AI assistant (in testing)',
-      'Custom logo and up to 500 MB file storage',
+      'Custom logo and up to 2 GB file storage',
       'No online estimate acceptances',
       'Optional Scheduling and Bookkeeping AI Assistants priced separately',
     ],
@@ -52,14 +52,14 @@ export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
   pro: {
     tier: 'pro', name: 'Pro', priceMonthlyUsd: 24.99,
     documentsPerMonth: 1000, customerLimit: 5000, aiCreditsPerMonth: 1000,
-    fileStorageMb: 5120, onlineApprovalsPerMonth: 50, hostedLogo: true,
+    fileStorageMb: 10000, onlineApprovalsPerMonth: 50, hostedLogo: true,
     status: 'Planned · Expanded AI and client tools',
     features: [
       '1,000 business documents monthly',
       'Up to 5,000 customers',
       '1,000 AI credits each month',
       'Expanded voice and AI assistance (in testing)',
-      'Company logo and up to 5 GB file storage',
+      'Company logo and up to 10 GB file storage',
       '50 online estimate acceptances monthly (not live yet)',
       'Customer email, reminders and team tools (planned)',
       'Discounted Scheduling and Bookkeeping AI Assistant add-ons',
@@ -103,7 +103,7 @@ export const formatMoney = (amount: number) => '$' + amount.toFixed(2)
 export const formatMonthlyPrice = (tier: VelnuTier) =>
   tier === 'free' ? 'Free' : formatMoney(monthlyPlans[tier].priceMonthlyUsd)
 export const formatStorage = (mb: number) =>
-  mb === 0 ? 'No hosted file storage' : mb >= 1024 ? (mb / 1024).toLocaleString() + ' GB' : mb + ' MB'
+  mb === 0 ? 'No hosted file storage' : mb >= 1000 ? (mb / 1000).toLocaleString() + ' GB' : mb + ' MB'
 
 /** Velnu credits are NOT raw OpenAI model tokens. Proposed accounting:
  * 1 AI text interpretation = 1 credit

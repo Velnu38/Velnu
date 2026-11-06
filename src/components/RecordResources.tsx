@@ -1,3 +1,4 @@
+import StorageUsage from './StorageUsage'
 import FormDialog from './FormDialog'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 import { canAccess } from '../lib/workspaceAccess'
@@ -76,6 +77,7 @@ export default function RecordResources({ business, target }: { business: Curren
     {notice && <p role="status" className="form-message">{notice}</p>}
     {busy && <p role="status">Saving…</p>}
     <div className="record-resources-head"><h3>Photos</h3>{photoWrite && <label className={`secondary-button compact photo-upload${busy ? ' disabled' : ''}`}>Add pictures<input ref={uploadInput} type="file" aria-label="Add pictures" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={event => { const files = Array.from(event.target.files || []); if (files.length) void upload(files) }} /></label>}</div>
+    <StorageUsage businessId={business.id} version={version} />
     <p className="quiet">JPG, PNG, or WebP · up to 10 MB each. Add job pictures or receipt photos.</p>
     {loading ? <p role="status">Loading photos and expenses…</p> : photos.length === 0 ? <p className="quiet">No pictures added yet.</p> : <div className="record-photo-grid">{photos.map(photo => <figure key={photo.id}>
       {photo.url ? <a href={photo.url} target="_blank" rel="noopener noreferrer"><img src={photo.url} alt={photo.file_name} loading="lazy" /></a> : <div className="photo-unavailable">Upload incomplete or preview unavailable. Refresh or remove this picture.</div>}
