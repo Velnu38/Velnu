@@ -18,7 +18,7 @@ export type Completion = {job_id:string;status:'completed';invoice_ready:boolean
 export type WorkflowActions = {approved_count?:number;completed_count?:number;approved:Array<{id:string;estimate_number:string|null;customer_name:string;offer:{status:string;expires_at:string}|null}>;completed:Array<{id:string;title:string;invoice_id:string|null;invoice_status:string|null;error_code:string|null}>}
 async function rpc<T>(name:string,args:Record<string,unknown>):Promise<T> {
   const {data,error}=await supabase.rpc(name,args)
-  if(error) throw new Error(error.message || 'This change could not be saved.')
+  if(error) throw Object.assign(new Error(error.message || 'This change could not be saved.'), { code: error.code })
   return data as T
 }
 async function action<T>(body:Record<string,unknown>):Promise<T> {
@@ -61,7 +61,17 @@ export function sendAvailability(offer:string,token:string,sendId:string) {retur
 export async function completeJob(job:string,retryOnly=false) {const result=await action<Completion>({action:retryOnly?'prepare_invoice':'complete',job_id:job});announceCalendarChange();return result}
 export async function saveSchedulingPreferences(business:string,input:SchedulingPreferences) {await rpc('save_scheduling_preferences',{p_business:business,p_input:input})}
 export function manageTimeOff(business:string,worker:string,start:string,end:string,note:string,remove?:string) {return rpc('manage_worker_time_off',{p_business:business,p_worker:worker,p_start:start,p_end:end,p_note:note,p_remove:remove || null})}
-export async function dispatchJob(job:string,workers:string[],start:string,end:string) {await rpc('dispatch_job',{p_job:job,p_workers:workers,p_start:start,p_end:end});announceCalendarChange()}
+type JobScheduleSnapshot = {id:string;scheduled_start:string|null;scheduled_end?:string|null;assigned_user_ids?:string[]}
+export async function assignJobCrew(job:JobScheduleSnapshot,workers:string[]) {
+  await rpc('assign_job_crew',{p_job:job.id,p_workers:workers,p_expected_workers:job.assigned_user_ids??[],
+    p_expected_start:job.scheduled_start,p_expected_end:job.scheduled_end??null})
+  announceCalendarChange()
+}
+export async function saveJobAppointment(job:JobScheduleSnapshot,start:string,end:string,useMySchedule:boolean) {
+  await rpc('save_job_appointment',{p_job:job.id,p_start:start,p_end:end,p_expected_start:job.scheduled_start,
+    p_expected_end:job.scheduled_end??null,p_use_my_schedule:useMySchedule})
+  announceCalendarChange()
+}
 export function createJobInvoice(job:string,request:string,items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>,due?:string,details?:{issue_date:string;notes:string;payment_links?:import('./settings').PaymentLink[];payment_instructions?:string}) {return rpc<{id:string;already_created:boolean}>('create_job_invoice',{p_job:job,p_request:request,p_items:items,p_due:due || null,p_details:details || {}})}
 
 export type InvoiceJobContext = SchedulingContext & {
