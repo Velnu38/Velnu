@@ -1,3 +1,4 @@
+import PlanRestriction from './PlanRestriction'
 import ManagedSmsDelivery from './ManagedSmsDelivery'
 import {confirmPersonalSent,preparePersonalDocument,type PreparedShare} from '../services/personalDelivery'
 import {personalEmailHref,personalSmsHref} from '../lib/personalDelivery'
@@ -48,7 +49,7 @@ export default function CreationPreview({paper,busy,error,saved=false,onBack,onS
  <button type="button" className="back-button" data-keep-dialog disabled={locked} onClick={onBack}>← Back to edit</button>
  <h2 ref={heading} tabIndex={-1}>{paper.kind==='invoice'?'Invoice':'Estimate'} preview</h2>
  <DocumentPaper {...paper} finviantBranding={setup?.plan==='free'}/>
- {canUpgrade&&setup?.plan==='free'&&<p className="quiet"><a href="/?view=settings&section=plans">Compare plans for unbranded {paper.kind}s</a></p>}
+ {canUpgrade&&setup?.plan==='free'&&<PlanRestriction plan="free" required="basic" feature="Removing Finviant branding" canUpgrade/>}
  {error&&<p role="alert" className="form-message error-text">{error}</p>}
  {saved&&!handoff&&<p role="status">This document is saved. Delivery is not confirmed. Retry uses the same document; Back to edit opens its saved record.</p>}
  {setupError&&<p role="alert">{setupError}</p>}<p className="quiet"><a href="/?view=settings&section=delivery">Email &amp; Text Setup</a>. Your selected tier controls how sending works.</p>

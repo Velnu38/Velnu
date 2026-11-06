@@ -40,7 +40,7 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  const state=await setup(page,{tier,ready:true});await page.goto('/?view='+kind+'s');await page.getByRole('button',{name:'Create '+kind,exact:true}).click();const form=page.getByRole('dialog',{name:'Create an '+kind,exact:true});
  await form.locator('summary').filter({hasText:'Add Customer'}).click();await form.getByRole('combobox',{name:'Customer',exact:true}).fill('Test');await form.getByRole('option',{name:/Test Customer/}).click();await form.locator('summary').filter({hasText:'Add Work Details'}).click();await form.getByLabel('Line 1 description',{exact:true}).fill('Lawn maintenance');await form.getByLabel('Line 1 unit price',{exact:true}).fill('250');await form.getByRole('button',{name:'Preview',exact:true}).click();
  await expect(form.locator('.print-document').getByText('Created with Finviant Office Assistant',{exact:true})).toHaveCount(tier==='free'?1:0)
- await expect(form.getByRole('link',{name:'Compare plans for unbranded '+kind+'s'})).toHaveCount(tier==='free'?1:0)
+ await expect(form.getByRole('link',{name:'View Individual upgrade'})).toHaveCount(tier==='free'?1:0)
  await expect(form.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeEnabled();expect(state.documents).toHaveLength(0);await form.getByRole('button',{name:kind==='invoice'?'Send Email':'Send Text',exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1);expect(state.calls.some(c=>c.path.includes('/send-'))).toBe(false);expect(state.sent).toHaveLength(0);
  await expect(form.getByRole('link',{name:/Open the (email|text) draft again/})).toHaveAttribute('href',kind==='invoice'?/^mailto:/:/^sms:/)
  await expect(form.getByRole('button',{name:/^Send (Email|Text)$/})).toHaveCount(0)
@@ -72,4 +72,14 @@ test('appointment reminders require sender activation and show as paused on down
  await page.getByRole('button',{name:'Turn off appointment reminders'}).click()
  await expect.poll(()=>state.appointmentReminders).toBe(false)
  await expect(page.getByRole('heading',{name:'Customer appointment reminders'})).toHaveCount(0)
+})
+
+test('a blocked settings link names the current tier and focuses the qualifying plan',async({page})=>{
+ await setup(page,{tier:'free'})
+ await page.goto('/?view=settings&section=calendar')
+ await expect(page.getByRole('heading',{name:'Calendar Connections'})).toBeVisible()
+ await expect(page.getByText('Calendar Connections is unavailable on the Free plan.')).toBeVisible()
+ await page.getByRole('link',{name:'View Individual upgrade'}).click()
+ await expect(page.getByRole('article',{name:'Individual plan'})).toBeFocused()
+ await expect(page.getByRole('button',{name:'Test Individual',exact:true})).toBeEnabled()
 })

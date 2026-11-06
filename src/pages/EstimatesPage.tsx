@@ -1,3 +1,4 @@
+import {planUpgradeHref} from '../components/PlanRestriction'
 import EstimateBilling from '../components/EstimateBilling'
 import {useTierUsage} from '../lib/useTierUsage'
 import CreationPreview from '../components/CreationPreview'
@@ -349,7 +350,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         <DocumentRecord dates={previewTarget} timezone={business.timezone} customerId={previewTarget.customer_id} customerName={customerName(previewTarget.customers?.[0])}/>
         {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManageFinances(business.role)} timezone={business.timezone||'America/New_York'}/>}
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
-        {plan==='free'&&isPrimaryOwner(business)&&<p className="quiet"><a href="/?view=settings&section=plans">Compare plans for unbranded estimates</a></p>}
+        {plan==='free'&&isPrimaryOwner(business)&&<p className="quiet"><a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a></p>}
         <DocumentPaper finviantBranding={plan==='free'} business={previewTarget.issuer_snapshot?.name ? {...business,...previewTarget.issuer_snapshot,name:previewTarget.issuer_snapshot.name}:business} kind="estimate" customer={previewTarget.customers?.[0]} number={previewTarget.estimate_number} issued={previewTarget.issue_date} createdAt={previewTarget.created_at} ending={previewTarget.expires_on} items={previewItems} subtotal={previewTarget.subtotal} tax={previewTarget.tax_amount} total={previewTarget.total} message={previewTarget.customer_message}/>
 
       </section>

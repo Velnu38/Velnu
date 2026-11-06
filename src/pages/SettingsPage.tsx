@@ -1,3 +1,4 @@
+import PlanRestriction from '../components/PlanRestriction'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import { useTierUsage } from '../lib/useTierUsage'
 import PlansAndUsage from '../components/settings/PlansAndUsage'
@@ -13,7 +14,7 @@ import { useState, useEffect } from "react";
 import IntegrationSettings from "../components/calendar/IntegrationSettings";
 import type { CurrentBusiness } from "../lib/business";
 import MoreNavigation from '../components/MoreNavigation'
-import { canOpenSettingsSection, settingsHref, settingsOptionForPlan, settingsOptions, settingsSectionFromSearch, type SettingsSection } from '../lib/settingsNavigation'
+import { canOpenSettingsSection, settingsOptionForPlan, settingsOptions, settingsSectionFromSearch, type SettingsSection } from '../lib/settingsNavigation'
 import BusinessProfileEditor from "../components/BusinessProfileEditor";
 import TeamSettings from "../components/settings/TeamSettings";
 import DocumentSettings from "../components/settings/DocumentSettings";
@@ -38,7 +39,7 @@ export default function SettingsPage({ business, onSaved }: {
   function content(id: SettingsSection) {
     if (id === "plans") return <PlansAndUsage businessId={business.id}/>;
     if (id === "delivery") return <DeliverySetup businessId={business.id}/>;
-    if (id === "storage") return <StorageUsage key={business.id} businessId={business.id} detailed />;
+    if (id === "storage") return <StorageUsage key={business.id} businessId={business.id} detailed canUpgrade={isPrimaryOwner(business)}/>;
     if (id === "sms") return <SmsSetup businessId={business.id} />;
     if (id === "support") return <SupportCases businessId={business.id} />;
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;
@@ -54,11 +55,11 @@ export default function SettingsPage({ business, onSaved }: {
     <div className="page-stack"><WorkspaceBack />
       <div className="page-heading">
         <p className="eyebrow">{business.name}</p>
-        <h1>{option?.title || 'More'}</h1>
+        <h1>{option?.title || requestedOption?.title || 'More'}</h1>
         <p className="quiet">{option?.description || 'Manage your business, setup, and connections.'}</p>
       </div>
       {operator && <p><a className="secondary-button" href="/admin">Open Finviant Admin Dashboard</a></p>}
-      {section === null ? <MoreNavigation business={business}/> : !permitted ? <p role="alert">This area is not included in your access. Contact your primary business owner.</p> : option ? content(section) : plan ? <p role="status">This setup requires an eligible plan. {isPrimaryOwner(business) && <a href={settingsHref('plans')}>Compare plans</a>}</p> : <p role="status">Checking plan access…</p>}
+      {section === null ? <MoreNavigation business={business}/> : !permitted ? <p role="alert">This area is not included in your access. Contact your primary business owner.</p> : option ? content(section) : plan && requestedOption ? <PlanRestriction plan={plan} required={section==='calendar'?'basic':'pro'} feature={requestedOption.title} canUpgrade={isPrimaryOwner(business)}/> : <p role="status">Checking plan access…</p>}
     </div>
   );
 }

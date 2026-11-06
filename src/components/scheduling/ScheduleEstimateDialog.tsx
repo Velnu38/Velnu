@@ -1,6 +1,6 @@
+import PlanRestriction from '../PlanRestriction'
 import { useTierUsage } from '../../lib/useTierUsage'
 import { isPrimaryOwner } from '../../lib/workspaceAccess'
-import { settingsHref } from '../../lib/settingsNavigation'
 import FormDialog from '../FormDialog'
 import { useEffect, useRef, useState } from 'react'
 import { DateTime } from 'luxon'
@@ -23,7 +23,9 @@ export default function ScheduleEstimateDialog({business,estimateId,onClose,onSa
     setSite(data.estimate?.property_id || (data.properties?.length===1?data.properties[0].id:''))
     setWorkers(data.team.filter(w=>w.is_you).slice(0,1).map(w=>w.id));setDuration(data.preferences.duration_minutes)
   }).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[business.id,estimateId])
-  const plan = useTierUsage(business.id)?.plan
+  const usage = useTierUsage(business.id)
+  const plan = usage?.plan
+  const bookingLimit = usage?.plan==='free' && usage.jobs_limit!==null && usage.jobs_used>=usage.jobs_limit
   const teamScheduling = plan === 'pro'
   const mode = teamScheduling ? selectedMode : 'book'
   const workers = teamScheduling ? selectedWorkers : context?.team.filter(worker => worker.is_you).map(worker => worker.id) ?? []
@@ -43,7 +45,7 @@ export default function ScheduleEstimateDialog({business,estimateId,onClose,onSa
   function close(){if(operation.current)return;onClose()}
   function toggle(start:string){setApproved(false);setChosen(values=>mode==='book'?[start]:values.includes(start)?values.filter(x=>x!==start):values.length<6?[...values,start]:values)}
   async function save(email:boolean){
-    if(operation.current || !plan || (created?.url && !teamScheduling) || !context?.estimate || (mode==='offer'&&!approved) || !title.trim() || !chosen.length)return
+    if(operation.current || bookingLimit || !plan || (created?.url && !teamScheduling) || !context?.estimate || (mode==='offer'&&!approved) || !title.trim() || !chosen.length)return
     operation.current=true;setBusy(true);setError('');setNotice('')
     try {
       const selected=slots.filter(slot=>chosen.includes(slot.starts_at))
@@ -75,7 +77,7 @@ export default function ScheduleEstimateDialog({business,estimateId,onClose,onSa
       <div className="guided-summary"><strong>{context.estimate?.customer_name}</strong><span>{context.estimate?.customer_email || 'No customer email saved'}</span><details><summary>Approved scope</summary><p>{context.estimate?.scope}</p></details></div>
       {context.estimate?.job_id && <p role="status">This estimate already has a job. Open Jobs to manage its schedule.</p>}
       {!created && !context.estimate?.job_id && <>
-        {teamScheduling ? <div className="guided-mode" role="group" aria-label="Scheduling method"><button type="button" aria-pressed={mode==='offer'} onClick={()=>{setMode('offer');setApproved(false)}}>Let customer choose</button><button type="button" aria-pressed={mode==='book'} onClick={()=>{setMode('book');setApproved(false)}}>Time already agreed</button></div> : plan && isPrimaryOwner(business) && <a className="text-button" href={settingsHref('plans')}>Let the customer pick a time · Business Pro</a>}
+        {teamScheduling ? <div className="guided-mode" role="group" aria-label="Scheduling method"><button type="button" aria-pressed={mode==='offer'} onClick={()=>{setMode('offer');setApproved(false)}}>Let customer choose</button><button type="button" aria-pressed={mode==='book'} onClick={()=>{setMode('book');setApproved(false)}}>Time already agreed</button></div> : plan && <PlanRestriction plan={plan} required="pro" feature="Customer self-booking" canUpgrade={isPrimaryOwner(business)}/>}
         <div className="guided-form-grid">
           <label>Job name<input maxLength={200} value={title} onChange={e=>{setTitle(e.target.value);setApproved(false)}}/></label>
           <label>Service address<select value={site} onChange={e=>{setSite(e.target.value);setApproved(false)}}><option value="">Confirm address with customer</option>{context.properties?.map(p=><option value={p.id} key={p.id}>{p.label?`${p.label} · `:''}{p.address}</option>)}</select></label>
@@ -90,8 +92,9 @@ export default function ScheduleEstimateDialog({business,estimateId,onClose,onSa
         {mode==='offer' && <label className="guided-message">Message to customer<textarea maxLength={1000} rows={3} value={note} onChange={e=>{setNote(e.target.value);setApproved(false)}}/></label>}
         {context.offer?.status==='approved' && plan && <p className="quiet">{teamScheduling?'Approving fresh options replaces the previous invitation.':'The customer invitation is paused. You can book the job here.'}</p>}
         {mode==='offer'&&<label className="guided-approval"><input type="checkbox" checked={approved} onChange={e=>setApproved(e.target.checked)}/><span>{mode==='offer'?`I approve these ${chosen.length} appointment options, the selected crew, service address and customer message.`:'I have agreed this appointment with the customer and approve the crew and service address.'}</span></label>}
+        {bookingLimit&&<PlanRestriction plan="free" required="basic" feature="new job bookings" limit canUpgrade={isPrimaryOwner(business)}/>}
         <div className="guided-actions"><button type="button" className="secondary-button" disabled={busy} onClick={close}>Cancel</button>
-          {mode==='offer'?<><button type="button" className="secondary-button" disabled={busy||finding||!approved||!chosen.length||!workers.length||!title.trim()} onClick={()=>void save(false)}>{busy?'Saving…':'Approve & create invitation'}</button><button type="button" className="primary-button" disabled={busy||finding||!approved||!chosen.length||!workers.length||!title.trim()||!customerActionsEnabled||!context.estimate?.customer_email} onClick={()=>void save(true)}>Approve & email customer</button></>:<button type="button" className="primary-button" disabled={busy||!plan||finding||chosen.length!==1||!workers.length||!title.trim()} onClick={()=>void save(false)}>{busy?'Booking…':'Confirm booking'}</button>}
+          {mode==='offer'?<><button type="button" className="secondary-button" disabled={busy||finding||!approved||!chosen.length||!workers.length||!title.trim()} onClick={()=>void save(false)}>{busy?'Saving…':'Approve & create invitation'}</button><button type="button" className="primary-button" disabled={busy||finding||!approved||!chosen.length||!workers.length||!title.trim()||!customerActionsEnabled||!context.estimate?.customer_email} onClick={()=>void save(true)}>Approve & email customer</button></>:<button type="button" className="primary-button" disabled={busy||!plan||bookingLimit||finding||chosen.length!==1||!workers.length||!title.trim()} onClick={()=>void save(false)}>{busy?'Booking…':'Confirm booking'}</button>}
         </div>
         {mode==='offer'&&!customerActionsEnabled&&<p className="quiet">Email delivery is disabled during private testing. You can review invitations or book a time already agreed with your customer.</p>}
       </>}
