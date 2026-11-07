@@ -25,6 +25,11 @@ const cookie = (p: Provider, value: string, age = 600) =>
   `${cookieName(p)}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${age}`;
 const safeFields =
   "id,provider,email,calendar_id,calendar_name,auto_sync,state,last_synced_at,last_error";
+const providerConfigured = (p: Provider) => {
+  const prefix = p === "google" ? "GOOGLE_CALENDAR" : "OUTLOOK_CALENDAR";
+  return !!process.env[`${prefix}_CLIENT_ID`]?.trim() &&
+    !!process.env[`${prefix}_CLIENT_SECRET`]?.trim();
+};
 
 async function callback(req: Request, url: URL) {
   const p = providerName(url.searchParams.get("provider")),
@@ -197,8 +202,10 @@ export async function calendarApi(req: Request): Promise<Response> {
     const bid = uuid(input.businessId),
       user = await actor(req, bid, !["disconnect", "list"].includes(action));
     if (action === "connect" && req.method === "POST") {
-      const p = providerName(input.provider),
-        state = randomSecret(),
+      const p = providerName(input.provider);
+      if (!providerConfigured(p))
+        throw new CalendarError(`${p}_calendar_setup_required`, false, 0, 503);
+      const state = randomSecret(),
         verifier = randomSecret(),
         browser = randomSecret(),
         stateHash = digest(state);
@@ -258,6 +265,7 @@ export async function calendarApi(req: Request): Promise<Response> {
     if (action === "list" && req.method === "GET")
       return await transaction(async (db) =>
         json({
+          providers: { google: providerConfigured("google"), outlook: providerConfigured("outlook") },
           integrations: (
             await db.query(
               `select ${safeFields} from private.calendar_integrations where business_id=$1 and user_id=$2`,

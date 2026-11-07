@@ -199,3 +199,54 @@ test("Outlook uses a query-free redirect and its callback preserves state valida
   assert.match(declined.headers.get("Set-Cookie") || "", /^__Host-fv-calendar-outlook=.*Max-Age=0/);
   assert.equal(consumed.length, 1);
 });
+
+test("provider readiness stays authenticated and missing credentials consume no OAuth attempts", async (t) => {
+  const keys = ["CALENDAR_SYNC_ENABLED", "CALENDAR_DATABASE_URL", "VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY", "GOOGLE_CALENDAR_CLIENT_ID", "GOOGLE_CALENDAR_CLIENT_SECRET", "OUTLOOK_CALENDAR_CLIENT_ID", "OUTLOOK_CALENDAR_CLIENT_SECRET"];
+  const previous = keys.map(key => process.env[key]);
+  t.after(() => keys.forEach((key, index) => {
+    if (previous[index] === undefined) delete process.env[key];
+    else process.env[key] = previous[index];
+  }));
+  process.env.CALENDAR_SYNC_ENABLED = "true";
+  process.env.CALENDAR_DATABASE_URL = "postgres://localhost/calendar-test";
+  process.env.VITE_SUPABASE_URL = "https://calendar-test.supabase.co";
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY = "test-publishable-key";
+  process.env.GOOGLE_CALENDAR_CLIENT_ID = " ";
+  delete process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
+  process.env.OUTLOOK_CALENDAR_CLIENT_ID = "test-outlook-id";
+  process.env.OUTLOOK_CALENDAR_CLIENT_SECRET = "test-outlook-secret";
+  t.mock.method(globalThis, "fetch", async () => Response.json({ id: "33333333-3333-4333-8333-333333333333" }));
+  const pool = database();
+  let plan = "pro", member = true, transactions = 0;
+  t.mock.method(pool, "query", async () => ({ rows: member ? [{ role: "owner", plan }] : [] }));
+  t.mock.method(pool, "connect", async () => {
+    transactions++;
+    return { query: async () => ({ rows: [] }), release() {} };
+  });
+  const url = "https://finviant.example/api/calendar?businessId=11111111-1111-4111-8111-111111111111";
+  assert.equal((await calendarApi(new Request(url))).status, 401);
+  assert.equal(transactions, 0);
+  const auth = { Authorization: "Bearer test-access-token" };
+  const response = await calendarApi(new Request(url, { headers: auth }));
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.deepEqual(body, { integrations: [], providers: { google: false, outlook: true } });
+  assert(!JSON.stringify(body).includes("test-outlook"));
+  assert.equal(transactions, 1);
+  const connect = (provider: string) => calendarApi(new Request("https://finviant.example/api/calendar?action=connect", {
+    method: "POST", headers: { ...auth, Origin: "https://finviant.example", "Content-Type": "application/json" },
+    body: JSON.stringify({ businessId: "11111111-1111-4111-8111-111111111111", provider }),
+  }));
+  const google = await connect("google");
+  assert.equal(google.status, 503);
+  assert.deepEqual(await google.json(), { error: "google_calendar_setup_required" });
+  delete process.env.OUTLOOK_CALENDAR_CLIENT_SECRET;
+  const outlook = await connect("outlook");
+  assert.equal(outlook.status, 503);
+  assert.deepEqual(await outlook.json(), { error: "outlook_calendar_setup_required" });
+  assert.equal(transactions, 1, "unconfigured providers never create or consume OAuth state");
+  plan = "free";
+  assert.equal((await connect("google")).status, 403);
+  member = false;
+  assert.equal((await calendarApi(new Request(url, { headers: auth }))).status, 403);
+});

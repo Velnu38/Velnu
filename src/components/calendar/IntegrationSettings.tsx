@@ -4,16 +4,19 @@ import {
   type CalendarIntegration,
   type CalendarOption,
   type CalendarProvider,
+  type CalendarConnections,
 } from "../../services/calendar";
 function ProviderCard({
   businessId,
   provider,
   integration,
+  available = true,
   onChanged,
 }: {
   businessId: string;
   provider: CalendarProvider;
   integration?: CalendarIntegration;
+  available?: boolean;
   onChanged: () => void;
 }) {
   const name = provider === "google" ? "Google Calendar" : "Microsoft Outlook";
@@ -30,7 +33,7 @@ function ProviderCard({
     setEnabled(integration?.auto_sync || false);
     setCalendars([]);
     setError("");
-    if (!connected || !integration) return;
+    if (!connected || !integration || !available) return;
     let active = true;
     void calendarRequest<{ calendars: CalendarOption[] }>(
       "calendars",
@@ -53,6 +56,7 @@ function ProviderCard({
     integration?.state,
     integration?.calendar_id,
     integration?.auto_sync,
+    available,
   ]);
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -85,15 +89,20 @@ function ProviderCard({
       });
     });
   return (
-    <article className="tw:rounded-2xl tw:border tw:border-slate-200 tw:bg-white tw:p-5">
+    <article aria-label={name} className="tw:rounded-2xl tw:border tw:border-slate-200 tw:bg-white tw:p-5">
       <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3">
         <h3>{name}</h3>
-        {connected && (
+        {connected && available && (
           <span className="tw:rounded-full tw:bg-emerald-100 tw:px-3 tw:py-1 tw:text-sm tw:font-semibold tw:text-emerald-800">
             Connected
           </span>
         )}
       </div>
+      {!available && (
+        <p role="status" className="form-message">
+          {name} needs administrator setup before you can connect or sync this account.
+        </p>
+      )}
       {connected && integration ? (
         <>
           <p className="tw:break-all tw:text-sm tw:text-slate-600">
@@ -104,7 +113,7 @@ function ProviderCard({
             <select
               className="tw:mt-1 tw:w-full"
               value={calendarId}
-              disabled={busy}
+              disabled={busy || !available}
               onChange={(e) => setCalendarId(e.target.value)}
             >
               {!calendars.some((c) => c.id === calendarId) && (
@@ -122,7 +131,7 @@ function ProviderCard({
               type="checkbox"
               role="switch"
               checked={enabled}
-              disabled={busy}
+              disabled={busy || !available}
               onChange={(e) => setEnabled(e.target.checked)}
             />
             <span>Auto-populate scheduled work to my calendar</span>
@@ -135,7 +144,7 @@ function ProviderCard({
           <div className="tw:mt-4 tw:flex tw:flex-wrap tw:gap-2">
             <button
               className="primary-button compact"
-              disabled={busy}
+              disabled={busy || !available}
               onClick={() => void save()}
             >
               {busy ? "Saving…" : "Save calendar settings"}
@@ -156,7 +165,7 @@ function ProviderCard({
             </button>
             <button
               className="text-button"
-              disabled={busy}
+              disabled={busy || !available}
               onClick={() =>
                 void run(async () => {
                   await calendarRequest("retry", businessId, "POST", {
@@ -185,7 +194,7 @@ function ProviderCard({
           </p>
           <button
             className="primary-button"
-            disabled={busy}
+            disabled={busy || !available}
             onClick={() => void connect()}
           >
             {integration?.state === "reconnect_required"
@@ -241,6 +250,7 @@ export default function IntegrationSettings({
   businessId: string;
 }) {
   const [rows, setRows] = useState<CalendarIntegration[]>([]),
+    [providers, setProviders] = useState<CalendarConnections["providers"]>({}),
     [version, setVersion] = useState(0),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
@@ -249,12 +259,15 @@ export default function IntegrationSettings({
     let active = true;
     setError("");
     setLoading(true);
-    void calendarRequest<{ integrations: CalendarIntegration[] }>(
+    void calendarRequest<CalendarConnections>(
       "list",
       businessId,
     )
       .then((r) => {
-        if (active) setRows(r.integrations);
+        if (active) {
+          setRows(r.integrations);
+          setProviders(r.providers || {});
+        }
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -301,7 +314,7 @@ export default function IntegrationSettings({
             Retry
           </button>
         </p>
-      ) : (
+      ) : !loading ? (
         <div className="tw:mt-4 tw:grid tw:gap-4 tw:lg:grid-cols-2">
           {(["google", "outlook"] as const).map((provider) => (
             <ProviderCard
@@ -309,11 +322,12 @@ export default function IntegrationSettings({
               businessId={businessId}
               provider={provider}
               integration={rows.find((r) => r.provider === provider)}
+              available={providers?.[provider]}
               onChanged={() => setVersion((v) => v + 1)}
             />
           ))}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

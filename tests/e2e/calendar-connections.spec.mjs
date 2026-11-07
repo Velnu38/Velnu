@@ -29,6 +29,7 @@ for (const width of [390, 1440]) test(`Calendar Connections opens from More and 
   await page.locator(width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Calendar Connections/ }).click()
   const settings = page.getByRole('region', { name: 'Calendar integrations' })
+  await expect(settings).toBeVisible({ timeout: 15000 })
   await expect(settings.getByRole('alert')).toContainText('need administrator setup in Finviant')
   await expect(settings.getByRole('button', { name: 'Connect Google Calendar' })).toHaveCount(0)
   configured = true
@@ -63,4 +64,66 @@ test('a callback URL alone does not claim an account is connected', async ({ pag
   const settings = page.getByRole('region', { name: 'Calendar integrations' })
   await expect(settings.getByRole('button', { name: 'Connect Google Calendar' })).toBeVisible()
   await expect(settings).not.toContainText('Calendar connected.')
+})
+
+for (const width of [390, 1440]) test(`Outlook remains usable when Google setup is unavailable at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 })
+  await mock(page, { ai: true })
+  const connects = []
+  await page.route('**/api/calendar?**', route => {
+    const request = route.request()
+    const action = new URL(request.url()).searchParams.get('action')
+    if (action === 'connect') {
+      connects.push(request.postDataJSON())
+      return route.fulfill({ json: { url: '/?view=settings&section=calendar&calendar=declined' } })
+    }
+    return route.fulfill({ json: { integrations: [], providers: { google: false, outlook: true } } })
+  })
+  await page.goto('/?view=settings&section=calendar')
+  const settings = page.getByRole('region', { name: 'Calendar integrations' })
+  const google = settings.getByRole('article', { name: 'Google Calendar', exact: true })
+  const outlook = settings.getByRole('article', { name: 'Microsoft Outlook', exact: true })
+  await expect(google.getByRole('status')).toContainText('Google Calendar needs administrator setup')
+  await expect(google.getByRole('button', { name: 'Connect Google Calendar' })).toBeDisabled()
+  await expect(outlook.getByRole('button', { name: 'Connect Microsoft Outlook' })).toBeEnabled()
+  await expect(outlook).not.toContainText('administrator setup')
+  await outlook.getByRole('button', { name: 'Connect Microsoft Outlook' }).click()
+  await expect.poll(() => connects.length).toBe(1)
+  expect(connects[0]).toEqual({ businessId: B, provider: 'outlook' })
+  await expect(page).toHaveURL(/calendar=declined/)
+  await expect(settings).toContainText('Calendar access wasn’t granted.')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('a stale provider setup error names only that provider', async ({ page }) => {
+  await mock(page, { ai: true })
+  await page.route('**/api/calendar?**', route => {
+    const action = new URL(route.request().url()).searchParams.get('action')
+    return action === 'connect'
+      ? route.fulfill({ status: 503, json: { error: 'google_calendar_setup_required' } })
+      : route.fulfill({ json: { integrations: [] } })
+  })
+  await page.goto('/?view=settings&section=calendar')
+  const settings = page.getByRole('region', { name: 'Calendar integrations' })
+  await settings.getByRole('button', { name: 'Connect Google Calendar' }).click()
+  await expect(settings.getByRole('alert')).toHaveText('Google Calendar needs administrator setup in Finviant before you can connect your account.')
+  await expect(settings.getByRole('button', { name: 'Connect Microsoft Outlook' })).toBeEnabled()
+})
+
+test('an unavailable provider still permits cleanup of an existing connection', async ({ page }) => {
+  await mock(page, { ai: true })
+  const actions = []
+  await page.route('**/api/calendar?**', route => {
+    const request = route.request()
+    const action = new URL(request.url()).searchParams.get('action')
+    actions.push(action)
+    return route.fulfill({ json: { integrations: [integration], providers: { google: false, outlook: true } } })
+  })
+  await page.goto('/?view=settings&section=calendar')
+  const google = page.getByRole('article', { name: 'Google Calendar', exact: true })
+  await expect(google.getByRole('status')).toContainText('administrator setup')
+  await expect(google.getByRole('button', { name: 'Save calendar settings' })).toBeDisabled()
+  await expect(google.getByRole('button', { name: 'Retry sync' })).toBeDisabled()
+  await expect(google.getByRole('button', { name: 'Disconnect & remove published events' })).toBeEnabled()
+  expect(actions).not.toContain('calendars')
 })

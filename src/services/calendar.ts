@@ -19,6 +19,10 @@ export type CalendarIntegration = {
   last_error: string | null;
 };
 export type CalendarOption = { id: string; name: string };
+export type CalendarConnections = {
+  integrations: CalendarIntegration[];
+  providers?: Partial<Record<CalendarProvider, boolean>>;
+};
 export async function calendarRequest<T>(
   action: string,
   businessId: string,
@@ -55,6 +59,10 @@ export async function calendarRequest<T>(
         "Google and Outlook connections need administrator setup in Finviant before you can connect your account.",
       calendar_not_configured:
         "Google and Outlook connections need administrator setup in Finviant before you can connect your account.",
+      google_calendar_setup_required:
+        "Google Calendar needs administrator setup in Finviant before you can connect your account.",
+      outlook_calendar_setup_required:
+        "Microsoft Outlook needs administrator setup in Finviant before you can connect your account.",
       authorization_revoked:
         "Calendar access expired or was revoked. Reconnect to continue.",
       reconnect_required: "Reconnect this calendar account to continue.",
