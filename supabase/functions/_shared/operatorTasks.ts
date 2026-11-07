@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 import { dispatchQueuedEmail } from './emailDispatch.ts'
 import { assessReliabilityHealth } from './healthStatus.ts'
+import { emailDeliveryMode } from './emailRelease.ts'
 async function authorized(req:Request,secret:string):Promise<boolean>{
  const value=req.headers.get('authorization')||''
  if(secret.length<32||value.length>512||!value.startsWith('Bearer '))return false
@@ -25,11 +26,11 @@ export function operatorTask(kind:'worker'|'health'){
     if(error||!data)return reply(503,{status:'unhealthy',request_id:requestId})
     const assessment=assessReliabilityHealth(data)
     return reply(assessment.healthy?200:503,{...data,alerts:assessment.alerts,metrics_valid:!assessment.invalid,request_id:requestId,
-     provider_checks:'not_performed',email_release_gate:Deno.env.get('FINVIANT_CUSTOMER_EMAIL_ENABLED')==='true'?'enabled':'disabled',
+     provider_checks:'not_performed',email_release_gate:emailDeliveryMode()==='disabled'?'disabled':'enabled',email_delivery_mode:emailDeliveryMode(),
      external_alert_delivery:'requires_verified_monitor_configuration'})
    }
    const resend=Deno.env.get('RESEND_API_KEY')
-   if(Deno.env.get('FINVIANT_CUSTOMER_EMAIL_ENABLED')!=='true'||!resend||!Deno.env.get('RESEND_WEBHOOK_SECRET'))return reply(503,{error:'Delivery is not enabled; nothing was sent'})
+   if(emailDeliveryMode()==='disabled'||!resend||!Deno.env.get('RESEND_WEBHOOK_SECRET'))return reply(503,{error:'Delivery is not enabled; nothing was sent'})
    const {data:rows,error}=await db.rpc('list_due_document_emails').abortSignal(AbortSignal.timeout(5000))
    if(error||!Array.isArray(rows))return reply(503,{error:'Queue unavailable'})
    let accepted=0,deferred=0,unconfirmed=0

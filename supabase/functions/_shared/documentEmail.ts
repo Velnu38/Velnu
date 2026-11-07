@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 import { dispatchQueuedEmail } from './emailDispatch.ts'
 import { readLimitedRequest } from './signedEvents.ts'
 import { resolveAppEnvironment } from './appEnvironment.ts'
+import { emailDeliveryMode } from './emailRelease.ts'
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export function documentEmailHandler(invoiceOnly:boolean,reminder=false){
  return async(req:Request):Promise<Response>=>{
@@ -22,7 +23,7 @@ export function documentEmailHandler(invoiceOnly:boolean,reminder=false){
    const {data:identity,error:authError}=await caller.auth.getUser()
    if(authError||!identity.user)return respond(401,{error:'Session expired. Sign in again.'})
    const resend=Deno.env.get('RESEND_API_KEY'),webhook=Deno.env.get('RESEND_WEBHOOK_SECRET')
-   if(Deno.env.get('FINVIANT_CUSTOMER_EMAIL_ENABLED')!=='true'||!resend||!webhook)return respond(503,{error:'Customer email is awaiting verified delivery configuration. No message was queued or sent.',code:'email_not_enabled'})
+   if(emailDeliveryMode()==='disabled'||!resend||!webhook)return respond(503,{error:'Customer email is awaiting verified delivery configuration. No message was queued or sent.',code:'email_not_enabled'})
    let input:Record<string,unknown>;try{input=JSON.parse(await readLimitedRequest(req,16384))}catch{return respond(400,{error:'Invalid or oversized request.'})}
    if(!input||typeof input!=='object'||Array.isArray(input))return respond(400,{error:'Invalid request.'})
    const business=String(input.business_id||''),document=String((invoiceOnly?input.invoice_id:input.document_id)||''),operation=String(input.request_id||'')
@@ -31,6 +32,7 @@ export function documentEmailHandler(invoiceOnly:boolean,reminder=false){
    if(input.expected_recipient!==undefined&&(typeof input.expected_recipient!=='string'||input.expected_recipient.length>254||!input.expected_recipient.trim()))return respond(400,{error:'A valid reviewed recipient is required.'})
    const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
    const {data:prepared,error:prepError}=await admin.rpc(reminder?'prepare_invoice_reminder_email':input.expected_recipient!==undefined?'prepare_review_document_email':'prepare_document_email',reminder?{p_actor:identity.user.id,p_business:business,p_document:document,p_request:operation,p_review:input.review}:{p_actor:identity.user.id,p_business:business,p_kind:kind,p_document:document,p_request:operation,p_origin:environment.baseUrl,...(input.expected_recipient!==undefined?{p_recipient:input.expected_recipient}:{})}).abortSignal(AbortSignal.timeout(5000))
+   if(prepError?.message==='BETA_EMAIL_RECIPIENT_NOT_APPROVED')return respond(403,{error:'Private beta email requires an approved test recipient. No email was queued or sent. Review the recipient before trying again.',code:'beta_recipient_not_approved',beta_send_not_started:true})
    if(prepError||!prepared)return respond(prepError?.code==='42501'?403:409,{error:prepError?.code==='23514'?(reminder?'Invoice, customer, or pending-send details changed. Reload the reminder and check invoice activity before sending.':'Customer or pending-send details changed. Open the saved document and review its recipient before sending.'):'Unable to queue the document. Check account permissions, plan, recipient and document status.'})
    const result=await dispatchQueuedEmail(admin,resend,prepared.id,trace)
    return respond(result.status,result.body)

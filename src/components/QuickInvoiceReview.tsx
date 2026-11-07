@@ -15,7 +15,7 @@ import {createInvoice} from '../services/invoices'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 import {createEstimate} from '../services/estimates'
 import {newCustomerFields} from './CustomerEntry'
-import {customerActionsEnabled} from '../lib/releaseFlags'
+import {emailDeliveryEnabled} from '../lib/releaseFlags'
 import {normalizeMobile} from '../lib/smsPhone'
 import {sendReviewedDocument,type ReviewDeliveryReceipt} from '../services/reviewDelivery'
 type Customer={id:string;first_name:string|null;last_name:string|null;company:string|null;email?:string|null;phone?:string|null;updated_at?:string}
@@ -51,7 +51,7 @@ export default function QuickInvoiceReview({business,command,initialSeed,parserN
  async function save(sendEmail:boolean,stayOnPreview=false){if(saving.current||loading||!defaults||!canManageFinances(business.role))return
   if(!valid||mismatch||!contactsValid){setError('Check each description, amount and the calculated total before saving.');return}
   if(!customerId&&!customerName.trim()){setError('Choose a customer or enter a customer name.');return}
-  if(sendEmail&&(!emailValid||!customerActionsEnabled))return
+  if(sendEmail&&(!emailValid||!emailDeliveryEnabled))return
   saving.current=true;setBusy(true);setSending(sendEmail);setError('');try{
    if(!saved&&selected&&(email.trim()!==(selected.email||'')||phone.trim()!==(selected.phone||''))){
     if(!selected.updated_at)throw new Error('Reload the customer before updating their contact details.')

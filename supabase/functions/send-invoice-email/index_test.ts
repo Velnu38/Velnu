@@ -5,11 +5,11 @@ function assert(value:unknown,message='Assertion failed'):asserts value{if(!valu
 function req(extra:Record<string,unknown>={},auth=true,origin='https://finviant.com'){
  return new Request('https://qusmeexjbwphoezlcmie.supabase.co/functions/v1/send-invoice-email',{method:'POST',headers:{'content-type':'application/json',Origin:origin,...(auth?{Authorization:'Bearer test-session'}:{})},body:JSON.stringify({business_id:biz,invoice_id:invoice,request_id:id,...extra})})
 }
-type Opt={role?:string;unavailable?:boolean;missingEmail?:boolean;providerStatus?:number;network?:boolean;invalidJSON?:boolean;badReceipt?:boolean;disabled?:boolean;ackFail?:boolean;claim?:string}
+type Opt={role?:string;unavailable?:boolean;missingEmail?:boolean;providerStatus?:number;network?:boolean;invalidJSON?:boolean;badReceipt?:boolean;disabled?:boolean;ackFail?:boolean;claim?:string;beta?:boolean;betaDenied?:boolean;betaPrepDenied?:boolean;betaApprovalError?:boolean}
 async function mock(opt:Opt,run:(state:{emails:Record<string,unknown>[];keys:string[];preparations:Record<string,unknown>[];finishes:Record<string,unknown>[]})=>Promise<void>){
  const original=globalThis.fetch,emails:Record<string,unknown>[]=[],keys:string[]=[],preparations:Record<string,unknown>[]=[],finishes:Record<string,unknown>[]=[]
  const rows=new Map<string,{document:string;status:string;provider_id?:string}>()
- const vars={SUPABASE_URL:'https://qusmeexjbwphoezlcmie.supabase.co',SUPABASE_ANON_KEY:'test-key',SUPABASE_SERVICE_ROLE_KEY:'fake-server-key',RESEND_API_KEY:'fake-resend-key',RESEND_WEBHOOK_SECRET:'fake-signing-key',FINVIANT_CUSTOMER_EMAIL_ENABLED:opt.disabled?'false':'true',FINVIANT_APP_BASE_URL:'https://finviant.com'}
+ const vars={SUPABASE_URL:opt.beta?'https://xvybcmyoblfgzokaifsx.supabase.co':'https://qusmeexjbwphoezlcmie.supabase.co',SUPABASE_ANON_KEY:'test-key',SUPABASE_SERVICE_ROLE_KEY:'fake-server-key',RESEND_API_KEY:'fake-resend-key',RESEND_WEBHOOK_SECRET:'fake-signing-key',FINVIANT_CUSTOMER_EMAIL_ENABLED:opt.disabled||opt.beta?'false':'true',FINVIANT_PRIVATE_BETA_EMAIL_ENABLED:opt.beta&&!opt.disabled?'true':'false',FINVIANT_APP_BASE_URL:'https://finviant.com'}
  const previous=new Map(Object.keys(vars).map(k=>[k,Deno.env.get(k)]));for(const[k,v]of Object.entries(vars))Deno.env.set(k,v)
  const json=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}})
  globalThis.fetch=async(input,init)=>{
@@ -21,17 +21,28 @@ async function mock(opt:Opt,run:(state:{emails:Record<string,unknown>[];keys:str
    if(opt.providerStatus)return json({error:'simulated'},opt.providerStatus)
    return json(opt.badReceipt?{}:{id:'provider-test-'+keys.at(-1)})
   }
-  if(u.hostname!=='qusmeexjbwphoezlcmie.supabase.co')throw new Error('External network forbidden')
+  if(u.origin!==vars.SUPABASE_URL)throw new Error('External network forbidden')
   if(u.pathname==='/auth/v1/user')return json({id:user,email:'owner@example.invalid',app_metadata:{},user_metadata:{}})
   const body=await r.json()
   if(u.pathname.endsWith('/prepare_document_email')){
    preparations.push(body);assert(body.p_actor===user,'Actor must come from verified session');assert(body.p_business===biz,'Tenant must be explicit')
+   if(opt.betaPrepDenied)return json({code:'42501',message:'BETA_EMAIL_RECIPIENT_NOT_APPROVED'},403)
    if(['viewer','technician'].includes(opt.role||''))return json({code:'42501',message:'Finance permission required'},403)
    if(opt.unavailable||opt.missingEmail)return json({code:'23514',message:'Invalid canonical document or recipient'},400)
    const prior=rows.get(body.p_request)
    if(prior&&prior.document!==body.p_document)return json({code:'23505',message:'Request collision'},409)
    if(!prior)rows.set(body.p_request,{document:body.p_document,status:'queued'})
    return json({id:body.p_request,status:prior?.status||'queued'})
+  }
+  if(u.pathname.endsWith('/private_beta_email_recipient_allowed')){
+   assert(body.p_request===id,'Beta approval must use the server-claimed operation')
+   return opt.betaApprovalError?json({code:'PGRST202',message:'RPC unavailable'},404):json(!opt.betaDenied)
+  }
+  if(u.pathname.endsWith('/stop_private_beta_email')){
+   finishes.push(body)
+   if(opt.ackFail)return json({code:'XX000',message:'Simulated local stop failure'},500)
+   const row=rows.get(body.p_request)!;row.status='failed'
+   return json(true)
   }
   if(u.pathname.endsWith('/claim_document_email')){
    const row=rows.get(body.p_request)!
@@ -58,6 +69,13 @@ Deno.test('technicians cannot email financial documents',()=>mock({role:'technic
 Deno.test('unavailable invoice is not emailed',()=>mock({unavailable:true},async s=>{assert((await handle(req())).status===409);assert(s.emails.length===0)}))
 Deno.test('customer must have a valid canonical email',()=>mock({missingEmail:true},async s=>{assert((await handle(req())).status===409);assert(s.emails.length===0)}))
 Deno.test('server release gate prevents direct API bypass',()=>mock({disabled:true},async s=>{assert((await handle(req())).status===503);assert(s.preparations.length===0);assert(s.emails.length===0)}))
+Deno.test('staging beta has an independent gate and uses the same frozen send path',()=>mock({beta:true},async s=>{const r=await handle(req());assert(r.status===200);assert(s.preparations.length===1);assert(s.emails.length===1)}))
+Deno.test('staging cannot send with its beta gate disabled',()=>mock({beta:true,disabled:true},async s=>{assert((await handle(req())).status===503);assert(s.preparations.length===0);assert(s.emails.length===0)}))
+Deno.test('unapproved beta recipient reports a clear error before queueing',()=>mock({beta:true,betaPrepDenied:true},async s=>{const r=await handle(req());assert(r.status===403);const body=await r.json();assert(body.code==='beta_recipient_not_approved');assert(body.beta_send_not_started===true);assert(s.emails.length===0);assert(s.finishes.length===0)}))
+Deno.test('revoked beta approval is checked again before the provider send',()=>mock({beta:true,betaDenied:true},async s=>{const r=await handle(req());assert(r.status===403);const body=await r.json();assert(body.code==='beta_recipient_not_approved');assert(body.beta_send_not_started===true);assert(s.emails.length===0);assert(s.finishes[0].p_code==='beta_recipient_not_approved')}))
+Deno.test('missing beta approval RPC cannot reach the provider',()=>mock({beta:true,betaApprovalError:true},async s=>{const r=await handle(req());assert(r.status===503);const body=await r.json();assert(body.code==='beta_configuration_unavailable');assert(body.beta_send_not_started===true);assert(s.emails.length===0);assert(s.finishes[0].p_code==='beta_configuration_unavailable')}))
+Deno.test('unconfirmed beta recipient stop retains its original send identifier',()=>mock({beta:true,betaDenied:true,ackFail:true},async s=>{const r=await handle(req());assert(r.status===503);const body=await r.json();assert(body.code==='beta_stop_unconfirmed');assert(body.beta_send_not_started===undefined);assert(body.send_id===id);assert(s.emails.length===0)}))
+Deno.test('unconfirmed beta configuration stop cannot advertise a fresh safe send',()=>mock({beta:true,betaApprovalError:true,ackFail:true},async s=>{const r=await handle(req());assert(r.status===503);const body=await r.json();assert(body.code==='beta_stop_unconfirmed');assert(body.beta_send_not_started===undefined);assert(s.emails.length===0)}))
 Deno.test('immutable payload ignores attacker recipient and internal notes',()=>mock({},async s=>{const r=await handle(req({to:'attacker@example.invalid',notes:'CONFIDENTIAL_INTERNAL_NOTES'}));assert(r.status===200);assert(s.emails.length===1);assert(JSON.stringify(s.emails[0].to)==='["customer@example.invalid"]');assert(!JSON.stringify(s.emails[0]).includes('CONFIDENTIAL_INTERNAL_NOTES'));assert(s.emails[0].html===undefined,'Plain text is not interpreted as HTML');assert(String(s.emails[0].from).includes('adminsupport@finviant.com'))}))
 Deno.test('retry of accepted request does not send a second email',()=>mock({},async s=>{assert((await handle(req())).status===200);const r=await handle(req());assert(r.status===200);assert((await r.json()).already_sent===true);assert(s.emails.length===1)}))
 Deno.test('network interruption is uncertain, not sent or silently retried',()=>mock({network:true},async s=>{assert((await handle(req())).status===502);assert(s.emails.length===1);assert(s.finishes[0].p_result==='uncertain')}))

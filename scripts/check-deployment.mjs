@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url'
 
 // This project is deliberately retained as staging, including its existing data.
 export const STAGING_PROJECT_REF = 'xvybcmyoblfgzokaifsx'
+export const PRIVATE_BETA_GIT_REF = 'ux/private-testing-20261029'
 
 export function validateDeploymentEnvironment(env) {
   const target = env.VERCEL_ENV
@@ -35,6 +36,10 @@ export function validateDeploymentEnvironment(env) {
   }
   if (!production && env.VITE_ENABLE_CUSTOMER_ACTIONS === 'true') {
     throw new Error('Customer delivery must remain disabled in shared staging deployments')
+  }
+  if (env.VITE_ENABLE_PRIVATE_BETA_EMAIL === 'true'
+      && (target !== 'preview' || env.VERCEL_GIT_COMMIT_REF !== PRIVATE_BETA_GIT_REF)) {
+    throw new Error('Private beta email requires the registered staging preview branch')
   }
   if (production) {
     const releaseBranch = env.FINVIANT_PRODUCTION_GIT_REF

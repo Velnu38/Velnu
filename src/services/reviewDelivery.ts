@@ -3,6 +3,8 @@ export type DeliveryDocumentKind='invoice'|'estimate'|'change_order'
 export type ReviewDeliveryReceipt={recipient:string;status:'accepted'|'delivered';warning?:string}
 export type DocumentDeliveryContext={customer_id:string;status:string;customer:{email?:string|null;phone?:string|null}|null}
 const pending=new Map<string,string>()
+/** Rotate only when the server proved the original operation never contacted the provider. */
+export const betaEmailWasNotAttempted=(detail:{code?:unknown;beta_send_not_started?:unknown}|null|undefined)=>detail?.beta_send_not_started===true&&(detail.code==='beta_recipient_not_approved'||detail.code==='beta_configuration_unavailable')
 const sendKey=(business:string,kind:DeliveryDocumentKind,id:string)=>`finviant-reviewed-email:${business}:${kind}:${id}`
 export function clearReviewedSend(business:string,kind:DeliveryDocumentKind,id:string){const key=sendKey(business,kind,id);pending.delete(key);try{sessionStorage.removeItem(key)}catch{/* Optional storage. */}}
 export async function getDocumentDeliveryContext(business:string,kind:DeliveryDocumentKind,id:string):Promise<DocumentDeliveryContext>{
@@ -22,6 +24,10 @@ export async function sendReviewedDocument(businessId:string,kind:DeliveryDocume
  if(error){
   const response=(error as {context?:unknown}).context
   const detail=response instanceof Response?await response.clone().json().catch(()=>null):null
+  if(betaEmailWasNotAttempted(detail)){
+   const next=crypto.randomUUID();pending.set(key,next)
+   try{sessionStorage.setItem(key,next)}catch{/* The next attempt also works with in-memory protection. */}
+  }
   throw new Error(detail?.error||'Email outcome is not confirmed. Retry this same send; do not create another document.')
  }
  if(!data?.email_id||!['accepted','delivered'].includes(data.status)||typeof data.recipient!=='string'||data.recipient.toLowerCase()!==recipient.trim().toLowerCase())throw new Error('Email outcome is not confirmed. Retry this same send; do not create another document.')

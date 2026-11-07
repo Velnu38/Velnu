@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { confirmPersonalSent, nativeDocumentDraft, preparePersonalDocument, releasePersonalApproval, storePendingPersonalSend, type PersonalChannel } from '../services/personalDelivery'
 import { getDeliverySetup, type DeliverySetup as SendingSetup } from '../services/tiers'
 import { normalizeMobile } from '../lib/smsPhone'
-import { customerActionsEnabled } from '../lib/releaseFlags'
+import { emailDeliveryEnabled, privateBetaEmailEnabled } from '../lib/releaseFlags'
 import DocumentPaper from './DocumentPaper'
 import { validDeliveryEmail } from './DocumentDeliveryOptions'
 import FormDialog from './FormDialog'
@@ -124,11 +124,12 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
             ? <ManagedSmsDelivery businessId={businessId} kind={paper.kind} phone={phone} ready={setup.managed_sms_ready} disabled={locked} saveDocument={saveForDelivery} onBusyChange={setSending} onSent={onSave} />
             : <div><button type="button" className="primary-button" disabled={locked || !setup?.personal_sms_ready || !phoneValid} onClick={() => void prepare('sms')}>Send Text</button>
               <small>{setup?.personal_sms_ready && phoneValid ? 'Opens your texting app' : phoneValid ? 'Text setup required' : ''}</small></div>}
-          <div><button type="button" className="primary-button" disabled={locked || !emailValid || !setup || !(personal ? setup.personal_email_ready : setup.managed_email_ready && customerActionsEnabled)}
+          <div><button type="button" className="primary-button" disabled={locked || !emailValid || !setup || !(personal ? setup.personal_email_ready : setup.managed_email_ready && emailDeliveryEnabled)}
             onClick={personal ? () => void prepare('email') : onEmail}>Send Email</button>
             {setup && emailValid && (personal ? <small>{setup.personal_email_ready?'Opens your email app':'Email setup required'}</small> : !setup.managed_email_ready && <small>Sender activation required</small>)}</div>
           <div><button type="button" className="secondary-button" disabled={locked} onClick={onSave}>{saved ? 'Open saved draft' : 'Save Draft'}</button></div>
         </div>
+        {setup?.plan === 'pro' && !personal && privateBetaEmailEnabled && <p className="quiet">Private beta email sends only to approved test addresses.</p>}
         <div className="creation-review-links">
           {!emailValid && (onEditContact || onDraftContact) && <button type="button" className="text-button" disabled={locked} onClick={() => editContact('email')}>Add email</button>}
           {!phoneValid && (onEditContact || onDraftContact) && <button type="button" className="text-button" disabled={locked} onClick={() => editContact('phone')}>Add phone</button>}

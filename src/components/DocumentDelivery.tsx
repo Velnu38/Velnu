@@ -5,7 +5,7 @@ import PersonalDocumentDelivery from './PersonalDocumentDelivery'
 import {getDeliverySetup,type DeliverySetup} from '../services/tiers'
 import {useEffect,useRef,useState} from 'react'
 import DocumentDeliveryOptions,{validDeliveryEmail} from './DocumentDeliveryOptions'
-import {customerActionsEnabled} from '../lib/releaseFlags'
+import {emailDeliveryEnabled} from '../lib/releaseFlags'
 import {sendReviewedDocument,clearReviewedSend,type DeliveryDocumentKind,type ReviewDeliveryReceipt} from '../services/reviewDelivery'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 
@@ -24,7 +24,7 @@ export default function DocumentDelivery({businessId,kind,documentId,email,phone
  const inFlight=useRef(false)
  useUnsavedChanges(busy)
  async function send(){
-  if(inFlight.current||disabled||receipt||!setup?.managed_email_ready||!customerActionsEnabled||!validDeliveryEmail(email||''))return
+  if(inFlight.current||disabled||receipt||!setup?.managed_email_ready||!emailDeliveryEnabled||!validDeliveryEmail(email||''))return
   inFlight.current=true;setBusy(true);onBusyChange?.(true);setError('')
   try{
    const result=await sendReviewedDocument(businessId,kind,documentId,email!.trim())
@@ -40,7 +40,7 @@ export default function DocumentDelivery({businessId,kind,documentId,email,phone
   <DocumentDeliveryOptions hideSms kind={kind} email={email} phone={phone} disabled={disabled||!setup.managed_email_ready} contactDisabled={disabled||busy} emailDisabled={!!receipt} sending={busy} emailLabel={receipt?'Email '+(receipt.status==='delivered'?'delivered':'accepted'):error?'Retry email':'Send Email'} onEmail={()=>void send()} onEditContact={onEditContact}/>
   <ManagedSmsDelivery businessId={businessId} kind={kind} documentId={documentId} phone={phone} ready={setup.managed_sms_ready} disabled={disabled||busy} onSent={onSent} onBusyChange={value=>{setBusy(value);onBusyChange?.(value)}}/>
   <p className="quiet">Sends directly from Finviant after sender activation. <a href="/?view=settings&section=delivery">Review sending setup</a></p><button type="button" className="text-button" disabled={busy} onClick={()=>setPersonal(true)}>Use my email or text app instead</button>
-  <ScheduledEmail businessId={businessId} kind={kind} documentId={documentId} ready={setup.managed_email_ready&&customerActionsEnabled}/>
+  <ScheduledEmail businessId={businessId} kind={kind} documentId={documentId} ready={setup.managed_email_ready&&emailDeliveryEnabled}/>
   {error&&<p role="alert" className="form-message error-text">{error}</p>}
   {receipt&&<div><p role="status" className="form-message success-text">Email {receipt.status==='delivered'?'delivered':'accepted for delivery'} to {receipt.recipient}.{receipt.warning&&' '+receipt.warning} {refreshWarning}</p><button type="button" className="text-button" onClick={()=>{if(!window.confirm('Send another email to this customer? The previous email was already accepted.'))return;clearReviewedSend(businessId,kind,documentId);setReceipt(null);setRefreshWarning('')}}>Prepare another email</button></div>}
  </section>

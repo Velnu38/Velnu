@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
-import { STAGING_PROJECT_REF, validateDeploymentEnvironment } from '../../scripts/check-deployment.mjs'
+import { PRIVATE_BETA_GIT_REF, STAGING_PROJECT_REF, validateDeploymentEnvironment } from '../../scripts/check-deployment.mjs'
 
 const productionRef = 'abcdefghijklmnopqrst'
 const staging = {
@@ -29,6 +29,12 @@ test('preview and development can use the registered staging project', () => {
 test('production accepts its separate project and release branch', () => {
   assert.equal(validateDeploymentEnvironment(production).projectRef, productionRef)
 })
+test('private beta email can be enabled on its registered staging preview branch', () => {
+  assert.equal(validateDeploymentEnvironment({
+    ...staging, VERCEL_GIT_COMMIT_REF: PRIVATE_BETA_GIT_REF,
+    VITE_ENABLE_CUSTOMER_ACTIONS: 'false', VITE_ENABLE_PRIVATE_BETA_EMAIL: 'true',
+  }).projectRef, STAGING_PROJECT_REF)
+})
 
 const cases = [
   ['missing hosted target', { ...staging, VERCEL_ENV: undefined }],
@@ -46,6 +52,11 @@ const cases = [
   ['another privileged public variable', { ...production, VITE_SUPABASE_SERVICE_ROLE_KEY: 'redacted-fixture' }],
   ['secret value under innocent public name', { ...production, VITE_OTHER: 'sk_live_fixture' }],
   ['customer delivery enabled on staging', { ...staging, VITE_ENABLE_CUSTOMER_ACTIONS: 'true' }],
+  ['general customer actions with private beta email', { ...staging, VERCEL_GIT_COMMIT_REF: PRIVATE_BETA_GIT_REF, VITE_ENABLE_CUSTOMER_ACTIONS: 'true', VITE_ENABLE_PRIVATE_BETA_EMAIL: 'true' }],
+  ['private beta email on another preview branch', { ...staging, VERCEL_GIT_COMMIT_REF: 'feature/other-preview', VITE_ENABLE_PRIVATE_BETA_EMAIL: 'true' }],
+  ['private beta email without an explicit branch', { ...staging, VITE_ENABLE_PRIVATE_BETA_EMAIL: 'true' }],
+  ['private beta email in hosted development', { ...staging, VERCEL_ENV: 'development', VERCEL_GIT_COMMIT_REF: PRIVATE_BETA_GIT_REF, VITE_ENABLE_PRIVATE_BETA_EMAIL: 'true' }],
+  ['private beta email in production', { ...production, VITE_ENABLE_PRIVATE_BETA_EMAIL: 'true' }],
   ['production release branch missing', { ...production, FINVIANT_PRODUCTION_GIT_REF: undefined }],
   ['production built from feature branch', { ...production, VERCEL_GIT_COMMIT_REF: 'feature/velnu-stage1' }],
 ]
