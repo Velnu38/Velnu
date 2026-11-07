@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
+import WorkspaceErrorBoundary from './components/WorkspaceErrorBoundary';
 import './styles.css';
 import './modules.css';
 import './customer-detail.css';
@@ -16,17 +16,29 @@ import './services.css';
 import './bookkeeping.css';
 import './google-maps.css';
 import './dashboard-redesign.css';
+import './calendar.css';
+import './workspace-consistency.css';
+import './workspace-tabs.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing root element');
 
-createRoot(container).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+function StartupReady() {
+  React.useEffect(() => {
+    window.dispatchEvent(new Event('finviant:app-mounted'));
+  }, []);
+  return null;
+}
 
-import './calendar.css';
-
-import './workspace-consistency.css'
-import './workspace-tabs.css'
+// Catch module initialization failures as well as failed downloads. A static
+// App import can fail before React gets a chance to render its error boundary.
+void import('./App').then(({ default: App }) => {
+  createRoot(container).render(
+    <React.StrictMode>
+      <WorkspaceErrorBoundary><App /></WorkspaceErrorBoundary>
+      <StartupReady />
+    </React.StrictMode>,
+  );
+}).catch(() => {
+  window.dispatchEvent(new Event('finviant:startup-error'));
+});

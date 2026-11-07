@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase'
 import { getCurrentBusiness, type CurrentBusiness } from './lib/business'
 import { hasAcceptedAgreement } from './lib/userAgreement'
 import { getPlanPreference, type PlanTier } from './lib/plans'
+import { getStartupTeamInvitation } from './lib/teamInvitationStartup'
 import PlanSelection from './components/PlanSelection'
 import AuthScreen from './components/AuthScreen'
 import PasswordRecovery from './components/PasswordRecovery'
@@ -21,8 +22,10 @@ const CustomerBookingPage = lazy(() => import('./pages/CustomerBookingPage'))
 
 const initialQuery = new URLSearchParams(window.location.search)
 const initialHash = new URLSearchParams(window.location.hash.slice(1))
-const initialInvite = initialQuery.get('invite') || sessionStorage.getItem('finviant-team-invitation')
-if (initialInvite && /^[a-f0-9]{64}$/.test(initialInvite)) { sessionStorage.setItem('finviant-team-invitation', initialInvite); if (initialQuery.has('invite')) window.history.replaceState({}, '', '/auth') }
+const initialInvite = getStartupTeamInvitation(initialQuery, {
+  getStorage: () => window.sessionStorage,
+  replaceUrl: url => window.history.replaceState({}, '', url),
+})
 const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get('type') === 'recovery'
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
 const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
