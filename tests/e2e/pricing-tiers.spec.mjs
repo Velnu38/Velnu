@@ -13,6 +13,7 @@ async function setup(page,{tier='pro',canTest=true,ready=false,managed=false}={}
  if(path==='get_delivery_automation')return reply({plan:state.tier,ready:false,rule:{enabled:false,after_days:3,repeat_days:7,max_reminders:3},tasks:[]})
  if(path==='get_business_storage_usage'){const limit=state.tier==='free'?100000000:state.tier==='basic'?2000000000:10000000000;return reply({plan:state.tier,used_bytes:0,limit_bytes:limit,remaining_bytes:limit,pending_bytes:0,file_count:0,logo_allowed:state.tier!=='free',warning:'none'})}
  if(path==='prepare_personal_document'){state.shares++;return reply({snapshot:snap,expires_at:'2026-12-06'})}
+ if(path==='release_personal_approval')return reply(null)
  if(path==='confirm_personal_document_sent'){state.sent.push(body);return reply(null)}
  if(path==='get_shared_document')return reply({...snap,expires_at:'2026-12-06'})
  return route.fallback()
@@ -24,8 +25,15 @@ test('owner tests all three plans and restores access without resetting records'
 test('ordinary owners see comparison but cannot grant a test entitlement',async({page})=>{await setup(page,{canTest:false});await page.goto('/?view=settings&section=plans');await expect(page.getByRole('heading',{name:'Plans & Usage'})).toBeVisible();await expect(page.getByRole('button',{name:/^Test (Free|Individual|Business Pro)$/})).toHaveCount(0)})
 test('personal app setup requires acknowledgement and enables explicit final-send workflow',async({page})=>{
  const s=await setup(page,{tier:'free'});await page.goto('/?view=settings&section=delivery');await expect(page.getByRole('button',{name:'Save sending setup',exact:true})).toBeDisabled();await page.getByLabel('My email app is configured', {exact:false}).check();await page.getByLabel('My messaging app and mobile service', {exact:false}).check();await page.getByLabel('I understand personal-app messages', {exact:false}).check();await page.getByRole('button',{name:'Save sending setup',exact:true}).click();await expect.poll(()=>s.saves.length).toBe(1)
- await page.goto('/?view=invoices&document='+E);const email=page.getByRole('link',{name:'Send Email',exact:true});await expect(email).toHaveAttribute('href',/^mailto:customer%40example.test\?subject=/);await expect(page.getByRole('link',{name:'Send Text',exact:true})).toHaveAttribute('href',/^sms:/);expect(s.sent).toHaveLength(0)
- await page.evaluate(()=>document.addEventListener('click',event=>{if(event.target.closest('a[href^="mailto:"]'))event.preventDefault()}));await email.click();expect(s.sent).toHaveLength(0);await page.getByRole('button',{name:'I sent it — mark sent',exact:true}).click();await expect.poll(()=>s.sent.length).toBe(1);expect(s.sent[0].p_channel).toBe('email')
+ await page.goto('/?view=invoices&document='+E)
+ const email=page.getByRole('button',{name:'Send Email',exact:true})
+ await expect(email).toBeEnabled()
+ await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled()
+ await email.click()
+ expect(s.sent).toHaveLength(0)
+ await page.getByRole('button',{name:'Confirm sent',exact:true}).click()
+ await expect.poll(()=>s.sent.length).toBe(1)
+ expect(s.sent[0].p_channel).toBe('email')
 })
 test('Business Pro exposes activation requirements, safe fallback and disabled automation',async({page})=>{
  await setup(page);await page.goto('/?view=settings&section=delivery');await expect(page.getByText('Pending verified sender activation',{exact:false})).toBeVisible();await expect(page.getByLabel('Enable overdue invoice email reminders')).toBeDisabled();await page.goto('/?view=invoices&document='+E);await expect(page.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await page.getByRole('button',{name:'Use my email or text app instead'}).click();await expect(page.getByRole('button',{name:'Copy Link',exact:true})).toBeEnabled()
@@ -38,9 +46,9 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  await expect(form.locator('.print-document').getByText('Created with Finviant Office Assistant',{exact:true})).toHaveCount(tier==='free'?1:0)
  await expect(form.getByRole('link',{name:'View Individual upgrade'})).toHaveCount(tier==='free'?1:0)
  await expect(form.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeEnabled();expect(state.documents).toHaveLength(0);await form.getByRole('button',{name:kind==='invoice'?'Send Email':'Send Text',exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1);expect(state.calls.some(c=>c.path.includes('/send-'))).toBe(false);expect(state.sent).toHaveLength(0);
- await expect(form.getByRole('link',{name:/Open the (email|text) draft again/})).toHaveAttribute('href',kind==='invoice'?/^mailto:/:/^sms:/)
+ await expect(form.getByRole('link',{name:'Reopen draft in your app'})).toHaveAttribute('href',kind==='invoice'?/^mailto:/:/^sms:/)
  await expect(form.getByRole('button',{name:/^Send (Email|Text)$/})).toHaveCount(0)
- await form.getByRole('button',{name:'I sent it — mark sent'}).click()
+ await form.getByRole('button',{name:'Confirm sent'}).click()
  await expect.poll(()=>state.sent.length).toBe(1)
  expect(state.sent[0].p_channel).toBe(kind==='invoice'?'email':'sms')
  expect(state.documents).toHaveLength(1)
@@ -52,7 +60,7 @@ for (const tier of ['free','basic','pro']) test(`More shows setup appropriate fo
  const links=page.getByRole('region',{name:'Setup and connections'})
  await expect(links.getByRole('link',{name:tier==='pro'?/^Working Hours & Team Availability/:/^Working Hours/})).toBeVisible()
  await expect(links.getByRole('link',{name:/^Team & Access/})).toHaveCount(tier==='pro'?1:0)
- await expect(links.getByRole('link',{name:/^Text Messaging Setup/})).toHaveCount(tier==='pro'?1:0)
+ await expect(links.getByRole('link',{name:/^Email & Text Setup/})).toHaveCount(1)
  await expect(links.getByRole('link',{name:/^Calendar Connections/})).toHaveCount(tier==='free'?0:1)
  await expect(page.getByRole('link',{name:/^Schedule/})).toBeVisible()
 })

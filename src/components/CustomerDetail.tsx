@@ -4,7 +4,7 @@ import CustomerEditDialog from './CustomerEditDialog'
 import {type DocumentDates} from './DocumentRecord'
 import {canAccess} from '../lib/workspaceAccess'
 import { useEffect, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
+import { canManageFinances, canWrite, type CurrentBusiness } from '../lib/business'
 import { getCustomerDetail } from '../services/customerDetail'
 import type { CustomerLocation } from '../services/properties'
 import ServiceLocationDialog from './ServiceLocationDialog'
@@ -37,13 +37,16 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
   if(loading&&!detail)return <div className="detail-loading">Loading customer…</div>
   if(!detail)return <div className="empty-state"><h2>Customer unavailable</h2>{error&&<p role="alert">{error}</p>}<button type="button" className="secondary-button" onClick={()=>void refresh()}>Retry customer history</button><button className="secondary-button" onClick={onBack}>Back to customers</button></div>
   const {customer}=detail
+  const phone = customer.phone?.trim().replace(/[^+\d]/g, '')
+  const email = customer.email?.trim()
+  const newRecord = (view: 'invoices' | 'estimates' | 'work') => customerRecordsHref(view, customerId) + '&new=1'
   const outstanding=detail.invoices.filter(invoice=>['sent','viewed','partial','overdue'].includes(invoice.status)).reduce((sum,invoice)=>sum+Number(invoice.balance_due||0),0)
 
   return <div className="page-stack">
     <div className="detail-top"><button className="back-button" onClick={onBack}>← Customers</button></div>
     <section className="customer-hero" aria-label="Customer contact">
       <div className="avatar large">{displayName(customer).charAt(0).toUpperCase()}</div>
-      <div className="customer-hero-main"><p className="eyebrow">Customer</p><h1>{displayName(customer)}</h1><div className="customer-contact">{customer.company&&displayName(customer)!==customer.company&&<span>{customer.company}</span>}{customer.phone&&<span>{customer.phone}</span>}{customer.email&&<span>{customer.email}</span>}</div></div>
+      <div className="customer-hero-main"><p className="eyebrow">Customer</p><h1>{displayName(customer)}</h1><div className="customer-contact">{customer.company&&displayName(customer)!==customer.company&&<span>{customer.company}</span>}{phone&&/^\+?\d{7,15}$/.test(phone)?<a href={'tel:'+phone}>{customer.phone}</a>:customer.phone&&<span>{customer.phone}</span>}{email&&/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email)?<a href={'mailto:'+encodeURIComponent(email).replace('%40','@')}>{email}</a>:email&&<span>{email}</span>}</div></div>
       {billing&&<div className="customer-balance"><span>Outstanding</span><strong>${outstanding.toFixed(2)}</strong></div>}
       {canWrite(business.role)&&<div className="customer-contact-actions"><button type="button" className="secondary-button compact" onClick={()=>setShowEdit(true)}>Edit customer</button></div>}
     <div className="customer-contact-address" role="group" aria-label="Address">
@@ -55,6 +58,10 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
       </article>)}</div>}
     </div>
     </section>
+    {(billing&&canManageFinances(business.role)||jobs&&canWrite(business.role))&&<nav className="customer-create-actions" aria-label="Create for this customer">
+      {billing&&canManageFinances(business.role)&&<><a className="secondary-button compact" href={newRecord('estimates')}>New estimate</a><a className="secondary-button compact" href={newRecord('invoices')}>New invoice</a></>}
+      {jobs&&canWrite(business.role)&&<a className="secondary-button compact" href={newRecord('work')}>New job</a>}
+    </nav>}
     {showEdit&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()} onDeleted={onBack}/>}
     {error&&<p role="alert" className="form-message error-text">{error}</p>}
     <section className="detail-card customer-snapshot" aria-label="Customer snapshot">

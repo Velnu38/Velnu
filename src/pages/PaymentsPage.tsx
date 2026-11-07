@@ -1,14 +1,13 @@
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
 import RecordListControls,{useRecordList} from '../components/RecordListControls'
-import FormDialog from '../components/FormDialog'
+import RecordPaymentDialog from '../components/RecordPaymentDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
-import { listOpenInvoices, listPayments, recordPayment } from '../services/payments'
+import { listPayments } from '../services/payments'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
-type OpenInvoice = { id: string; invoice_number: string | null; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
 type InvoiceRelation = { invoice_number: string | null; total: number; balance_due: number; customers: Customer[] | null }
 type Payment = { id: string; amount: number; method: string | null; status: string; paid_at: string; notes: string | null; invoices: InvoiceRelation[] | null }
 
@@ -19,46 +18,17 @@ function customerName(customer?: Customer) {
 
 export default function PaymentsPage({ business, onOpenWorkbook }: { business: CurrentBusiness; onOpenWorkbook?: () => void }) {
   const [payments, setPayments] = useState<Payment[]>([])
-  const [openInvoices, setOpenInvoices] = useState<OpenInvoice[]>([])
   const [showForm, setShowForm] = useState(()=>canManageFinances(business.role)&&new URLSearchParams(location.search).get('action')==='record')
-  const [invoiceId, setInvoiceId] = useState('')
-  const [amount, setAmount] = useState('')
-  const [method, setMethod] = useState<'cash' | 'check' | 'card' | 'ach' | 'other'>('other')
-  const [notes, setNotes] = useState('')
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [notice,setNotice]=useState(''),[from,setFrom]=useState(''),[until,setUntil]=useState(''),[invoiceSearch,setInvoiceSearch]=useState('')
+  const [notice,setNotice]=useState(''),[from,setFrom]=useState(''),[until,setUntil]=useState('')
   const records=useRecordList(payments.filter(p=>(!from||p.paid_at>=from)&&(!until||p.paid_at.slice(0,10)<=until)),p=>[p.invoices?.[0]?.invoice_number,customerName(p.invoices?.[0]?.customers?.[0]),p.method,p.paid_at,p.amount,p.status].join(' '))
-  const submitting=useRef(false)
-  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
-    const [paymentRows, invoiceRows] = await Promise.all([listPayments(business.id), listOpenInvoices(business.id)])
-    setPayments(paymentRows as Payment[])
-    setOpenInvoices(invoiceRows as OpenInvoice[])
+    setPayments(await listPayments(business.id) as Payment[])
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load payments')) }, [business.id])
-
-  const selected = openInvoices.find((invoice) => invoice.id === invoiceId)
-
-  function resetForm() {
-    setInvoiceId(''); setAmount(''); setMethod('other'); setNotes(''); setError(''); retryRef.current = null
-  }
-
-  async function submit(event: FormEvent) {
-    event.preventDefault(); if(submitting.current)return;submitting.current=true;setBusy(true); setError('')
-    try {
-      if (!window.confirm('Confirm that you have actually received this payment? This records money received; it does not charge a card or bank account.')) return
-      const signature = JSON.stringify({ invoiceId, amount, method, notes })
-      if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
-      await recordPayment(business.id, { invoice_id: invoiceId, amount: Number(amount), method, notes, request_id: retryRef.current.requestId })
-      setNotice(`Payment of $${Number(amount).toFixed(2)} recorded by ${method}. The customer was not charged.`);resetForm();setShowForm(false);try{await refresh()}catch{setError('Payment is recorded, but the list could not refresh. Reload the page; do not record it again.')}
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to record payment')
-    } finally { submitting.current=false;setBusy(false) }
-  }
 
   return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Payments</p><h1>See what came in and what is still owed.</h1></div><div className="payment-heading-actions"><button className="secondary-button compact" onClick={onOpenWorkbook}>View Financial Performance</button>{canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Record payment</button>}</div></div>
@@ -75,18 +45,9 @@ export default function PaymentsPage({ business, onOpenWorkbook }: { business: C
         </article>
       })}
     </section>
-    {showForm && <FormDialog label="Record a payment already received" busy={busy} onClose={() => { setShowForm(false); resetForm() }}>
-      <div className="modal-head"><div><p className="eyebrow">Record payment</p><h2>Record a payment already received</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
-      <form className="form-grid" onSubmit={submit}>
-        <label className="full">Find unpaid invoice<input type="search" value={invoiceSearch} onChange={e=>setInvoiceSearch(e.target.value)} placeholder="Invoice number or customer"/></label>
-        <label className="full">Invoice<select aria-label="Invoice" value={invoiceId} onChange={(e) => { const id = e.target.value; setInvoiceId(id); const inv = openInvoices.find((x) => x.id === id); if (inv) setAmount(String(inv.balance_due)) }} required><option value="">Choose unpaid invoice…</option>{openInvoices.filter(i=>i.id===invoiceId||[i.invoice_number,customerName(i.customers?.[0])].join(' ').toLowerCase().includes(invoiceSearch.toLowerCase())).map((invoice) => <option value={invoice.id} key={invoice.id}>{invoice.invoice_number || 'Invoice'} · {customerName(invoice.customers?.[0])} · ${Number(invoice.balance_due).toFixed(2)} due</option>)}</select></label>
-        <label>Amount<input type="number" min="0.01" max={selected ? Number(selected.balance_due) : undefined} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></label>
-        <label>Method<select value={method} onChange={(e) => setMethod(e.target.value as typeof method)}><option value="cash">Cash</option><option value="check">Check</option><option value="card">Card</option><option value="ach">ACH</option><option value="other">Other</option></select></label>
-        <label className="full">Notes<input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional note" /></label>
-        {selected && <p className="form-message full">This does not charge a card or bank account. Current invoice balance: ${Number(selected.balance_due).toFixed(2)}</p>}
-        {error && <p className="form-message error-text full">{error}</p>}
-        <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Record payment'}</button></div>
-      </form>
-    </FormDialog>}
+    {showForm && <RecordPaymentDialog businessId={business.id} onClose={() => setShowForm(false)} onSaved={message => {
+      setShowForm(false); setNotice(message)
+      void refresh().catch(err => setError(readableError(err, 'Payment recorded. Reload to update the ledger.')))
+    }} />}
   </div>
 }

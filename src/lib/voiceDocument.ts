@@ -14,9 +14,22 @@ function invoiceRequest(command: string) {
   .replace(/\s+please[.!?]*$/i, '')
   .replace(/\s+(?:and|then)\s+(?:email|text|send)\s+(?:it|the invoice)(?:\s+to (?:them|the customer))?[.!?]*$/i, '')
  const create = /^(?:(?:create|make|draft|prepare|write|generate|start)\s+(?:me\s+)?(?:(?:an?|the)\s+)?(?:new\s+)?|(?:open\s+(?:an?\s+)?)?new\s+)invoice\b/i
- const linked = /\b(?:from|using)\s+(?:(?:an?|the|my)\s+)?(?:approved\s+)?(?:estimate|quote|job|invoice)\b/i
+ const linked = /\b(?:from|using)\s+[^.!?\n]{0,160}\b(?:estimate|quote|job|invoice)\b/i
  const compound = /\b(?:and|then)\s+(?:schedule|convert|record a payment|create (?:another|a second|a customer))\b/i
  return create.test(request) && !linked.test(request) && !compound.test(request) ? request : null
+}
+
+export function namedInvoiceSource(command: string): { kind: 'job' | 'estimate'; name: string; customer: string } | null {
+ const match = command.trim().match(/^(?:(?:hey\s+fin|fin)[,\s]+)?(?:please\s+)?(?:create|make|draft|prepare|write|generate|start)\s+(?:(?:an?|the)\s+)?(?:new\s+)?invoice\s+(?:from|using)\s+(.+)$/i)
+ if (!match || /\$|\b(?:and|then)\s+(?:send|email|text|schedule|add|record|create)\b|\bdue\s+(?:on\s+)?\d/i.test(match[1])) return null
+ const [scope, customer = ''] = match[1].replace(/[.!?]+$/, '').split(/\s+for\s+(?:customer\s+)?/i, 2)
+ const source = scope.replace(/^(?:(?:the|my|an?)\s+)?(?:approved\s+)?/i, '').trim()
+ const first = source.match(/^(job|estimate|quote)(?:\s+(.+))?$/i)
+ const last = source.match(/^(.+?)\s+(job|estimate|quote)$/i)
+ if (!first && !last) return null
+ const kind = (first?.[1] ?? last?.[2] ?? '').toLowerCase() === 'job' ? 'job' : 'estimate'
+ const name = (first?.[2] ?? last?.[1] ?? '').trim()
+ return name || customer ? { kind, name, customer: customer.trim() } : null
 }
 
 export function finInvoiceDraft(command: string, customerId?: string): FinInvoiceDraft | null {

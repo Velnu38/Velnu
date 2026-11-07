@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { CurrentBusiness } from '../lib/business'
 import type { FinInvoiceDraft } from '../lib/voiceDocument'
+import type { InvoiceSourceTarget } from '../services/finInvoiceSources'
 import VoiceAssistant from './VoiceAssistant'
 
 /** A paid plan preference is not an entitlement. The backend quota/entitlement
@@ -10,7 +11,7 @@ import VoiceAssistant from './VoiceAssistant'
 export default function AiAssistantAccess({ business, onChanged, onOpenInvoice, onAvailabilityChange }: {
   business: CurrentBusiness
   onChanged: () => void
-  onOpenInvoice: (draft: FinInvoiceDraft) => boolean
+  onOpenInvoice: (draft: FinInvoiceDraft | InvoiceSourceTarget) => boolean
   onAvailabilityChange?: (available: boolean) => void
 }) {
   const [revision,setRevision]=useState(0)

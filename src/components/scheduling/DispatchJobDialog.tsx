@@ -18,10 +18,11 @@ type Work = {
 }
 export type JobScheduleMode = 'appointment' | 'crew'
 
-export default function DispatchJobDialog({ business, job, mode = 'appointment', onClose, onSaved, onReschedule }: {
+export default function DispatchJobDialog({ business, job, mode = 'appointment', initialDay, onClose, onSaved, onReschedule }: {
   business: CurrentBusiness
   job: Work
   mode?: JobScheduleMode
+  initialDay?: string
   onClose: () => void
   onSaved: () => void
   onReschedule?: () => void
@@ -43,21 +44,25 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
   const formatInput = (time?: string | null) => time ? DateTime.fromISO(time).setZone(zone).toFormat("yyyy-MM-dd'T'HH:mm") : ''
   const originalStart = formatInput(job.scheduled_start)
   const originalEnd = formatInput(job.scheduled_end)
-  const [start, setStart] = useState(originalStart)
-  const [end, setEnd] = useState(originalEnd)
+  const selectedDay = initialDay && /^\d{4}-\d{2}-\d{2}$/.test(initialDay) ? initialDay : null
+  const proposedStart = selectedDay ? selectedDay + 'T' + (originalStart.split('T')[1] || '09:00') : originalStart
+  const [start, setStart] = useState(proposedStart)
+  const [end, setEnd] = useState(selectedDay ? '' : originalEnd)
 
   useEffect(() => {
     let active = true
     void getSchedulingContext(business.id).then(value => {
       if (!active) return
       setContext(value)
-      if (job.scheduled_start && !job.scheduled_end) {
+      if (selectedDay) {
+        setEnd(current => current || DateTime.fromISO(proposedStart, { zone }).plus({ minutes: value.preferences.duration_minutes }).toFormat("yyyy-MM-dd'T'HH:mm"))
+      } else if (job.scheduled_start && !job.scheduled_end) {
         setEnd(DateTime.fromISO(job.scheduled_start).setZone(zone)
           .plus({ minutes: value.preferences.duration_minutes }).toFormat("yyyy-MM-dd'T'HH:mm"))
       }
     }).catch(e => { if (active) setError(e.message) })
     return () => { active = false }
-  }, [business.id, job.id, job.scheduled_start, job.scheduled_end, zone])
+  }, [business.id, job.id, job.scheduled_start, job.scheduled_end, selectedDay, proposedStart, zone])
 
   const currentWorkers = job.assigned_user_ids ?? []
   const crewChanged = selectedWorkers.length !== currentWorkers.length || selectedWorkers.some(id => !currentWorkers.includes(id))

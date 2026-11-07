@@ -16,7 +16,7 @@ export async function listEstimates(businessId: string, customerId?: string) {
   const data = await collectBusinessRecords((from, to) => {
     let query = supabase
     .from('estimates')
-    .select('created_at,updated_at,id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,property_id,job_id,notes,customer_message,issuer_snapshot,customers!estimates_customer_id_fkey(id,first_name,last_name,company,email,phone)', { count: 'exact' })
+    .select('created_at,updated_at,id,estimate_number,status,issue_date,expires_on,subtotal,tax_amount,total,customer_id,property_id,job_id,notes,customer_message,issuer_snapshot,properties!estimates_property_business_fkey(address_line1,address_line2,city,state,postal_code),customers!estimates_customer_id_fkey(id,first_name,last_name,company,email,phone)', { count: 'exact' })
     .eq('business_id', businessId)
     .order('id').range(from, to)
     if (customerId) query = query.eq('customer_id', customerId)

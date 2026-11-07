@@ -29,6 +29,7 @@ import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '.
 import { listCustomers } from '../services/customers'
 import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
 import DocumentPaper from '../components/DocumentPaper'
+import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import { createApprovalLink } from '../services/approvals'
 import DocumentDelivery from '../components/DocumentDelivery'
 import { customerActionsEnabled } from '../lib/releaseFlags'
@@ -44,7 +45,7 @@ import { validPaymentLink } from '../lib/paymentLinks'
 const ChangeOrdersPage = lazy(() => import('./ChangeOrdersPage'))
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
-type Estimate = DocumentDates & { issuer_snapshot?: Partial<BusinessProfile> | null; id: string; customer_id: string; job_id?: string | null; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
+type Estimate = DocumentDates & { properties?:ServiceAddress|ServiceAddress[]|null; issuer_snapshot?: Partial<BusinessProfile> | null; id: string; customer_id: string; job_id?: string | null; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type PreviewItem = { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
@@ -79,11 +80,13 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const saving=useRef(false)
   const [creationPreview,setCreationPreview]=useState(false)
   const savedCreation=useRef<string|null>(null)
-  const [editCreationCustomer,setEditCreationCustomer]=useState(false)
+  const [savedCustomerId,setSavedCustomerId]=useState('')
+  const [editCreationCustomer,setEditCreationCustomer]=useState<'email'|'phone'|'all'|null>(null)
   const dateEdited=useRef(false)
   const [defaultPayments,setDefaultPayments]=useState<DocumentPayments>({payment_links:[],payment_instructions:''})
   const [documentPayments,setDocumentPayments]=useState<DocumentPayments>({payment_links:[],payment_instructions:''})
   const [propertyId,setPropertyId]=useState('')
+  const [serviceAddress,setServiceAddress]=useState('')
   const [expiresOn, setExpiresOn] = useState(() => documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate'))
   const [issueDate, setIssueDate] = useState(() => DateTime.now().setZone(business.timezone || 'UTC').toISODate()!)
   const [notes, setNotes] = useState('')
@@ -93,7 +96,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [defaultsReady,setDefaultsReady] = useState(false)
   useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setDocumentTax(String(d.default_tax_rate));setDefaultPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDocumentPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
   const quickCreate=useRef(new URLSearchParams(window.location.search).get('new')==='1')
-  useEffect(()=>{if(defaultsReady&&quickCreate.current&&canManageFinances(business.role)){quickCreate.current=false;resetForm();setShowForm(true);const url=new URL(location.href);url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[defaultsReady,business.role])
+  useEffect(()=>{if(defaultsReady&&quickCreate.current&&canManageFinances(business.role)){quickCreate.current=false;resetForm();setCustomerId(customerScope);setShowForm(true);const url=new URL(location.href);url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[defaultsReady,business.role])
   const newLine = (): Line => ({...blankLine(),tax_rate:String(defaultTax)})
   const [lines, setLines] = useState<Line[]>([blankLine()])
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
@@ -113,9 +116,15 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('document')
     const target = estimates.find(row => row.id === id)
-    if (target && !linkedDocumentOpened.current) {
+    if (target && !showForm && !linkedDocumentOpened.current) {
       linkedDocumentOpened.current = true
-      void openPreview(target)
+      const createInvoice = new URLSearchParams(location.search).get('action') === 'invoice'
+      void openPreview(target).then(opened => {
+        if (opened && createInvoice && canManageFinances(business.role)) {
+          if (target.status === 'accepted') setConvertTarget(target)
+          else setNotice('Review this estimate’s approval status before creating the final invoice.')
+        }
+      })
     }
   }, [estimates])
 
@@ -127,7 +136,9 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
 
-  const creationCustomer=customerId?customers.find(c=>c.id===customerId):{first_name:customerDraft.name,last_name:null,company:customerDraft.company,email:customerDraft.email,phone:customerDraft.phone}
+  const previewAddress = Array.isArray(previewTarget?.properties)?previewTarget.properties[0]:previewTarget?.properties
+  const creationContactId=customerId||savedCustomerId
+  const creationCustomer=customers.find(c=>c.id===creationContactId)||{first_name:customerDraft.name,last_name:null,company:customerDraft.company,email:customerDraft.email,phone:customerDraft.phone}
   async function finishCreation(id:string,edit=false){const rows=await refresh();const saved=rows.find(row=>row.id===id);if(!saved)throw new Error('The estimate was saved. Reload the list to open it; do not create it again.');if(!await openPreview(saved))throw new Error('The estimate is saved, but its preview could not load. Retry opening this same record.');setShowEdit(edit);resetForm();setShowForm(false)}
   function reviewCreation(event:React.FormEvent){
     event.preventDefault();setError('')
@@ -135,13 +146,15 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       if(!customerId)newCustomerFields(customerDraft)
       validateDocumentInput({customer_id:customerId||'new',issue_date:issueDate,expires_on:expiresOn,items:lines.map(l=>({description:l.description,quantity:Number(l.quantity),unit_price:Number(l.unit_price),tax_rate:Number(l.tax_rate)}))})
       if(documentPayments.payment_links.some(link=>!validPaymentLink(link)))throw new Error('Enter a valid HTTPS payment link.')
-      setCreationPreview(true)
+      if ((event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'draft') {
+        void submit()
+      } else setCreationPreview(true)
     }catch(e){setError(e instanceof Error?e.message:'Check the document details.')}
   }
 
   function resetForm() {
-    setCreationPreview(false); savedCreation.current=null; dateEdited.current=false; setDocumentTax(String(defaultTax))
-    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId(''); setExpiresOn(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate')); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
+    setCreationPreview(false); savedCreation.current=null;setSavedCustomerId(''); dateEdited.current=false; setDocumentTax(String(defaultTax))
+    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId('');setServiceAddress(''); setExpiresOn(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate')); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(sendEmail=false, stayOnPreview=false) {
@@ -178,7 +191,11 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         })),
       })
       savedCreation.current=created.id
-      if(stayOnPreview)return created.id
+      if(stayOnPreview){
+        setSavedCustomerId(customer.customer_id)
+        history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope,created.id))
+        return created.id
+      }
       if(sendEmail)await sendReviewedDocument(business.id, 'estimate',created.id,creationCustomer?.email||'')
       await finishCreation(created.id)
     } catch (err) {
@@ -301,20 +318,20 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {!previewTarget && <RecordListPagination label="estimates" list={recordList} className="estimate-bottom-pagination" />}
     {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
     {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} linkedJobId={resourceEstimate.job_id} onClose={() => setResourceEstimate(null)} />}
-    {showForm && <FormDialog label="Create an estimate" autoFocusFields={false} busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
+    {showForm && <FormDialog label="Create an estimate" autoFocusFields={false} busy={busy} cleanVersion={savedCreation.current} onClose={() => { if(savedCreation.current)void finishCreation(savedCreation.current);else {setShowForm(false);resetForm()} }} wide>
       <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
-        <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} disabled={busy}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer(true)}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setExpiresOn(documentEndDate(e.target.value,'estimate'))}} /></label><label>Valid until<input type="date" required min={issueDate} value={expiresOn} onChange={(e) => {dateEdited.current=true;setExpiresOn(e.target.value)}} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
-        <div className="full"><CustomerPropertySelect businessId={business.id} customerId={customerId} value={propertyId} onChange={setPropertyId} disabled={busy}/></div>
+        <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setCustomerId(id);setPropertyId('')}} onDraft={setCustomerDraft} disabled={busy}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setExpiresOn(documentEndDate(e.target.value,'estimate'))}} /></label><label>Valid until<input type="date" required min={issueDate} value={expiresOn} onChange={(e) => {dateEdited.current=true;setExpiresOn(e.target.value)}} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <div className="full"><CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/></div>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 30 days. A deposit is due before work begins." /></label></div>
         <DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine} taxOptions taxDefault={{ rate: documentTax, onChange: setDocumentTax }}/>
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>Preview</button></div>
+        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>Preview</button><button type="submit" value="draft" className="secondary-button" disabled={busy}>Save Draft</button></div>
       </form>
 
-      {editCreationCustomer&&customerId&&<CustomerEditDialog businessId={business.id} customerId={customerId} onClose={()=>setEditCreationCustomer(false)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
+      {editCreationCustomer&&creationContactId&&<CustomerEditDialog businessId={business.id} customerId={creationContactId} contactField={editCreationCustomer==='all'?undefined:editCreationCustomer} onClose={()=>setEditCreationCustomer(null)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
+      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,serviceAddress,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
     </FormDialog>}
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
@@ -351,7 +368,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManageFinances(business.role)} timezone={business.timezone||'America/New_York'}/>}
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
         {plan==='free'&&isPrimaryOwner(business)&&<p className="quiet"><a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a></p>}
-        <DocumentPaper finviantBranding={plan==='free'} business={previewTarget.issuer_snapshot?.name ? {...business,...previewTarget.issuer_snapshot,name:previewTarget.issuer_snapshot.name}:business} kind="estimate" customer={previewTarget.customers?.[0]} number={previewTarget.estimate_number} issued={previewTarget.issue_date} ending={previewTarget.expires_on} items={previewItems} subtotal={previewTarget.subtotal} tax={previewTarget.tax_amount} total={previewTarget.total} message={previewTarget.customer_message}/>
+        <DocumentPaper finviantBranding={plan==='free'} business={previewTarget.issuer_snapshot?.name ? {...business,...previewTarget.issuer_snapshot,name:previewTarget.issuer_snapshot.name}:business} kind="estimate" customer={previewTarget.customers?.[0]} serviceAddress={previewAddress?formatServiceAddress(previewAddress):undefined} number={previewTarget.estimate_number} issued={previewTarget.issue_date} ending={previewTarget.expires_on} items={previewItems} subtotal={previewTarget.subtotal} tax={previewTarget.tax_amount} total={previewTarget.total} message={previewTarget.customer_message}/>
 
       </section>
     </FormDialog>}

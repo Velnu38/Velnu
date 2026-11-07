@@ -16,7 +16,7 @@ export async function workflow(page,{steps=[docStep()],respond,contact={email:'c
  return {state,requests,executions,plans}
 }
 export async function ask(page,text){await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill(text);await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click()}
-export async function start(page,text='Create an invoice from the landscaping job for Test Customer'){await page.goto('/');await openFinTyping(page);await ask(page,text)}
+export async function start(page,text='Create an invoice from the landscaping job for Test Customer and schedule a follow-up'){await page.goto('/');await openFinTyping(page);await ask(page,text)}
 export const review=page=>page.getByRole('region',{name:'Review Fin’s plan'})
 export async function save(page){
  const [response]=await Promise.all([page.waitForResponse(r=>r.url().endsWith('/rest/v1/rpc/fin_execute_review')&&r.request().method()==='POST'),review(page).getByRole('button',{name:'Yes, make these changes',exact:true}).click()])

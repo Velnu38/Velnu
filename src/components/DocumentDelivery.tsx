@@ -1,3 +1,4 @@
+import { readPendingPersonalSend } from '../services/personalDelivery'
 import ScheduledEmail from './ScheduledEmail'
 import ManagedSmsDelivery from './ManagedSmsDelivery'
 import PersonalDocumentDelivery from './PersonalDocumentDelivery'
@@ -15,6 +16,11 @@ export default function DocumentDelivery({businessId,kind,documentId,email,phone
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[receipt,setReceipt]=useState<ReviewDeliveryReceipt|null>(null),[refreshWarning,setRefreshWarning]=useState('')
  const [setup,setSetup]=useState<DeliverySetup|null>(null),[personal,setPersonal]=useState(false),[setupError,setSetupError]=useState(''),[retry,setRetry]=useState(0)
  useEffect(()=>{let active=true;const load=()=>{void getDeliverySetup(businessId).then(s=>{if(active){setSetup(s);setSetupError('')}}).catch(e=>{if(active)setSetupError(e.message)})};load();window.addEventListener('finviant-tier-changed',load);window.addEventListener('finviant-delivery-changed',load);return()=>{active=false;window.removeEventListener('finviant-tier-changed',load);window.removeEventListener('finviant-delivery-changed',load)}},[businessId,retry])
+ useEffect(()=>{
+  let active=true
+  void readPendingPersonalSend(businessId,kind,documentId).then(pending=>{if(active&&pending)setPersonal(true)})
+  return()=>{active=false}
+ },[businessId,kind,documentId])
  const inFlight=useRef(false)
  useUnsavedChanges(busy)
  async function send(){

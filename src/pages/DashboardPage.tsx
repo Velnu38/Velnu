@@ -35,6 +35,8 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
   const [snapshot, setSnapshot] = useState(empty)
   const [showCreate, setShowCreate] = useState(false)
   const [showEntry, setShowEntry] = useState(false)
+  const [attentionCount, setAttentionCount] = useState(0)
+  const [openAttention, setOpenAttention] = useState(0)
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -112,9 +114,10 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
       </button>}<button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
     </header>
     <div className="home-overview">
-      {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
-      {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
-      {canAccess(business,'billing') && <BillingHub key={workspaceKey} business={business} refreshVersion={refreshVersion} />}
+      {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} />}
+      {attentionCount>0&&canAccess(business,'billing')&&<button type="button" className="text-button attention-jump" onClick={()=>setOpenAttention(value=>value+1)}>Jump to Needs Attention</button>}
+      {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey+':financial'} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
+      {canAccess(business,'billing') && <BillingHub key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} openRequest={openAttention} onPendingChange={setAttentionCount} />}
     </div>
 
     {showCreate && <FormDialog label="Create new" onClose={() => setShowCreate(false)}>

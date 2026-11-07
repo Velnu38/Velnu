@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { mock, B, business } from './audit-fixture.mjs'
 
-const setupLinks = ['Company Profile', 'Team & Access', 'Text Messaging Setup', 'Invoice & Estimate Setup', 'Calendar Connections', 'Working Hours & Team Availability']
+const setupLinks = ['Company Profile', 'Team & Access', 'Email & Text Setup', 'Invoice & Estimate Setup', 'Calendar Connections', 'Working Hours & Team Availability']
 const moreButton = page => page.locator(page.viewportSize().width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', {name: 'More', exact: true})
 const more = page => page.getByRole('dialog', {name: 'More navigation'})
 
@@ -28,8 +28,9 @@ for (const width of [320, 390, 1440]) test(`More consolidates setup and preserve
   await expect(page).toHaveURL(/view=reminders/)
   await page.goBack()
   await expect(page.getByRole('link', {name: 'Manage Reminders', exact: true})).toBeVisible()
-  await page.locator(width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', {name: 'Invoices', exact: true}).click()
-  await page.getByRole('link', {name: 'Payment History', exact: true}).click()
+  await page.locator(width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', {name: 'Home', exact: true}).click()
+  await page.getByRole('button',{name:/^View all income & expenses/}).click()
+  await page.getByRole('link', {name: 'Payment history', exact: true}).click()
   await expect(page).toHaveURL(/view=payments/)
   expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

@@ -1,5 +1,5 @@
 import InvoiceReminderDialog from './InvoiceReminderDialog'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DateTime } from 'luxon'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import type { DashboardSnapshot } from '../services/dashboard'
@@ -32,16 +32,35 @@ function customerName(customer?: { first_name: string | null; last_name: string 
 const documentHref = (view: string, id: string) => `/?view=${view}&document=${encodeURIComponent(id)}`
 const dateLabel = (value: string | null) => value && DateTime.fromISO(value).isValid ? DateTime.fromISO(value).toFormat('MMM d, yyyy') : ''
 
-export default function BillingHub({ business, refreshVersion = 0 }: { business: CurrentBusiness; refreshVersion?: number }) {
+export default function BillingHub({ business, refreshVersion = 0, openRequest = 0, onPendingChange }: {
+  business: CurrentBusiness; refreshVersion?: number; openRequest?: number; onPendingChange?: (count: number) => void
+}) {
+  const card = useRef<HTMLElement>(null)
+  const savedView = useRef(history.state?.finviantAttention?.businessId === business.id ? history.state.finviantAttention : null)
   const [reminderInvoice,setReminderInvoice]=useState<string|null>(null)
-  const [filter, setFilter] = useState<AttentionFilter>('attention')
-  const [expanded, setExpanded] = useState(false)
+  const [filter, setFilter] = useState<AttentionFilter>(savedView.current?.filter ?? 'attention')
+  const [expanded, setExpanded] = useState(!!savedView.current)
   const canSee = canManageFinances(business.role)
-  const [pageNumber,setPageNumber]=useState(1)
+  const [pageNumber,setPageNumber]=useState<number>(savedView.current?.page ?? 1)
   const [attentionPage,setAttentionPage]=useState<AttentionPage|null>(null)
   const [pageLoading,setPageLoading]=useState(true)
   const [pageError,setPageError]=useState('')
   const [retry,setRetry]=useState(0)
+  useEffect(() => {
+    if (!openRequest) return
+    setExpanded(true)
+    card.current?.scrollIntoView({ block: 'start' })
+    card.current?.querySelector('button')?.focus({ preventScroll: true })
+  }, [openRequest])
+  useEffect(() => {
+    if (pageLoading || !savedView.current) return
+    const offset: number = savedView.current.offset
+    savedView.current = null
+    const frame = requestAnimationFrame(() => {
+      if (card.current) window.scrollBy(0, card.current.getBoundingClientRect().top - offset)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [pageLoading])
   useEffect(()=>{
     if(!canSee)return
     let active=true,request=0
@@ -76,19 +95,25 @@ export default function BillingHub({ business, refreshVersion = 0 }: { business:
   const attentionCount=attentionPage?.attention_count??0
   const approvalCount=attentionPage?.approval_count??0
   const countsUnavailable=!attentionPage||!!pageError
+  useEffect(() => { onPendingChange?.(countsUnavailable ? 0 : attentionCount + approvalCount) }, [onPendingChange, countsUnavailable, attentionCount, approvalCount])
   const overdue: Row[] = overdueInvoices.map(row => ({ key:`invoice:${row.id}`, kind:'Invoice', number:row.invoice_number || 'Invoice',
     customer:customerName(row.customers?.[0]), detail:row.due_date ? `Due ${dateLabel(row.due_date)}` : 'Payment past due',
     amount:Number(row.balance_due), amountLabel:'Balance due', status:'Overdue', tone:'overdue', href:documentHref('invoices',row.id) }))
   const approvals: Row[] = pendingApprovals.map(row => ({ key:`${row.document_type}:${row.id}`, kind:row.document_type === 'estimate' ? 'Estimate' : 'Change order', number:row.number || 'Awaiting customer approval',
     customer:customerName(row.customers?.[0]), detail:row.document_type === 'change_order' ? row.title : `Sent ${dateLabel(row.issue_date)}`,
-    amount:Number(row.total), amountLabel:'Quoted total', status:'Awaiting customer approval', tone:'approval', href:row.document_type === 'estimate' ? documentHref('estimates',row.id)
-      : row.estimate_id ? documentHref('estimates',row.estimate_id) : '/?view=change_orders' }))
+    amount:Number(row.total), amountLabel:'Quoted total', status:'Awaiting customer approval', tone:'approval',
+    href:documentHref(row.document_type === 'estimate' ? 'estimates' : 'change_orders', row.id) }))
   const rows=filter==='approvals'?approvals:overdue
   const heading = filter === 'attention' ? 'Needs Attention' : filter === 'approvals' ? 'Awaiting Customer Approval' : categoryLabels[filter]
   const total=attentionPage?.total??0
   const currentPage=attentionPage?.page??1
   const pageCount=Math.max(1,Math.ceil(total/5))
-  return <article className="billing-hub dashboard-tile home-attention-tile" aria-label="Needs attention overview">
+  return <article ref={card} className="billing-hub dashboard-tile home-attention-tile" aria-label="Needs attention overview" onClickCapture={event => {
+    const link = (event.target as Element).closest('a[href^="/?view="]')
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    history.replaceState({ ...history.state, finviantAttention: { businessId: business.id, filter, page: currentPage,
+      offset: card.current?.getBoundingClientRect().top ?? 0 } }, '', location.href)
+  }}>
     {reminderInvoice&&<InvoiceReminderDialog business={business} invoiceId={reminderInvoice} onClose={()=>setReminderInvoice(null)} onSent={()=>{setRetry(v=>v+1);window.dispatchEvent(new Event('finviant-work-changed'))}}/>}
     <button type="button" className="attention-summary-toggle" aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>
       <span><span className="eyebrow">Your next steps</span><strong className="dashboard-tile-title">Needs Attention</strong><small>{countsUnavailable?'Loading action counts…':`${attentionCount} ${attentionCount===1?'action':'actions'} need your attention`}</small></span>

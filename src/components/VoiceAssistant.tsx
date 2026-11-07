@@ -1,4 +1,5 @@
-import { finInvoiceDraft, type FinInvoiceDraft } from '../lib/voiceDocument'
+import { finInvoiceDraft, namedInvoiceSource, type FinInvoiceDraft } from '../lib/voiceDocument'
+import { findInvoiceSources, resolveInvoiceSource, type InvoiceSource, type InvoiceSourceTarget } from '../services/finInvoiceSources'
 import { canAccess } from '../lib/workspaceAccess'
 import FinCustomerSuggestions from './FinCustomerSuggestions'
 import FinActionButton from './FinActionButton'
@@ -31,12 +32,13 @@ type BrowserRecognizer = {
 function SafeFinText({text}:{text:string}){return <>{text.split(/(\*\*[^*\n]{1,100}\*\*)/g).map((part,i)=>part.startsWith('**')&&part.endsWith('**')?<strong key={i}>{part.slice(2,-2)}</strong>:part)}</>}
 function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>void}){return <section className="fin-answer" aria-label="Fin’s answer"><p className="eyebrow">Fin · Your office assistant</p><p className="fin-answer-text"><SafeFinText text={result.answer}/></p>{result.clarification&&<p className="fin-clarification"><strong>{result.clarification}</strong></p>}{result.sources?.length>0&&<details><summary>Based on saved records</summary><ul>{result.sources.map(s=><li key={s.key}>{s.label}{recordHref(s.key)&&<a href={recordHref(s.key)!} onClick={onNavigate}>Open record</a>}</li>)}</ul></details>}{result.navigation?.map(key=>Object.hasOwn(uiCatalog,key)&&<a key={key} className="secondary-button" href={navigationHref(key)!} onClick={onNavigate}>Open {uiCatalog[key as keyof typeof uiCatalog]}</a>)}<details><summary>Records checked and limits</summary><p>Checked {new Date(result.as_of).toLocaleString()}</p><ul>{result.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>}
 
-export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: { business: CurrentBusiness; onChanged: () => void; onOpenInvoice: (draft: FinInvoiceDraft) => boolean }) {
+export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: { business: CurrentBusiness; onChanged: () => void; onOpenInvoice: (draft: FinInvoiceDraft | InvoiceSourceTarget) => boolean }) {
   const [open, setOpen] = useState(false)
   const [entryRevision,setEntryRevision]=useState(0)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [invoiceSources, setInvoiceSources] = useState<InvoiceSource[]>([])
   const [conversation,setConversation]=useState<Array<{question:string;response:FinReply}>>([])
   const [plan,setPlan]=useState<Plan|null>(null),[execution,setExecution]=useState<FinExecution|null>(null)
   const thread=useRef(crypto.randomUUID()),retryRequest=useRef<{text:string;id:string}|null>(null)
@@ -102,15 +104,50 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: {
   },[])
 
   function reset() {
+    setInvoiceSources([])
     setMicrophoneFailure(null)
     setEntryMode('text')
     setError(''); setVoiceStatus(''); setText('')
+  }
+
+  async function openInvoiceSource(source: InvoiceSource) {
+    const target = await resolveInvoiceSource(business.id, source)
+    if (mounted.current && onOpenInvoice(target)) {
+      setOpen(false)
+      reset()
+    }
+  }
+
+  async function chooseInvoiceSource(source: InvoiceSource) {
+    if (mutationInFlight.current) return
+    mutationInFlight.current = true
+    setBusy(true); setError('')
+    try { await openInvoiceSource(source) }
+    catch (err) { if (mounted.current) setError(err instanceof Error ? err.message : 'Unable to open the saved work.') }
+    finally { mutationInFlight.current = false; if (mounted.current) setBusy(false) }
   }
 
   async function parseCommand(command: string, source: AiCommandSource, customerId?: string) {
     if (mutationInFlight.current) return
     if(plan&&/^yes[.! ]*$/i.test(command.trim())){setText('');await confirm({id:plan.id,version:plan.version});return}
     if(plan&&/^no[.! ]*$/i.test(command.trim())){setText('');await reject();return}
+    setInvoiceSources([])
+    const sourceRequest = !plan && namedInvoiceSource(command)
+    if (sourceRequest && canAccess(business, 'billing') && (sourceRequest.kind !== 'job' || canAccess(business, 'jobs'))) {
+      mutationInFlight.current = true
+      setBusy(true); setError(''); setWorkingMessage('Fin is finding the saved work…')
+      try {
+        const matches = await findInvoiceSources(business.id, sourceRequest)
+        if (mounted.current && matches.length === 1) await openInvoiceSource(matches[0])
+        else if (mounted.current) setInvoiceSources(matches)
+      } catch (err) {
+        if (mounted.current) { setText(command); setError(err instanceof Error ? err.message : 'Unable to find the saved work.') }
+      } finally {
+        mutationInFlight.current = false
+        if (mounted.current) { setBusy(false); setWorkingMessage('') }
+      }
+      return
+    }
     const invoice = finInvoiceDraft(command, customerId)
     if (invoice && canAccess(business, 'billing')) {
       if (onOpenInvoice(invoice)) {
@@ -389,6 +426,7 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: {
       {recording&&<div className="fin-recording-state"><span className="fin-listening-mark" aria-hidden="true"><FinMark onDark/></span><strong>Listening…</strong><div className="fin-recording-actions"><button type="button" className="secondary-button" onClick={()=>toggleRecording()} disabled={busy}>Finish recording</button><button type="button" data-keep-dialog className="text-button" onClick={cancelRecording} disabled={busy}>Cancel recording</button></div></div>}
       {!microphoneFailure&&!recording&&!busy&&(entryMode==='text'||error||conversation.length>0)&&<button type="button" className="secondary-button fin-speak-again" onClick={()=>toggleRecording()}>{error?'Try microphone again':conversation.length?'Speak a follow-up':'Speak instead'}</button>}
       {workingMessage&&<p className="fin-working" role="status">{workingMessage}</p>}
+      {invoiceSources.length>0&&<section aria-label="Matching saved work"><h3>Which record should this invoice use?</h3><ul>{invoiceSources.map(source=><li key={source.id}><button type="button" className="text-button" disabled={busy} onClick={()=>void chooseInvoiceSource(source)}>{source.label}</button></li>)}</ul></section>}
       {voiceStatus&&<p className="assistant-help" role="status">{voiceStatus}</p>}
       <p className="assistant-help">{conversation.length?'Ask a follow-up by voice or type below.':'Speak or type a question, invoice, estimate, or task.'}</p>
       <details className="fin-help"><summary>Using Fin and your business data</summary><button type="button" className="text-button" onClick={()=>textAreaRef.current?.focus()}>Use keyboard dictation</button><p className="assistant-help">Ask about your saved business profile, customers, unpaid invoices or upcoming work. Fin uses current records in this business; its answers show the records checked. Teach Fin through More → Company Profile. Fin respects your role and the modules the account owner enables. Tap in the text box and use your device’s keyboard dictation if available, or type your request. Check that your words appear, then review the invoice or estimate. Say each description and dollar amount, for example: “Create an estimate for Bob Smith for mowing $100 and edging $40, total $140.” When OpenAI transcription is enabled, the large microphone records audio securely for server transcription; otherwise Finviant Office uses browser dictation. Speech may be processed by OpenAI and the resulting text is saved to your business account. Nothing is sent to customers without review.</p></details>

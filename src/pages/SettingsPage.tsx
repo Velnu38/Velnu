@@ -4,7 +4,6 @@ import { useTierUsage } from '../lib/useTierUsage'
 import PlansAndUsage from '../components/settings/PlansAndUsage'
 import DeliverySetup from '../components/settings/DeliverySetup'
 import StorageUsage from '../components/StorageUsage'
-import SmsSetup from '../components/settings/SmsSetup'
 import IntegrationTesting from '../components/settings/IntegrationTesting'
 import WorkspaceBack from '../components/WorkspaceBack'
 import SupportCases from '../components/SupportCases'
@@ -40,7 +39,7 @@ export default function SettingsPage({ business, onSaved }: {
     if (id === "plans") return <PlansAndUsage businessId={business.id}/>;
     if (id === "delivery") return <DeliverySetup businessId={business.id}/>;
     if (id === "storage") return <StorageUsage key={business.id} businessId={business.id} detailed canUpgrade={isPrimaryOwner(business)}/>;
-    if (id === "sms") return <SmsSetup businessId={business.id} />;
+    if (id === "sms") return <DeliverySetup businessId={business.id} focusMobile />;
     if (id === "support") return <SupportCases businessId={business.id} />;
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;

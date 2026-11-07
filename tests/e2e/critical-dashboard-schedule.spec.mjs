@@ -386,12 +386,14 @@ const openSchedule = async (page, options) => {
   return state
 }
 const showForm = async page => {
-  await page.getByRole('button', { name: '+ Schedule work' }).click()
+  await page.getByRole('button', { name: 'Book existing job', exact: true }).click()
+  await page.getByRole('link', { name: 'Create scheduled job', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toBeVisible()
 }
 const completeForm = async (page, start = localDatetime(), end = localDatetime(1, 11)) => {
   await showForm(page)
- await page.locator('.modal form select').first().selectOption(CID)
+  await page.getByRole('dialog').getByRole('combobox',{name:'Customer',exact:true}).fill('Jane')
+  await page.getByRole('option',{name:/Jane Doe/}).click()
   await page.getByLabel('Job title', { exact: true }).fill('Replace faucet')
   await page.getByLabel('Starts').fill(start)
   if (end) await page.getByLabel('Ends').fill(end)
@@ -605,7 +607,7 @@ test('13 empty schedule shows its empty state', async ({ page }) => {
 
 test('14 viewers cannot schedule work or update an existing appointment', async ({ page }) => {
   const state = await openSchedule(page, { role: 'viewer', appointments: [appointment()] })
-  await expect(page.getByRole('button', { name: '+ Schedule work' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Book existing job' })).toHaveCount(0)
   await expect(page.locator('.appointment-row select')).toBeDisabled()
   expect(count(state, '/appointments', 'PATCH')).toBe(0)
 })
@@ -623,7 +625,8 @@ test('15 missing customer blocks job creation', async ({ page }) => {
 test('16 blank title blocks job creation', async ({ page }) => {
   const state = await openSchedule(page)
   await showForm(page)
- await page.locator('.modal form select').first().selectOption(CID)
+  await page.getByRole('dialog').getByRole('combobox',{name:'Customer',exact:true}).fill('Jane')
+  await page.getByRole('option',{name:/Jane Doe/}).click()
   await page.getByLabel('Starts').fill(localDatetime())
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
@@ -633,7 +636,8 @@ test('16 blank title blocks job creation', async ({ page }) => {
 test('17 missing start time blocks job creation', async ({ page }) => {
   const state = await openSchedule(page)
   await showForm(page)
- await page.locator('.modal form select').first().selectOption(CID)
+  await page.getByRole('dialog').getByRole('combobox',{name:'Customer',exact:true}).fill('Jane')
+  await page.getByRole('option',{name:/Jane Doe/}).click()
   await page.getByLabel('Job title', { exact: true }).fill('No time')
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
@@ -1400,7 +1404,7 @@ for(const width of [1440,390])test(`invoice review has ordered uniform actions a
  await page.goto('/?view=invoices&document='+inv.id)
  const actions=page.getByRole('group',{name:'Common actions',exact:true})
  await expect(actions.getByRole('button').first()).toHaveText('Mark Paid')
- await expect(actions.getByRole('button')).toHaveText(['Mark Paid','Schedule job','Print / Save PDF','Schedule reminder','Record partial payment'])
+ await expect(actions.getByRole('button')).toHaveText(['Mark Paid','Schedule job','Print / Save PDF','Schedule reminder'])
  await expect(page.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'Void invoice'})).toBeVisible()
  await assertUniformDocumentActions(page)
  const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
@@ -1533,7 +1537,7 @@ const finishedReviewJob = {
 }
 
 test('Individual receipt scan fills an editable expense and a failed upload retries against the same expense', async ({page}) => {
-  const state = await mockWorkspace(page, {plan:'basic',receiptUploadFailures:1})
+  const state = await mockWorkspace(page, {plan:'basic',receiptUploadFailures:1,jobs:[finishedReviewJob]})
   await page.setViewportSize({width:390,height:844})
   await page.goto('/')
   await page.getByRole('region',{name:'Financial Performance'}).getByRole('button',{name:/Add Entry/}).click()
@@ -1547,12 +1551,15 @@ test('Individual receipt scan fills an editable expense and a failed upload retr
   await expense.getByText('Details read from the receipt',{exact:true}).click()
   await expect(expense.getByText('Treated wood')).toBeVisible()
   await expense.getByLabel('Amount in USD').fill('49.00')
+  await expense.getByText('Link to a job (optional)',{exact:true}).click()
+  await expense.getByRole('combobox',{name:'Job',exact:true}).selectOption(finishedReviewJob.id)
   await expense.getByRole('button',{name:'Save entry',exact:true}).click()
   await expect(expense.getByRole('alert')).toContainText('Expense saved')
   await expense.getByRole('button',{name:'Retry receipt upload'}).click()
   await expect(expense).toHaveCount(0)
   expect(state.expenses).toHaveLength(1)
   expect(state.expenses[0].amount).toBe(49)
+  expect(state.expenses[0].job_id).toBe(finishedReviewJob.id)
   expect(state.uploadedReceipts.size).toBe(1)
   const saves=state.requests.filter(request=>request.path.endsWith('/rpc/save_receipt_expense'))
   expect(saves).toHaveLength(2)

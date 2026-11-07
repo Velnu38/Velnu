@@ -5,7 +5,7 @@ import { canAccess, isPrimaryOwner } from '../lib/workspaceAccess'
 import { getJob, saveJobNotes, updateJobStatus } from '../services/jobs'
 import { getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
 import type { ReminderJob } from '../services/reminders'
-import { jobStatusConfirmation, jobStatusLabels, jobStatusNotice, type JobStatus } from '../lib/jobActions'
+import { jobInvoiceAction, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, type JobStatus } from '../lib/jobActions'
 import { formatServiceAddress } from '../lib/googleMaps'
 import FormDialog from './FormDialog'
 import PlanRestriction from './PlanRestriction'
@@ -77,6 +77,8 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
     } finally { saving.current = false; setBusy(false) }
   }
 
+  const [invoiceAction, setInvoiceAction] = useState<ReturnType<typeof jobInvoiceAction>>(null)
+
   async function changeStatus(status: JobStatus) {
     if (saving.current || !canEdit || !job || status === job.status) return
     const confirmation = jobStatusConfirmation(status)
@@ -86,6 +88,7 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
       const result = await updateJobStatus(jobId, status)
       setJob(current => current ? { ...current, status } : current)
       setNotice(jobStatusNotice(status, result))
+      setInvoiceAction(jobInvoiceAction(result))
       await reloadAfterChange()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to update the job status.')
@@ -142,7 +145,7 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
           <label>Job notes and materials needed<textarea value={notes} maxLength={4000} rows={7} disabled={busy || !canEdit} onChange={event => { setNotes(event.target.value); setNotice('') }} placeholder="Scope, materials to bring, access instructions, and updates…" /></label>
           {canEdit && <button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save job details'}</button>}
         </form>
-        {notice && <p role="status">{notice}</p>}
+        {notice && <p role="status">{notice} {invoiceAction&&job.status==="completed"&&canAccess(business,"billing")&&<a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
         </div>
         <div role="tabpanel" id={tabsId+'-photos'} aria-labelledby={tabsId+'-photos-tab'} hidden={panel!=='photos'}>
           {photosOpened && <RecordResources key={business.id+':'+jobId} business={business} target={{ kind: 'job', id: jobId }} active={panel==='photos'} />}

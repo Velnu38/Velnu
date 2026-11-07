@@ -35,3 +35,9 @@ export function jobStatusNotice(status: JobStatus, result?: { invoice_ready: boo
   if (result?.needs_pricing) return 'Job completed. Add the charges from the next-step prompt to prepare its invoice.'
   return 'Job completed. Its invoice needs an office review.'
 }
+
+export function jobInvoiceAction(result?: { job_id: string; invoice_id: string | null; needs_pricing: boolean } | void) {
+  if (result?.invoice_id) return { label: 'Review invoice', href: '/?view=invoices&document=' + encodeURIComponent(result.invoice_id) }
+  if (result?.needs_pricing) return { label: 'Add charges', href: '/?view=invoices&job=' + encodeURIComponent(result.job_id) }
+  return null
+}

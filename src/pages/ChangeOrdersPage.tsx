@@ -97,7 +97,17 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
     return orders as ChangeOrder[]
   }
 
-  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load change orders')) }, [business.id])
+  useEffect(() => {
+    let active = true
+    const requested = !context && new URLSearchParams(location.search).get('document')
+    void refresh().then(orders => {
+      if (!active || !requested) return
+      const order = orders.find(row => row.id === requested)
+      if (order) void openReview(order)
+      else setError('This change order is unavailable in this workspace.')
+    }).catch(err => { if (active) setError(err instanceof Error ? err.message : 'Unable to load change orders') })
+    return () => { active = false }
+  }, [business.id])
 
   useEffect(()=>{
     if(!context||!showForm)return

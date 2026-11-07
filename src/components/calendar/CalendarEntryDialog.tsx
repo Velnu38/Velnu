@@ -1,5 +1,6 @@
 import { useTierUsage } from '../../lib/useTierUsage'
 import FormDialog from '../FormDialog'
+import BookExistingJobDialog from '../scheduling/BookExistingJobDialog'
 import '../scheduling/scheduling.css'
 import { useEffect,useRef,useState,type FormEvent } from 'react'
 import { DateTime } from 'luxon'
@@ -15,6 +16,7 @@ export default function CalendarEntryDialog({business,day,entryId,onClose,onSave
   const usage = useTierUsage(business.id)
   const teamScheduling = usage?.plan === 'pro'
   const ai = !!usage && canUseAssistant(business) && usage.ai_limit > 0 && usage.voice_limit > 0 && usage.ai_used < usage.ai_limit
+  const [bookJob,setBookJob]=useState(false)
   const [kind,setKind]=useState<'event'|'reminder'>(entryId||dispatch?'event':'reminder'),[title,setTitle]=useState(''),[notes,setNotes]=useState(''),[start,setStart]=useState(day+'T09:00'),[end,setEnd]=useState(day+'T10:00')
   const [team,setTeam]=useState<Worker[]>([]),[selectedWorker,setWorker]=useState(''),[previous,setPrevious]=useState<CalendarEntry>(),[loading,setLoading]=useState(!!entryId),[busy,setBusy]=useState(false),[error,setError]=useState('')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);if(!entryId)setWorker(rows.find(w=>w.is_you)?.id||rows[0]?.id||'')}}).catch(()=>{});
@@ -37,9 +39,9 @@ export default function CalendarEntryDialog({business,day,entryId,onClose,onSave
       announceCalendarChange();onSaved();onClose()
     }catch(e){setError(e instanceof Error?e.message:'The calendar save is not confirmed. Retry this entry.')}finally{saving.current=false;setBusy(false)}
   }
-  return <FormDialog label={entryId?'Calendar entry':'Add to your calendar'} busy={busy} onClose={close} wide><header className="guided-dialog-head"><div><p className="eyebrow">{DateTime.fromISO(day,{zone}).toFormat('cccc, MMMM d, yyyy')}</p><h2 id="calendar-entry-title">{entryId?'Calendar entry':'Add to your calendar'}</h2></div><button type="button" className="calendar-arrow" aria-label="Close calendar entry" disabled={busy} onClick={close}>×</button></header>
+  return <><FormDialog label={entryId?'Calendar entry':'Add to your calendar'} busy={busy} onClose={close} wide><header className="guided-dialog-head"><div><p className="eyebrow">{DateTime.fromISO(day,{zone}).toFormat('cccc, MMMM d, yyyy')}</p><h2 id="calendar-entry-title">{entryId?'Calendar entry':'Add to your calendar'}</h2></div><button type="button" className="calendar-arrow" aria-label="Close calendar entry" disabled={busy} onClick={close}>×</button></header>
     {loading?<p role="status">Loading calendar entry…</p>:<form className="form-grid" onSubmit={submit}>
-      {!entryId&&<div className="full guided-mode" role="group" aria-label="Entry type"><button type="button" aria-pressed={kind==='event'} disabled={!dispatch||busy} onClick={()=>setKind('event')}>Event</button><button type="button" aria-pressed={kind==='reminder'} disabled={busy} onClick={()=>setKind('reminder')}>Reminder</button></div>}
+      {!entryId&&<div className="full guided-mode" role="group" aria-label="Entry type"><button type="button" aria-pressed={kind==='event'} disabled={!dispatch||busy} onClick={()=>setKind('event')}>Event</button><button type="button" aria-pressed={kind==='reminder'} disabled={busy} onClick={()=>setKind('reminder')}>Reminder</button>{dispatch&&<button type="button" disabled={busy} onClick={()=>setBookJob(true)}>Book existing job</button>}</div>}
       {!entryId&&!ai&&<p className="quiet full">AI entry requires activated AI access. You can add this entry manually.</p>}
       <label className="full">Title<input required maxLength={200} value={title} disabled={busy} onChange={e=>setTitle(e.target.value)} placeholder="Customer visit, supply pickup, or follow-up"/></label>
       <label className="full">Details<textarea maxLength={1800} value={notes} disabled={busy} onChange={e=>setNotes(e.target.value)}/></label>
@@ -51,5 +53,8 @@ export default function CalendarEntryDialog({business,day,entryId,onClose,onSave
       {previous&&dispatch&&!previous.job_id&&<button type="button" className="text-button danger-action full" disabled={busy} onClick={async()=>{if(saving.current||!window.confirm('Cancel this calendar event? It will leave the active schedule and remain in your records.'))return;saving.current=true;setBusy(true);setError('');try{await cancelCalendarEntry(business.id,previous);onSaved();onClose()}catch(e){setError(e instanceof Error?e.message:'Unable to cancel event.')}finally{saving.current=false;setBusy(false)}}}>Cancel event</button>}
       <div className="modal-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={close}>Back to calendar</button><button className="primary-button" disabled={busy||loading||kind==='event'&&!worker||!!entryId&&(!previous||!dispatch)}>{busy?'Saving…':entryId?'Save calendar entry':'Add '+kind}</button></div>
     </form>}
-  </FormDialog>
+  </FormDialog>{bookJob&&<BookExistingJobDialog business={business} day={day} onClose={()=>setBookJob(false)} onSaved={()=>{
+    onSaved()
+    if(!title.trim()&&!notes.trim())onClose()
+  }}/>}</>
 }

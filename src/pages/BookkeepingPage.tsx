@@ -1,6 +1,6 @@
 import ReceiptLink from '../components/ReceiptLink'
 import PlanRestriction from '../components/PlanRestriction'
-import {isPrimaryOwner} from '../lib/workspaceAccess'
+import {canAccess,isPrimaryOwner} from '../lib/workspaceAccess'
 import {useTierUsage} from '../lib/useTierUsage'
 import FinancialEntryDialog from '../components/FinancialEntryDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
@@ -174,7 +174,8 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Bookkeeping · Money in and out</p><h1>Know what you earned. Know what you spent.</h1>
         <p className="quiet">Payments on Finviant Office invoices appear automatically. Add other expenses or income manually, or optionally connect QuickBooks Online.</p></div>
-      <button className="primary-button compact" onClick={() => { setNewEntry(true); setSource('velnu') }}>+ Entry</button>
+      <div className="related-page-actions">{canAccess(business,'billing')&&<a className="secondary-button compact" href="/?view=payments">Payment history</a>}
+        <button className="primary-button compact" onClick={() => { setNewEntry(true); setSource('velnu') }}>+ Add Entry</button></div>
     </div>
     <section className="bookkeeping-tabs" role="group" aria-label="Workbook source">
       <button type="button" className={source === 'velnu' ? 'active' : ''} aria-pressed={source === 'velnu'} onClick={() => setSource('velnu')}>Finviant Office workbook</button>
@@ -237,6 +238,6 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <td>{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
         </tr>)}</tbody></table></div>}
     </section>
-    {newEntry && <FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction)=>{setNewEntry(false);setNotice(`${direction==='income'?'Income':'Expense'} saved. Transaction date: ${date}. Choose All time if it is outside the displayed period.`);void refresh()}}/>}
+    {newEntry && <FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction,payment)=>{setNewEntry(false);setNotice(`${payment?'Payment recorded':direction==='income'?'Income saved':'Expense saved'}. Transaction date: ${date}. Choose All time if it is outside the displayed period.`);void refresh()}}/>}
   </div>
 }

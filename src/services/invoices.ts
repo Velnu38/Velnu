@@ -29,7 +29,7 @@ export async function listInvoices(businessId: string, customerId?: string) {
 
 export async function createInvoice(
   businessId: string,
-  input: Partial<DocumentPayments> & { new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; issue_date?: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
+  input: Partial<DocumentPayments> & { new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; property_id?: string; issue_date?: string; due_date?: string; notes?: string; customer_message?: string; request_id?: string; items: InvoiceLineInput[] },
 ) {
   validateDocumentInput(input)
 
@@ -44,6 +44,7 @@ export async function createInvoice(
       ...(input.new_customer?{new_customer:input.new_customer}:{}),
       ...(input.payment_links?{payment_links:input.payment_links}:{}),
       ...(input.payment_instructions!==undefined?{payment_instructions:input.payment_instructions}:{}),
+      ...(input.property_id ? { property_id: input.property_id } : {}),
       ...(input.issue_date ? { issue_date: input.issue_date } : {}),
       due_date: input.due_date || null,
       notes: input.notes?.trim() || null,

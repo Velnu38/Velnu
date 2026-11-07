@@ -7,6 +7,7 @@ import '../home-screen.css'
 import FormDialog from './FormDialog'
 import {confirmNavigation,hasUnsavedChanges} from '../lib/unsavedChanges'
 import type { FinInvoiceDraft } from '../lib/voiceDocument'
+import type { InvoiceSourceTarget } from '../services/finInvoiceSources'
 import { canOpenView, canUseAssistant } from '../lib/workspaceAccess'
 import { lazy, Suspense, useState, useEffect, useRef, type MouseEvent } from 'react'
 import { getCurrentBusiness, type CurrentBusiness } from '../lib/business'
@@ -50,6 +51,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'customers', label: 'Customers', icon: 'C' },
   { id: 'estimates', label: 'Estimates', icon: 'E' },
   { id: 'invoices', label: 'Invoices', icon: 'I' },
+  { id: 'change_orders', label: 'Change orders', icon: 'C' },
   { id: 'work', label: 'Jobs', icon: 'J' },
   { id: 'schedule', label: 'Schedule', icon: '▦' },
   { id: 'reminders', label: 'Reminders', icon: '✓' },
@@ -66,7 +68,6 @@ function initialView(): View {
   if (query.has('quickbooks')) return 'bookkeeping'
   const requested = query.get('view')
   if(requested==='locations'){query.set('view','customers');window.history.replaceState(window.history.state,'','/?'+query.toString());return 'customers'}
-  if(requested==='change_orders')return 'change_orders'
   return nav.some(item => item.id === requested) ? requested as View : 'dashboard'
 }
 
@@ -113,13 +114,19 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     setShowMobileMore(false)
   }
 
-  function openFinInvoice(draft: FinInvoiceDraft) {
+  function openFinInvoice(draft: FinInvoiceDraft | InvoiceSourceTarget) {
     if (accessRemoved || !canOpenView(company, 'invoices') || !confirmNavigation('fin')) return false
+    const view = 'kind' in draft && draft.kind === 'estimate' ? 'estimates' : 'invoices'
+    const query = new URLSearchParams({ view })
+    if ('kind' in draft) {
+      query.set(draft.kind === 'job' ? 'job' : 'document', draft.id)
+      if (draft.kind === 'estimate') query.set('action', 'invoice')
+    }
     navigationIndex.current++
-    window.history.pushState({finviantIndex:navigationIndex.current}, '', '/?view=invoices')
+    window.history.pushState({finviantIndex:navigationIndex.current}, '', '/?' + query)
     lastLocation.current = location.href
-    invoiceHandoff.current = {revision: refreshVersion + 1, draft}
-    setView('invoices')
+    invoiceHandoff.current = 'kind' in draft ? null : {revision: refreshVersion + 1, draft}
+    setView(view)
     setRefreshVersion(refreshVersion + 1)
     setShowMobileMore(false)
     return true

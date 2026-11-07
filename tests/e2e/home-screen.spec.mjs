@@ -10,7 +10,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
  await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
  const finance=page.getByRole('region',{name:'Financial Performance',exact:true}),calendar=page.getByRole('region',{name:'Work calendar',exact:true})
  await expect(finance).toBeVisible();await expect(calendar).toBeVisible()
- expect(await finance.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.dashboard-calendar'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
+ expect(await finance.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.dashboard-calendar'))&Node.DOCUMENT_POSITION_PRECEDING))).toBe(true)
  for(const months of [1,3,6,12]){
   await finance.getByRole('button',{name:`${months} ${months===1?'month':'months'}`,exact:true}).click()
   await expect(finance.locator('.performance-metric.income')).toBeEnabled()
@@ -30,7 +30,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
   for(const label of ['Home','Invoices','Estimates','Jobs','More'])await expect(dock.getByRole('button',{name:label,exact:true})).toBeVisible()
   await dock.getByRole('button',{name:'More',exact:true}).click()
   const more=page.getByRole('dialog',{name:'More navigation'})
-  for(const label of ['Customers','Schedule','Help & Support','Company Profile','Team & Access','Text Messaging Setup','Invoice & Estimate Setup','Calendar Connections','Working Hours & Team Availability'])await expect(more.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
+  for(const label of ['Customers','Schedule','Help & Support','Company Profile','Team & Access','Email & Text Setup','Invoice & Estimate Setup','Calendar Connections','Working Hours & Team Availability'])await expect(more.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
   await more.getByRole('button',{name:'Close',exact:true}).click()
  }else{
   for(const label of ['Home','Invoices','Estimates','Jobs','More'])await expect(page.locator('.sidebar').getByRole('button',{name:label,exact:true})).toBeVisible()

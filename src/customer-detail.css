@@ -33,3 +33,4 @@
 .customer-directory .row-main strong{font-size:15px;color:#172033;overflow-wrap:anywhere}
 .customer-directory .row-chevron{display:block;color:#577185}
 @media(max-width:480px){.customer-contact-actions{justify-content:stretch}.customer-contact-actions>button{width:100%}.customer-contact-address .detail-card-head{align-items:flex-start}.customer-contact-address .property-list{padding:0 12px}.customer-directory>.customer-row-button{padding:16px 14px}}
+.customer-create-actions { display: flex; flex-wrap: wrap; gap: 8px; }
