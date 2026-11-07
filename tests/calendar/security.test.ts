@@ -6,6 +6,8 @@ import { classify, retrySeconds } from "../../server/calendar/errors.js";
 import { eventInput } from "../../server/calendar/reconcile.js";
 import { calendarApi } from "../../server/calendar/api.js";
 import { GET as worker } from "../../api/calendar-worker.js";
+import { GET as outlookCallback } from "../../api/calendar-outlook-callback.js";
+import { outlookRedirect } from "../../server/calendar/outlook.js";
 process.env.CALENDAR_TOKEN_KEYS = JSON.stringify({
   v1: Buffer.alloc(32, 1).toString("base64"),
 });
@@ -163,4 +165,37 @@ test("declined OAuth returns to calendar settings and clears the browser nonce",
   assert.equal(response.headers.get("Location"), "https://finviant.example/?view=settings&section=calendar&calendar=declined");
   assert.match(response.headers.get("Set-Cookie") || "", /Max-Age=0/);
   assert(queries.some(sql => sql.startsWith("delete from private.calendar_oauth_states")));
+});
+
+test("Outlook uses a query-free redirect and its callback preserves state validation", async (t) => {
+  assert.equal(outlookRedirect(), "https://finviant.example/api/calendar-outlook-callback");
+  process.env.CALENDAR_SYNC_ENABLED = "true";
+  process.env.CALENDAR_DATABASE_URL = "postgres://localhost/calendar-test";
+  const state = "o".repeat(40), browser = "n".repeat(40);
+  const pool = database(), consumed: string[] = [];
+  t.mock.method(pool, "connect", async () => ({
+    query: async (sql: string) => {
+      if (sql.startsWith("delete from private.calendar_oauth_states")) consumed.push(sql);
+      return { rows: sql.startsWith("select * from private.calendar_oauth_states") ? [{
+        provider: "outlook", browser_hash: digest(browser), expires_at: new Date(Date.now() + 60_000).toISOString(),
+      }] : [] };
+    },
+    release() {},
+  }));
+  const url = `${outlookRedirect()}?error=access_denied&state=${state}`;
+  const invalidHeaders: HeadersInit[] = [{}, { Cookie: `__Host-fv-calendar-google=${browser}` }, { Cookie: "__Host-fv-calendar-outlook=wrong" }];
+  for (const headers of invalidHeaders) {
+    const rejected = await outlookCallback(new Request(url, { headers }));
+    assert.equal(rejected.status, 400);
+    assert.deepEqual(await rejected.json(), { error: "invalid_oauth_state" });
+  }
+  assert.equal(consumed.length, 0);
+  // Query values cannot change this endpoint into another action or provider.
+  const declined = await outlookCallback(new Request(`${url}&action=list&provider=google`, {
+    headers: { Cookie: `__Host-fv-calendar-outlook=${browser}` },
+  }));
+  assert.equal(declined.status, 303);
+  assert.equal(declined.headers.get("Location"), "https://finviant.example/?view=settings&section=calendar&calendar=declined");
+  assert.match(declined.headers.get("Set-Cookie") || "", /^__Host-fv-calendar-outlook=.*Max-Age=0/);
+  assert.equal(consumed.length, 1);
 });

@@ -68,6 +68,9 @@
     "api/calendar.ts": {
       "maxDuration": 120
     },
+    "api/calendar-outlook-callback.ts": {
+      "maxDuration": 120
+    },
     "api/calendar-worker.ts": {
       "maxDuration": 120
     }

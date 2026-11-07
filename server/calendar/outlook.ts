@@ -15,7 +15,7 @@ export const outlookScopes = [
   "offline_access",
 ];
 export const outlookRedirect = () =>
-  `${appOrigin()}/api/calendar?action=callback&provider=outlook`;
+  `${appOrigin()}/api/calendar-outlook-callback`;
 // All provider network calls are bounded, including Entra metadata/token discovery.
 const network: INetworkModule = {
   async sendGetRequestAsync<T>(

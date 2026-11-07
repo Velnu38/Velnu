@@ -49,6 +49,7 @@ PostgreSQL `timestamptz` represents instants; UTC is used in API payloads and st
 | `server/calendar/worker.ts` | Queue claims, provider routing, reconciliation, bounded work, retries and structured logs |
 | `server/calendar/run.ts` | Standalone queue consumer with graceful shutdown |
 | `api/calendar.ts` | Same-origin Vercel HTTP methods |
+| `api/calendar-outlook-callback.ts` | Query-free Outlook callback for work, school and personal Microsoft accounts |
 | `api/calendar-worker.ts` | Secret-authenticated scheduler endpoint |
 | `src/components/calendar/DailyCalendar.tsx` | Daily work and reminders widget |
 | `src/components/calendar/IntegrationSettings.tsx` | Google and Outlook connection cards |
@@ -91,7 +92,9 @@ These are server environment variable **names**, not values to put in browser co
 Register these exact redirect URIs on the providers for the canonical hostname:
 
 - `https://finviant.com/api/calendar?action=callback&provider=google`
-- `https://finviant.com/api/calendar?action=callback&provider=outlook`
+- `https://finviant.com/api/calendar-outlook-callback`
+
+Outlook must use the dedicated query-free callback: Microsoft rejects query parameters in registered redirect URIs for applications that support personal Microsoft accounts. Both authorization and code redemption use this same URI. The endpoint supplies the provider internally; the existing one-time state, PKCE and host-bound cookie checks still apply. The older query-based callback remains routable for compatibility, but must not be registered for new Outlook setup.
 
 Use separate provider apps/redirects and encryption keys for staging versus production. The initiating browser and callback must use the same hostname because OAuth is bound to a Secure, HttpOnly, SameSite=Lax `__Host-` cookie. If using `www`, redirect it to the canonical host before enabling OAuth, or configure the canonical origin to that hostname consistently. Vercel SSO remains enabled; authorized testers need their existing Vercel sign-in session to reach the callback.
 
@@ -125,5 +128,6 @@ Before enabling for real customers:
 - Google web-server OAuth: https://developers.google.com/identity/protocols/oauth2/web-server
 - Microsoft Graph event creation and timezone payload: https://learn.microsoft.com/en-us/graph/api/user-post-events?view=graph-rest-1.0
 - Microsoft authorization-code/refresh flow: https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow
+- Microsoft redirect URI restrictions: https://learn.microsoft.com/en-us/entra/identity-platform/reply-url#query-parameter-support-in-redirect-uris
 - Supabase row-level security: https://supabase.com/docs/guides/database/postgres/row-level-security
 - Vercel Node functions: https://vercel.com/docs/functions/runtimes/node-js

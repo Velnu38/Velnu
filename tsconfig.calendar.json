@@ -12,6 +12,7 @@
   },
   "include": [
     "server/calendar/**/*.ts",
+    "api/calendar*.ts",
     "api/calendar/**/*.ts",
     "tests/calendar/**/*.ts"
   ]
