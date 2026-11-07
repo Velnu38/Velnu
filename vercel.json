@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.finviant.com" }],
+      "destination": "https://finviant.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/auth",
