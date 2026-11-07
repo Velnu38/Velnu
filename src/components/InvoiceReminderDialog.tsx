@@ -6,19 +6,26 @@ import CustomerEditDialog from './CustomerEditDialog'
 import {validDeliveryEmail} from './DocumentDeliveryOptions'
 import {emailDeliveryEnabled,privateBetaEmailEnabled} from '../lib/releaseFlags'
 import {getInvoiceReminderReview,sendInvoiceReminder,type InvoiceReminderReview} from '../services/invoiceReminders'
+import {readPendingPersonalSend,type PendingPersonalSend} from '../services/personalDelivery'
 import type {CurrentBusiness} from '../lib/business'
 import type {ReviewDeliveryReceipt} from '../services/reviewDelivery'
 import './invoice-reminder.css'
 export default function InvoiceReminderDialog({business,invoiceId,onClose,onSent}:{business:CurrentBusiness;invoiceId:string;onClose:()=>void;onSent:()=>void}){
  const [review,setReview]=useState<InvoiceReminderReview|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[receipt,setReceipt]=useState<ReviewDeliveryReceipt|null>(null),[editContact,setEditContact]=useState(false)
  const {setup,error:setupError,refresh:refreshSetup}=useDeliverySetup(business.id)
- const [personal,setPersonal]=useState(false)
- useEffect(()=>{setPersonal(false)},[business.id,invoiceId])
+ const [personal,setPersonal]=useState(false),[pending,setPending]=useState<PendingPersonalSend|null>(null),[checkingPending,setCheckingPending]=useState(true)
+ useEffect(()=>{
+  let active=true
+  setPersonal(false);setPending(null);setCheckingPending(true)
+  void readPendingPersonalSend(business.id,'invoice',invoiceId).then(saved=>{if(active){setPending(saved);setCheckingPending(false)}})
+  return()=>{active=false}
+ },[business.id,invoiceId])
  const flight=useRef(false)
  async function load(){setLoading(true);setError('');try{setReview(await getInvoiceReminderReview(business.id,invoiceId))}catch(e){setReview(null);setError(e instanceof Error?e.message:'Unable to load reminder.')}finally{setLoading(false)}}
  useEffect(()=>{let active=true;void getInvoiceReminderReview(business.id,invoiceId).then(r=>{if(active)setReview(r)}).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[business.id,invoiceId])
  async function send(){
   if(flight.current||!review||!emailDeliveryEnabled||!validDeliveryEmail(review.email||'')||receipt)return
+  if(checkingPending||pending){setError('Review the earlier app draft before starting another email.');return}
   flight.current=true;setBusy(true);setError('')
   try{
    const fresh=await refreshSetup()
@@ -39,8 +46,8 @@ export default function InvoiceReminderDialog({business,invoiceId,onClose,onSent
  <section className="reminder-message" aria-label="Reminder preview"><strong>Subject: {review.subject}</strong><p>{review.body}</p></section>
  {!receipt&&<button type="button" className="text-button" disabled={busy} onClick={()=>setEditContact(true)}>Edit customer contact</button>}
  {!setup&&!setupError&&<p role="status">Checking sending options…</p>}
- {!receipt&&setup&&(setup.plan!=='pro'||personal)&&<><PersonalDocumentDelivery businessId={business.id} kind="invoice" documentId={invoiceId} email={review.email} phone={review.phone} setup={setup} disabled={busy||!!setupError} onEditContact={()=>setEditContact(true)} onSent={onSent} onBusyChange={setBusy} reminder={{subject:review.subject,body:review.body}} allowProPersonal={personal} onManagedEmailRequested={async()=>{setPersonal(false);await send()}}/>{setup.plan==='pro'&&<button type="button" className="text-button" disabled={busy} onClick={()=>setPersonal(false)}>Use Finviant sending</button>}</>}
- {!receipt&&setup?.plan==='pro'&&!personal&&<div className="reminder-actions"><button type="button" className="primary-button" disabled={busy||loading||!!setupError||!setup.managed_email_ready||!emailDeliveryEnabled||!validDeliveryEmail(review.email||'')} onClick={()=>void send()}>{busy?'Sending…':'Send Email with Finviant'}</button><small>{privateBetaEmailEnabled?'Private beta email sends only to approved test addresses.':'Requires activated Finviant email sending.'}</small><button type="button" className="text-button" disabled={busy||loading} onClick={()=>setPersonal(true)}>Use my email app instead</button></div>}
+ {!receipt&&setup&&(setup.plan!=='pro'||personal)&&<><PersonalDocumentDelivery businessId={business.id} kind="invoice" documentId={invoiceId} email={review.email} phone={review.phone} setup={setup} disabled={busy||!!setupError} onEditContact={()=>setEditContact(true)} onSent={onSent} onBusyChange={setBusy} reminder={{subject:review.subject,body:review.body}} allowProPersonal={personal} onManagedEmailRequested={async()=>{setPersonal(false);await send()}} onPendingChange={value=>{setPending(value);if(!value){setPersonal(false);setError('')}}}/>{setup.plan==='pro'&&<button type="button" className="text-button" disabled={busy} onClick={()=>setPersonal(false)}>Use Finviant sending</button>}</>}
+ {!receipt&&setup?.plan==='pro'&&!personal&&<div className="reminder-actions"><button type="button" className="primary-button" disabled={busy||loading||!!setupError||checkingPending||!!pending||!setup.managed_email_ready||!emailDeliveryEnabled||!validDeliveryEmail(review.email||'')} onClick={()=>void send()}>{busy?'Sending…':'Send Email with Finviant'}</button><small>{privateBetaEmailEnabled?'Private beta email sends only to approved test addresses.':'Requires activated Finviant email sending.'}</small>{pending&&<div><p role="status">An earlier {pending.channel==='email'?'email':'text'} app draft is waiting for confirmation. Review it before starting another send.</p><button type="button" className="text-button" disabled={busy||loading} onClick={()=>setPersonal(true)}>Review earlier app draft</button></div>}<button type="button" className="text-button" disabled={busy||loading} onClick={()=>setPersonal(true)}>Use my email app instead</button></div>}
  {receipt&&<p role="status" className="form-message success-text">Reminder {receipt.status==='delivered'?'delivered':'accepted for delivery'} to {receipt.recipient}. {receipt.warning||''} The invoice balance and due date are unchanged.</p>}
  {editContact&&<CustomerEditDialog businessId={business.id} customerId={review.customer_id} onClose={()=>setEditContact(false)} onSaved={()=>void load()}/>}</>}
  <p className="quiet">Review the message and recipient before sending. The reminder uses this invoice; it does not create another invoice or record payment.</p>

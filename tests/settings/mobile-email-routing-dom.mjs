@@ -119,6 +119,21 @@ try{
   assert.equal(calls.filter(c=>c.name==='send-invoice-reminder').length,1)
   assert.equal(personalCalls(),0);assert.equal(nativeNavigations,0)
 
+  // An earlier native invoice/reminder draft can also represent an unconfirmed send.
+  reset();plan='pro'
+  sessionStorage.setItem(['finviant-send',U,B,'invoice','pending-reminder'].join(':'),JSON.stringify({token:'b'.repeat(64),channel:'email'}))
+  await mount(InvoiceReminderDialog,{business,invoiceId:'pending-reminder',onClose:()=>{},onSent:()=>{}},'pending-reminder')
+  const pendingReminderSend=button('Send Email')||button('Send Email with Finviant')
+  assert.ok(pendingReminderSend,'Pro reminder retains its managed sending action')
+  assert.equal(pendingReminderSend.disabled,true,'An unresolved native draft blocks a duplicate managed reminder')
+  assert.equal(personalCalls(),0,'Pro reminder does not reopen the earlier native draft automatically')
+  assert.equal(nativeNavigations,0)
+  await click(/Review (?:earlier|previous).*app draft/i)
+  await click('I did not send it')
+  await click(button('Send Email')?'Send Email':'Send Email with Finviant')
+  assert.equal(calls.filter(c=>c.name==='send-invoice-reminder').length,1)
+  assert.equal(nativeNavigations,0,'Resolving an earlier draft returns to Finviant sending')
+
   // Personal sending is still available after an explicit, clearly named Pro choice.
   reset();plan='pro';await mount(DocumentDelivery,savedProps('explicit-personal'),'explicit-personal')
   await click(/Use my email/)
@@ -133,7 +148,7 @@ try{
     assert.equal(personalCalls(),1,`${tier} keeps personal-app sending`)
     assert.equal(nativeNavigations,1);assert.equal(managedPreviewSends,0)
   }
-  console.log('PASS: mobile Pro focus/visibility refresh, current-tier creation route, failed-refresh blocking, pending-draft safety, managed reminder default, explicit personal alternative, Free/Individual personal sending')
+  console.log('PASS: mobile Pro focus/visibility refresh, current-tier creation route, failed-refresh blocking, pending invoice/reminder draft safety, managed reminder default, explicit personal alternative, Free/Individual personal sending')
 }finally{
   await act(async()=>root.unmount())
   await supabase?.auth.stopAutoRefresh()
