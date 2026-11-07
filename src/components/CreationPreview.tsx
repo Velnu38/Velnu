@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { confirmPersonalSent, nativeDocumentDraft, preparePersonalDocument, releasePersonalApproval, storePendingPersonalSend, type PersonalChannel } from '../services/personalDelivery'
-import { getDeliverySetup, type DeliverySetup as SendingSetup } from '../services/tiers'
+import { useDeliverySetup } from '../lib/useDeliverySetup'
 import { normalizeMobile } from '../lib/smsPhone'
 import { emailDeliveryEnabled, privateBetaEmailEnabled } from '../lib/releaseFlags'
 import DocumentPaper from './DocumentPaper'
@@ -26,9 +26,6 @@ type Props = {
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function CreationPreview({ paper, busy, error, saved = false, onBack, onSave, onEmail, saveForDelivery, canUpgrade = false, onEditContact, onDraftContact }: Props) {
-  const [setup, setSetup] = useState<SendingSetup | null>(null)
-  const [setupError, setSetupError] = useState('')
-  const [setupVersion, setSetupVersion] = useState(0)
   const [showSetup, setShowSetup] = useState(false)
   const [usePersonal, setUsePersonal] = useState(false)
   const [contactField, setContactField] = useState<'email' | 'phone' | null>(null)
@@ -40,6 +37,7 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
   const flight = useRef(false)
   const heading = useRef<HTMLHeadingElement>(null)
   const businessId = paper.business.id
+  const { setup, error: setupError, refresh } = useDeliverySetup(businessId)
   const personal = setup?.plan !== 'pro' || usePersonal
   const locked = busy || sending
   const email = paper.customer?.email?.trim() || ''
@@ -47,20 +45,22 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
   const emailValid = validDeliveryEmail(email)
   const phoneValid = !!normalizeMobile(phone)
 
-  useEffect(() => {
-    let active = true
-    if (!businessId) return
-    setSetupError('')
-    void getDeliverySetup(businessId).then(value => { if (active) setSetup(value) })
-      .catch(err => { if (active) setSetupError(err.message) })
-    return () => { active = false }
-  }, [businessId, setupVersion])
+  useEffect(() => { setUsePersonal(false) }, [businessId, setup?.plan])
   useEffect(() => { heading.current?.focus(); heading.current?.closest('dialog')?.scrollTo({ top: 0 }) }, [])
 
   async function prepare(action: PersonalChannel | 'copy' | 'setup') {
     if (flight.current || !businessId) return
     flight.current = true; setSending(true); setDeliveryError(''); setShareNotice(''); setCopyUrl('')
     try {
+      if (action === 'email') {
+        const fresh = await refresh()
+        if (fresh.plan === 'pro' && !usePersonal) {
+          if (!fresh.managed_email_ready || !emailDeliveryEnabled) throw new Error('Finviant email sending needs activation. Review Email & Text Setup.')
+          await onEmail()
+          return
+        }
+        if (!fresh.personal_email_ready) throw new Error('Complete your email app setup before opening a draft.')
+      }
       const id = await saveForDelivery()
       if (!id) return
       if (action === 'setup') {
@@ -125,7 +125,7 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
             : <div><button type="button" className="primary-button" disabled={locked || !setup?.personal_sms_ready || !phoneValid} onClick={() => void prepare('sms')}>Send Text</button>
               <small>{setup?.personal_sms_ready && phoneValid ? 'Opens your texting app' : phoneValid ? 'Text setup required' : ''}</small></div>}
           <div><button type="button" className="primary-button" disabled={locked || !emailValid || !setup || !(personal ? setup.personal_email_ready : setup.managed_email_ready && emailDeliveryEnabled)}
-            onClick={personal ? () => void prepare('email') : onEmail}>Send Email</button>
+            onClick={() => void prepare('email')}>{setup?.plan === 'pro' && usePersonal ? 'Open email app' : 'Send Email'}</button>
             {setup && emailValid && (personal ? <small>{setup.personal_email_ready?'Opens your email app':'Email setup required'}</small> : !setup.managed_email_ready && <small>Sender activation required</small>)}</div>
           <div><button type="button" className="secondary-button" disabled={locked} onClick={onSave}>{saved ? 'Open saved draft' : 'Save Draft'}</button></div>
         </div>
@@ -141,7 +141,7 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
       {contactField && onDraftContact && !onEditContact && <label>{contactField === 'email' ? 'Customer email' : 'Customer phone'}<input
         type={contactField === 'email' ? 'email' : 'tel'} maxLength={contactField === 'email' ? 254 : 40} value={contactField === 'email' ? email : phone}
         disabled={locked} onChange={event => onDraftContact(contactField, event.target.value)} /></label>}
-      {setupError && <p role="alert">{setupError} <button type="button" className="text-button" onClick={() => setSetupVersion(value => value + 1)}>Try again</button></p>}
+      {setupError && <p role="alert">{setupError} <button type="button" className="text-button" onClick={() => { void refresh().catch(() => {}) }}>Try again</button></p>}
       {error && <p role="alert" className="form-message error-text">{error}</p>}
       {deliveryError && <p role="alert" className="form-message error-text">{deliveryError}</p>}
       {shareNotice && <p role="status">{shareNotice}</p>}
@@ -151,7 +151,7 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
     {canUpgrade && setup?.plan === 'free' && <PlanRestriction plan="free" required="basic" feature="Removing Finviant branding" canUpgrade />}
     {showSetup && businessId && <FormDialog label="Email & Text Setup" onClose={() => setShowSetup(false)} wide>
       <div className="modal-head"><div><h2>Email &amp; Text Setup</h2><p role="status">Your draft is saved. Return to review it when setup is complete.</p></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowSetup(false)}>×</button></div>
-      <DeliverySetup businessId={businessId} continueLabel="Save and return to preview" onComplete={() => { setShowSetup(false); setSetupVersion(value => value + 1) }} />
+      <DeliverySetup businessId={businessId} continueLabel="Save and return to preview" onComplete={() => { setShowSetup(false); void refresh().catch(() => {}) }} />
     </FormDialog>}
   </section>
 }

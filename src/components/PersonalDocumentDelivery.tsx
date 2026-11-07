@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { confirmPersonalSent, nativeDocumentDraft, preparePersonalDocument, readPendingPersonalSend, releasePersonalApproval, storePendingPersonalSend, type PendingPersonalSend, type PersonalChannel } from '../services/personalDelivery'
 import { normalizeMobile } from '../lib/smsPhone'
-import type { DeliverySetup } from '../services/tiers'
+import { getDeliverySetup, type DeliverySetup } from '../services/tiers'
 import type { DeliveryDocumentKind } from '../services/reviewDelivery'
 import { validDeliveryEmail } from './DocumentDeliveryOptions'
 
@@ -17,9 +17,12 @@ type Props = {
   onSent: () => void | Promise<unknown>
   onBusyChange?: (busy: boolean) => void
   reminder?: { subject: string; body: string }
+  allowProPersonal?: boolean
+  onManagedEmailRequested?: (fresh: DeliverySetup) => void | Promise<void>
+  onPendingChange?: (pending: PendingPersonalSend | null) => void
 }
 
-export default function PersonalDocumentDelivery({ businessId, kind, documentId, email, phone, setup, disabled, onEditContact, onSent, onBusyChange, reminder }: Props) {
+export default function PersonalDocumentDelivery({ businessId, kind, documentId, email, phone, setup, disabled, onEditContact, onSent, onBusyChange, reminder, allowProPersonal = false, onManagedEmailRequested, onPendingChange }: Props) {
   const [pending, setPending] = useState<PendingPersonalSend | null>(null)
   const [draftHref, setDraftHref] = useState('')
   const [shareUrl, setShareUrl] = useState('')
@@ -47,6 +50,15 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
     if (flight.current || disabled) return
     flight.current = true; setBusy(true); onBusyChange?.(true); setError(''); setNotice(''); setCopyUrl('')
     try {
+      if (channel === 'email') {
+        const fresh = await getDeliverySetup(businessId)
+        if (fresh.plan === 'pro' && !allowProPersonal) {
+          if (!onManagedEmailRequested) throw new Error('Business Pro sends email through Finviant. Return to Finviant sending and try again.')
+          await onManagedEmailRequested(fresh)
+          return
+        }
+        if (!fresh.personal_email_ready) throw new Error('Complete your email app setup before opening a draft.')
+      }
       const share = await preparePersonalDocument(businessId, kind, documentId)
       const href = channel === 'copy' ? null : nativeDocumentDraft(share, channel, (channel === 'email' ? email : phone) || '', reminder)
       await releasePersonalApproval(businessId, kind, share.token)
@@ -58,6 +70,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
       } else if (href) {
         const next = { token: share.token, channel }
         await storePendingPersonalSend(businessId, kind, documentId, next)
+        onPendingChange?.(next)
         setPending(next); setDraftHref(href); setNotice(ready + 'Finish in your app, then confirm here.')
         window.location.href = href
       }
@@ -71,6 +84,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
     try {
       if (sent) await confirmPersonalSent(businessId, pending.token, pending.channel)
       await storePendingPersonalSend(businessId, kind, documentId, null)
+      onPendingChange?.(null)
       setPending(null)
       setDraftHref('')
       setNotice(sent ? 'Recorded as sent through your app.' : 'The document is available to share again.')
@@ -95,7 +109,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
       <button type="button" className="text-button" disabled={locked} onClick={() => void confirm(false)}>I did not send it</button>
     </div> : <div className="document-delivery-grid">
       <div className="document-delivery-option"><span>{email ? 'To: ' + email : 'Add a customer email'}</span>
-        <button type="button" className="primary-button" disabled={locked || !emailReady} onClick={() => void prepare('email')}>Send Email</button>
+        <button type="button" className="primary-button" disabled={locked || !emailReady} onClick={() => void prepare('email')}>{setup.plan === 'pro' ? 'Open email app' : 'Send Email'}</button>
         {!setup.personal_email_ready && <small>Enable your personal email app in sending setup.</small>}</div>
       <div className="document-delivery-option"><span>{phone ? 'To: ' + phone : 'Add a customer mobile number'}</span>
         <button type="button" className="primary-button" disabled={locked || !smsReady} onClick={() => void prepare('sms')}>Send Text</button>
