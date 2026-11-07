@@ -1,8 +1,9 @@
-import {instructions,lookupSchema,replySchema,uiCatalog,uuid,validateLookup,validateReply,recordHref,type Lookup,type RecordSet} from './protocol.ts'
+import {instructions,lookupSchema,replySchema,uiCatalog,uuid,validateLookup,validateReply,recordHref,type Lookup,type RecordSet,type Reply} from './protocol.ts'
 import {responseText} from '../fin-assistant/core.ts'
 export type Session={profile:Record<string,unknown>;capabilities?:unknown;begin:(thread:string,request:string,text:string)=>Promise<{history:unknown[];cached:any}>;lookup:(query:Lookup)=>Promise<RecordSet>;finish:(thread:string,request:string,reply:unknown)=>Promise<any>;reserve:()=>Promise<void>}
 export type Dependencies={authorize:(authorization:string,business:string)=>Promise<Session|null>;complete:(input:unknown[],tools:unknown[],instructions:string,schema:unknown,timeoutMs?:number)=>Promise<any>}
 const headers={'content-type':'application/json','cache-control':'no-store','access-control-allow-origin':'*','access-control-allow-headers':'authorization,apikey,x-client-info,content-type','access-control-allow-methods':'POST,OPTIONS'}
+const openNumberedInvoice = /^(?:please\s+)?(?:open|show(?:\s+me)?|find|pull\s+up)\s+(?:the\s+)?invoice\s+(?:number\s+)?#?\s*([a-z][a-z0-9]{0,23}-\d{1,16}(?:-\d{1,16}){0,2})[.!?]?$/i
 export function workflowHandler(deps:Dependencies){return async(req:Request)=>{
  const send=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers})
  if(req.method==='OPTIONS')return send(200,{})
@@ -15,9 +16,38 @@ export function workflowHandler(deps:Dependencies){return async(req:Request)=>{
   if(!body||!uuid.test(body.business_id)||!uuid.test(body.thread_id)||!uuid.test(body.request_id)||typeof body.text!=='string'||body.text.trim().length<1||body.text.length>6000||Object.keys(body).some(k=>!['business_id','thread_id','request_id','text','page'].includes(k)))return send(400,{error:'A valid account, conversation and request are required.'})
   if(body.page&&(!Object.hasOwn(uiCatalog,body.page.view)||Object.keys(body.page).some(k=>!['view','record_id'].includes(k))||body.page.record_id!==null&&!uuid.test(body.page.record_id)))return send(400,{error:'Invalid page context.'})
   const session=await deps.authorize(auth,body.business_id);if(!session)return send(403,{error:'Your account or role does not allow this request.'})
-  const previous=await session.begin(body.thread_id,body.request_id,body.text.trim());if(previous.cached)return send(200,previous.cached)
+  const command=body.text.trim()
+  const previous=await session.begin(body.thread_id,body.request_id,command);if(previous.cached)return send(200,previous.cached)
   const timezone=String(session.profile.timezone||'America/New_York');const asOf=new Date().toISOString()
-  const input:any[]=[{role:'user',content:JSON.stringify({active_account:session.profile,as_of:asOf,local_time:new Intl.DateTimeFormat('en-US',{timeZone:timezone,dateStyle:'full',timeStyle:'long'}).format(new Date()),timezone,ui_catalog:uiCatalog,account_capabilities:session.capabilities,prior_conversation:previous.history,current_page:body.page||null,request:body.text.trim()})}]
+  const lookup=async(query:Lookup)=>{
+   const found=await session.lookup(query)
+   if(found.resource!==query.resource||!Array.isArray(found.rows)||found.rows.some(row=>!uuid.test(row.id)))throw Error('Record lookup returned invalid data.')
+   return found
+  }
+  const finish=async(reply:Reply,sets:RecordSet[])=>{
+   const views=(session.capabilities as {views?:Record<string,unknown>}|undefined)?.views
+   if(views&&reply.navigation.some(key=>!Object.hasOwn(views,key)))throw Error('That account area is not available to your role.')
+   const sources=reply.source_keys.map(key=>{if(key==='profile')return {key,label:'Saved company profile',href:'/?view=settings'};const [resource,id]=key.split(':');const row=sets.find(s=>s.resource===resource&&s.rows.some(r=>r.id===id))?.rows.find(r=>r.id===id);return {key,label:String(row?.invoice_number||row?.estimate_number||row?.title||row?.note||[row?.first_name,row?.last_name].filter(Boolean).join(' ')||row?.company||key),href:recordHref(key)}})
+   const limits=sets.map(s=>`${s.resource.replaceAll('_',' ')}: ${s.rows.length} shown of ${s.matching_count} matching records; ${s.complete&&s.offset===0?'complete list':'partial list'}. Aggregates cover the entire matching set.`)
+   const saved=await session.finish(body.thread_id,body.request_id,{...reply,sources,limits,as_of:asOf,timezone})
+   return send(200,saved)
+  }
+
+  const invoiceNumber=command.match(openNumberedInvoice)?.[1]
+  if(invoiceNumber){
+   const found=await lookup({resource:'invoices',query:invoiceNumber,id:null,customer_id:null,status:null,from:null,to:null,order:'newest',offset:0})
+   const matches=found.rows.filter(row=>typeof row.invoice_number==='string'&&row.invoice_number.toUpperCase()===invoiceNumber.toUpperCase())
+   if(found.complete&&found.offset===0&&matches.length<=1){
+    const invoice=matches[0]
+    return await finish({
+     answer:invoice?`I found invoice **${invoice.invoice_number}**. Select its link to open it.`:`I couldn't find invoice **${invoiceNumber}** in this workspace.`,
+     source_keys:invoice?['invoices:'+invoice.id]:[],
+     navigation:[],clarification:null,steps:[],
+    },[found])
+   }
+  }
+
+  const input:any[]=[{role:'user',content:JSON.stringify({active_account:session.profile,as_of:asOf,local_time:new Intl.DateTimeFormat('en-US',{timeZone:timezone,dateStyle:'full',timeStyle:'long'}).format(new Date()),timezone,ui_catalog:uiCatalog,account_capabilities:session.capabilities,prior_conversation:previous.history,current_page:body.page||null,request:command})}]
   const sets:RecordSet[]=[];let searches=0;const deadline=Date.now()+125000
   const lookupTool={type:'function',name:'lookup_account_records',description:'Search only the authorized active account. Exact IDs, customer scope, names/numbers, date range and oldest/newest/due order. Returns 25 rows with exact whole-filter counts and monetary sums. Query a specific invoice/estimate ID to include all saved line items. Use status unpaid for issued, non-void invoices with a balance. Dates use inclusive from and exclusive to. NULL means no filter.',strict:true,parameters:lookupSchema}
   for(let round=0;round<5;round++){
@@ -35,19 +65,14 @@ export function workflowHandler(deps:Dependencies){return async(req:Request)=>{
      let q;try{q=JSON.parse(call.arguments)}catch{throw Error('Fin could not prepare a valid record lookup.')}
      if(!validateLookup(q))throw Error('Fin could not prepare a valid record lookup.')
      searches++
-     const found=await session.lookup(q)
-     if(found.resource!==q.resource||!Array.isArray(found.rows)||found.rows.some(r=>!uuid.test(r.id)))throw Error('Record lookup returned invalid data.')
+     const found=await lookup(q)
      sets.push(found);input.push({type:'function_call_output',call_id:call.call_id,output:JSON.stringify(found)})
     }
     continue
    }
    let parsed;try{parsed=JSON.parse(responseText(output))}catch{throw Error('Fin could not prepare a complete response. Please try again.')}
-   const reply=validateReply(parsed,sets,[...previous.history.map((h:any)=>typeof h?.request==='string'?h.request:''),body.text.trim()],Number(session.profile.default_tax_rate||0))
-   const views=(session.capabilities as any)?.views;if(views&&reply.navigation.some(key=>!Object.hasOwn(views,key)))throw Error('That account area is not available to your role.');
-   const sources=reply.source_keys.map(key=>{if(key==='profile')return {key,label:'Saved company profile',href:'/?view=settings'};const [resource,id]=key.split(':');const row=sets.find(s=>s.resource===resource&&s.rows.some(r=>r.id===id))?.rows.find(r=>r.id===id);return {key,label:String(row?.invoice_number||row?.estimate_number||row?.title||row?.note||[row?.first_name,row?.last_name].filter(Boolean).join(' ')||row?.company||key),href:recordHref(key)}})
-   const limits=sets.map(s=>`${s.resource.replaceAll('_',' ')}: ${s.rows.length} shown of ${s.matching_count} matching records; ${s.complete&&s.offset===0?'complete list':'partial list'}. Aggregates cover the entire matching set.`)
-   const saved=await session.finish(body.thread_id,body.request_id,{...reply,sources,limits,as_of:asOf,timezone})
-   return send(200,saved)
+   const reply=validateReply(parsed,sets,[...previous.history.map((h:any)=>typeof h?.request==='string'?h.request:''),command],Number(session.profile.default_tax_rate||0))
+   return await finish(reply,sets)
   }
   return send(422,{error:'Please narrow this request.'})
  }catch(error){

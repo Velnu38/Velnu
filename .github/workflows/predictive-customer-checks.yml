@@ -12,6 +12,8 @@ on:
       - 'src/lib/voiceDocument.ts'
       - 'src/lib/quickInvoice.ts'
       - 'src/pages/InvoicesPage.tsx'
+      - 'supabase/functions/fin-workflow/**'
+      - 'tests/settings/fin-workflow.test.ts'
       - 'tests/settings/voice-document.test.ts'
       - 'tests/predictive/**'
       - 'tests/e2e/predictive-customers.spec.mjs'
