@@ -33,7 +33,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const timezone = business.timezone || 'UTC'
   const Heading = embedded ? 'h2' : 'h1'
-  const [detailsJob,setDetailsJob]=useState<string|null>(null)
+  const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean}|null>(null)
   const [group, setGroup] = useState<JobGroup | 'all'>('all')
   const [quickFilter, setQuickFilter] = useState<JobQuickFilter>('active')
   const [loading, setLoading] = useState(true)
@@ -66,7 +66,10 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     try {
     const [jobRows, customerRows, linkedJob] = await Promise.all([listJobs(business.id, customerScope), listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
-    if (linkedJob) { setDetailsJob(linkedJob.id); setGroup('all'); setQuickFilter(null); requestedJob.current = null }
+    if (linkedJob) {
+      setDetailsJob({id:linkedJob.id,initialPhotos:query.get('tab')==='photos-expenses'})
+      setGroup('all'); setQuickFilter(null); requestedJob.current = null
+    }
     setJobs(jobRows as Job[])
     setCustomers(customerRows as Customer[])
     setError('')
@@ -166,7 +169,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
               <span className={`module-record-status ${job.status === 'completed' ? 'is-positive' : job.status === 'lead' ? 'is-pending' : ''}`}>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_',' ')}</span>
               {needsUpdate && <span className="job-status-followup">Past appointment · confirm job status</span>}
               <div className="job-row-actions">
-                <button type="button" className="secondary-button compact" onClick={()=>setDetailsJob(job.id)}>Open job</button>
+                <button type="button" className="secondary-button compact" onClick={()=>setDetailsJob({id:job.id})}>Open job</button>
                 {action && <button type="button" className="primary-button compact" disabled={busy} onClick={()=>action==='schedule'?setDispatch(job):void changeStatus(job.id,action==='start'?'in_progress':'completed')}>{action==='schedule'?'Book appointment':action==='start'?'Start job':'Mark complete'}</button>}
               </div>
             </div>
@@ -174,7 +177,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
         })}
       </section>
       {!loading && !error && <RecordListPagination label="jobs" list={recordList} className="jobs-bottom-pagination" />}
-      {detailsJob&&<JobDetailsDialog key={detailsJob} business={business} jobId={detailsJob} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
+      {detailsJob&&<JobDetailsDialog key={detailsJob.id} business={business} jobId={detailsJob.id} initialPhotos={detailsJob.initialPhotos} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
       {dispatch&&<DispatchJobDialog business={business} job={dispatch} onClose={()=>setDispatch(null)} onSaved={()=>{setNotice('Appointment saved. Confirm the time with your customer.');void refresh().catch(()=>setError('The schedule was saved, but the list could not refresh. Select Refresh to load the updated jobs.'))}}/>}
       {showForm && <FormDialog label="Create a job" busy={busy} onClose={() => setShowForm(false)}>
         <div className="modal-head"><div><p className="eyebrow">New job</p><h2>Create a job</h2></div><button className="icon-button" onClick={() => setShowForm(false)} aria-label="Close" type="button">×</button></div>

@@ -18,6 +18,9 @@ export default function FinancialEntryDialog({business,onClose,onSaved}:{busines
  const locked=busy||scanning||uploadPending
  const inFlight=useRef(false),retry=useRef<string|null>(null)
  if(!canAccess(business,'finances'))return null
+ function chooseEntry(kind:EntryDirection) {
+  setDirection(kind);setCategory(kind==='income'?'Other received income':'Materials & supplies')
+ }
  async function saveManual(event:FormEvent) {
   event.preventDefault();if(inFlight.current||scanning||!direction)return
   inFlight.current=true;setBusy(true);setError('')
@@ -30,18 +33,21 @@ export default function FinancialEntryDialog({business,onClose,onSaved}:{busines
   onSaved(entryDate,direction)
   window.dispatchEvent(new Event('finviant-work-changed'))
  }
+ const entryOptions=<div className="home-create-options financial-entry-options">{(['income','expense'] as const).map(kind=><button type="button" key={kind} onClick={()=>chooseEntry(kind)}><strong>{kind==='income'?'Add Income':'Add Expense'}</strong></button>)}</div>
  return <FormDialog label={direction==='income'?'Add Income':direction==='expense'?'Add Expense':'Add financial entry'} busy={busy||scanning} cleanVersion={uploadPending} onClose={onClose}>
-  <div className="modal-head"><h2>{direction==='income'?'Add Income':direction==='expense'?'Add Expense':'Add Entry'}</h2><button type="button" className="icon-button" aria-label="Close" disabled={busy||scanning} onClick={onClose}>×</button></div>
-  {!direction?<div className="home-create-options">{(['income','expense'] as const).map(kind=><button type="button" key={kind} onClick={()=>{setDirection(kind);setCategory(kind==='income'?'Other received income':'Materials & supplies')}}><strong>{kind==='income'?'Add Income':'Add Expense'}</strong></button>)}</div>:<>
+  <div className="modal-head"><h2>{direction==='income'?'Add Income':direction==='expense'?(receipt?'Review expense':'Add Expense'):'Add Entry'}</h2><button type="button" className="icon-button" aria-label="Close" disabled={busy||scanning} onClick={onClose}>×</button></div>
+  {!direction&&plan==='free'&&entryOptions}
+  {direction!=='income'&&<ReceiptScanField business={business} plan={plan} disabled={locked} onBusy={setScanning} onPhoto={setReceipt} onStart={()=>{if(!direction)chooseEntry('expense')}} onRead={draft=>{
+    setEntryDate(draft.date || '')
+    setAmount(draft.total || '')
+    if(draft.vendor)setDescription(draft.vendor)
+  }}/>}
+  {!direction&&plan!=='free'&&entryOptions}
+  {direction&&<>
   {direction==='income'&&<p>Payment for an existing invoice? {canOpenView(business,'payments')?<a href="/?view=payments&action=record">Select invoice and record payment</a>:'Record it through your authorized billing team.'} Invoice payments appear automatically. Use this form only for other income.</p>}
   {error&&<p role="alert" className="error-text">{error}</p>}
         <form className="bookkeeping-entry-form" onSubmit={saveManual}>
-          {direction==='expense'&&<ReceiptScanField business={business} plan={plan} disabled={locked} onBusy={setScanning} onPhoto={setReceipt} onRead={draft=>{
-            setEntryDate(draft.date || '')
-            setAmount(draft.total || '')
-            if(draft.vendor)setDescription(draft.vendor)
-          }}/>}
-          <label>Entry type <select value={direction} disabled={locked} onChange={e => { setReceipt(null); setDirection(e.target.value as EntryDirection); setCategory(e.target.value === 'income' ? 'Other received income' : 'Materials & supplies') }}>
+          <label>Entry type <select value={direction} disabled={locked||!!receipt} onChange={e => chooseEntry(e.target.value as EntryDirection)}>
             <option value="expense">Expense / money spent</option><option value="income">Other income / money received</option></select></label>
           <label>Transaction date <input aria-label="Transaction date" type="date" value={entryDate} disabled={locked} onChange={e => setEntryDate(e.target.value)} required /></label>
           <label>Amount in USD ($) <input aria-label="Amount in USD" type="number" min="0.01" max="100000000" step=".01" value={amount} disabled={locked} onChange={e => setAmount(e.target.value)} required /></label>

@@ -1,8 +1,16 @@
 import PlanRestriction from './PlanRestriction'
 import { useEffect, useState } from 'react'
 import { getStorageUsage, storageSize, type StorageUsage as Usage } from '../lib/businessStorage'
+import { settingsHref } from '../lib/settingsNavigation'
 
-export default function StorageUsage({ businessId, version = 0, detailed = false, canUpgrade = false }: { businessId: string; version?: number; detailed?: boolean; canUpgrade?: boolean }) {
+export function AttachmentStorageWarning({ usage }: { usage: Usage | null }) {
+  if (!usage?.warning || usage.warning === 'none') return null
+  return <p className="attachment-storage-warning" role="status">
+    {usage.warning === 'full' ? 'Business storage is full.' : `Business storage is running low. ${storageSize(usage.remaining_bytes)} left.`} <a href={settingsHref('storage')}>View storage</a>
+  </p>
+}
+
+export default function StorageUsage({ businessId, version = 0, detailed = false, canUpgrade = false, warningsOnly = false }: { businessId: string; version?: number; detailed?: boolean; canUpgrade?: boolean; warningsOnly?: boolean }) {
   const [usage, setUsage] = useState<Usage | null>(null)
   const [error, setError] = useState(false)
   const [refresh, setRefresh] = useState(0)
@@ -12,6 +20,7 @@ export default function StorageUsage({ businessId, version = 0, detailed = false
     void getStorageUsage(businessId).then(value => { if (active) setUsage(value) }).catch(() => { if (active) setError(true) })
     return () => { active = false }
   }, [businessId, version, refresh])
+  if (warningsOnly) return <AttachmentStorageWarning usage={usage} />
   return <section aria-label="Business storage" className="storage-usage">
     {detailed && <h2>Business storage</h2>}
     {error ? <p role="status">Storage usage is unavailable. Uploads still check your allowance.</p> : !usage ? <p role="status">Checking storage…</p> : <>

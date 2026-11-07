@@ -95,7 +95,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
   return <div className="page-stack invoice-detail-page">
     <div className="detail-top"><button className="back-button" onClick={onBack}>← Invoices</button></div>
     <section className="invoice-hero">
-      <div><p className="eyebrow">{invoice.status}</p><h1>{invoice.invoice_number||'Invoice'}</h1><p>{customerName(customer)}{customer?.email?` · ${customer.email}`:''}</p></div>
+      <div><p className="eyebrow">{invoice.status}</p><div className="record-resources-title"><h1>{invoice.invoice_number||'Invoice'}</h1><button type="button" className="secondary-button compact record-resources-entry calendar-no-print" onClick={()=>setShowResources(true)}>Photos &amp; expenses</button></div><p>{customerName(customer)}{customer?.email?` · ${customer.email}`:''}</p></div>
       <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
     </section>
     {showEdit&&<DraftDocumentEditor businessId={business.id} kind="invoice" id={invoice.id} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()}/>}
@@ -107,7 +107,6 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
         {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
       <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
       {plan==='free'&&isPrimaryOwner(business)&&<a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a>}
-      <button type="button" onClick={()=>setShowResources(true)}>Photos &amp; expenses</button>
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>{setPartialPayment(true);setAmount('');setShowPayment(true)}}>Record partial payment</button>}
     </>} secondary={canManageFinances(business.role)&&invoice.status!=='void'?<>
@@ -121,7 +120,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
     {(invoice.estimate_id||invoice.deposit_estimate_id)&&<p><a href={'/?view=estimates&document='+encodeURIComponent(invoice.estimate_id||invoice.deposit_estimate_id!)}>Open original approved estimate</a>{invoice.deposit_estimate_id&&' · Deposit invoice'}</p>}
     {invoice.deposit_source_invoice_id&&<p><a href={'/?view=invoices&document='+encodeURIComponent(invoice.deposit_source_invoice_id)}>Paid deposit credited: ${Number(invoice.deposit_credit).toFixed(2)}</a></p>}
     <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>
-    {showResources&&<RecordResourcesDialog business={business} target={{kind:'invoice',id:invoice.id}} title={invoice.invoice_number||'Invoice'} onClose={()=>setShowResources(false)}/>}
+    {showResources&&<RecordResourcesDialog business={business} target={{kind:'invoice',id:invoice.id}} title={invoice.invoice_number||'Invoice'} linkedJobId={invoice.job_id} onClose={()=>setShowResources(false)}/>}
     {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
     {!canScheduleJob&&<DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />}
     {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>{setShowJob(false);void refresh()}} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}

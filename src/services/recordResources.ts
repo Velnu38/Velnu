@@ -1,4 +1,4 @@
-import { getStorageUsage, uploadAttachment, prepareRecordImage } from '../lib/businessStorage'
+import { getStorageUsage, uploadAttachment, prepareRecordImage, type StorageUsage } from '../lib/businessStorage'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 import { collectWorkbookPages } from '../lib/workbookPages'
@@ -30,9 +30,10 @@ export async function listRecordExpenses(businessId: string, target: RecordTarge
   return rows.map(row => ({ ...row, receiptPath: asList(row.record_photos)[0]?.storage_path || null })) as RecordExpense[]
 }
 
-export async function uploadRecordPhoto(businessId: string, target: RecordTarget, file: File) {
+export async function uploadRecordPhoto(businessId: string, target: RecordTarget, file: File, onUsage?: (usage: StorageUsage) => void) {
   const blob = await prepareRecordImage(file)
   const usage = await getStorageUsage(businessId)
+  onUsage?.(usage)
   if (blob.size > usage.remaining_bytes) throw new Error('Business storage allowance reached. Remove optional pictures to make room. Existing records and payments remain available.')
   const id = crypto.randomUUID(), path = `${businessId}/${id}.jpg`
   const { error: metadataError } = await supabase.from('record_photos').insert({
