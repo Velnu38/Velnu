@@ -17,9 +17,7 @@ async function setup(page,contact={email:'customer@example.test',phone:'75755501
 async function openReview(page,kind){
  await page.goto('/?view='+(kind==='change_order'?'invoices':kind+'s')+'&document='+E)
  if(kind==='change_order'){
-  await page.getByRole('button',{name:'Change order',exact:true}).click()
-  await page.getByRole('dialog',{name:'Create change order'}).getByRole('button',{name:'Close',exact:true}).click()
-  await page.getByRole('button',{name:'Review / Send'}).click()
+  await page.getByRole('button',{name:'Open change order CO-QA'}).click()
  }
  return page.getByRole('region',{name:'Send to customer',exact:true})
 }
@@ -88,7 +86,7 @@ for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls imm
  expect(state.calls.some(call=>call.path.includes('/send-'))).toBe(false)
 })
 test('creating a change order opens its review and delivery controls automatically',async({page})=>{
- const {state}=await setup(page);await page.goto('/?view=invoices&document='+E);await page.getByRole('button',{name:'Change order',exact:true}).click()
+ const {state}=await setup(page);await page.goto('/?view=invoices&document='+E);await page.getByRole('button',{name:'+ New change order',exact:true}).click()
  const form=page.getByRole('dialog',{name:'Create change order'});await form.getByLabel('Line 1 description').fill('Two fixtures');await form.getByLabel('Line 1 unit price').fill('50')
  await form.getByRole('button',{name:'Save and review',exact:true}).click()
  const review=page.getByRole('dialog',{name:'Review change order'});await expect(review).toBeVisible();await expect(review.getByRole('button',{name:'Send Email'})).toBeEnabled();await expect(review.getByText('Two fixtures',{exact:true})).toBeVisible();expect(state.changes).toHaveLength(1)
@@ -104,11 +102,72 @@ test('switching change orders ignores a late line-item response from the previou
   if(first){firstStarted=true;await firstReleased}
   return reply(route,[{id:E,description:first?'First order lines':'Second order lines',quantity:1,unit_price:100,line_total:100,tax_rate:5}])
  })
- await page.goto('/?view=invoices&document='+E);await page.getByRole('button',{name:'Change order',exact:true}).click();await page.getByRole('dialog',{name:'Create change order'}).getByRole('button',{name:'Close',exact:true}).click()
- await page.getByRole('button',{name:'Review / Send'}).first().click();await expect.poll(()=>firstStarted).toBe(true)
- await page.getByRole('button',{name:'Close review',exact:true}).click();await page.getByRole('button',{name:'Review / Send'}).last().click()
+ await page.goto('/?view=invoices&document='+E)
+ await page.getByRole('button',{name:'Open change order CO-QA'}).click();await expect.poll(()=>firstStarted).toBe(true)
+ await page.getByRole('button',{name:'Close review',exact:true}).click();await page.getByRole('button',{name:'Open change order CO-OTHER'}).click()
  const review=page.getByRole('dialog',{name:'Review change order'});await expect(review.getByText('Second order lines',{exact:true})).toBeVisible()
  const lateResponse=page.waitForResponse(response=>response.url().includes('/change_order_items')&&new URL(response.url()).searchParams.get('change_order_id')==='eq.'+P)
  releaseFirst();await lateResponse
  await expect(review.getByText('Second order lines',{exact:true})).toBeVisible();await expect(review.getByText('First order lines',{exact:true})).toHaveCount(0)
+})
+
+test('the estimate shows the exact pending, approved, and declined changes without changing the quoted total', async ({ page }) => {
+ const { order } = await setup(page)
+ const matching = { ...order, source_invoice_id: null, estimate_id: E, status: 'sent', total: 20,
+   change_totals: { current_total: 105, change_amount: 20, revised_total: 125, deposit_paid: 0, other_paid: 0 } }
+ const unrelated = { ...order, id: '77777777-7777-4777-8777-777777777777', estimate_id: E, title: 'Invoice-only change' }
+ await page.route('**/rest/v1/change_orders?*', route => reply(route, [matching, unrelated]))
+ await page.route('**/rest/v1/rpc/get_document_change_context', route => reply(route, {
+   can_change: true, job_id: null, current_total: matching.status === 'approved' ? 125 : 105,
+ }))
+ await page.route('**/rest/v1/rpc/get_change_order_billing', route => reply(route, { action: 'included_on_final' }))
+ await page.goto('/?view=estimates&document=' + E)
+ const summary = page.getByRole('region', { name: 'Linked change orders' })
+ await expect(summary).toContainText('Awaiting customer approval')
+ await expect(summary).toContainText('Proposed total as quoted $125.00')
+ await expect(summary).not.toContainText('Invoice-only change')
+ await expect(page.getByRole('dialog', { name: 'Create change order' })).toHaveCount(0)
+ await summary.getByRole('button', { name: 'Open change order CO-QA' }).click()
+ await expect(page.getByRole('dialog', { name: 'Review change order' })).toContainText('CO-QA')
+ matching.status = 'approved'
+ await page.getByRole('button', { name: 'Close review' }).click()
+ await expect(summary).toContainText('Approved project total $125.00')
+ await expect(summary).toContainText('Will be included on the final invoice')
+ await expect(page.getByRole('dialog', { name: 'Estimate preview' }).locator('.document-paper')).toContainText('$105.00')
+
+ matching.status = 'declined'
+ await page.evaluate(() => dispatchEvent(new Event('focus')))
+ await expect(summary).toContainText('Declined')
+ await expect(summary).not.toContainText('Approved project total')
+})
+
+test('the original issued invoice shows the approved project total and the separately billed change', async ({ page }) => {
+ const { order, invoice } = await setup(page)
+ const issued = { ...invoice, status: 'sent' }
+ await page.route('**/rest/v1/invoices?*', route => reply(route, new URL(route.request().url()).searchParams.has('id') ? issued : [issued]))
+ const approved = { ...order, status: 'approved', total: 20 }
+ await page.route('**/rest/v1/change_orders?*', route => reply(route, [approved]))
+ await page.route('**/rest/v1/rpc/get_document_change_context', route => reply(route, { can_change: true, current_total: 125 }))
+ const changeInvoice = '77777777-7777-4777-8777-777777777777'
+ let billed = false
+ const allocation = { action: 'billed', invoice_id: changeInvoice, number: 'INV-CHANGE', status: 'draft' }
+ await page.route('**/rest/v1/rpc/get_change_order_billing', route => reply(route, billed ? allocation : { action: 'create_invoice', total: 105, change_total: 20 }))
+ await page.route('**/rest/v1/rpc/bill_approved_change_order', route => {
+   expect(route.request().postDataJSON()).toMatchObject({ p_change: P, p_action: 'create_invoice', p_expected_total: 105 })
+   billed = true
+   return reply(route, allocation)
+ })
+ page.on('dialog', dialog => dialog.accept())
+ await page.goto('/?view=invoices&document=' + E)
+ const summary = page.getByRole('region', { name: 'Linked change orders' })
+ await expect(summary).toContainText('Approved project total $125.00')
+ await expect(summary).toContainText('Ready to bill')
+ await summary.getByRole('button', { name: 'Review billing CO-QA' }).click()
+ const billing = page.getByRole('region', { name: 'Change order billing' })
+ await billing.getByRole('button', { name: 'Create change invoice' }).click()
+ await expect(billing.getByRole('link', { name: 'Open invoice' })).toHaveAttribute('href', '/?view=invoices&document=' + changeInvoice)
+ await page.getByRole('button', { name: 'Close review' }).click()
+ await expect(summary).toContainText('Added to draft invoice · INV-CHANGE')
+ await expect(summary.getByRole('link', { name: 'Open linked invoice' })).toHaveAttribute('href', '/?view=invoices&document=' + changeInvoice)
+ await expect(page.locator('.invoice-hero-balance')).toContainText('Total $105.00')
 })

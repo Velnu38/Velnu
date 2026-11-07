@@ -3,3 +3,16 @@
 .change-order-totals > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .change-order-totals dd { margin: 0; font-variant-numeric: tabular-nums; }
 .change-order-revised-total { font-weight: 700; border-top: 1px solid var(--line, #d6e0e8); padding-top: 8px; }
+
+.document-linked-changes { margin-block: .75rem; }
+.linked-changes-heading, .linked-changes-list li, .linked-changes-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem 1rem;
+}
+.linked-changes-heading, .linked-changes-list li { justify-content: space-between; }
+.linked-changes-list { list-style: none; padding: 0; margin: .5rem 0 0; }
+.linked-changes-list li { border-top: 1px solid var(--line, #dce3e6); padding: .7rem 0; }
+.linked-changes-list p { margin: .3rem 0 0; }
+.linked-changes-total strong { margin-inline-start: .35rem; }

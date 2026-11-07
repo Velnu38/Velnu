@@ -101,9 +101,17 @@ export default function BillingHub({ business, refreshVersion = 0, openRequest =
     amount:Number(row.balance_due), amountLabel:'Balance due', status:'Overdue', tone:'overdue', href:documentHref('invoices',row.id) }))
   const approvals: Row[] = pendingApprovals.map(row => ({ key:`${row.document_type}:${row.id}`, kind:row.document_type === 'estimate' ? 'Estimate' : 'Change order', number:row.number || 'Awaiting customer approval',
     customer:customerName(row.customers?.[0]), detail:row.document_type === 'change_order' ? row.title : `Sent ${dateLabel(row.issue_date)}`,
-    amount:Number(row.total), amountLabel:'Quoted total', status:'Awaiting customer approval', tone:'approval',
+    amount:Number(row.total), amountLabel:row.document_type === 'change_order' ? 'Proposed change' : 'Quoted total', status:'Awaiting customer approval', tone:'approval',
     href:documentHref(row.document_type === 'estimate' ? 'estimates' : 'change_orders', row.id) }))
-  const rows=filter==='approvals'?approvals:overdue
+  const changeBilling: Row[] = items.flatMap(item => {
+    if (item.kind !== 'change_order_billing') return []
+    const row = item.data
+    const needsReview = row.action === 'manual_review' || row.action === 'verify_existing'
+    return [{ key: `change_order_billing:${row.id}`, kind: 'Change order', number: row.number || 'Approved change',
+      customer: customerName(row.customers?.[0]), detail: row.title, amount: Number(row.total), amountLabel: 'Approved change',
+      status: needsReview ? 'Billing review' : 'Ready to bill', tone: 'approval', href: documentHref('change_orders', row.id) }]
+  })
+  const rows=filter==='approvals'?approvals:[...changeBilling,...overdue]
   const heading = filter === 'attention' ? 'Needs Attention' : filter === 'approvals' ? 'Awaiting Customer Approval' : categoryLabels[filter]
   const total=attentionPage?.total??0
   const currentPage=attentionPage?.page??1
@@ -143,7 +151,7 @@ export default function BillingHub({ business, refreshVersion = 0, openRequest =
           <span className={`billing-document-icon ${row.kind === 'Invoice' ? 'invoice' : 'estimate'}`} aria-hidden="true">{row.kind === 'Invoice' ? 'I' : row.kind === 'Estimate' ? 'E' : 'C'}</span>
           <span className="billing-row-copy"><strong>{row.customer}</strong><span>{row.kind} · {row.number}</span><small>{row.detail}</small></span>
           <span className={`billing-status ${row.tone}`}>{row.status}</span>
-          <span className="billing-row-amount"><strong>{usd.format(row.amount)}</strong><small>{row.amountLabel}</small></span>{row.kind!=='Invoice'&&<span className="attention-action billing-attention-action">Review approval</span>}
+          <span className="billing-row-amount"><strong>{usd.format(row.amount)}</strong><small>{row.amountLabel}</small></span>{row.kind!=='Invoice'&&<span className="attention-action billing-attention-action">{row.key.startsWith('change_order_billing:') ? 'Review billing' : 'Review approval'}</span>}
         </a>{row.kind==='Invoice'&&<button type="button" className="primary-button compact" onClick={()=>setReminderInvoice(row.key.slice(8))}>Send Reminder</button>}</li>)}</ul>}
         </>}
         {attentionPage&&<nav className="attention-pagination" aria-label="Attention pages">

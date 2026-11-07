@@ -199,3 +199,23 @@ test('the invoice payment dialog starts at the balance and accepts a partial pay
   expect(writes).toHaveLength(1)
   expect(writes[0]).toMatchObject({target_business_id:B,invoice_id:E,payment_amount:40})
 })
+
+test('Finish invoices opens the billing step for the exact approved change order', async ({ page }) => {
+  await mock(page)
+  const change = { id:P, customer_id:C, customers:customer, source_invoice_id:E,
+    status:'approved', change_order_number:'CO-QA', title:'Change materials', total:25, issue_date:'2026-10-03' }
+  await page.route('**/rest/v1/rpc/get_dashboard_attention_page', route => route.fulfill({
+    json: { page:1, page_size:5, total:1, attention_count:1, approval_count:0,
+      category_counts:{ schedule:0, invoice:1, overdue:0, follow_up:0 },
+      items:[{ kind:'change_order_billing', data:{ ...change, customers:[customer], number:'CO-QA', action:'create_invoice' } }] },
+  }))
+  await page.route('**/rest/v1/change_orders?**', route => route.fulfill({ json:[change], headers }))
+  await page.route('**/rest/v1/rpc/get_change_order_billing', route => route.fulfill({ json:{ action:'create_invoice', total:105, change_total:25 } }))
+  await page.goto('/')
+  await page.getByRole('button', { name:'Finish invoices 1' }).click()
+  const row = page.getByRole('link', { name:/open change order CO-QA/i })
+  await expect(row).toContainText('Ready to bill')
+  await row.click()
+  await expect(page.getByRole('region', { name:'Change order billing' }).getByRole('button', { name:'Create change invoice' })).toBeVisible()
+  await expect(page.getByRole('link', { name:'Open original invoice' })).toHaveAttribute('href', '/?view=invoices&document='+E)
+})

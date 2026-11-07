@@ -2,10 +2,20 @@ import { supabase } from '../lib/supabase'
 import type { DashboardSnapshot } from './dashboard'
 import type { WorkflowActions } from './schedulingWorkflow'
 
+type ChangeOrderBillingItem = {
+  id: string
+  number: string | null
+  title: string
+  total: number
+  action: 'add_to_draft' | 'create_invoice' | 'manual_review' | 'verify_existing'
+  customers: DashboardSnapshot['pendingApprovals'][number]['customers']
+}
+
 export type AttentionItem =
   | {kind:'approved';data:WorkflowActions['approved'][number]}
   | {kind:'completed';data:WorkflowActions['completed'][number]}
   | {kind:'reminder';data:DashboardSnapshot['dueReminders'][number]}
+  | {kind:'change_order_billing';data:ChangeOrderBillingItem}
   | {kind:'invoice';data:DashboardSnapshot['overdueInvoices'][number]}
   | {kind:'estimate'|'change_order';data:DashboardSnapshot['pendingApprovals'][number]}
 export type AttentionCategoryCounts = {schedule:number;invoice:number;overdue:number;follow_up:number}

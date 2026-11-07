@@ -16,7 +16,7 @@ import { createChangeOrder, listChangeOrders, listChangeOrderItems, updateChange
 import { createApprovalLink } from '../services/approvals'
 import { customerActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
-import { matchesChangeOrderContext, type DocumentChangeOrderContext } from '../lib/documentChangeOrders'
+import { changeOrderStatusLabel, isLinkedChangeOrder, matchesChangeOrderContext, type DocumentChangeOrderContext } from '../lib/documentChangeOrders'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?:string|null; phone?:string|null }
 type Job = { id: string; title: string; status: string; customer_id: string; customers: Customer[] | Customer | null }
@@ -36,10 +36,10 @@ function jobCustomer(job: Job) {
   return Array.isArray(job.customers) ? job.customers[0] : job.customers
 }
 
-export default function ChangeOrdersPage({ business, context, onBack }: { business: CurrentBusiness; context?: DocumentChangeOrderContext; onBack?: () => void }) {
+export default function ChangeOrdersPage({ business, context, initialOrder, onBack }: { business: CurrentBusiness; context?: DocumentChangeOrderContext; initialOrder?: string; onBack?: () => void }) {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
-  const [showForm, setShowForm] = useState(!!context)
+  const [showForm, setShowForm] = useState(initialOrder === 'new')
   const [reviewId,setReviewId]=useState<string|null>(null),[reviewItems,setReviewItems]=useState<Awaited<ReturnType<typeof listChangeOrderItems>>>([]),[reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState(''),[editCustomer,setEditCustomer]=useState(false)
   const reviewFetch=useRef(0)
   const billingFlight=useRef(false)
@@ -90,24 +90,30 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
-    const [orders, jobRows, source] = await Promise.all([listChangeOrders(business.id), context?Promise.resolve([]):listJobs(business.id),context?getDocumentChangeContext(context.documentType,context.documentId):Promise.resolve(null)])
+    const [jobRows, source] = await Promise.all([
+      context ? Promise.resolve([]) : listJobs(business.id),
+      context ? getDocumentChangeContext(context.documentType, context.documentId) : Promise.resolve(null),
+    ])
+    const scope = context && { ...context, jobId: source?.job_id ?? context.jobId }
+    const orders = await listChangeOrders(business.id, scope)
     if(context)setSource(source)
-    setChangeOrders(orders as ChangeOrder[])
+    const linkedOrders = (scope ? orders.filter(order => isLinkedChangeOrder(order, scope)) : orders) as ChangeOrder[]
+    setChangeOrders(linkedOrders)
     setJobs((jobRows as unknown as Job[]).filter((job) => job.status !== 'canceled'))
-    return orders as ChangeOrder[]
+    return linkedOrders
   }
 
   useEffect(() => {
     let active = true
-    const requested = !context && new URLSearchParams(location.search).get('document')
+    const requested = context ? initialOrder : new URLSearchParams(location.search).get('document')
     void refresh().then(orders => {
-      if (!active || !requested) return
+      if (!active || !requested || requested === 'new') return
       const order = orders.find(row => row.id === requested)
       if (order) void openReview(order)
       else setError('This change order is unavailable in this workspace.')
     }).catch(err => { if (active) setError(err instanceof Error ? err.message : 'Unable to load change orders') })
     return () => { active = false }
-  }, [business.id])
+  }, [business.id, initialOrder])
 
   useEffect(()=>{
     if(!context||!showForm)return
@@ -120,7 +126,6 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   },[context?.documentType,context?.documentId,showForm])
 
   const availableJobs = jobs.filter(job => matchesChangeOrderContext({ customer_id: job!.customer_id, job_id: job!.id }, context))
-  const visibleOrders = changeOrders.filter(order => !context || (context.documentType==='invoice'?order.source_invoice_id===context.documentId:!order.source_invoice_id&&order.estimate_id===context.documentId) || (!!context.jobId&&!order.source_invoice_id&&!order.estimate_id&&order.job_id===context.jobId))
 
   const addedLines=useMemo(()=>lines.filter(line=>!revision||line.description.trim()||line.unit_price!==''),[lines,revision])
   const additionsTotal=addedLines.length?previewDocumentTotal(addedLines):revision?0:null
@@ -202,7 +207,14 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
     } finally { setBusy(false) }
   }
 
-  function closeReview(){reviewFetch.current++;setReviewId(null);setReviewError('');setReviewLoading(false)}
+  function closeForm() {
+    if (saving.current) return
+    setShowForm(false)
+    resetForm()
+    if (context && initialOrder === 'new') onBack?.()
+  }
+
+  function closeReview(){reviewFetch.current++;setReviewId(null);setReviewError('');setReviewLoading(false);if(context)onBack?.()}
   async function openReview(order:ChangeOrder){
     const request=++reviewFetch.current
     setReviewId(order.id);setReviewItems([]);setReviewLoading(true);setReviewError('')
@@ -213,14 +225,14 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
     {!onBack&&<WorkspaceBack/>}{onBack && <div className="detail-top"><button type="button" className="back-button" onClick={onBack}>← Back to {context?.documentType || 'document'}</button></div>}
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Change orders</p><h1>{context?`Changes to ${context.documentNumber}`:'Change orders'}</h1></div>
-      {canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
+      {canManageFinances(business.role) && (!context || source?.can_change) && <button type="button" className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
     </div>
     {context && <section className="document-change-context"><strong>From {context.documentNumber}</strong><p>Changes inherit this document’s customer, service address and linked work.</p></section>}
     <section className="change-order-intro"><strong>Accuracy first.</strong><span>Added work, price, tax and schedule impact stay separate until the customer approves the change.</span></section>
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && <p className="form-message error-text">{error}</p>}
     <section className="list-card">
-      {visibleOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : visibleOrders.map((order) => {
+      {changeOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : changeOrders.map((order) => {
         const customer = order.customers?.[0]
         const job = order.jobs?.[0]
         return <article className="document-row change-order-row" key={order.id}>
@@ -228,13 +240,13 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
           <div className="invoice-money"><strong className="money">${Number(order.change_totals?.change_amount??order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
           <div className="document-actions">
             <button type="button" className="primary-button compact" onClick={()=>void openReview(order)}>Review / Send</button>
-            <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span>
+            <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{changeOrderStatusLabel(order.status)}</span>
           </div>
         </article>
       })}
     </section>
-    {showForm && <FormDialog label="Create change order" busy={busy} onClose={() => { if(!saving.current){setShowForm(false); resetForm()} }} wide>
-      <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }} aria-label="Close" type="button">×</button></div>
+    {showForm && <FormDialog label="Create change order" busy={busy} onClose={closeForm} wide>
+      <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" disabled={busy} onClick={closeForm} aria-label="Close" type="button">×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid">
           {context&&<section className="document-change-context full" aria-label="Original document">{source?<><strong>{source.number} · {source.customer_name}</strong>{(source.customer_email||source.customer_phone)&&<p>{[source.customer_email,source.customer_phone].filter(Boolean).join(' · ')}</p>}{source.address&&<p>{source.address}</p>}<p>Original total: ${Number(source.total).toFixed(2)} · Work: {source.work_status.replaceAll('_',' ')}</p><details><summary>Original scope and prices</summary><ul>{source.items.map((item,i)=><li key={i}>{item.description} · {item.quantity} × ${Number(item.unit_price).toFixed(2)}</li>)}</ul></details><p className="quiet">Choose an existing item to adjust its quantity or rate, or add new work below.</p>{!source.can_change&&<p role="alert">This work is complete or the original document is no longer active.</p>}</>:<p role="status">Loading original document…</p>}</section>}
@@ -267,12 +279,15 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
         {draftTotals ? <ChangeOrderTotals amounts={draftTotals}/> : <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong></div>}
         <p className="quiet">Save and review, then send for approval.</p>
         {error && <p role="alert" className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change||!!revision&&adjustment===null||!!draftTotals&&draftTotals.revised_total<0}>{busy ? 'Saving…' : 'Save and review'}</button></div>
+        <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={closeForm}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change||!!revision&&adjustment===null||!!draftTotals&&draftTotals.revised_total<0}>{busy ? 'Saving…' : 'Save and review'}</button></div>
       </form>
     </FormDialog>}
     {reviewId&&<FormDialog label="Review change order" wide busy={busy} onClose={closeReview}><section className="change-order-review">
-      <div className="modal-head"><div><p className="eyebrow">{reviewed?.status||'Saved document'}</p><h2>Review change order</h2></div><button type="button" className="icon-button" aria-label="Close review" onClick={closeReview}>×</button></div>
+      <div className="modal-head"><div><p className="eyebrow">{reviewed ? changeOrderStatusLabel(reviewed.status) : 'Saved document'}</p><h2>Review change order</h2></div><button type="button" className="icon-button" aria-label="Close review" onClick={closeReview}>×</button></div>
       {reviewed?<>
+        {!context && (reviewed.source_invoice_id || reviewed.estimate_id) && <p className="calendar-no-print"><a href={reviewed.source_invoice_id
+          ? '/?view=invoices&document='+encodeURIComponent(reviewed.source_invoice_id)
+          : '/?view=estimates&document='+encodeURIComponent(reviewed.estimate_id!)}>{reviewed.source_invoice_id ? 'Open original invoice' : 'Open original estimate'}</a></p>}
         <p className="quiet">{reviewed.status==='draft'?'Next: send this change to the customer for approval.':reviewed.status==='sent'?'Waiting for customer approval.':reviewed.status==='approved'?'Customer approved this change.':''}</p>
         {canManageFinances(business.role)&&['draft','sent'].includes(reviewed.status)&&<DocumentDelivery onBusyChange={setBusy} key={reviewed.id} businessId={business.id} kind="change_order" documentId={reviewed.id} email={reviewed.customers?.[0]?.email} phone={reviewed.customers?.[0]?.phone} disabled={busy||reviewLoading||!!reviewError} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={reviewed.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>void refresh()}/>}

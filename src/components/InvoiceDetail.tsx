@@ -9,7 +9,7 @@ import {announceCalendarChange} from '../services/calendar'
 import FormDialog from './FormDialog'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import { localInstant } from '../lib/calendarTime'
-import DocumentChangeOrderButton from './DocumentChangeOrderButton'
+import DocumentChangeOrders from './DocumentChangeOrders'
 import {useTierUsage} from '../lib/useTierUsage'
 import { canAccess,isPrimaryOwner } from '../lib/workspaceAccess'
 import './settings/settings.css'
@@ -55,13 +55,13 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
   const [jobNotice,setJobNotice]=useState('')
   const [showPayment,setShowPayment]=useState(false)
   const [showReminder,setShowReminder]=useState(false)
-  const [showChangeOrders,setShowChangeOrders]=useState(false)
+  const [showChangeOrders,setShowChangeOrders]=useState<string | null>(null)
   const [reminderAt,setReminderAt]=useState('')
   const [reminderNote,setReminderNote]=useState('Follow up on unpaid invoice')
 
   async function refresh(){setLoading(true);setError('');try{const next=await getInvoiceDetail(business.id,invoiceId) as Detail;setDetail(next)}catch(err){setError(err instanceof Error?err.message:'Unable to load invoice')}finally{setLoading(false)}}
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
-  useEffect(()=>{setDetail(null);setShowChangeOrders(false);void refresh()},[business.id,invoiceId])
+  useEffect(()=>{setDetail(null);setShowChangeOrders(null);void refresh()},[business.id,invoiceId])
 
   async function saveReminder(event:FormEvent){
     event.preventDefault();if(!detail||busy||reminderSaving.current)return;reminderSaving.current=true;setBusy(true);setError('')
@@ -81,7 +81,8 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
   const site=Array.isArray(invoice.properties)?invoice.properties[0]:invoice.properties
   const issuedBrand=invoice.issuer_snapshot?.name ? { ...business, ...invoice.issuer_snapshot, name: invoice.issuer_snapshot.name } : business
 
-  if(showChangeOrders && !invoice.deposit_estimate_id&&offersDocumentChangeOrders('invoice', invoice.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType:'invoice', documentId:invoice.id, documentNumber:invoice.invoice_number || 'Invoice', customerId:invoice.customer_id, jobId:invoice.job_id, estimateId:invoice.estimate_id }} onBack={()=>setShowChangeOrders(false)} /></Suspense>
+  const changeContext = { documentId:invoice.id, documentNumber:invoice.invoice_number || 'Invoice', customerId:invoice.customer_id, jobId:invoice.job_id, estimateId:invoice.estimate_id, documentType: 'invoice' as const }
+  if (showChangeOrders && !invoice.deposit_estimate_id) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={changeContext} initialOrder={showChangeOrders} onBack={()=>{setShowChangeOrders(null);void refresh()}} /></Suspense>
 
   return <div className="page-stack invoice-detail-page">
     <div className="detail-top"><button className="back-button" onClick={onBack}>← Invoices</button></div>
@@ -100,7 +101,6 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
       {plan==='free'&&isPrimaryOwner(business)&&<a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
     </>} secondary={canManageFinances(business.role)&&invoice.status!=='void'?<>
-      {!invoice.deposit_estimate_id&&offersDocumentChangeOrders('invoice', invoice.status)&&<DocumentChangeOrderButton business={business} kind="invoice" id={invoice.id} onClick={()=>setShowChangeOrders(true)}/>}
       {invoice.status==='draft'&&<button type="button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
       {!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button type="button" className="danger-action" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
     </>:undefined}/>
@@ -109,6 +109,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
     {error&&<p className="form-message error-text" role="alert">{error}</p>}
     {(invoice.estimate_id||invoice.deposit_estimate_id)&&<p><a href={'/?view=estimates&document='+encodeURIComponent(invoice.estimate_id||invoice.deposit_estimate_id!)}>Open original approved estimate</a>{invoice.deposit_estimate_id&&' · Deposit invoice'}</p>}
     {invoice.deposit_source_invoice_id&&<p><a href={'/?view=invoices&document='+encodeURIComponent(invoice.deposit_source_invoice_id)}>Paid deposit credited: ${Number(invoice.deposit_credit).toFixed(2)}</a></p>}
+    {!invoice.deposit_estimate_id && canManageFinances(business.role) && <DocumentChangeOrders key={'changes:' + changeContext.documentId} business={business} context={changeContext} allowNew={offersDocumentChangeOrders('invoice', invoice.status)} onOpen={setShowChangeOrders} />}
     <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>
     {showResources&&<RecordResourcesDialog business={business} target={{kind:'invoice',id:invoice.id}} title={invoice.invoice_number||'Invoice'} linkedJobId={invoice.job_id} onClose={()=>setShowResources(false)}/>}
     {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}

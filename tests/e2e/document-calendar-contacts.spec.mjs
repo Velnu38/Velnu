@@ -85,14 +85,14 @@ for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typ
 for(const kind of ['invoice','estimate'])test(`${kind} change order automatically uses the original document without selecting a job`,async({page})=>{
  const state=await mock(page);await page.goto('/?view='+kind+'s')
  if(kind==='invoice')await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();else await page.getByRole('button',{name:/^Open estimate EST-QA/}).click()
- await page.getByRole('button',{name:'Change order',exact:true}).click()
+ await page.getByRole('button',{name:'+ New change order',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Create change order'});await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('Test Customer');await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('1 Test Street');await expect(dialog.getByLabel('Job',{exact:true})).toHaveCount(0)
  await dialog.getByPlaceholder('Description',{exact:true}).fill('Additional work only');await dialog.getByPlaceholder('Unit price',{exact:true}).fill('20')
  await dialog.getByRole('button',{name:'Save and review',exact:true}).click();await expect.poll(()=>state.changes.length).toBe(1)
  expect(state.changes[0].p_kind).toBe(kind);expect(state.changes[0].p_document).toBe(E);expect(state.changes[0].p_input.items[0].description).toBe('Additional work only');expect(state.changes[0].p_input).not.toHaveProperty('customer_id')
 })
 test('completed work has no new change-order action',async({page})=>{
- await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Change order',exact:true})).toHaveCount(0)
+ await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'+ New change order',exact:true})).toHaveCount(0)
 })
 for(const width of [1440,390])test(`select a calendar date then use Add entry to save a manual event at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/');const calendar=page.getByRole('region',{name:'Work calendar'});await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
@@ -169,7 +169,7 @@ for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-
   const state = await mock(page)
   await page.goto('/?view=invoices')
   await page.getByRole('button', { name: /^Open invoice INV-QA/ }).click()
-  await page.getByRole('button', { name: 'Change order', exact: true }).click()
+  await page.getByRole('button', { name: '+ New change order', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Create change order' })
   await dialog.getByLabel('Current item').selectOption(P)
   await expect(dialog.getByLabel('Revised quantity')).toHaveValue('2')

@@ -1,3 +1,4 @@
+import type { DocumentChangeOrderContext } from '../lib/documentChangeOrders'
 import type { ChangeOrderAmounts } from '../lib/changeOrderAmounts'
 import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
@@ -24,12 +25,21 @@ export interface ChangeOrderInput {
   items: ChangeOrderLineInput[]
 }
 
-export async function listChangeOrders(businessId: string) {
-  const { data, error } = await supabase
+export async function listChangeOrders(businessId: string, context?: DocumentChangeOrderContext) {
+  let query = supabase
     .from('change_orders')
     .select('created_at,updated_at,id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,source_invoice_id,estimate_id,issue_date,subtotal,tax_amount,total,change_totals,sent_at,approved_at,declined_at,customer_id,job_id,customers!change_orders_customer_id_fkey(id,first_name,last_name,company,email,phone),jobs!change_orders_job_id_fkey(id,title,status)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
+  if (context) {
+    const scope = context.documentType === 'invoice'
+      ? `source_invoice_id.eq.${context.documentId}`
+      : `and(source_invoice_id.is.null,estimate_id.eq.${context.documentId})`
+    const legacy = context.jobId
+      ? `,and(source_invoice_id.is.null,estimate_id.is.null,job_id.eq.${context.jobId})` : ''
+    query = query.eq('customer_id', context.customerId).or(scope + legacy)
+  }
+  const { data, error } = await query
 
   if (error) throw error
   return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers), jobs: asList(row.jobs) }))

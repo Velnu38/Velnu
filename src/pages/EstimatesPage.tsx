@@ -15,7 +15,7 @@ import CustomerEditDialog from '../components/CustomerEditDialog'
 import DocumentActions from '../components/DocumentActions'
 import DocumentRecord, {CreatedStamp,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
-import DocumentChangeOrderButton from '../components/DocumentChangeOrderButton'
+import DocumentChangeOrders from '../components/DocumentChangeOrders'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { DateTime } from 'luxon'
 import RecordListControls, { RecordListPagination, useRecordList } from '../components/RecordListControls'
@@ -66,7 +66,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const plan=useTierUsage(business.id)?.plan
   const [previewTarget, setPreviewTarget] = useState<Estimate | null>(null)
   const [showEdit,setShowEdit]=useState(false),[editCustomer,setEditCustomer]=useState(false)
-  const [showChangeOrders, setShowChangeOrders] = useState(false)
+  const [showChangeOrders, setShowChangeOrders] = useState<string | null>(null)
   const [previewItems, setPreviewItems] = useState<PreviewItem[]>([])
   const [previewBusy, setPreviewBusy] = useState(false)
   const [convertDueDate, setConvertDueDate] = useState('')
@@ -287,7 +287,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     declined: 'No declined or expired estimates in this view.',
   }[statusFilter]
 
-  if (showChangeOrders && previewTarget && offersDocumentChangeOrders('estimate', previewTarget.status)) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={{ documentType: 'estimate', documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id }} onBack={() => setShowChangeOrders(false)} /></Suspense>
+  const changeContext = previewTarget && { documentId: previewTarget.id, documentNumber: previewTarget.estimate_number || 'Estimate', customerId: previewTarget.customer_id, jobId: previewTarget.job_id, estimateId: previewTarget.id, documentType: 'estimate' as const }
+  if (showChangeOrders && previewTarget && changeContext) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={changeContext} initialOrder={showChangeOrders} onBack={()=>{setShowChangeOrders(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh the estimate.')))}} /></Suspense>
 
   return <div className="page-stack workspace-module estimates-module"><WorkspaceBack />
     <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Estimates</p><h1>Quote the work without the paperwork.</h1><p className="module-page-intro">Track approvals, send a quote, or turn approved work into a job.</p></div>{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create estimate</button>}</div>
@@ -358,12 +359,12 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         </>} secondary={canManageFinances(business.role)?<>
           {!['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer</button>}
           {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Approval link</button>}
-          {offersDocumentChangeOrders('estimate',previewTarget.status)&&<DocumentChangeOrderButton business={business} kind="estimate" id={previewTarget.id} onClick={()=>setShowChangeOrders(true)}/>}
           {previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
           {previewTarget.status==='sent'&&<><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'expired')}>Expire</button></>}
         </>:undefined}/>
         {notice&&<p role="status" className="form-message success-text">{notice}</p>}
         {error&&<p role="alert" className="form-message error-text">{error}</p>}
+        {canManageFinances(business.role) && changeContext && <DocumentChangeOrders key={'changes:' + changeContext.documentId} business={business} context={changeContext} allowNew={offersDocumentChangeOrders('estimate', previewTarget.status)} onOpen={setShowChangeOrders} />}
         <DocumentRecord dates={previewTarget} timezone={business.timezone} customerId={previewTarget.customer_id} customerName={customerName(previewTarget.customers?.[0])}/>
         {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManageFinances(business.role)} timezone={business.timezone||'America/New_York'}/>}
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />

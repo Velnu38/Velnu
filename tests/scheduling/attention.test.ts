@@ -89,3 +89,35 @@ test('only past-due sent balances enter attention, using the business date',asyn
   await db.query("update invoices set status='void' where id=$1",[past]);assert.equal((await page(db)).total,0)
  }finally{await db.close()}
 })
+
+test('a sent change moves from approvals to Finish invoices only until its billing is allocated', async () => {
+ const db = await fixture()
+ try {
+  await db.exec('reset role; alter table change_orders add column source_invoice_id uuid, add column change_totals jsonb; alter table invoices add column deposit_estimate_id uuid')
+  const handoff = await readFile('supabase/migrations/20261106215735_change_order_billing_handoff.sql', 'utf8')
+  await db.exec(handoff.slice(0, handoff.indexOf('create function private.change_order_billing_state')))
+  const totals = await readFile('supabase/migrations/20261106235327_reviewed_change_order_totals.sql', 'utf8')
+  await db.exec(totals.slice(totals.indexOf('create or replace function private.change_order_billing_state'), totals.indexOf('create or replace function private.prepare_estimate_final')))
+  await db.exec(await readFile('supabase/migrations/20261107034000_change_order_attention.sql', 'utf8'))
+  const source = (await db.query<{id:string}>('insert into invoices(business_id,customer_id) values ($1,$2) returning id', [ids.business,ids.customer])).rows[0].id
+  const order = (await db.query<{id:string}>(`insert into change_orders(business_id,customer_id,job_id,source_invoice_id,title,status,total,change_totals)
+    values ($1,$2,gen_random_uuid(),$3,'Additional work','sent',20,'{"change_amount":20}') returning id`, [ids.business,ids.customer,source])).rows[0].id
+  await db.exec('set role authenticated')
+  assert.equal((await page(db,1,'invoice')).total,0)
+  assert.equal((await page(db,1,'approvals')).items[0].data.id,order)
+  await db.query("update change_orders set status='approved',approved_at=now() where id=$1", [order])
+  const ready = await page(db,1,'invoice')
+  assert.equal(ready.approval_count,0)
+  assert.equal(ready.attention_count,1)
+  assert.equal(ready.category_counts.invoice,1)
+  assert.equal(ready.items[0].kind,'change_order_billing')
+  assert.equal(ready.items[0].data.id,order)
+  assert.equal(ready.items[0].data.action,'add_to_draft')
+  await db.exec('reset role')
+  await db.query('insert into private.change_order_billing values ($1,$2)',[order,source])
+  await db.exec('set role authenticated')
+  assert.equal((await page(db,1,'invoice')).total,0)
+  await actor(db,ids.outsider)
+  await assert.rejects(()=>page(db),/access/)
+ } finally { await db.close() }
+})
