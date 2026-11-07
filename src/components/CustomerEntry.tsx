@@ -13,7 +13,7 @@ export function newCustomerFields(draft:CustomerDraft) {
 export default function CustomerEntry({customers,value,draft,onChange,onDraft,disabled=false,showSuggestions=false}:{customers:CustomerChoice[];value:string;draft:CustomerDraft;onChange:(id:string)=>void;onDraft:(next:CustomerDraft)=>void;disabled?:boolean;showSuggestions?:boolean}) {
   const [creating, setCreating] = useState(false)
   return <fieldset className="customer-entry full" disabled={disabled}><legend>Customer</legend>
-    {!creating && <CustomerPicker customers={customers} value={value} required disabled={disabled} initialQuery={draft.name} initiallyOpen={showSuggestions}
+    {!creating && <CustomerPicker customers={customers} value={value} required disabled={disabled} initialQuery={draft.name} initiallyOpen={showSuggestions} allowCloseMatches={showSuggestions}
       onQueryChange={name => onDraft({...draft,name})} onChange={onChange} />}
     {!value && <button type="button" className="text-button" onMouseDown={event => event.preventDefault()} onClick={() => setCreating(current => !current)}>{creating ? 'Search saved customers' : 'Create a new customer'}</button>}
     {creating && !value && <>

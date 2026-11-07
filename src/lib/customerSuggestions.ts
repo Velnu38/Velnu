@@ -36,3 +36,23 @@ export function uniqueCustomerName(customers: CustomerOption[], name: string) {
   const matches = customers.filter(customer => [customerOptionName(customer), customer.company].some(value => value && normalizeCustomerSearch(value) === term))
   return matches.length === 1 ? matches[0] : undefined
 }
+
+/** A close spelling is a suggestion only. Auto-selection still requires an exact match. */
+export function matchingFinCustomers(customers: CustomerOption[], query: string) {
+  const matches = matchingCustomers(customers, query)
+  const words = normalizeCustomerSearch(query).split(' ')
+  if (matches.length || words.length < 2 || words.some(word => !/^\p{L}+$/u.test(word))) return matches
+
+  return customers.filter(customer => {
+    const name = normalizeCustomerSearch([customer.first_name, customer.last_name].filter(Boolean).join(' ')).split(' ')
+    if (name.length !== words.length) return false
+    const differences = words.flatMap((word, i) => word === name[i] ? [] : [[word, name[i]]])
+    if (differences.length !== 1) return false
+    const [a, b] = differences[0]
+    const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a]
+    if (shorter.length < 4 || longer.length - shorter.length > 1) return false
+    const mismatch = [...shorter].findIndex((letter, i) => letter !== longer[i])
+    if (mismatch < 0) return longer.length > shorter.length
+    return shorter.slice(mismatch + Number(shorter.length === longer.length)) === longer.slice(mismatch + 1)
+  }).slice(0, 8)
+}

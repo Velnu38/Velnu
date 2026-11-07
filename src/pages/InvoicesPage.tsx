@@ -1,5 +1,5 @@
 import { resolveFinInvoiceSeed, type FinInvoiceDraft } from '../lib/voiceDocument'
-import { matchingCustomers, uniqueCustomerName } from '../lib/customerSuggestions'
+import { matchingFinCustomers, uniqueCustomerName } from '../lib/customerSuggestions'
 import CustomerEditDialog from '../components/CustomerEditDialog'
 import CreationPreview from '../components/CreationPreview'
 import {documentEndDate,previewAmounts} from '../lib/documentPreview'
@@ -92,7 +92,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
     setCustomerDraft({...emptyCustomerDraft(), name: seed.customerName})
     const warnings = [...seed.warnings]
     if (seed.customerName && !selected && customerLoad === 'ready') {
-      if (matchingCustomers(customers, seed.customerName).length) warnings.push('Choose the correct saved customer from the suggestions.')
+      if (matchingFinCustomers(customers, seed.customerName).length) warnings.push('Choose the correct saved customer from the suggestions.')
       else warnings.push('No saved customer matched that name. Check the spelling or add a new customer.')
     }
     setFinWarnings(warnings)

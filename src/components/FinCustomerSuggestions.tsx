@@ -1,7 +1,7 @@
 import { finInvoiceDraft, resolveFinInvoiceSeed } from '../lib/voiceDocument'
 import { useEffect, useState } from 'react'
 import { listCustomers } from '../services/customers'
-import { customerOptionName, matchingCustomers, type CustomerOption } from '../lib/customerSuggestions'
+import { customerOptionName, matchingFinCustomers, type CustomerOption } from '../lib/customerSuggestions'
 import './customer-picker.css'
 
 export default function FinCustomerSuggestions({businessId, text, disabled, onSelect}: {
@@ -31,7 +31,7 @@ export default function FinCustomerSuggestions({businessId, text, disabled, onSe
     : match?.[1]?.trim() || (text.trim().split(/\s+/).length <= 4 ? text.trim() : '')
   if (query.length < 2) return null
   if (failed) return <p className="quiet">Customer suggestions could not load. Fin can still look up your request.</p>
-  const customers = matchingCustomers(savedCustomers, query)
+  const customers = matchingFinCustomers(savedCustomers, query)
   if (!customers.length) return null
   return <section className="customer-picker" aria-label="Suggested customers for Fin"><p className="quiet">Use a saved customer in this request</p><div className="customer-picker-options">
     {customers.map(customer => <button type="button" key={customer.id} onClick={() => {

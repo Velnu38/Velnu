@@ -37,3 +37,11 @@ Apply the two `fin_*workflow*` / `fin_reminder_review_snapshot` migrations befor
 Run `npm run build`, `npm run test:settings`, `npm run test:services`, `npm run test:deployment`, and the Fin/voice/document-delivery browser suites. The new database suite executes real PostgreSQL functions through PGlite and checks authorization, full-filter lookup, exact totals, all supported action categories, stale data, expiry, cancellation, replay and rollback. Browser suites mock authentication/provider/delivery responses; native Chromium audio tests use a synthetic input device. They do not prove physical-phone capture, live model accuracy, or real customer delivery.
 
 The private test release can be rolled back by restoring the preceding frontend commit. Its previous endpoints remain available; the additive private tables and new endpoint need not be destructively removed.
+
+### Invoice handoff and model evaluations
+
+The local evaluation runs on the predictive customer workflow in GitHub Actions. Run it with
+`node --import tsx --test tests/predictive/*.test.ts tests/settings/voice-document.test.ts tests/settings/fin-workflow.test.ts`.
+The browser suite covers the saved-customer picker, draft handoff, and preview.
+
+To evaluate the actual model against the isolated QA backend, provision a synthetic QA business with a saved invoice numbered `INV-FIN-EVAL`. Supply that business ID and a short-lived test user's access token via `FIN_QA_BUSINESS_ID` and `FIN_QA_ACCESS_TOKEN`. From `tests/predictive/model-eval`, run `npx --yes promptfoo@0.125.1 eval --no-cache`. This calls the review endpoint and consumes QA model usage. It does not execute a plan. Keep QA credentials out of source and use fictional records only.

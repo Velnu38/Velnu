@@ -10,15 +10,14 @@ function invoiceRequest(command: string) {
  const request = command.trim()
   .replace(/^(?:(?:hey\s+fin|fin)[,\s]+)?(?:(?:can|could|would) you\s+|i (?:need|want) to\s+)?(?:please\s+)?/i, '')
   .replace(/^i (?:need|want)\s+(?=(?:an?\s+)?new\s+invoice\b)/i, 'open ')
-  .replace(/^(?:open|go to)\s+(?:the\s+)?invoices?(?:\s+page)?\s*(?:,\s*(?:and\s+)?|and\s+|then\s+)(?:then\s+)?/i, '')
+  .replace(/^(?:open|go to|pull up)\s+(?:the\s+)?invoices?(?:\s+page)?\s*(?:,\s*(?:and\s+)?|and\s+|then\s+)(?:then\s+)?/i, '')
   .replace(/\s+please[.!?]*$/i, '')
-  .replace(/\s+(?:and|then)\s+(?:email|text|send)\s+(?:it|the invoice)(?:\s+to (?:them|the customer))?[.!?]*$/i, '')
  const create = /^(?:(?:create|make|draft|prepare|write|generate|start)\s+(?:me\s+)?(?:(?:an?|the)\s+)?(?:new\s+)?|(?:open\s+(?:an?\s+)?)?new\s+)invoice\b/i
  const intent = request.match(create)
  if (!intent) return null
  const linked = /\b(?:from|using)\s+(?:(?:an?|the|my)\s+)?(?:approved\s+)?(?:estimate|quote|job|invoice)\b/i
- const describedRecord = /^\s+(?:from|using)\s+(?:[\p{L}\d'-]+\s+){1,8}(?:estimate|quote|job|invoice)\b/iu
- const compound = /\b(?:and|then)\s+(?:schedule|convert|record a payment|create (?:another|a second|a customer))\b/i
+ const describedRecord = /^\s+(?:from|using)\s+(?:[\p{L}\p{M}\d'’-]+\s+){1,8}(?:estimate|quote|job|invoice)\b/iu
+ const compound = /\b(?:and|then)\s+(?:schedule|convert|record (?:a |the )?payment|mark (?:it|the invoice) (?:as )?paid|(?:email|text|send) (?:it|the invoice)|create (?:another|a second|a customer))\b/i
  return linked.test(request) || describedRecord.test(request.slice(intent[0].length)) || compound.test(request) ? null : request
 }
 
@@ -99,6 +98,6 @@ export function parseVoiceDocument(input:string):VoiceSeed{
   if(!amount&&seed.amount!== '0')warnings.push('An amount needs correction before saving.')
   lines.push({description,amount,quantity})
  }
- if(!lines.length)lines.push({description:legacy.description,amount:unsafe?'':statedTotal||legacy.amount,quantity:'1'})
+ if(!lines.length)lines.push({description:legacy.description,amount:unsafe||statedTotal!==null?'':legacy.amount,quantity:'1'})
  return {kind,customerName,lines,statedTotal,taxRate,warnings:[...new Set([...warnings,...(lines.length>50?['A document supports at most 50 lines. Split this request into separate documents before saving.']:[])])]}
 }

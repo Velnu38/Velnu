@@ -1,8 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { customerOptionName, matchingCustomers, type CustomerOption } from '../lib/customerSuggestions'
+import { customerOptionName, matchingCustomers, matchingFinCustomers, type CustomerOption } from '../lib/customerSuggestions'
 import './customer-picker.css'
 
-export default function CustomerPicker({ customers, value, onChange, required = false, disabled = false, initialQuery = '', onQueryChange, initiallyOpen = false }: {
+export default function CustomerPicker({ customers, value, onChange, required = false, disabled = false, initialQuery = '', onQueryChange, initiallyOpen = false, allowCloseMatches = false }: {
+  allowCloseMatches?: boolean
   customers: CustomerOption[]
   value: string
   onChange: (id: string) => void
@@ -19,7 +20,7 @@ export default function CustomerPicker({ customers, value, onChange, required = 
   const [open, setOpen] = useState(initiallyOpen)
   const [active, setActive] = useState(-1)
   useEffect(() => { setQuery(initialQuery); setActive(-1) }, [initialQuery])
-  const matches = useMemo(() => matchingCustomers(customers, query), [customers, query])
+  const matches = useMemo(() => (allowCloseMatches ? matchingFinCustomers : matchingCustomers)(customers, query), [allowCloseMatches, customers, query])
   const expanded = open && !selected && !disabled
   useEffect(() => { input.current?.setCustomValidity(required && !selected ? 'Choose a saved customer from the suggestions.' : '') }, [required, selected])
   function select(customer: CustomerOption) {
