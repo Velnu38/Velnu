@@ -36,7 +36,6 @@ test('Fin suggests duplicate names with contact details and opens the invoice ed
 test('invoice creation requires explicit new customer choice',async({page})=>{
  const state=await mock(page)
  await page.goto('/?view=invoices&new=1')
- await page.locator('summary').filter({hasText:'Add Customer'}).click()
  const input=page.getByRole('combobox',{name:'Customer',exact:true})
  await input.fill('Unknown Client')
  expect(await input.evaluate(el=>el.checkValidity())).toBe(false)

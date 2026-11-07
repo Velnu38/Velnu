@@ -8,7 +8,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto('/')
  await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
- const finance=page.getByRole('region',{name:'Financial performance',exact:true}),calendar=page.getByRole('region',{name:'Work calendar',exact:true})
+ const finance=page.getByRole('region',{name:'Financial Performance',exact:true}),calendar=page.getByRole('region',{name:'Work calendar',exact:true})
  await expect(finance).toBeVisible();await expect(calendar).toBeVisible()
  expect(await finance.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.dashboard-calendar'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
  for(const months of [1,3,6,12]){
@@ -53,7 +53,6 @@ for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation ch
   await expect(page.getByRole('dialog')).toBeVisible()
   if(kind!=='job'){
    const dialog=page.getByRole('dialog',{name:'Create an '+kind,exact:true})
-   await dialog.locator('summary').filter({hasText:'Add Customer'}).click()
    await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toBeVisible()
   }
  }
@@ -94,7 +93,7 @@ for(const role of ['technician','viewer'])test(`Home preserves ${role} module an
  await page.route('**/rest/v1/business_members?**',route=>route.fulfill({contentType:'application/json',json:{business_id:B,role,access_modules:['calendar','jobs'],businesses:business}}))
  await page.goto('/')
  await expect(page.getByRole('region',{name:'Work calendar',exact:true})).toBeVisible()
- await expect(page.getByRole('region',{name:'Financial performance',exact:true})).toHaveCount(0)
+ await expect(page.getByRole('region',{name:'Financial Performance',exact:true})).toHaveCount(0)
  const dock=page.getByRole('navigation',{name:'Workspace navigation'})
  await expect(dock.getByRole('button',{name:'Invoices',exact:true})).toHaveCount(0)
  await expect(dock.getByRole('button',{name:'Estimates',exact:true})).toHaveCount(0)
@@ -111,6 +110,6 @@ for(const role of ['technician','viewer'])test(`Home preserves ${role} module an
 for(const kind of ['invoice','estimate'])test(`The ${kind} list opens its existing editor directly`,async({page})=>{
  await mock(page);await page.goto('/?view='+kind+'s')
  await page.getByRole('button',{name:'Create '+kind,exact:true}).click()
- await expect(page.getByRole('dialog')).toBeVisible()
- await expect(page.getByLabel('Customer',{exact:true})).toBeVisible()
+ const dialog=page.getByRole('dialog',{name:'Create an '+kind,exact:true})
+ await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toBeVisible()
 })

@@ -1,3 +1,5 @@
+import ChangeOrderTotals from '../components/ChangeOrderTotals'
+import { changeOrderDisplayLine } from '../lib/changeOrderAmounts'
 import DocumentPaper from '../components/DocumentPaper'
 import { useEffect, useRef, useState } from 'react'
 import { getCustomerApproval, submitCustomerApproval } from '../services/approvals'
@@ -15,6 +17,8 @@ type ApprovalData = {
   expires_at: string
   completed: { action: 'approved' | 'declined'; typed_name: string; amount: number; created_at: string; terms_agreed?: boolean } | null
 }
+
+const usd = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})
 
 function customerName(customer: ApprovalData['customer']) {
   if (!customer) return 'Customer'
@@ -79,9 +83,9 @@ export default function CustomerApprovalPage({ token }: { token: string }) {
       {data.document_type==='estimate'?<DocumentPaper finviantBranding={data.finviant_branding} business={{...data.business_profile,name:data.business_name}} kind="estimate" customer={data.customer} number={number} issued={doc.issue_date} ending={doc.expires_on} items={data.items} subtotal={doc.subtotal} tax={doc.tax_amount} total={doc.total} message={doc.customer_message}/>:<>
       <section className="approval-items">
         <div className="approval-row approval-row-head"><span>Description</span><span>Qty</span><span>Price</span><span>Total</span></div>
-        {data.items.map((item, index) => <div className="approval-row" key={`${item.description}-${index}`}><span>{item.description}{Number(item.tax_rate) ? <small>{Number(item.tax_rate)}% tax</small> : null}</span><span>{Number(item.quantity)}</span><span>${Number(item.unit_price).toFixed(2)}</span><span>${Number(item.line_total).toFixed(2)}</span></div>)}
+        {data.items.map((line, index) => {const item=changeOrderDisplayLine(line,index,doc.change_totals);return <div className="approval-row" key={`${item.description}-${index}`}><span>{item.description}{Number(item.tax_rate) ? <small>{Number(item.tax_rate)}% tax</small> : null}</span><span>{Number(item.quantity)}</span><span>{usd.format(Number(item.unit_price))}</span><span>{usd.format(Number(item.line_total))}</span></div>})}
       </section>
-      <section className="approval-totals"><div><span>Subtotal</span><strong>${Number(doc.subtotal).toFixed(2)}</strong></div>{Number(doc.tax_amount)>0&&<div><span>Tax</span><strong>${Number(doc.tax_amount).toFixed(2)}</strong></div>}<div className="approval-grand-total"><span>Total</span><strong>${Number(doc.total).toFixed(2)}</strong></div></section>
+      {doc.change_totals ? <ChangeOrderTotals amounts={doc.change_totals} approved={data.completed?.action==='approved'}/> : <section className="approval-totals"><div><span>Subtotal</span><strong>${Number(doc.subtotal).toFixed(2)}</strong></div>{Number(doc.tax_amount)>0&&<div><span>Tax</span><strong>${Number(doc.tax_amount).toFixed(2)}</strong></div>}<div className="approval-grand-total"><span>Total</span><strong>${Number(doc.total).toFixed(2)}</strong></div></section>}
       {data.business_profile?.document_footer && <p className="document-footer">{data.business_profile.document_footer}</p>}
       </>}
       {data.completed ? <section className={`approval-complete ${data.completed.action}`}><h2>{data.completed.action === 'approved' ? `Document ${approvedVerb}` : 'Document declined'}</h2><p>Recorded for {data.completed.typed_name} on {new Date(data.completed.created_at).toLocaleString()}.</p><p className="quiet">{data.document_type === 'estimate' && data.completed.action === 'approved' && data.completed.terms_agreed ? 'Agreement to the displayed estimate terms was recorded with the document and amount at acceptance.' : 'This decision is recorded with the document’s approval history.'}</p></section> :

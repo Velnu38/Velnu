@@ -1,7 +1,8 @@
+import type { ChangeOrderAmounts } from '../lib/changeOrderAmounts'
 import {supabase} from '../lib/supabase'
 import {createShareToken} from '../lib/personalDelivery'
 import type {DeliveryDocumentKind} from './reviewDelivery'
-export type SharedDocument={kind:DeliveryDocumentKind;number:string;status:string;issue_date:string;due_date:string|null;expires_on:string|null;subtotal:number;tax_amount:number;total:number;balance_due:number|null;amount_paid:number|null;customer_message:string|null;payment_instructions:string|null;payment_links:{provider:string;url:string}[];items:{description:string;quantity:number;unit_price:number;line_total:number}[];customer:{name:string;email:string|null;phone:string|null};company:{name:string;email:string|null;phone:string|null};finviant_branding:boolean;approval_token?:string|null;expires_at:string}
+export type SharedDocument={change_totals?:ChangeOrderAmounts|null;kind:DeliveryDocumentKind;number:string;status:string;issue_date:string;due_date:string|null;expires_on:string|null;subtotal:number;tax_amount:number;total:number;balance_due:number|null;amount_paid:number|null;customer_message:string|null;payment_instructions:string|null;payment_links:{provider:string;url:string}[];items:{description:string;quantity:number;unit_price:number;line_total:number}[];customer:{name:string;email:string|null;phone:string|null};company:{name:string;email:string|null;phone:string|null};finviant_branding:boolean;approval_token?:string|null;expires_at:string}
 export type PreparedShare={token:string;url:string;subject:string;body:string;snapshot:SharedDocument}
 export async function preparePersonalDocument(business:string,kind:DeliveryDocumentKind,id:string,token=createShareToken()):Promise<PreparedShare>{
  const{data,error}=await supabase.rpc('prepare_personal_document',{p_business:business,p_kind:kind,p_document:id,p_token:token});if(error)throw new Error(error.message)

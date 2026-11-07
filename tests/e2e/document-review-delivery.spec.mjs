@@ -69,7 +69,19 @@ test('uncertain email uses the same request after closing and reopening the save
 })
 for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls immediately after saving a ${kind} draft`,async({page})=>{
  const {state,executions}=await workflow(page,{steps:[docStep(kind,[item('Landscaping',100)])],contact:{email:'customer@example.test',phone:'7575550123'}})
- await start(page,`Create ${kind} for Test Customer for landscaping $100`);expect(executions).toHaveLength(0);await save(page)
+ await start(page,`Create ${kind} for Test Customer for landscaping $100`);expect(executions).toHaveLength(0)
+ if(kind==='invoice'){
+  const form=page.getByRole('dialog',{name:'Create an invoice',exact:true})
+  await expect(form.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('Test Customer')
+  await form.getByRole('button',{name:'Preview',exact:true}).click()
+  await expect(form.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
+  await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeVisible()
+  await form.getByRole('button',{name:'Save Draft',exact:true}).click()
+  await expect.poll(()=>state.documents.length).toBe(1)
+  expect(state.calls.some(call=>call.path.includes('/send-'))).toBe(false)
+  return
+ }
+ await save(page)
  const dialog=page.getByRole('dialog',{name:'Fin — your office assistant'})
  await expect(dialog.getByRole('region',{name:'Send to customer'})).toBeVisible();await expect(dialog.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
  await expect(dialog.getByRole('button',{name:'Send Text',exact:true})).toBeVisible();expect(state.documents).toHaveLength(1)
@@ -78,7 +90,7 @@ for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls imm
 test('creating a change order opens its review and delivery controls automatically',async({page})=>{
  const {state}=await setup(page);await page.goto('/?view=invoices&document='+E);await page.getByRole('button',{name:'Change order',exact:true}).click()
  const form=page.getByRole('dialog',{name:'Create change order'});await form.getByLabel('Line 1 description').fill('Two fixtures');await form.getByLabel('Line 1 unit price').fill('50')
- await form.getByRole('button',{name:'Create change order',exact:true}).click()
+ await form.getByRole('button',{name:'Save and review',exact:true}).click()
  const review=page.getByRole('dialog',{name:'Review change order'});await expect(review).toBeVisible();await expect(review.getByRole('button',{name:'Send Email'})).toBeEnabled();await expect(review.getByText('Two fixtures',{exact:true})).toBeVisible();expect(state.changes).toHaveLength(1)
 })
 test('switching change orders ignores a late line-item response from the previous review',async({page})=>{

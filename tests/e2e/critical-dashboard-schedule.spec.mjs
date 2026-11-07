@@ -1058,11 +1058,11 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await expect(page.getByLabel('Customer',{exact:true})).toBeVisible()
  await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+CID+'"]').click()
  await page.getByPlaceholder('Description',{exact:true}).fill('Service work');await page.getByPlaceholder('Unit price',{exact:true}).fill('100')
- await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3')
+ await page.getByText('Tax options · 5.3% default',{exact:true}).click();await expect(page.getByLabel('Default tax rate (%)',{exact:true})).toHaveValue('5.3')
  await expect(page.locator('.estimate-total strong')).toHaveText('$105.30')
  await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.estimate-total strong')).toHaveText('$108.46')
- await page.getByRole('button',{name:'Save draft invoice',exact:true}).click();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
- await page.goto('/?view=estimates');await createWork(page, 'estimate');await expect(page.getByLabel('Tax rate (%)')).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
+ await page.getByRole('button',{name:'Preview',exact:true}).click();await page.getByRole('button',{name:'Save Draft',exact:true}).click();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
+ await page.goto('/?view=estimates');await createWork(page, 'estimate');await page.getByText('Tax options · 5.3% default',{exact:true}).click();await expect(page.getByLabel('Default tax rate (%)',{exact:true})).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
 })
 
 test('owner settings invoice payment buttons use saved links and do not record payments',async({page})=>{
