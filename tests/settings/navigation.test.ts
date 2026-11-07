@@ -35,6 +35,10 @@ test('direct setup links and SMS/testing callbacks preserve their section destin
   assert.equal(settingsSectionFromSearch('?view=settings&sms_setup=1'), 'sms')
   assert.equal(settingsSectionFromSearch('?view=settings&integration_test=1'), 'testing')
   assert.equal(settingsSectionFromSearch('?view=settings&section=calendar&sms_setup=1'), 'calendar')
+  assert.equal(settingsSectionFromSearch('?view=settings&calendar=connected'), 'calendar')
+  assert.equal(settingsSectionFromSearch('?view=settings&calendar=declined'), 'calendar')
+  assert.equal(settingsSectionFromSearch('?view=settings&section=company&calendar=connected'), 'company')
+  assert.equal(settingsSectionFromSearch('?view=settings&calendar=unknown'), null)
   assert.equal(settingsSectionFromSearch('?view=settings&section=unknown'), null)
 })
 

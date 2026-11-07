@@ -244,6 +244,7 @@ export default function IntegrationSettings({
     [version, setVersion] = useState(0),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
+  const connectionResult = new URLSearchParams(window.location.search).get('calendar');
   useEffect(() => {
     let active = true;
     setError("");
@@ -279,6 +280,16 @@ export default function IntegrationSettings({
         publish from Finviant. Events from your selected calendars appear in your
         schedule for reference; external edits do not change jobs or invoices.
       </p>
+      {connectionResult === 'declined' && (
+        <p role="status" className="form-message">
+          Calendar access wasn’t granted. You can try connecting again below.
+        </p>
+      )}
+      {connectionResult === 'connected' && !loading && !error && rows.some(row => row.state === 'connected') && (
+        <p role="status" className="form-message success-text">
+          Calendar connected. Choose your calendar and save your sync settings below.
+        </p>
+      )}
       {loading && <p role="status">Checking connections…</p>}
       {error ? (
         <p role="alert" className="form-message">

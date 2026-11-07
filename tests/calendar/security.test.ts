@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { encrypt, decrypt, equalSecret } from "../../server/calendar/crypto.js";
+import { encrypt, decrypt, equalSecret, digest } from "../../server/calendar/crypto.js";
+import { database } from "../../server/calendar/db.js";
 import { classify, retrySeconds } from "../../server/calendar/errors.js";
 import { eventInput } from "../../server/calendar/reconcile.js";
 import { calendarApi } from "../../server/calendar/api.js";
@@ -137,4 +138,29 @@ test("API fails closed when unconfigured, unauthenticated, cross-origin, or call
     ).status,
     400,
   );
+});
+
+test("declined OAuth returns to calendar settings and clears the browser nonce", async (t) => {
+  process.env.CALENDAR_SYNC_ENABLED = "true";
+  process.env.CALENDAR_DATABASE_URL = "postgres://localhost/calendar-test";
+  const state = "s".repeat(40), browser = "b".repeat(40);
+  const pool = database();
+  const queries: string[] = [];
+  t.mock.method(pool, "connect", async () => ({
+    query: async (sql: string) => {
+      queries.push(sql);
+      return { rows: sql.startsWith("select * from private.calendar_oauth_states") ? [{
+        provider: "google", browser_hash: digest(browser), expires_at: new Date(Date.now() + 60_000).toISOString(),
+      }] : [] };
+    },
+    release() {},
+  }));
+  const response = await calendarApi(new Request(
+    `https://finviant.example/api/calendar?action=callback&provider=google&error=access_denied&state=${state}`,
+    { headers: { Cookie: `__Host-fv-calendar-google=${browser}` } },
+  ));
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get("Location"), "https://finviant.example/?view=settings&section=calendar&calendar=declined");
+  assert.match(response.headers.get("Set-Cookie") || "", /Max-Age=0/);
+  assert(queries.some(sql => sql.startsWith("delete from private.calendar_oauth_states")));
 });

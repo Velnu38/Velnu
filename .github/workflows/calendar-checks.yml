@@ -23,6 +23,10 @@ jobs:
         with:
           node-version: '24'
       - run: npm run build
+      - name: Calendar connection entry and callback regressions
+        run: npx playwright test tests/e2e/calendar-connections.spec.mjs
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
       - name: Calendar browser regressions with installed Chrome
         run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --grep 'calendar dashboard|calendar settings|calendar widget|record resources|dashboard layout|billing hub|dashboard tenant|failed invoice-summary|dashboard manual refresh|absent customer|navigation during|empty dashboard|owner settings|interactive dashboard'
         env:

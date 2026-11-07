@@ -41,6 +41,7 @@ export function settingsSectionFromSearch(search: string): SettingsSection | nul
   const query = new URLSearchParams(search)
   const section = query.get('section')
   if (settingsOptions.some(option => option.id === section)) return section as SettingsSection
+  if (['connected', 'declined'].includes(query.get('calendar') || '')) return 'calendar'
   if (query.has('sms_setup')) return 'sms'
   if (query.has('integration_test')) return 'testing'
   return null

@@ -67,7 +67,7 @@ async function callback(req: Request, url: URL) {
     return new Response(null, {
       status: 303,
       headers: {
-        Location: `${appOrigin()}/?view=settings&calendar=declined`,
+        Location: `${appOrigin()}/?view=settings&section=calendar&calendar=declined`,
         "Set-Cookie": cookie(p, "", 0),
         "Cache-Control": "no-store",
       },
@@ -173,7 +173,7 @@ async function callback(req: Request, url: URL) {
   return new Response(null, {
     status: 303,
     headers: {
-      Location: `${appOrigin()}/?view=settings&calendar=connected`,
+      Location: `${appOrigin()}/?view=settings&section=calendar&calendar=connected`,
       "Set-Cookie": cookie(p, "", 0),
       "Cache-Control": "no-store",
     },

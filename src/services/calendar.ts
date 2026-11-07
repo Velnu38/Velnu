@@ -52,9 +52,9 @@ export async function calendarRequest<T>(
     const messages: Record<string, string> = {
       paid_calendar_required: "External calendar connections require Individual or Business Pro. Your Finviant calendar remains available.",
       calendar_setup_required:
-        "Calendar connections are awaiting server setup. Your Finviant schedule remains available.",
+        "Google and Outlook connections need administrator setup in Finviant before you can connect your account.",
       calendar_not_configured:
-        "Calendar connections are awaiting server setup.",
+        "Google and Outlook connections need administrator setup in Finviant before you can connect your account.",
       authorization_revoked:
         "Calendar access expired or was revoked. Reconnect to continue.",
       reconnect_required: "Reconnect this calendar account to continue.",
