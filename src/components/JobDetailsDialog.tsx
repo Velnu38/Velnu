@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { DateTime } from 'luxon'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { canAccess, isPrimaryOwner } from '../lib/workspaceAccess'
@@ -18,12 +18,13 @@ import DispatchJobDialog, { type JobScheduleMode } from './scheduling/DispatchJo
 type Props = {
   business: CurrentBusiness
   jobId: string
+  initialPhotos?: boolean
   onClose: () => void
   onUpdated?: () => void
   onCreateReminder?: (job: ReminderJob) => void
 }
 
-export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, onCreateReminder }: Props) {
+export default function JobDetailsDialog({ business, jobId, initialPhotos = false, onClose, onUpdated, onCreateReminder }: Props) {
   const [job, setJob] = useState<Awaited<ReturnType<typeof getJob>> | null>(null)
   const plan = useTierUsage(business.id)?.plan
   const teamScheduling = plan === 'pro'
@@ -31,6 +32,10 @@ export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, 
   const [notes, setNotes] = useState(''), [error, setError] = useState('')
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState('')
   const [dispatch, setDispatch] = useState<JobScheduleMode | null>(null), [notesVersion, setNotesVersion] = useState(0)
+  const [panel, setPanel] = useState<'details' | 'photos'>(initialPhotos ? 'photos' : 'details')
+  const [photosOpened, setPhotosOpened] = useState(initialPhotos)
+  const tabsId = useId()
+  const detailsTab = useRef<HTMLButtonElement>(null), photosTab = useRef<HTMLButtonElement>(null)
   const saving = useRef(false)
   const canEdit = canWrite(business.role) && canAccess(business, 'jobs')
   const canDispatch = ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'jobs') && canAccess(business, 'calendar')
@@ -89,12 +94,30 @@ export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, 
 
   const crew = team?.filter(worker => job?.assigned_user_ids?.includes(worker.id)).map(worker => worker.label) || []
   const scheduled = (value: string) => DateTime.fromISO(value).setZone(zone).toFormat('MMM d, yyyy · h:mm a')
+  function selectPanel(next: 'details' | 'photos') {
+    setPanel(next)
+    if (next === 'photos') setPhotosOpened(true)
+  }
   return <>
     <FormDialog label="Job details" cleanVersion={notesVersion} busy={busy} onClose={onClose} wide autoFocusFields={false}>
       <div className="record-resources-head"><h2>{job?.title || 'Job details'}</h2><button type="button" className="secondary-button" disabled={busy} onClick={onClose}>Close</button></div>
       {error && <p role="alert">{error}</p>}
       {!job && !error && <p role="status">Loading job details…</p>}
       {job && <>
+        <div className="record-detail-tabs" role="tablist" aria-label="Job sections" onKeyDown={event=>{
+          if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return
+          event.preventDefault()
+          const next=event.key==='Home'?'details':event.key==='End'?'photos':panel==='details'?'photos':'details'
+          selectPanel(next)
+          const tab=next==='details'?detailsTab:photosTab
+          tab.current?.focus()
+        }}>
+          <button type="button" ref={detailsTab} id={tabsId+'-details-tab'} role="tab" aria-selected={panel==='details'} tabIndex={panel==='details'?0:-1}
+            aria-controls={tabsId+'-details'} onClick={()=>selectPanel('details')}>Job details</button>
+          <button type="button" ref={photosTab} id={tabsId+'-photos-tab'} role="tab" aria-selected={panel==='photos'} tabIndex={panel==='photos'?0:-1}
+            aria-controls={tabsId+'-photos'} onClick={()=>selectPanel('photos')}>Photos &amp; expenses</button>
+        </div>
+        <div role="tabpanel" id={tabsId+'-details'} aria-labelledby={tabsId+'-details-tab'} hidden={panel!=='details'}>
         <p>{job.customers.map(c => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.company).join(', ')}</p>
         <dl className="job-details-summary">
           <div><dt>Status</dt><dd>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_', ' ')}</dd></div>
@@ -120,7 +143,10 @@ export default function JobDetailsDialog({ business, jobId, onClose, onUpdated, 
           {canEdit && <button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save job details'}</button>}
         </form>
         {notice && <p role="status">{notice}</p>}
-        <details><summary>Photos and expenses</summary><RecordResources business={business} target={{ kind: 'job', id: jobId }} /></details>
+        </div>
+        <div role="tabpanel" id={tabsId+'-photos'} aria-labelledby={tabsId+'-photos-tab'} hidden={panel!=='photos'}>
+          {photosOpened && <RecordResources key={business.id+':'+jobId} business={business} target={{ kind: 'job', id: jobId }} active={panel==='photos'} />}
+        </div>
       </>}
     </FormDialog>
     {dispatch && job && <DispatchJobDialog key={dispatch} business={business} job={job} mode={dispatch} onReschedule={() => setDispatch('appointment')} onClose={() => setDispatch(null)} onSaved={() => {

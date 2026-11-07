@@ -17,7 +17,7 @@ try {
  for(const [used,expected] of [[95_000_000,/At least 95%/],[100_000_000,/Storage is full/]]) {
   window.setUsage(used);await act(async()=>refresh.click());await tick();assert.match(document.body.textContent,expected)
  }
- assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='Add expense').disabled,false)
+ assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='Add expense manually').disabled,false)
  assert.match(document.body.textContent,/Existing records and payment actions remain available/)
  assert.equal(document.querySelector('progress').getAttribute('value'),'100000000')
  console.log('PASS: rendered storage meter, 80%/95%/full warnings, refresh and independent expense controls')

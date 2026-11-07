@@ -53,7 +53,7 @@ async function mockWorkspace(page, options = {}) {
     attentionNow: options.attentionNow,
     workflow: options.workflow || {approved:[],completed:[]}, attentionFailure:false, attentionDelay:0,
     requests: [],
-    photos: [], expenses: [], storageWrites: 0, uploadedReceipts: new Set(), receiptUploadFailures: options.receiptUploadFailures || 0,
+    photos: [], expenses: [], photoLoadFailures: options.photoLoadFailures || 0, storageWrites: 0, uploadedReceipts: new Set(), receiptUploadFailures: options.receiptUploadFailures || 0,
     savedJobs: new Map(),
     aggregate: options.aggregate ?? { open_invoices: 0, outstanding_balance: 0 },
     aggregateFailures: options.aggregateFailures || 0,
@@ -185,7 +185,7 @@ async function mockWorkspace(page, options = {}) {
       const limit = Number(url.searchParams.get('limit') || 50)
       return reply(matching.slice(offset, offset + limit), 200, matching.length)
     }
-    if (path.endsWith('/rpc/get_business_storage_usage')) return reply({ plan: options.plan || 'pro', limit_bytes: 10000000000, remaining_bytes: 10000000000, used_bytes: 0, pending_bytes: 0, warning: 'none', logo_allowed: true })
+    if (path.endsWith('/rpc/get_business_storage_usage')) return reply({ plan: options.plan || 'pro', limit_bytes: 10000000000, remaining_bytes: 10000000000, used_bytes: 0, pending_bytes: 0, warning: 'none', logo_allowed: true, ...options.storageUsage })
     if (path.endsWith('/functions/v1/receipt-scan')) return options.scanUnavailable
       ? reply({error:'Automatic receipt reading is awaiting setup. You can enter the details and save the photo.'},503)
       : reply({vendor:'Supply Store',date:receiptDay(),total:'48.91',tax:'2.91',items:['Treated wood'],warning:''})
@@ -207,6 +207,7 @@ async function mockWorkspace(page, options = {}) {
       return reply({ path: attachment })
     }
     if (path.endsWith('/record_photos')) {
+      if (method === 'GET' && state.photoLoadFailures > 0) { state.photoLoadFailures--; return fail('Photos temporarily unavailable.') }
       if (method === 'POST') { state.photos.push({ ...body, created_by: UID, storage_path: `${BID}/${body.id}.jpg`, created_at: new Date().toISOString() }); return reply(null, 201) }
       if (method === 'DELETE') { const target = url.searchParams.get('id')?.replace('eq.', ''); const deleted = state.photos.filter(p => p.id === target); state.photos = state.photos.filter(p => p.id !== target); return reply(deleted) }
       const column = ['job_id', 'estimate_id', 'invoice_id'].find(key => url.searchParams.has(key))
@@ -857,26 +858,26 @@ for (const kind of ['job', 'estimate', 'invoice']) {
       await page.goto(kind === 'invoice' ? `/?view=invoices&document=${recordId}` : `/?view=${kind === 'job' ? 'work' : 'estimates'}`)
       if (kind === 'job') {
         await page.getByRole('button', { name: 'Open job', exact: true }).click()
-        await page.getByRole('dialog').locator('summary').filter({hasText:'Photos and expenses'}).click()
+        await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
       } else if (kind === 'estimate') await page.getByRole('button', { name: 'Photos and expenses for EST-701' }).click()
       else await page.getByRole('button',{name:'Photos & expenses',exact:true}).click()
     }
     await openRecord()
     const panel = page.getByRole('region', { name: 'Photos and expenses' })
-    await expect(panel.getByText('No pictures added yet.')).toBeVisible()
-    await panel.getByLabel('Add pictures').setInputFiles({ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('invalid image') })
+    await expect(panel.getByText('No photos yet.')).toBeVisible()
+    await panel.getByLabel(kind === 'job' ? 'Add job photos' : 'Add photos').setInputFiles({ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('invalid image') })
     await expect(panel.getByRole('alert')).toContainText('This picture could not be opened')
     expect(state.storageWrites).toBe(0)
-    await panel.getByLabel('Add pictures').setInputFiles({ name: 'job-photo.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGNkaGhgwAaYsIoOWgkAzIgBEFCQDcoAAAAASUVORK5CYII=', 'base64') })
+    await panel.getByLabel(kind === 'job' ? 'Add job photos' : 'Add photos').setInputFiles({ name: 'job-photo.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGNkaGhgwAaYsIoOWgkAzIgBEFCQDcoAAAAASUVORK5CYII=', 'base64') })
     await expect(panel.getByRole('img', { name: 'job-photo.png' })).toBeVisible()
     expect(state.storageWrites).toBe(1)
     expect(state.photos[0][`${kind}_id`]).toBe(recordId)
     expect(state.photos[0].media_type).toBe('image/jpeg')
-    await panel.getByRole('button', { name: 'Add expense', exact: true }).click()
+    await panel.getByRole('button', { name: 'Add expense manually', exact: true }).click()
     await panel.getByLabel('Amount ($)').fill('24.75')
     await panel.getByLabel('Description', { exact: true }).fill('Replacement fittings')
     await panel.getByRole('button', { name: 'Save expense', exact: true }).evaluate(button => { button.click(); button.click() })
-    await expect(panel.getByRole('heading', { name: 'Expenses · $24.75', exact: true })).toBeVisible()
+    await expect(panel.getByRole('region', { name: 'Expenses', exact: true }).locator('.record-resources-head')).toContainText('$24.75')
     expect(state.expenses).toHaveLength(1)
     expect(state.expenses[0][`${kind}_id`]).toBe(recordId)
     expect(state.expenses[0].business_id).toBe(BID)
@@ -901,11 +902,56 @@ test('record resources: viewer cannot upload photos or add expenses', async ({ p
   await mockWorkspace(page, { role: 'viewer', jobs: [{ id: id(702), title: 'Read only job', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }] })
   await page.goto('/?view=work')
   await page.getByRole('button', { name: 'Open job', exact: true }).click()
-  await page.getByRole('dialog').locator('summary').filter({hasText:'Photos and expenses'}).click()
+  await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel = page.getByRole('region', { name: 'Photos and expenses' })
-  await expect(panel.getByLabel('Add pictures')).toHaveCount(0)
-  await expect(panel.getByRole('button', { name: 'Add expense', exact: true })).toHaveCount(0)
+  await expect(panel.getByLabel('Add job photos')).toHaveCount(0)
+  await expect(panel.getByRole('button', { name: 'Add expense manually', exact: true })).toHaveCount(0)
   await expect(panel.getByText('Expense records are available to owners, administrators, and office staff.')).toBeVisible()
+})
+
+test('record resources: Calendar opens job tabs, preserves notes and retries only the failed photo list', async ({ page }) => {
+  const start = DateTime.now().setZone('America/New_York').set({hour:10,minute:0}).toISO()
+  const job = {id:id(704),title:'Calendar receipt job',status:'scheduled',description:'Original notes',scheduled_start:start,customer_id:CID,customers:customer}
+  const state = await mockWorkspace(page,{jobs:[job],photoLoadFailures:1})
+  await page.setViewportSize({width:390,height:844})
+  await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({
+    json:[{source_key:'job:'+job.id,title:job.title,starts_at:start,ends_at:null,status:'scheduled',document_kind:'work',document_id:job.id,job_id:job.id}],
+    headers:{'access-control-expose-headers':'content-range','content-range':'0-0/1'},
+  }))
+  await page.goto('/')
+  await page.getByRole('region',{name:'Work calendar'}).getByRole('link').filter({hasText:job.title}).click()
+  const dialog = page.getByRole('dialog',{name:'Job details',exact:true})
+  const notes = dialog.getByLabel('Job notes and materials needed')
+  await notes.fill('Unsaved calendar notes')
+  await dialog.getByRole('tab',{name:'Job details',exact:true}).press('ArrowRight')
+  await expect(dialog.getByRole('tab',{name:'Photos & expenses',exact:true})).toHaveAttribute('aria-selected','true')
+  const resources = dialog.getByRole('region',{name:'Photos and expenses'})
+  await expect(resources.getByText('No expenses yet.')).toBeVisible()
+  await expect(resources.getByRole('alert')).toContainText('Photos temporarily unavailable')
+  await resources.getByRole('button',{name:'Try photos again',exact:true}).click()
+  await expect(resources.getByText('No photos yet.')).toBeVisible()
+  expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))).toHaveLength(1)
+  await expect(resources.getByRole('button',{name:/refresh/i})).toHaveCount(0)
+  await expect(resources.getByRole('progressbar')).toHaveCount(0)
+  await dialog.getByRole('tab',{name:'Job details',exact:true}).click()
+  await expect(notes).toHaveValue('Unsaved calendar notes')
+})
+
+test('record resources: an invoice links directly to its job photos without copying expenses', async ({ page }) => {
+  const job = {id:id(705),title:'Linked repair',status:'completed',customer_id:CID,customers:customer}
+  const invoice = {...reviewDocument(706),job_id:job.id}
+  const state = await mockWorkspace(page,{jobs:[job],invoices:[invoice]})
+  state.expenses.push({id:id(707),business_id:BID,job_id:job.id,direction:'expense',entry_date:receiptDay(),amount:25,category:'Materials',description:'One job receipt',currency:'USD'})
+  await page.goto('/?view=invoices&document='+invoice.id)
+  await page.locator('.invoice-hero').getByRole('button',{name:'Photos & expenses',exact:true}).click()
+  const invoicePanel = page.getByRole('dialog',{name:'INV-706 photos and expenses'})
+  await expect(invoicePanel.getByText('No expenses yet.')).toBeVisible()
+  await invoicePanel.getByRole('link',{name:'View linked job photos & expenses'}).click()
+  const jobDialog = page.getByRole('dialog',{name:'Job details',exact:true})
+  await expect(jobDialog.getByRole('tab',{name:'Photos & expenses',exact:true})).toHaveAttribute('aria-selected','true')
+  await expect(jobDialog.getByText('One job receipt',{exact:true})).toBeVisible()
+  expect(state.expenses).toHaveLength(1)
+  expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&request.method==='POST')).toHaveLength(0)
 })
 
 for (const width of [1440, 390]) {
@@ -1353,8 +1399,8 @@ for(const width of [1440,390])test(`invoice review has ordered uniform actions a
  const inv=reviewDocument(4001);await mockWorkspace(page,{invoices:[inv],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
  await page.goto('/?view=invoices&document='+inv.id)
  const actions=page.getByRole('group',{name:'Common actions',exact:true})
- await expect(actions.getByRole('button').first()).toHaveText('Record payment')
- await expect(actions.getByRole('button')).toHaveText(['Record payment','Schedule job','Print / Save PDF','Photos & expenses','Schedule reminder'])
+ await expect(actions.getByRole('button').first()).toHaveText('Mark Paid')
+ await expect(actions.getByRole('button')).toHaveText(['Mark Paid','Schedule job','Print / Save PDF','Schedule reminder','Record partial payment'])
  await expect(page.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'Void invoice'})).toBeVisible()
  await assertUniformDocumentActions(page)
  const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
@@ -1362,9 +1408,14 @@ for(const width of [1440,390])test(`invoice review has ordered uniform actions a
  await expect(record.locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
  await expect(record).toContainText('Last updated');await expect(record).toContainText('Sent')
  await expect(record.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
- await expect(page.locator('.print-document time').first()).toHaveAttribute('datetime',reviewCreated)
+ const resourcesButton=page.locator('.invoice-hero').getByRole('button',{name:'Photos & expenses',exact:true})
+ await expect(resourcesButton).toBeVisible()
+ await expect(page.locator('.print-document')).toContainText('2026-01-15')
  await page.screenshot({path:`test-results/document-review-invoice-${width}.png`,fullPage:true})
- await page.emulateMedia({media:'print'});await expect(page.locator('.document-action-card')).toBeHidden();await expect(page.locator('.print-document time').first()).toBeVisible()
+ await page.emulateMedia({media:'print'})
+ await expect(resourcesButton).toBeHidden()
+ await expect(page.locator('.document-action-card')).toBeHidden()
+ await expect(page.locator('.print-document')).toBeVisible()
 })
 for(const width of [1440,390])test(`estimate review has the same action system and document record at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1000})
@@ -1372,7 +1423,7 @@ for(const width of [1440,390])test(`estimate review has the same action system a
  await page.goto('/?view=estimates&document='+est.id)
  const preview=page.getByRole('dialog',{name:'Estimate preview'})
  await expect(preview).toBeVisible()
- await expect(preview.getByRole('group',{name:'Common actions',exact:true}).getByRole('button')).toHaveText(['Record acceptance','Print / Save PDF','Photos & expenses'])
+ await expect(preview.getByRole('group',{name:'Common actions',exact:true}).getByRole('button')).toHaveText(['Record acceptance','Print / Save PDF'])
  await assertUniformDocumentActions(page)
  const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
  await expect(preview.getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
@@ -1385,12 +1436,12 @@ for(const width of [1440,390])test(`estimate review has the same action system a
  await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(/approval=mock-only/)
  await expect(approval.getByRole('button',{name:'Copy link',exact:true})).toBeVisible()
  await page.keyboard.press('Escape');await expect(approval).toHaveCount(0);await expect(preview).toBeVisible()
- await preview.getByRole('button',{name:'Photos & expenses',exact:true}).click()
+ await preview.locator('.modal-head').getByRole('button',{name:'Photos & expenses',exact:true}).click()
  const resources=page.getByRole('dialog',{name:'EST-4002 photos and expenses',exact:true});await expect(resources).toBeVisible()
  await resources.getByRole('button',{name:'Close',exact:true}).click();await expect(preview).toBeVisible()
  await preview.getByRole('button',{name:'Close preview'}).click()
  await expect(page.getByRole('button',{name:'Record acceptance'})).toHaveCount(0)
- await expect(page.getByRole('button',{name:'Preview / Print'})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Open estimate',exact:true})).toBeVisible()
  await expect(page.locator('.document-created')).toContainText('Nov 3, 2026 · 9:05 AM EST')
 })
 test('customer snapshot opens complete filtered document lists and retains original timestamps',async({page})=>{
@@ -1466,6 +1517,16 @@ for (const width of [390, 1440]) test(`Needs Attention category buttons open fil
 })
 
 const receiptImage = {name:'receipt.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGNkaGhgwAaYsIoOWgkAzIgBEFCQDcoAAAAASUVORK5CYII=','base64')}
+async function selectReceipt(page, area, camera = false) {
+  await expect(area.getByText('Take a photo or upload a receipt image',{exact:true})).toBeVisible()
+  await area.getByRole('button',{name:'Scan receipt',exact:true}).click()
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    area.getByRole('button',{name:camera?'Take photo':'Upload image',exact:true}).click(),
+  ])
+  expect(await chooser.element().getAttribute('capture')).toBe(camera?'environment':null)
+  await chooser.setFiles(receiptImage)
+}
 const finishedReviewJob = {
   id:id(190), title:'Finished deck repair', status:'completed', scheduled_start:null, customer_id:CID,
   customers:{...customer,email:'jane@example.test',phone:'+17575550100'}, properties:[],
@@ -1476,9 +1537,9 @@ test('Individual receipt scan fills an editable expense and a failed upload retr
   await page.setViewportSize({width:390,height:844})
   await page.goto('/')
   await page.getByRole('region',{name:'Financial Performance'}).getByRole('button',{name:/Add Entry/}).click()
-  await page.getByRole('button',{name:'Add Expense',exact:true}).click()
+  const chooser = page.getByRole('dialog',{name:'Add financial entry',exact:true})
+  await selectReceipt(page, chooser)
   const expense = page.getByRole('dialog',{name:'Add Expense',exact:true})
-  await expense.getByLabel('Scan receipt').setInputFiles(receiptImage)
   await expect(expense.getByLabel('Amount in USD')).toHaveValue('48.91')
   await expect(expense.getByLabel('Transaction date')).toHaveValue(receiptDay())
   await expect(expense.getByLabel('Description')).toHaveValue('Supply Store')
@@ -1503,14 +1564,15 @@ test('Individual receipt scan fills an editable expense and a failed upload retr
 })
 
 test('Business Pro can save a manual job expense with a receipt while Textract awaits activation', async ({page}) => {
-  const state = await mockWorkspace(page, {plan:'pro',scanUnavailable:true,jobs:[finishedReviewJob]})
+  const state = await mockWorkspace(page, {plan:'pro',scanUnavailable:true,jobs:[finishedReviewJob],storageUsage:{warning:'critical',remaining_bytes:500_000_000}})
   await page.goto('/?view=work&document='+finishedReviewJob.id)
   const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
-  await dialog.getByText('Photos and expenses',{exact:true}).click()
+  await dialog.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel=dialog.getByRole('region',{name:'Photos and expenses'})
-  await panel.getByRole('button',{name:'Add expense',exact:true}).click()
-  await panel.getByLabel('Scan receipt').setInputFiles(receiptImage)
+  await selectReceipt(page, panel, true)
   await expect(panel.getByRole('alert')).toContainText('awaiting setup')
+  await expect(panel.getByRole('img',{name:'Preview selected receipt'})).toBeVisible()
+  await expect(panel.getByRole('link',{name:'View storage',exact:true})).toHaveAttribute('href','/?view=settings&section=storage')
   await panel.getByLabel('Amount ($)').fill('20.50')
   await panel.getByLabel('Description',{exact:true}).fill('Deck screws')
   await panel.getByRole('button',{name:'Save expense',exact:true}).click()
@@ -1546,11 +1608,11 @@ test('Free displays upgrade links for receipt scanning and Google reviews and st
   const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
   await expect(dialog.getByText('Requesting Google reviews is unavailable on the Free plan.')).toBeVisible()
   await expect(dialog.getByRole('button',{name:'Request a Google review'})).toHaveCount(0)
-  await dialog.getByText('Photos and expenses',{exact:true}).click()
+  await dialog.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel=dialog.getByRole('region',{name:'Photos and expenses'})
-  await panel.getByRole('button',{name:'Add expense',exact:true}).click()
+  await panel.getByRole('button',{name:'Add expense manually',exact:true}).click()
   await expect(panel.getByText('Receipt scanning is unavailable on the Free plan.')).toBeVisible()
   await expect(panel.getByRole('link',{name:'View Individual upgrade'})).toHaveAttribute('href','/?view=settings&section=plans&tier=basic')
-  await expect(panel.getByLabel('Scan receipt')).toHaveCount(0)
+  await expect(panel.getByRole('button',{name:'Scan receipt',exact:true})).toHaveCount(0)
   await expect(panel.getByLabel('Amount ($)')).toBeEditable()
 })

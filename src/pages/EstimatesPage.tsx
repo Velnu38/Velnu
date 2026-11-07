@@ -54,7 +54,7 @@ const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '',
 const estimateMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function EstimatesPage({ business }: { business: CurrentBusiness }) {
-  const [resourceEstimate, setResourceEstimate] = useState<{ id: string; estimate_number: string | null } | null>(null)
+  const [resourceEstimate, setResourceEstimate] = useState<Pick<Estimate, 'id' | 'estimate_number' | 'job_id'> | null>(null)
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -293,14 +293,14 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         return <article className="document-row module-record-card estimate-module-record" key={estimate.id}>
           <div className="module-record-main"><button type="button" className="module-record-open" disabled={previewBusy} onClick={() => openPreview(estimate)} aria-label={`Open estimate ${estimate.estimate_number || ''} for ${customerName(customer)}`}><strong>{estimate.estimate_number || 'Draft estimate'}</strong></button><span>{customerName(customer)} · Issued {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}{estimate.expires_on ? ` · Expires ${new Date(estimate.expires_on + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={estimate.created_at} timezone={business.timezone}/></div>
           <div className="module-record-total"><span>Estimate total</span><strong>{estimateMoney.format(Number(estimate.total))}</strong><small>{estimate.status === 'converted' ? 'Invoice created' : 'Customer quote'}</small></div>
-          <div className="module-record-actions"><span className={`module-record-status ${['accepted','converted'].includes(estimate.status) ? 'is-positive' : ['sent','viewed'].includes(estimate.status) ? 'is-pending' : ''}`}>{currentStatus}</span><button type="button" className="primary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Open estimate</button>{canManageFinances(business.role)&&['accepted','converted'].includes(estimate.status)&&!estimate.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" className="secondary-button compact" onClick={()=>setScheduleTarget(estimate)}>Book appointment</button>}<button type="button" className="secondary-button compact" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button></div>
+          <div className="module-record-actions"><span className={`module-record-status ${['accepted','converted'].includes(estimate.status) ? 'is-positive' : ['sent','viewed'].includes(estimate.status) ? 'is-pending' : ''}`}>{currentStatus}</span><button type="button" className="primary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Open estimate</button>{canManageFinances(business.role)&&['accepted','converted'].includes(estimate.status)&&!estimate.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" className="secondary-button compact" onClick={()=>setScheduleTarget(estimate)}>Book appointment</button>}<button type="button" className="text-button record-resources-shortcut" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button></div>
         </article>
       })}
       {estimates.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>{emptyFilterMessage}</strong><span>Choose another status or view all estimates.</span></div>}
     </section>
     {!previewTarget && <RecordListPagination label="estimates" list={recordList} className="estimate-bottom-pagination" />}
     {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
-    {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} onClose={() => setResourceEstimate(null)} />}
+    {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} linkedJobId={resourceEstimate.job_id} onClose={() => setResourceEstimate(null)} />}
     {showForm && <FormDialog label="Create an estimate" autoFocusFields={false} busy={busy} onClose={() => { setShowForm(false); resetForm() }} wide>
       <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
@@ -325,7 +325,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
 
     {previewTarget && <FormDialog label="Estimate preview" wide onClose={()=>{setPreviewTarget(null);history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope))}}><section className="estimate-preview-modal">
         <div className="modal-head">
-          <div><p className="eyebrow">Customer-facing document</p><h2>Estimate preview</h2></div>
+          <div><p className="eyebrow">{previewTarget.estimate_number ? 'Estimate ' + previewTarget.estimate_number : 'Saved estimate'}</p><div className="record-resources-title"><h2>Estimate preview</h2><button type="button" className="secondary-button compact record-resources-entry calendar-no-print" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button></div></div>
           <button className="icon-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope))}} aria-label="Close preview" type="button">×</button>
         </div>
         {showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
@@ -338,7 +338,6 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={`/?view=work&document=${encodeURIComponent(previewTarget.job_id)}`}>Open linked job</a>}
           {canManageFinances(business.role)&&previewTarget.status==='accepted'&&<button type="button" disabled={busy} onClick={()=>{setError('');setNotice('');setConvertTarget(previewTarget)}}>Create final invoice</button>}
           <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
-          <button type="button" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button>
         </>} secondary={canManageFinances(business.role)?<>
           {!['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer</button>}
           {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Approval link</button>}

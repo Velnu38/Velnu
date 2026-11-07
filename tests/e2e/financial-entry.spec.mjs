@@ -11,7 +11,7 @@ for(const width of [390,1440])for(const kind of ['Income','Expense'])test(`finan
  const dialog=page.getByRole('dialog',{name:'Add '+kind,exact:true});await expect(dialog.getByRole('button',{name:'Ask Fin',exact:true})).toBeVisible()
  await dialog.getByLabel('Amount in USD',{exact:true}).fill('125');await dialog.getByLabel('Description',{exact:true}).fill('Manual test')
  await dialog.getByRole('button',{name:'Save entry',exact:true}).click();await expect(dialog).toHaveCount(0);expect(writes).toHaveLength(1);expect(writes[0].direction).toBe(kind.toLowerCase());expect(writes[0].business_id).toBe(B)
- await expect(widget.getByRole('status')).toContainText(kind+' saved');await expect(widget.locator('.performance-metric.'+kind.toLowerCase())).toContainText('$125.00')
+ await expect(widget.getByRole('status').filter({hasText:kind+' saved'})).toBeVisible();await expect(widget.locator('.performance-metric.'+kind.toLowerCase())).toContainText('$125.00')
  await expect(widget).toContainText('Net Cash Flow')
 })
 test('invoice income opens existing payment recording instead of creating manual income',async({page})=>{
