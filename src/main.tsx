@@ -19,6 +19,17 @@ import './dashboard-redesign.css';
 import './calendar.css';
 import './workspace-consistency.css';
 import './workspace-tabs.css';
+// Load bootstrap component styles with the entry stylesheet. Keep their
+// existing cascade order without making App's guarded import wait for CSS.
+import './components/settings/tiers.css';
+import './components/private-beta.css';
+import './components/more-navigation.css';
+import './home-screen.css';
+import './components/fin-action-button.css';
+import './components/ask-fin.css';
+import './components/customer-picker.css';
+import './components/document-review.css';
+import './components/document-composer.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing root element');

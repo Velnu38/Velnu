@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-deployment.mjs && tsc -b && vite build",
+    "build": "node scripts/check-deployment.mjs && tsc -b && vite build && npm run test:startup",
+    "test:startup": "node --test tests/deployment/*.test.mjs tests/startup-css-build.test.mjs",
     "test:deployment": "node --test tests/deployment/*.test.mjs",
     "preview": "vite preview",
     "test:unit": "deno test tests/unit/",
