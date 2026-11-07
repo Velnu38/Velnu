@@ -39,6 +39,6 @@ void import('./App').then(({ default: App }) => {
       <StartupReady />
     </React.StrictMode>,
   );
-}).catch(() => {
-  window.dispatchEvent(new Event('finviant:startup-error'));
+}).catch((error: unknown) => {
+  window.dispatchEvent(new CustomEvent('finviant:startup-error', { detail: error }));
 });

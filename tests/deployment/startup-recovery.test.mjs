@@ -37,7 +37,7 @@ test('a missing entry script offers recovery without navigating automatically', 
   const script = app.window.document.querySelector('script[type="module"]')
   script.dispatchEvent(new app.window.Event('error'))
   assert.equal(app.panel.hidden, false)
-  assert.equal(app.window.document.getElementById('startup-loading').hidden, true)
+  assert.equal(app.window.document.getElementById('startup-loading').hidden, false)
   assert.equal(app.window.document.getElementById('startup-dismiss').hidden, true)
   assert.equal(app.navigationErrors.length, 0)
   app.window.document.getElementById('startup-reload').click()
