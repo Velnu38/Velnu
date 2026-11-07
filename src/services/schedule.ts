@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
+import { announceCalendarChange } from './calendar'
 
 export async function listAppointments(businessId: string, from?: string, to?: string) {
   let query = supabase
@@ -20,4 +21,5 @@ export async function listAppointments(businessId: string, from?: string, to?: s
 export async function updateAppointmentStatus(appointmentId: string, status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show') {
   const { error } = await supabase.from('appointments').update({ status }).eq('id', appointmentId)
   if (error) throw error
+  announceCalendarChange()
 }

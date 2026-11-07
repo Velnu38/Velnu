@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import SharedDocumentPage from './pages/SharedDocumentPage'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
 import { getCurrentBusiness, type CurrentBusiness } from './lib/business'
@@ -12,18 +13,24 @@ import AppShell from './components/AppShell'
 import AccountAgreement from './components/AccountAgreement'
 import CustomerApprovalPage from './pages/CustomerApprovalPage'
 import LandingPage from './pages/LandingPage'
-import ServicesPage from './pages/ServicesPage'
+import TeamInvitationPage from './pages/TeamInvitationPage'
 import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
+const PlatformAdminPage = lazy(() => import('./pages/PlatformAdminPage'))
+const CustomerBookingPage = lazy(() => import('./pages/CustomerBookingPage'))
 
 const initialQuery = new URLSearchParams(window.location.search)
 const initialHash = new URLSearchParams(window.location.hash.slice(1))
+const initialInvite = initialQuery.get('invite') || sessionStorage.getItem('finviant-team-invitation')
+if (initialInvite && /^[a-f0-9]{64}$/.test(initialInvite)) { sessionStorage.setItem('finviant-team-invitation', initialInvite); if (initialQuery.has('invite')) window.history.replaceState({}, '', '/auth') }
 const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get('type') === 'recovery'
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
 const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
 export default function App() {
   const publicPath = window.location.pathname
   const approvalToken = initialQuery.get('approval')
+  const bookingToken = initialQuery.get('booking')
+  const shareToken = initialQuery.get('document_share')
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [recovery, setRecovery] = useState(initialRecovery)
@@ -38,7 +45,7 @@ export default function App() {
   const userId = session?.user.id ?? null
 
   useEffect(() => {
-    if (approvalToken || ['/legal', '/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
+    if (shareToken || approvalToken || bookingToken || ['/legal', '/terms', '/privacy', '/services', '/install'].includes(publicPath)) return
     let active = true
     let eventReceived = false
     // Keep the auth callback synchronous to avoid holding the session lock.
@@ -67,7 +74,7 @@ export default function App() {
       setAuthReady(true)
     })
     return () => { active = false; data.subscription.unsubscribe() }
-  }, [approvalToken])
+  }, [approvalToken, bookingToken])
 
   // Step 1: fetch the user's plan preference. This is not a paid entitlement.
   useEffect(() => {
@@ -78,13 +85,15 @@ export default function App() {
     setSelectedTier(null)
     setPlanStatus('checking')
     setAgreementStatus('checking')
-    if (!userId || recovery || approvalToken) return () => { active = false }
-    void getPlanPreference(userId).then(tier => {
+    if (!userId || recovery || approvalToken || initialInvite) return () => { active = false }
+    void Promise.all([getPlanPreference(userId), supabase.rpc('get_membership_entry')]).then(([tier, member]) => {
+      if (member.error) throw member.error
+      if (member.data) tier = tier || 'pro'
       if (!active) return
       setSelectedTier(tier)
       setPlanStatus(tier ? 'selected' : 'needed')
     }).catch(err => {
-      if (active) setError(err instanceof Error ? err.message : 'Unable to load your service tier.')
+      if (active) setError(err instanceof Error ? err.message : 'Unable to load your private test account settings.')
     })
     return () => { active = false }
   }, [userId, recovery, approvalToken])
@@ -130,20 +139,24 @@ export default function App() {
     setRecovery(false)
   }
 
+  if (bookingToken) return <Suspense fallback={<main className="loading-page">Opening appointment…</main>}><CustomerBookingPage token={bookingToken} /></Suspense>
+  if (shareToken) return <SharedDocumentPage token={shareToken}/>
   if (approvalToken) return <CustomerApprovalPage token={approvalToken} />
   if (['/legal', '/terms', '/privacy'].includes(publicPath)) return <LegalPage />
-  if (publicPath === '/services') return <ServicesPage />
+  if (publicPath === '/services') return <LandingPage />
   if (publicPath === '/install') return <InstallPage />
   if (!authReady) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening Finviant Office…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
+  if (initialInvite) return <TeamInvitationPage token={initialInvite} session={session} />
   if (!session) {
-    if (publicPath === '/auth' || publicPath === '/plans' || invalidAuthLink) {
+    if (publicPath === '/auth' || publicPath === '/admin' || publicPath === '/plans' || invalidAuthLink) {
       return <AuthScreen initialMode={initialAuthMode} initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />
     }
     return <LandingPage />
   }
+  if (publicPath === '/admin') return <Suspense fallback={<main className="loading-page">Opening administration…</main>}><PlatformAdminPage /></Suspense>
   if (error) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
-  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your service tier…</p></main>
+  if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Preparing your private test workspace…</p></main>
   if (planStatus === 'needed' || planRequested) return <PlanSelection
     userId={session.user.id} email={session.user.email ?? 'your account'} currentTier={selectedTier}
     onSelected={savePlanChoice} onSignOut={() => void supabase.auth.signOut()}
@@ -151,7 +164,6 @@ export default function App() {
   if (agreementStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Checking your agreement…</p></main>
   if (agreementStatus === 'needed') return <AccountAgreement
     userId={session.user.id} email={session.user.email ?? 'your account'} selectedTier={selectedTier!}
-    onChangeTier={() => setPlanRequested(true)}
     onAccepted={() => setAgreementStatus('accepted')}
     onSignOut={() => void supabase.auth.signOut()}
   />

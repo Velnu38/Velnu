@@ -27,13 +27,17 @@ Deno.serve(async(req:Request)=>{
     const {data:itemRows}=await supabase.from("estimate_items").select("description,quantity,unit_price,tax_rate,line_total,sort_order").eq("estimate_id",doc.id).order("sort_order",{ascending:true});items=itemRows??[];
     const {data:c}=await supabase.from("customers").select("first_name,last_name,company").eq("id",doc.customer_id).eq("business_id",link.business_id).single();customer=c;
    }else{
-    const {data:doc,error}=await supabase.from("change_orders").select("id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,issue_date,subtotal,tax_amount,total,customer_message,customer_id,job_id,issuer_snapshot").eq("id",link.change_order_id).eq("business_id",link.business_id).single(); if(error)return respond(404,{error:"Change order not found"}); document=doc;
+    const {data:doc,error}=await supabase.from("change_orders").select("id,change_order_number,status,title,description,reason,schedule_impact_days,schedule_note,issue_date,subtotal,tax_amount,total,change_totals,customer_message,customer_id,job_id,issuer_snapshot").eq("id",link.change_order_id).eq("business_id",link.business_id).single(); if(error)return respond(404,{error:"Change order not found"}); document=doc;
     const {data:itemRows}=await supabase.from("change_order_items").select("description,quantity,unit_price,tax_rate,line_total,sort_order").eq("change_order_id",doc.id).order("sort_order",{ascending:true});items=itemRows??[];
     const {data:c}=await supabase.from("customers").select("first_name,last_name,company").eq("id",doc.customer_id).eq("business_id",link.business_id).single();customer=c;
     const {data:j}=await supabase.from("jobs").select("title").eq("id",doc.job_id).eq("business_id",link.business_id).single();document.job_title=j?.title??null;
    }
+   const branding=link.document_type==="estimate"
+    ? await supabase.rpc("approval_document_has_finviant_branding",{p_business:link.business_id})
+    : null;
+   if(branding?.error)return respond(503,{error:"Estimate branding could not be loaded. Try again."});
    const issuedBrand=document?.issuer_snapshot?.name ? document.issuer_snapshot : business;
-   return respond(200,{business_name:issuedBrand?.name??"Business",business_profile:issuedBrand??null,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at,terms_agreed:existing.document_snapshot?.terms_accepted===true}:null});
+   return respond(200,{business_name:issuedBrand?.name??"Business",business_profile:issuedBrand??null,finviant_branding:branding?.data===true,document_type:link.document_type,document,items,customer,expires_at:link.expires_at,completed:existing?{action:existing.action,typed_name:existing.typed_name,amount:existing.amount_at_action,created_at:existing.created_at,terms_agreed:existing.document_snapshot?.terms_accepted===true}:null});
   }
 
   if(!['approved','declined'].includes(mode))return respond(400,{error:"Invalid approval action"});
@@ -42,7 +46,7 @@ Deno.serve(async(req:Request)=>{
   if(link.document_type==="estimate"&&mode==="approved"&&!termsAgreed)return respond(400,{error:"You must agree to the estimate terms before accepting."});
   const userAgent=String(req.headers.get("user-agent")??"").slice(0,500);
   const {data,error}=await supabase.rpc("consume_document_approval",{p_token_hash:tokenHash,p_action:mode,p_typed_name:typedName,p_user_agent:userAgent,p_terms_agreed:termsAgreed});
-  if(error){console.error(error);const m=String(error.message??"");if(m.includes("LINK_EXPIRED"))return respond(410,{error:"Approval link has expired"});if(m.includes("LINK_REVOKED"))return respond(410,{error:"Approval link has been revoked"});if(m.includes("LINK_NOT_FOUND"))return respond(404,{error:"Approval link not found"});if(m.includes("TERMS_NOT_ACCEPTED"))return respond(400,{error:"You must agree to the estimate terms before accepting."});if(m.includes("DOCUMENT_NOT_APPROVABLE"))return respond(409,{error:"This document can no longer be approved"});return respond(409,{error:"Approval could not be recorded"});}
+  if(error){console.error(error);const m=String(error.message??"");if(m.includes("LINK_EXPIRED"))return respond(410,{error:"Approval link has expired"});if(m.includes("LINK_REVOKED"))return respond(410,{error:"Approval link has been revoked"});if(m.includes("LINK_NOT_FOUND"))return respond(404,{error:"Approval link not found"});if(m.includes("TERMS_NOT_ACCEPTED"))return respond(400,{error:"You must agree to the estimate terms before accepting."});if(m.includes("scope total changed")||m.includes("updated this line"))return respond(409,{error:"The approved scope changed. Ask the business for an updated change order."});if(m.includes("DOCUMENT_NOT_APPROVABLE"))return respond(409,{error:"This document can no longer be approved"});return respond(409,{error:"Approval could not be recorded"});}
   return respond(200,data);
  }catch(error){console.error(error);return respond(500,{error:"Unexpected server error"});}
 });

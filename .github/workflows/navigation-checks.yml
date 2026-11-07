@@ -1,0 +1,38 @@
+name: More navigation checks
+on:
+  pull_request:
+    branches: [ux/private-testing-20261029]
+    paths: ['src/components/AppShell.tsx', 'src/components/MoreNavigation.tsx', 'src/components/more-navigation.css', 'src/components/VoiceAssistant.tsx', 'src/lib/settingsNavigation.ts', 'src/pages/SettingsPage.tsx', 'tests/e2e/more-navigation.spec.mjs', 'tests/settings/navigation.test.ts', '.github/workflows/navigation-checks.yml']
+permissions:
+  contents: read
+concurrency:
+  group: more-navigation-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --import tsx --test tests/settings/navigation.test.ts tests/settings/assistant-entry.test.ts
+      - name: Navigation, typing, and microphone regressions with synthetic services
+        run: npx playwright test tests/e2e/more-navigation.spec.mjs tests/e2e/fin-conversation.spec.mjs tests/e2e/fin-voice-recovery.spec.mjs tests/e2e/fin-direct-voice.spec.mjs tests/e2e/fin-microphone-compatibility.spec.mjs --workers=2
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - name: Direct setup, team, calendar, subscription, and support regression checks
+        run: npx playwright test tests/e2e/platform-admin.spec.mjs tests/e2e/critical-dashboard-schedule.spec.mjs --grep 'administration refuses|administrator can|customer support|calendar settings shows|owner settings navigation|invites reserve|five-seat|cancellation uses' --workers=2
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: more-navigation-evidence
+          path: test-results/
+          retention-days: 7

@@ -1,0 +1,1 @@
+.task-fin-help{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid #d8e2e9;padding:0 0 14px;margin:0 0 18px}.task-fin-help small{color:#526576;font-size:12px}.task-fin-help button{white-space:nowrap}.task-fin-help button:disabled{opacity:.55;cursor:not-allowed}@media print{.task-fin-help{display:none!important}}

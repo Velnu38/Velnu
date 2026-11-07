@@ -78,3 +78,28 @@ test('manual-entry retry verifies identical stored data in the same workspace', 
 test('manual-entry retry cannot claim success when the stored row is inaccessible', () => duplicateEntry(null, async () => {
   await assert.rejects(() => addManualEntry(entry), /verify/)
 }))
+
+test('ranged workbook uses business-zone month boundaries and exposes original record sources', async () => {
+  const original = globalThis.fetch
+  globalThis.fetch = async (input, init) => {
+    const request = new Request(input, init), url = new URL(request.url)
+    assert.equal(url.hostname, 'qa.invalid')
+    assert.equal(url.searchParams.get('business_id'), 'eq.' + tenant)
+    const payment = url.pathname.endsWith('/payments')
+    if (payment) {
+      assert.deepEqual(url.searchParams.getAll('paid_at'), ['gte.2026-11-01T04:00:00.000Z','lt.2026-12-01T05:00:00.000Z'])
+    } else {
+      assert.deepEqual(url.searchParams.getAll('entry_date'), ['gte.2026-11-01','lt.2026-12-01'])
+    }
+    const row = payment ? { id:'p1',invoice_id:'inv1',amount:123.45,paid_at:'2026-12-01T04:30:00Z',status:'succeeded',method:'cash',invoices:{invoice_number:'INV-1'} }
+      : { id:'m1',job_id:'job1',entry_date:'2026-11-30',direction:'expense',amount:12,currency:'USD',category:'Parts',description:'Copper',notes:'Receipt 123',jobs:{title:'Kitchen repair'} }
+    return new Response(JSON.stringify([row]), {headers:{'content-type':'application/json','content-range':'0-0/1'}})
+  }
+  try {
+    const rows = await listVelnuWorkbook(tenant,{from:'2026-11-01',to:'2026-12-01',timezone:'America/New_York'})
+    const payment = rows.find(row => row.source === 'invoice_payment')
+    assert.equal(payment.entry_date,'2026-11-30');assert.equal(payment.source_id,'inv1');assert.equal(payment.payment_method,'cash')
+    const expense = rows.find(row => row.source === 'manual')
+    assert.equal(expense.source_reference,'Kitchen repair');assert.equal(expense.source_view,'work');assert.equal(expense.notes,'Receipt 123')
+  } finally { globalThis.fetch = original }
+})

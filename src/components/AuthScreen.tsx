@@ -1,9 +1,12 @@
+import FinBrand from './FinBrand'
 import { type FormEvent, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+const limitedProTesting = import.meta.env.VITE_SUPABASE_URL === 'https://xvybcmyoblfgzokaifsx.supabase.co'
+
 type Mode = 'signin' | 'signup' | 'reset'
 
-export default function AuthScreen({ initialMode = 'signin', initialMessage = '' }: { initialMode?: Mode; initialMessage?: string }) {
+export default function AuthScreen({ initialMode = 'signin', initialMessage = '', invitationToken }: { initialMode?: Mode; initialMessage?: string; invitationToken?: string }) {
   const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,7 +38,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       }
       const result = mode === 'signin'
         ? await supabase.auth.signInWithPassword({ email: address, password })
-        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: `${window.location.origin}/` } })
+        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: `${window.location.origin}/${invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : ''}` } })
       if (result.error) throw result.error
       if (mode === 'signup' && !result.data.session) {
         setAwaitingConfirmation(true)
@@ -43,6 +46,10 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       }
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unable to connect. Please try again.'
+      if (mode === 'signup' && limitedProTesting && /database error saving new user/i.test(detail)) {
+        setMessage('Your account could not be created. Private testing is limited to 10 login accounts. Contact the test administrator to check available access.')
+        return
+      }
       setMessage(mode === 'signin' && /invalid login credentials/i.test(detail)
         ? 'Sign-in failed. If you just registered, confirm your email first. Otherwise, check your email and password.'
         : detail)
@@ -64,7 +71,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: address,
-        options: { emailRedirectTo: `${window.location.origin}/` },
+        options: { emailRedirectTo: `${window.location.origin}/${invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : ''}` },
       })
       if (error) throw error
       setAwaitingConfirmation(true)
@@ -81,13 +88,14 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
 
   return <main className="auth-page">
     <section className="auth-hero">
-      <a href="/" className="auth-brand-link" title="Back to Finviant Office home"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><div className="brand-word">Finviant Office</div></a>
+      <a href="/" className="auth-brand-link" title="Back to Finviant Office home"><FinBrand/></a>
       <h1>Run your business by talking to it.</h1>
-      <p>Your AI office manager for customers, jobs, estimates, invoices, payments and follow-up.</p>
+      <p>Meet Fin, your AI office assistant for customers, jobs, estimates, invoices, payments and follow-up.</p>
       <div className="voice-example">“Create an invoice for Bob Smith for $1,450 due in 15 days.”</div>
     </section>
     <section className="auth-card">
       <div><p className="eyebrow">Welcome to Finviant Office</p><h2>{mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create your account' : 'Reset your password'}</h2></div>
+      {limitedProTesting && <p className="form-message">Private testing is limited to 10 login accounts, including the administrator. Each test workspace receives Pro access with no expiration or subscription charge.</p>}
       <form onSubmit={submit}>
         <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" disabled={busy} required /></label>
         {mode !== 'reset' && <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} minLength={mode === 'signup' ? 8 : undefined} disabled={busy} required /></label>}
@@ -103,7 +111,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       <button className="text-button" disabled={busy} onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
         {mode === 'signin' ? 'New to Finviant Office? Create an account' : 'Back to sign in'}
       </button>
-      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the one <a href="/legal" target="_blank" rel="noopener noreferrer">Finviant Office User Agreement (including AI disclosure and privacy)</a> after selecting your Free, Basic, or Pro tier.</p>
+      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the one <a href="/legal" target="_blank" rel="noopener noreferrer">Finviant Office User Agreement (including AI disclosure and privacy)</a> before opening your private-testing workspace.</p>
       <a className="text-button auth-home-link" href="/">Return to Finviant Office homepage</a>
     </section>
   </main>

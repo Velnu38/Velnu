@@ -3,7 +3,7 @@ import { dispatchQueuedEmail } from './emailDispatch.ts'
 import { readLimitedRequest } from './signedEvents.ts'
 import { resolveAppEnvironment } from './appEnvironment.ts'
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export function documentEmailHandler(invoiceOnly:boolean){
+export function documentEmailHandler(invoiceOnly:boolean,reminder=false){
  return async(req:Request):Promise<Response>=>{
   const trace=crypto.randomUUID(),origin=req.headers.get('origin')||''
   const environment=resolveAppEnvironment(Deno.env.get('SUPABASE_URL'),Deno.env.get('FINVIANT_APP_BASE_URL'))
@@ -28,9 +28,10 @@ export function documentEmailHandler(invoiceOnly:boolean){
    const business=String(input.business_id||''),document=String((invoiceOnly?input.invoice_id:input.document_id)||''),operation=String(input.request_id||'')
    const kind=invoiceOnly?'invoice':String(input.document_type||'')
    if(![business,document,operation].every(v=>UUID.test(v))||(!invoiceOnly&&!['estimate','change_order'].includes(kind)))return respond(400,{error:'A valid business, document and persistent send identifier are required.'})
+   if(input.expected_recipient!==undefined&&(typeof input.expected_recipient!=='string'||input.expected_recipient.length>254||!input.expected_recipient.trim()))return respond(400,{error:'A valid reviewed recipient is required.'})
    const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
-   const {data:prepared,error:prepError}=await admin.rpc('prepare_document_email',{p_actor:identity.user.id,p_business:business,p_kind:kind,p_document:document,p_request:operation,p_origin:environment.baseUrl}).abortSignal(AbortSignal.timeout(5000))
-   if(prepError||!prepared)return respond(prepError?.code==='42501'?403:409,{error:'Unable to queue the document. Check account permissions, plan, recipient and document status.'})
+   const {data:prepared,error:prepError}=await admin.rpc(reminder?'prepare_invoice_reminder_email':input.expected_recipient!==undefined?'prepare_review_document_email':'prepare_document_email',reminder?{p_actor:identity.user.id,p_business:business,p_document:document,p_request:operation,p_review:input.review}:{p_actor:identity.user.id,p_business:business,p_kind:kind,p_document:document,p_request:operation,p_origin:environment.baseUrl,...(input.expected_recipient!==undefined?{p_recipient:input.expected_recipient}:{})}).abortSignal(AbortSignal.timeout(5000))
+   if(prepError||!prepared)return respond(prepError?.code==='42501'?403:409,{error:prepError?.code==='23514'?(reminder?'Invoice, customer, or pending-send details changed. Reload the reminder and check invoice activity before sending.':'Customer or pending-send details changed. Open the saved document and review its recipient before sending.'):'Unable to queue the document. Check account permissions, plan, recipient and document status.'})
    const result=await dispatchQueuedEmail(admin,resend,prepared.id,trace)
    return respond(result.status,result.body)
   }catch{console.error(JSON.stringify({service:'document-email',request_id:trace,code:'unexpected'}));return respond(500,{error:'The send outcome is not confirmed. Keep the same send identifier when retrying.'})}

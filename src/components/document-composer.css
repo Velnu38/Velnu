@@ -1,0 +1,27 @@
+.document-paper{background:#fff;color:#102c4b;border:1px solid #d9e2e9;border-radius:12px;padding:clamp(16px,3vw,36px);margin:18px 0;font-size:14px;line-height:1.5}.document-paper .company-letterhead{margin-bottom:24px}.paper-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:22px;background:#f1f5f8;border-radius:8px;padding:18px;margin-bottom:24px}.paper-details>div{display:flex;flex-direction:column;overflow-wrap:anywhere}.paper-details small{color:#526576;margin-bottom:6px}.paper-table-scroll{overflow-x:auto}.paper-table{width:100%;border-collapse:collapse}.paper-table th,.paper-table td{text-align:right;padding:14px 8px;border-bottom:1px solid #e0e7ed;white-space:nowrap;vertical-align:top;font-variant-numeric:tabular-nums}.paper-table th:first-child,.paper-table td:first-child{text-align:left;white-space:pre-wrap;min-width:140px;overflow-wrap:anywhere}.paper-table td small{display:block;color:#627485}.paper-bottom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;margin-top:28px}.paper-totals>div{display:flex;justify-content:space-between;gap:24px;padding:8px 0}.paper-totals strong{white-space:nowrap;font-variant-numeric:tabular-nums}.paper-grand-total{border-top:2px solid #23b8ad;font-size:1.15em}.paper-message{white-space:pre-wrap;overflow-wrap:anywhere}.paper-message a{display:block}.creation-delivery-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding-top:20px}.creation-delivery-actions button{width:100%;min-height:46px}.creation-delivery-actions small{display:block;color:#536575;margin-top:8px;overflow-wrap:anywhere}.creation-delivery-actions button:disabled{opacity:.55;cursor:not-allowed}.composer-section{border:1px solid #cbd8e1;border-radius:10px;padding:16px;margin:14px 0}.composer-section>summary{cursor:pointer;font-weight:650;color:#102c4b}.composer-section[open]>summary{margin-bottom:16px}.creation-preview .back-button{margin-bottom:14px}.creation-preview h2{margin-top:0}.document-paper .letterhead-document-label{text-transform:uppercase;color:#102c4b}@media(max-width:600px){.paper-bottom{grid-template-columns:1fr}.creation-delivery-actions{grid-template-columns:1fr}.paper-table th,.paper-table td{padding:10px 6px;font-size:12px}}@media print{.document-paper{border:0;border-radius:0;padding:0;margin:0}.paper-table-scroll{overflow:visible}.creation-delivery-actions,.creation-preview>.back-button,.creation-preview>h2{display:none!important}.paper-details{break-inside:avoid}.paper-table tr{break-inside:avoid}}
+.estimate-form[hidden],.modal-head[hidden],.quick-invoice-fields[hidden]{display:none!important}.creation-brand{display:flex;justify-content:flex-end;margin-bottom:18px}.creation-brand .fin-brand{max-width:180px}
+
+.line-item.line-item-simple { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, .65fr) auto; }
+.document-tax-options { margin-top: 12px; }
+.document-tax-options > summary { cursor: pointer; }
+.document-tax-options .form-grid { padding-top: 10px; }
+@media (max-width: 600px) {
+  .line-item.line-item-simple { grid-template-columns: minmax(0, 1fr) minmax(0, .65fr) auto; }
+  .line-item.line-item-simple > label:first-of-type { grid-column: 1 / -1; }
+}
+
+.creation-review-bar { position: sticky; top: 0; z-index: 2; padding: 12px; border: 1px solid #d9e2e9; border-radius: 12px; background: #fff; }
+.creation-review-summary { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; overflow-wrap: anywhere; }
+.creation-review-summary small { display: block; color: #526576; }
+.creation-review-summary > strong { white-space: nowrap; }
+.creation-review-bar .creation-delivery-actions { padding-top: 10px; gap: 6px; }
+.creation-review-links, .creation-handoff { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 8px; }
+.creation-handoff p { flex-basis: 100%; margin: 0; }
+.attention-jump { justify-self: start; }
+@media (max-width: 600px) {
+  .creation-review-bar .creation-delivery-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .creation-review-bar .creation-delivery-actions button { padding: 5px; font-size: .85rem; }
+  .creation-review-bar .creation-delivery-actions .document-delivery-option { padding: 0; border: 0; }
+  .creation-review-links { gap: 4px 9px; }
+}
+@media print { .creation-review-bar { display: none !important; } }

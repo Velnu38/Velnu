@@ -9,19 +9,18 @@ export type ServiceInterest = { plan: PlanInterest; services: ServiceId[] }
 export const serviceCatalog: Array<{
   id: ServiceId; name: string; description: string; stage: string; tag: string
 }> = [
-  { id: 'voice_drafts', name: 'Voice-to-document assistant (AI Office Assistant)', description: 'Paid AI feature: record speech, draft invoices or estimates, and review before saving. No AI requests on Free.', stage: 'Basic / Pro · Testing', tag: 'AI' },
+  { id: 'voice_drafts', name: 'Fin · AI office assistant', description: 'Paid AI feature: record speech, draft invoices or estimates, and review before saving. No AI requests on Free.', stage: 'Basic / Pro · Testing', tag: 'AI' },
   { id: 'estimate_approvals', name: 'Online estimate approvals', description: 'Paid Pro option: customers review terms and give recorded acceptance. Free includes 0 acceptances and 0 links.', stage: 'Pro · Testing', tag: 'Customers' },
   { id: 'payment_links', name: 'Payment links', description: 'Offer a secure way for customers to pay an invoice online. Provider integration and fees are not finalized.', stage: 'Planned', tag: 'Payments' },
   { id: 'automated_reminders', name: 'Automated follow-ups', description: 'Paid service: prepare follow-up drafts and deliver reminders, subject to verification and per-plan limits.', stage: 'Paid · Planned', tag: 'Automation' },
   { id: 'bookkeeping', name: 'Manual bookkeeping workbook', description: 'Record income and expenses, export a CSV, and view separate QuickBooks imports when configured. This is the basic workbook, not the optional AI Bookkeeping Assistant.', stage: 'Core workbook · Beta', tag: 'Finances' },
   { id: 'team_tools', name: 'Team collaboration', description: 'Help owners coordinate employees, roles and assignments with appropriate permissions.', stage: 'Planned', tag: 'Team' },
-  { id: 'sms_messages', name: 'Customer text messaging', description: 'Paid service: outgoing SMS and replies; usage limits and customer messaging consent required.', stage: 'Paid · Planned', tag: 'Messaging' },
+  { id: 'sms_messages', name: 'Customer text messaging', description: 'Paid service: outgoing SMS and replies; verified owner mobile, usage limits and customer messaging consent required.', stage: 'Paid · Planned', tag: 'Messaging' },
 ]
 export const plans: Array<{ id: PlanInterest; label: string; description: string }> = [
-  { id: 'free', label: 'Free', description: 'Manual tools only · 0 AI, customer approvals, and metered services' },
-  { id: 'basic', label: 'Basic', description: '$9.99/month proposed · 200 AI credits per month' },
-  { id: 'pro', label: 'Pro', description: '$24.99/month proposed · 1,000 AI credits per month' },
-  { id: 'a_la_carte', label: 'À la carte', description: 'Choose add-ons individually · No charges during beta' },
+ {id:'free',label:'Free',description:'$0 · Personal email/text apps · 10 active customers'},
+ {id:'basic',label:'Individual',description:'$19.95/month · Solo owner · Personal email/text apps'},
+ {id:'pro',label:'Business Pro',description:'$39.95/month · Finviant sending after activation · 5 users'},
 ]
 export const defaultServiceInterest: ServiceInterest = { plan: 'free', services: [] }
 const key = 'velnu.beta.service-interests.v1'

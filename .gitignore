@@ -15,3 +15,5 @@ supabase/.temp/
 
 /scripts/qa/mock-profiles.json
 /scripts/qa/seed-staging.sql
+
+.calendar-build/

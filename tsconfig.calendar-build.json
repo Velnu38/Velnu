@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.calendar.json","compilerOptions":{"noEmit":false,"outDir":".calendar-build","rootDir":"server/calendar"},"include":["server/calendar/**/*.ts"],"exclude":["tests","src","api"]}

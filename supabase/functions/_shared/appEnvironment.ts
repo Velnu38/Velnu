@@ -6,6 +6,8 @@ const environments = {
     origins: [
       'https://finviant.com', 'https://www.finviant.com',
       'https://finviant-office-git-feature-velnu-stage1-mbarone5-1747.vercel.app',
+      'https://finviant-office-git-ux-private-testing-20261029-mbarone5-1747.vercel.app',
+      'https://finviant-office-9h30ixf54-mbarone5-1747.vercel.app',
       'http://localhost:5173', 'http://127.0.0.1:5173',
     ],
   },

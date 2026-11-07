@@ -1,10 +1,14 @@
 # Finviant Platform Administration — secure development plan
 
-**Status:** Planned only; **not implemented, deployed, enabled, or provisioned**.
+**Status:** Internal administration foundation and support-case MVP implemented on November 3, 2026. Release verification is recorded in `PLATFORM_ADMIN_RELEASE.md`. Later phases below remain a roadmap.
 **Scope:** Separate operator console for **Finviant** to manage **Finviant Office** SaaS.
-**Repository:** Existing `Velnu38/Velnu` codebase, `feature/velnu-stage1` development branch.
+**Repository:** Existing `Velnu38/Velnu` codebase, `ux/private-testing-20261029` private testing branch.
 **Backend for development:** Owedly-Test Supabase only. Do not touch production or customers.
 **Priority:** Start the foundation before public paid launch; roll out read-only monitoring first.
+
+## Current implementation
+
+The internal `/admin` route provides accounts and Pro entitlement overview, a paginated masked account directory, customer support case management, database/email queue observations and audited administrative access. Platform operators use a protected server-side role, confirmed identity, a current auth session and AAL2 MFA. Business owners cannot self-promote. Customers use Settings → Help & support to submit and follow their own cases. Internal notes remain restricted. Billing actions, customer-document browsing, impersonation, account deletion and global SQL execution are excluded. The site remains private. Future roles, separate admin hosting, fuller telemetry and destructive administrative controls described below are not delivered by this MVP.
 
 ## 1. Purpose, boundaries, and naming
 

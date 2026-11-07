@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import ReceiptLink from '../components/ReceiptLink'
+import PlanRestriction from '../components/PlanRestriction'
+import {canAccess,isPrimaryOwner} from '../lib/workspaceAccess'
+import {useTierUsage} from '../lib/useTierUsage'
+import FinancialEntryDialog from '../components/FinancialEntryDialog'
+import WorkspaceBack from '../components/WorkspaceBack'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CurrentBusiness } from '../lib/business'
 import {
-  addManualEntry, connectQuickBooks, disconnectQuickBooks,
+  connectQuickBooks, disconnectQuickBooks,
   getQuickBooksStatus, listQuickBooksWorkbook, listVelnuWorkbook,
   removeManualEntry, syncQuickBooks,
-  type EntryDirection, type QBStatus, type WorkbookLine, type WorkbookSource,
+  type QBStatus, type WorkbookLine, type WorkbookSource,
 } from '../services/bookkeeping'
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
@@ -40,6 +46,7 @@ function exportCsv(rows: WorkbookLine[], source: WorkbookSource) {
 }
 
 export default function BookkeepingPage({ business }: { business: CurrentBusiness }) {
+  const tier=useTierUsage(business.id),restricted=!tier||tier.plan==='free'
   const canSee = permitted.includes(business.role)
   const canManageQuickBooks = managers.includes(business.role)
   const [source, setSource] = useState<WorkbookSource>(new URLSearchParams(window.location.search).has('quickbooks') ? 'quickbooks' : 'velnu')
@@ -54,14 +61,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [newEntry, setNewEntry] = useState(false)
-  const [direction, setDirection] = useState<EntryDirection>('expense')
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState('Materials & supplies')
-  const [description, setDescription] = useState('')
-  const [entryDate, setEntryDate] = useState(getToday)
-  const [notes, setNotes] = useState('')
   const [costsAcknowledged, setCostsAcknowledged] = useState(false)
-  const retryId = useRef<string | null>(null)
 
   async function refresh() {
     if (!canSee) return
@@ -95,12 +95,12 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
   const summary = (amount: number) => sourceState === 'ready' ? usd.format(amount) : loading ? 'Loading…' : 'Unavailable'
   const allRows = source === 'velnu' ? velnuRows : qbRows
   const visible = useMemo(() => {
-    if (range === 'all') return allRows
+    if (!restricted && range === 'all') return allRows
     const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - Number(range))
+    cutoff.setDate(cutoff.getDate() - Number(restricted?'30':range))
     const from = [cutoff.getFullYear(), String(cutoff.getMonth() + 1).padStart(2, '0'), String(cutoff.getDate()).padStart(2, '0')].join('-')
     return allRows.filter(row => row.entry_date >= from)
-  }, [allRows, range])
+  }, [allRows, range, restricted])
 
   const totals = useMemo(() => {
     // Currency and data-source isolation: QuickBooks items are *never* combined
@@ -113,31 +113,11 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     }, { income: 0, expenses: 0 })
   }, [visible])
 
-  async function saveManual(event: FormEvent) {
-    event.preventDefault()
-    if (!canSee || busy) return
-    setBusy(true); setError(''); setNotice('')
-    try {
-      retryId.current ||= crypto.randomUUID()
-      await addManualEntry({
-        id: retryId.current, business_id: business.id, direction, entry_date: entryDate,
-        category, description, notes, amount: Number(amount),
-      })
-      retryId.current = null
-      setNewEntry(false)
-      setAmount(''); setDescription(''); setNotes('')
-      await refresh()
-      setNotice('Manual ' + direction + ' saved to your Finviant Office workbook.')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to save this entry.')
-    } finally { setBusy(false) }
-  }
-
   async function deleteEntry(row: WorkbookLine) {
     if (!row.removable || busy || !window.confirm('Delete this manually entered record? This cannot be undone.')) return
     setBusy(true); setError('')
     try {
-      await removeManualEntry(business.id, row.id)
+      await removeManualEntry(business.id, row.id, row.receiptPath)
       await refresh()
       setNotice('Manual entry deleted.')
     } catch (err) {
@@ -185,26 +165,29 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     } finally { setBusy(false) }
   }
 
-  if (!canSee) return <div className="page-stack">
+  if (!canSee) return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading"><p className="eyebrow">Bookkeeping</p><h1>Company financial workbook.</h1></div>
     <p className="form-message">The Bookkeeping workbook is available to business owners, administrators, and office staff. Ask your business owner to update your access role.</p>
   </div>
 
-  return <div className="page-stack bookkeeping-page">
+  return <div className="page-stack bookkeeping-page"><WorkspaceBack />
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Bookkeeping · Money in and out</p><h1>Know what you earned. Know what you spent.</h1>
         <p className="quiet">Payments on Finviant Office invoices appear automatically. Add other expenses or income manually, or optionally connect QuickBooks Online.</p></div>
-      <button className="primary-button compact" onClick={() => { retryId.current = null; setNewEntry(true); setSource('velnu') }}>+ Add expense or income</button>
+      <div className="related-page-actions">{canAccess(business,'billing')&&<a className="secondary-button compact" href="/?view=payments">Payment history</a>}
+        <button className="primary-button compact" onClick={() => { setNewEntry(true); setSource('velnu') }}>+ Add Entry</button></div>
     </div>
     <section className="bookkeeping-tabs" role="group" aria-label="Workbook source">
       <button type="button" className={source === 'velnu' ? 'active' : ''} aria-pressed={source === 'velnu'} onClick={() => setSource('velnu')}>Finviant Office workbook</button>
       <button type="button" className={source === 'quickbooks' ? 'active' : ''} aria-pressed={source === 'quickbooks'} onClick={() => setSource('quickbooks')}>QuickBooks Online</button>
     </section>
     <div className="bookkeeping-toolbar">
-      <label>Period <select value={range} onChange={e => setRange(e.target.value as RangeChoice)}>
+      <label>Period <select disabled={restricted} value={restricted?'30':range} onChange={e => setRange(e.target.value as RangeChoice)}>
         <option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All available entries</option>
       </select></label>
-      <button type="button" className="secondary-button compact" disabled={sourceState !== 'ready' || !visible.length} onClick={() => exportCsv(visible, source)}>Download CSV</button>
+      {tier?.plan==='free'&&<PlanRestriction plan="free" required="basic" feature="Financial history beyond 30 days" canUpgrade={isPrimaryOwner(business)}/>}
+      {restricted&&<button type="button" className="secondary-button compact" disabled={sourceState!=='ready'} onClick={()=>exportCsv(allRows,source)}>Export all stored records</button>}
+      <button type="button" className="secondary-button compact" disabled={sourceState !== 'ready' || !visible.length} onClick={() => exportCsv(visible, source)}>Export shown transactions ({visible.length})</button>
     </div>
 
     {source === 'quickbooks' && <section className="bookkeeping-connect">
@@ -221,7 +204,7 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <button className="primary-button compact" disabled={busy} onClick={synchronize}>{busy ? 'Working…' : 'Sync transactions'}</button>
           <button className="secondary-button compact" disabled={busy} onClick={disconnect}>Disconnect</button>
         </div> : <>
-          {qbStatus?.plan_restricted ? <p className="form-message">QuickBooks integration is a paid service. The Free plan has no third-party imports or metered integration calls. Choosing Basic or Pro interest does not activate it until billing and limits are available.</p> : !qbStatus?.configured ? <p className="form-message">The QuickBooks integration is prepared but cannot connect yet. Finviant Office's administrator must configure Intuit developer credentials and the secure OAuth callback.</p> :
+          {qbStatus?.plan_restricted ? <PlanRestriction plan="free" required="basic" feature="QuickBooks imports" canUpgrade={isPrimaryOwner(business)}/> : !qbStatus?.configured ? <p className="form-message">The QuickBooks integration is prepared but cannot connect yet. Finviant Office's administrator must configure Intuit developer credentials and the secure OAuth callback.</p> :
             <p className="form-message">This preview currently uses <strong>{qbStatus.environment === 'sandbox' ? 'Intuit sandbox testing' : 'the live Intuit production service'}</strong>. Only connect a test account unless the integration has been approved for production.</p>}
           <label className="bookkeeping-consent"><input type="checkbox" checked={costsAcknowledged} onChange={e => setCostsAcknowledged(e.target.checked)} />
             <span>I understand QuickBooks Online requires an eligible Intuit subscription. Separate fees may apply for the selected Intuit plan, payments, add-ons, third-party services or integrations. Charges and eligibility are determined by Intuit and the relevant providers, not included automatically in Finviant Office. I authorize a read-only import of selected QuickBooks transactions.</span></label>
@@ -251,31 +234,10 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
         </tr></thead><tbody>{visible.map(row => <tr key={row.source + row.id}>
           <td>{row.entry_date}</td><td><strong>{row.description}</strong><small>{row.category}</small></td>
           <td><span className={'bookkeeping-kind ' + row.direction}>{row.direction === 'income' ? 'Income' : 'Expense'}</span></td>
-          <td><small>{row.source_label}</small></td><td className={'amount ' + row.direction}>{row.direction === 'expense' ? '−' : '+'}{money(row.amount, row.currency)}</td>
+          <td><small>{row.source_label}</small>{row.receiptPath&&<ReceiptLink path={row.receiptPath}/>}</td><td className={'amount ' + row.direction}>{row.direction === 'expense' ? '−' : '+'}{money(row.amount, row.currency)}</td>
           <td>{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
         </tr>)}</tbody></table></div>}
     </section>
-    {newEntry && <div className="modal-backdrop" onMouseDown={() => { if (!busy) setNewEntry(false) }}>
-      <section className="modal bookkeeping-modal" role="dialog" aria-modal="true" aria-label="Add workbook entry" onMouseDown={e => e.stopPropagation()}>
-        <div className="modal-head"><div><p className="eyebrow">Manual bookkeeping</p><h2>Add income or expense</h2></div>
-          <button type="button" className="icon-button" disabled={busy} onClick={() => setNewEntry(false)} aria-label="Close form">×</button></div>
-        <p className="quiet">Use manual income only for money that isn't already recorded against a Finviant Office invoice.</p>
-        <form className="bookkeeping-entry-form" onSubmit={saveManual}>
-          <label>Entry type <select value={direction} onChange={e => { setDirection(e.target.value as EntryDirection); setCategory(e.target.value === 'income' ? 'Other received income' : 'Materials & supplies') }}>
-            <option value="expense">Expense / money spent</option><option value="income">Other income / money received</option></select></label>
-          <label>Transaction date <input aria-label="Transaction date" type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} required /></label>
-          <label>Amount in USD ($) <input aria-label="Amount in USD" type="number" min="0.01" max="100000000" step=".01" value={amount} onChange={e => setAmount(e.target.value)} required /></label>
-          <label>Category <select value={category} onChange={e => setCategory(e.target.value)}>
-            {(direction === 'expense' ? ['Materials & supplies','Equipment & tools','Fuel & travel','Contractor payments','Software & subscriptions','Office expenses','Insurance','Other expense']
-              : ['Other received income','Cash sale (not invoiced)','Additional service income','Miscellaneous income']).map(x => <option key={x}>{x}</option>)}
-          </select></label>
-          <label className="full">Description <input aria-label="Description" value={description} maxLength={400} onChange={e => setDescription(e.target.value)} placeholder="What was paid for?" required /></label>
-          <label className="full">Notes (optional) <textarea aria-label="Notes" value={notes} maxLength={2000} rows={2} onChange={e => setNotes(e.target.value)} placeholder="Receipt or reference notes" /></label>
-          <p className="bookkeeping-small full">This creates a bookkeeping record only. It does not withdraw, deposit, charge, or transfer funds.</p>
-          <div className="bookkeeping-entry-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={() => setNewEntry(false)}>Cancel</button>
-            <button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save entry'}</button></div>
-        </form>
-      </section>
-    </div>}
+    {newEntry && <FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction,payment)=>{setNewEntry(false);setNotice(`${payment?'Payment recorded':direction==='income'?'Income saved':'Expense saved'}. Transaction date: ${date}. Choose All time if it is outside the displayed period.`);void refresh()}}/>}
   </div>
 }

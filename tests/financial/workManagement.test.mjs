@@ -31,6 +31,15 @@ test('finished jobs remain in history regardless of scheduled date', () => {
     assert.equal(jobGroup({ status, scheduled_start }, now), 'history')
   }
 })
+test('100 dated jobs respect the business zone when the device uses another zone', () => {
+  for (let i = 0; i < 100; i++) {
+    const day = new Date(Date.UTC(2026, 0, 1 + i, 8, 0))
+    const eveningInHonolulu = new Date(day.getTime() + 60 * 60 * 1000).toISOString()
+    const tomorrowInHonolulu = new Date(day.getTime() + 2 * 60 * 60 * 1000).toISOString()
+    assert.equal(jobGroup({ status: 'scheduled', scheduled_start: eveningInHonolulu }, day, 'Pacific/Honolulu'), 'current')
+    assert.equal(jobGroup({ status: 'scheduled', scheduled_start: tomorrowInHonolulu }, day, 'Pacific/Honolulu'), 'upcoming')
+  }
+})
 test('reminder local times convert to UTC and reject rollover dates and DST gaps', () => {
   assert.equal(validateScheduleWindow('2026-10-29T10:00', '').startsAt, '2026-10-29T14:00:00.000Z')
   assert.throws(() => validateScheduleWindow('2026-02-30T10:00', ''))

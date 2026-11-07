@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
 const user = { id: '33333333-3333-4333-8333-333333333333', email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
-const company = { id: businessId, name: 'Test Electric', legal_name: null, phone: '757-555-0100', email: 'info@example.test', website: null, address_line1: '101 Main Street', address_line2: null, city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', document_footer: null, business_description: null, services_offered: null, service_area: null, team_size: null, team_roles: null, profile_completed_at: '2026-10-26T00:00:00Z' }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Test Electric', legal_name: null, phone: '757-555-0100', email: 'info@example.test', website: null, address_line1: '101 Main Street', address_line2: null, city: 'Chesapeake', state: 'VA', postal_code: '23320', logo_path: null, document_accent: '#2563eb', document_footer: null, business_description: null, services_offered: null, service_area: null, team_size: null, team_roles: null, profile_completed_at: '2026-10-26T00:00:00Z' }
 
 async function signedIn(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -21,12 +21,15 @@ async function mockBusiness(page, existing = false, paid = existing) {
     let body = null
     try { body = req.postDataJSON() } catch {}
     if (method !== 'OPTIONS') writes.push({ path, method, body })
-    const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(payload) })
+    const json = (payload, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(payload) ? `0-${Math.max(0,payload.length-1)}/${payload.length}` : '0-0/1' }, body: JSON.stringify(payload) })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if (path.endsWith('/rpc/get_delivery_setup')||path.endsWith('/rpc/save_delivery_setup')) return json({plan:'free',email:'info@example.test',phone:'+17575550100',personal_email_ready:false,personal_sms_ready:false,managed_email_ready:false,managed_sms_ready:false,acknowledged:method==='POST'&&path.endsWith('save_delivery_setup')})
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
     if (path.endsWith('/business_members')) return json(existing ? { role: 'owner', business_id: businessId, businesses: record } : null)
+    if (path.endsWith('/rpc/get_business_storage_usage')) return json({ plan: paid === 'basic' ? 'basic' : paid ? 'pro' : 'free', limit_bytes: paid ? 2000000000 : 100000000, remaining_bytes: paid ? 2000000000 : 100000000, used_bytes: 0, pending_bytes: 0, warning: 'none', logo_allowed: !!paid })
+    if (path.endsWith('/functions/v1/upload-attachment')) return json({ path: new URL(req.url()).searchParams.get('path') })
     if (path.endsWith('/rpc/get_plan_usage')) return json({ plan: paid === 'basic' ? 'basic' : paid ? 'pro' : 'free', ai_limit: paid ? 50 : 0, voice_limit: paid ? 50 : 0, logo_bytes_limit: paid ? 131072 : 0 })
     if (path.endsWith('/business_service_interests')) return json(method === 'POST' ? {} : null, method === 'POST' ? 201 : 200)
     if (path.endsWith('/businesses') && (method === 'POST' || method === 'PATCH')) {
@@ -60,10 +63,14 @@ test('new owner can enter company branding and business context during onboardin
   await page.getByLabel('Team responsibilities (optional)').fill('Owner handles quotes; electricians do field work.')
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.getByRole('heading', { name: 'Choose your optional Finviant Office services' })).toBeVisible()
-  await page.getByRole('radio', { name: /À la carte/ }).check()
-  await page.getByRole('checkbox', { name: /Voice-to-document assistant/ }).check()
+  await page.getByRole('radio', { name: /^Individual / }).check()
   await page.getByRole('button', { name: 'Create my business' }).click()
-  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading',{name:'Email & Text Setup',exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Save and open workspace'})).toBeDisabled()
+  await page.getByLabel('My email app is configured',{exact:false}).check()
+  await page.getByLabel('I understand personal-app messages',{exact:false}).check()
+  await page.getByRole('button',{name:'Save and open workspace'}).click()
+  await expect(page.locator('.sidebar').getByRole('button', { name: 'More', exact: true })).toBeVisible()
   const save = writes.find(x => x.method === 'POST' && x.path.endsWith('/businesses'))
   expect(save).toBeTruthy()
   expect(save.body.name).toBe('Test Electric')
@@ -72,64 +79,58 @@ test('new owner can enter company branding and business context during onboardin
   expect(save.body.services_offered).toContain('Repairs')
   expect(save.body.profile_completed_at).toBeTruthy()
   const preferences = writes.find(x => x.method === 'POST' && x.path.endsWith('/business_service_interests'))
-  expect(preferences?.body.preferred_plan).toBe('a_la_carte')
-  expect(preferences?.body.selected_services).toContain('voice_drafts')
+  expect(preferences?.body.preferred_plan).toBe('basic')
+  expect(writes.some(x=>x.path.endsWith('/rpc/save_delivery_setup')&&x.body.p_acknowledged===true)).toBe(true)
 })
 
-test('existing owner can update letterhead, upload a logo and retain business context', async ({ page }) => {
+test('existing owner edits company details and context, then document branding in their settings sections', async ({ page }) => {
   await signedIn(page)
   const writes = await mockBusiness(page, true)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
+  await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Company Profile/ }).click()
   await page.getByLabel('Business phone').fill('757-555-0199')
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByLabel('Company logo (optional, up to 2 MB)').setInputFiles({
-    name: 'company-logo.png', mimeType: 'image/png',
-    buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
-  })
-  await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByLabel('Services offered').fill('Electrical inspections and repairs')
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByRole('heading', { name: 'Choose your optional Finviant Office services' })).toBeVisible()
-  await page.getByRole('button', { name: 'Save company profile & services' }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
-  await expect(page.getByText('757-555-0199')).toBeVisible()
+  await page.getByRole('button', { name: 'Save company profile' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Company profile saved' })).toBeVisible()
+  await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Invoice & Estimate Setup/ }).click()
+  await page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)').setInputFiles({
+    name: 'company-logo.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
+  })
+  await page.getByLabel('Document footer', { exact: true }).fill('Thank you for your business.')
+  await page.getByRole('button', { name: 'Save document setup' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Document setup saved' })).toBeVisible()
   const updates = writes.filter(x => x.method === 'PATCH' && x.path.endsWith('/businesses'))
-  expect(updates.length).toBeGreaterThanOrEqual(2)
   expect(updates.at(-1).body.logo_path).toMatch(/^11111111-1111-4111-8111-111111111111\/logo-/)
-  await expect.poll(() => writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  expect(updates.at(-1).body.phone).toBe('757-555-0199')
+  expect(updates.at(-1).body.services_offered).toContain('Electrical inspections')
+  expect(writes.some(x => x.path.endsWith('/functions/v1/upload-attachment'))).toBe(true)
 })
-
 
 test('free owner has manual branding but no hosted logo uploads or paid AI assistant', async ({ page }) => {
   await signedIn(page)
   await mockBusiness(page, true, false)
   await page.goto('/')
-  await expect(page.getByRole('button', { name: 'Talk to Finviant Office' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByText(/Logo uploads are unavailable on Free/)).toBeVisible()
-  await expect(page.getByLabel('Company logo (optional, up to 2 MB)')).toHaveCount(0)
-  await expect(page.getByLabel('Document accent color')).toBeVisible()
+  await expect(page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true})).toHaveCount(0)
+  await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Invoice & Estimate Setup/ }).click()
+  await expect(page.getByText(/Hosted logo uploads require an activated paid plan/)).toBeVisible()
+  await expect(page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)')).toHaveCount(0)
+  await expect(page.getByLabel('Accent color', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Document footer', { exact: true })).toBeVisible()
 })
-
 
 test('activated Basic tier can upload company logo when backend grants storage quota', async ({ page }) => {
   await signedIn(page)
   const writes = await mockBusiness(page, true, 'basic')
   await page.goto('/')
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await expect(page.getByLabel('Company logo (optional, up to 2 MB)')).toBeVisible()
-  await page.getByLabel('Company logo (optional, up to 2 MB)').setInputFiles({
-    name: 'basic-logo.png', mimeType: 'image/png',
-    buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
+  await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Invoice & Estimate Setup/ }).click()
+  await page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)').setInputFiles({
+    name: 'basic-logo.png', mimeType: 'image/png', buffer: Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
   })
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByRole('button', { name: 'Save company profile & services' }).click()
-  await expect(page.getByRole('heading', { name: 'Make Finviant Office yours.' })).toBeVisible()
-  await expect.poll(() => writes.some(x => x.path.includes('/storage/v1/object/velnu-business-logos/'))).toBe(true)
+  await page.getByRole('button', { name: 'Save document setup' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Document setup saved' })).toBeVisible()
+  expect(writes.some(x => x.path.endsWith('/functions/v1/upload-attachment'))).toBe(true)
 })

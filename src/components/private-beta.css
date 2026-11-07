@@ -1,0 +1,17 @@
+.private-beta-notice {
+  border: 1px solid #e6bb73;
+  border-left: 4px solid #bd7814;
+  border-radius: 12px;
+  background: #fff8e9;
+  color: #493710;
+  padding: 16px 18px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.private-beta-notice strong { display: block; margin-bottom: 5px; }
+.private-beta-notice p { margin: 0; line-height: 1.5; }
+.private-beta-notice-compact { margin: 10px 0; padding: 12px 14px; }
+.private-testing-gate { max-width: 760px; margin-inline: auto; }
+.private-testing-gate > .marketing-btn { margin-top: 12px; }
+.private-testing-app { padding: 0 24px; }
+@media (max-width: 720px) { .private-testing-app { padding: 0 12px; } }

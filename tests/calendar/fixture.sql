@@ -1,0 +1,23 @@
+create schema auth; create schema private;
+create role anon; create role authenticated; create role service_role;
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create table auth.users(id uuid primary key);
+create table public.businesses(id uuid primary key,timezone text not null default 'America/New_York');
+create table public.business_members(business_id uuid,user_id uuid,role text,access_modules text[] default array['calendar','jobs','billing','finances'],primary key(business_id,user_id));
+create table public.jobs(id uuid primary key,business_id uuid,customer_id uuid,title text,scheduled_start timestamptz,scheduled_end timestamptz,status text);
+create table public.appointments(id uuid primary key,business_id uuid,job_id uuid,title text,starts_at timestamptz,ends_at timestamptz,status text,assigned_user_id uuid);
+create table public.estimates(id uuid primary key,business_id uuid,customer_id uuid,job_id uuid,status text,subtotal numeric default 0,tax_amount numeric default 0,total numeric default 0,created_at timestamptz default now(),unique(id,business_id));
+create table public.invoices(id uuid primary key,business_id uuid,customer_id uuid,job_id uuid,estimate_id uuid unique,status text,subtotal numeric default 0,tax_amount numeric default 0,total numeric default 0,created_at timestamptz default now(),unique(id,business_id));
+grant usage on schema public,auth to authenticated;
+grant select on all tables in schema public to authenticated;
+grant execute on function auth.uid() to authenticated;
+alter table public.estimates enable row level security;
+alter table public.invoices enable row level security;
+alter table public.jobs enable row level security;
+alter table public.appointments enable row level security;
+create policy own on public.estimates for select to authenticated using(exists(select 1 from public.business_members where business_id=estimates.business_id and user_id=auth.uid()));
+create policy own on public.invoices for select to authenticated using(exists(select 1 from public.business_members where business_id=invoices.business_id and user_id=auth.uid()));
+create policy own on public.jobs for select to authenticated using(exists(select 1 from public.business_members where business_id=jobs.business_id and user_id=auth.uid()));
+create policy own on public.appointments for select to authenticated using(exists(select 1 from public.business_members where business_id=appointments.business_id and user_id=auth.uid()));
+
+create function private.effective_plan(uuid) returns text language sql as $$select 'pro'::text$$;

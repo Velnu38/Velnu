@@ -1,25 +1,17 @@
-import { supabase } from '../lib/supabase'
-import { listCustomerProperties } from './properties'
+import {supabase} from '../lib/supabase'
+import {collectBusinessRecords} from '../lib/businessRecords'
+import {listCustomerProperties} from './properties'
 
-export async function getCustomerDetail(businessId: string, customerId: string) {
-  const [customer, properties, jobs, estimates, invoices] = await Promise.all([
-    supabase.from('customers').select('*').eq('business_id', businessId).eq('id', customerId).single(),
-    listCustomerProperties(businessId, customerId),
-    supabase.from('jobs').select('id,title,status,scheduled_start,completed_at,description').eq('business_id', businessId).eq('customer_id', customerId).order('created_at', { ascending: false }).limit(20),
-    supabase.from('estimates').select('id,estimate_number,status,total,issue_date,expires_on').eq('business_id', businessId).eq('customer_id', customerId).order('created_at', { ascending: false }).limit(20),
-    supabase.from('invoices').select('id,invoice_number,status,total,amount_paid,balance_due,issue_date,due_date').eq('business_id', businessId).eq('customer_id', customerId).order('created_at', { ascending: false }).limit(20),
-  ])
-
-  if (customer.error) throw customer.error
-  if (jobs.error) throw jobs.error
-  if (estimates.error) throw estimates.error
-  if (invoices.error) throw invoices.error
-
-  return {
-    customer: customer.data,
-    properties,
-    jobs: jobs.data ?? [],
-    estimates: estimates.data ?? [],
-    invoices: invoices.data ?? [],
-  }
+export async function getCustomerDetail(businessId:string,customerId:string,access={billing:true,jobs:true}) {
+ const read=(table:string,columns:string)=>collectBusinessRecords<any>((from,to)=>supabase.from(table).select(columns,{count:'exact'}).eq('business_id',businessId).eq('customer_id',customerId).order('id').range(from,to))
+ const [customer,properties,jobs,estimates,invoices]=await Promise.all([
+  supabase.from('customers').select('*').eq('business_id',businessId).eq('id',customerId).single(),
+  listCustomerProperties(businessId,customerId),
+  access.jobs?read('jobs','id,title,status,scheduled_start,completed_at,description,created_at'):[],
+  access.billing?read('estimates','id,estimate_number,status,total,issue_date,expires_on,created_at,updated_at'):[],
+  access.billing?read('invoices','id,invoice_number,status,total,amount_paid,balance_due,issue_date,due_date,created_at,updated_at,sent_at,paid_at'):[],
+ ])
+ if(customer.error)throw customer.error
+ const newest=(rows:any[])=>rows.sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))||b.id.localeCompare(a.id))
+ return {customer:customer.data,properties,jobs:newest(jobs),estimates:newest(estimates),invoices:newest(invoices)}
 }

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
 const user = { id: '33333333-3333-4333-8333-333333333333', email: 'owner@example.test', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' }
-const company = { id: businessId, name: 'Test Service Company', role: 'owner', phone: '757-555-0100', email: 'test@example.test', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z' }
+const company = { id: businessId, created_by_user_id: user.id, name: 'Test Service Company', role: 'owner', phone: '757-555-0100', email: 'test@example.test', document_accent: '#2563eb', profile_completed_at: '2026-10-26T00:00:00Z' }
 const payment = { id: '22222222-2222-4222-8222-222222222222', amount: 150, status: 'succeeded', method: 'cash', paid_at: '2026-10-26T13:40:00Z', invoices: { invoice_number: 'INV-101' } }
 const manual = { id: '44444444-4444-4444-8444-444444444444', entry_date: '2026-10-26', direction: 'expense', amount: 35, currency: 'USD', category: 'Materials & supplies', description: 'Replacement parts' }
 const qbIncome = { id: '55555555-5555-4555-8555-555555555555', txn_date: '2026-10-26', direction: 'income', amount: 150, currency: 'USD', description: 'QuickBooks payment', source_type: 'Payment' }
@@ -79,7 +79,7 @@ test('workbook totals and CSV include entries beyond the first API page', async 
   await expect(page.locator('.bookkeeping-overview article').nth(1).locator('strong')).toHaveText('$1,001.00')
   await expect(page.getByText('QA expense 1000',{exact:true})).toBeVisible()
   const downloaded = page.waitForEvent('download')
-  await page.getByRole('button',{name:'Download CSV'}).click()
+  await page.getByRole('button',{name:/Export shown transactions/}).click()
   const stream = await (await downloaded).createReadStream()
   let csv=''
   for await (const chunk of stream) csv += chunk.toString()
@@ -96,8 +96,9 @@ test('bookkeeping owner can enter expense without changing payment transactions'
   const state=await mockFinance(page)
   await page.goto('/')
   await openWorkArea(page, 'Bookkeeping')
-  await page.getByRole('button',{name:'+ Add expense or income'}).click()
-  const dialog=page.getByRole('dialog',{name:'Add workbook entry'})
+  await page.getByRole('button',{name:'+ Add Entry',exact:true}).click()
+  await page.getByRole('button',{name:'Add Expense',exact:true}).click()
+  const dialog=page.getByRole('dialog',{name:'Add Expense'})
   await expect(dialog).toBeVisible()
   await dialog.getByLabel('Amount in USD').fill('42.50')
   await dialog.getByLabel('Description').fill('Fuel for service truck')
@@ -128,8 +129,7 @@ test('mobile navigation reaches workbook and separates source tabs',async ({page
   await page.setViewportSize({width:390,height:844})
   await mockFinance(page)
   await page.goto('/')
-  await page.getByRole('button',{name:'More'}).click()
-  await page.locator('.mobile-more-grid').getByRole('button',{name:'Financial performance'}).click()
+  await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('button',{name:'Finviant Office workbook'})).toBeVisible()
   await expect(page.getByRole('button',{name:'QuickBooks Online'})).toBeVisible()
 })
@@ -140,17 +140,17 @@ test('a failed workbook read shows unavailable totals and can recover without re
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('heading',{name:'Workbook could not be loaded'})).toBeVisible({timeout:15000})
   await expect(page.locator('.bookkeeping-overview strong')).toHaveText(['Unavailable','Unavailable','Unavailable'])
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeDisabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeDisabled()
   await expect(page.getByRole('heading',{name:'Your workbook is ready'})).toHaveCount(0)
   // One failed source must not invalidate a separately verified source.
   await page.getByRole('button',{name:'QuickBooks Online',exact:true}).click()
   await expect(page.locator('.bookkeeping-overview strong').first()).toHaveText('$150.00')
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeEnabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeEnabled()
   await page.getByRole('button',{name:'Finviant Office workbook',exact:true}).click()
   state.failManualRead = false
   await page.getByRole('button',{name:'Retry loading workbook'}).click()
   await expect(page.locator('.bookkeeping-overview strong').nth(1)).toHaveText('$35.00')
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeEnabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeEnabled()
 })
 
 test('a failed reload after a write prevents exporting the previous workbook snapshot', async ({page}) => {
@@ -159,15 +159,16 @@ test('a failed reload after a write prevents exporting the previous workbook sna
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByText('Replacement parts',{exact:true})).toBeVisible()
   state.failManualRead = true
-  await page.getByRole('button',{name:'+ Add expense or income'}).click()
-  const dialog = page.getByRole('dialog',{name:'Add workbook entry'})
+  await page.getByRole('button',{name:'+ Add Entry',exact:true}).click()
+  await page.getByRole('button',{name:'Add Expense',exact:true}).click()
+  const dialog = page.getByRole('dialog',{name:'Add Expense'})
   await dialog.getByLabel('Amount in USD').fill('42.50')
   await dialog.getByLabel('Description').fill('Fuel after stale snapshot')
   await dialog.getByRole('button',{name:'Save entry'}).click()
   await expect(page.getByRole('heading',{name:'Workbook could not be loaded'})).toBeVisible({timeout:15000})
   await expect(page.getByText('Replacement parts',{exact:true})).toHaveCount(0)
   await expect(page.locator('.bookkeeping-overview strong')).toHaveText(['Unavailable','Unavailable','Unavailable'])
-  await expect(page.getByRole('button',{name:'Download CSV'})).toBeDisabled()
+  await expect(page.getByRole('button',{name:/Export shown transactions/})).toBeDisabled()
   state.failManualRead = false
   await page.getByRole('button',{name:'Retry loading workbook'}).click()
   await expect(page.locator('.bookkeeping-overview strong').nth(1)).toHaveText('$77.50')
@@ -181,7 +182,7 @@ test('workbook text stays inert in HTML and formula prefixes are escaped in CSV'
   await expect(page.getByText(markup,{exact:true})).toBeVisible()
   expect(await page.evaluate(() => window.qaInjected)).toBeUndefined()
   const downloaded = page.waitForEvent('download')
-  await page.getByRole('button',{name:'Download CSV'}).click()
+  await page.getByRole('button',{name:/Export shown transactions/}).click()
   const stream = await (await downloaded).createReadStream()
   let csv=''
   for await (const chunk of stream) csv += chunk.toString()
@@ -191,12 +192,12 @@ test('workbook text stays inert in HTML and formula prefixes are escaped in CSV'
 
 test('a failed workspace module preserves navigation and offers recovery', async ({page}) => {
   await mockFinance(page)
-  await page.route('**/src/pages/BookkeepingPage.tsx*', route => route.abort('failed'))
+  await page.route(/\/(?:src\/pages\/BookkeepingPage\.tsx|assets\/BookkeepingPage-[^/]+\.js)(?:\?.*)?$/, route => route.abort('failed'))
   await page.goto('/')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('heading',{name:'This page could not be opened'})).toBeVisible()
   await expect(page.getByRole('button',{name:'Reload workspace'})).toBeEnabled()
-  await expect(page.getByRole('button',{name:'Dashboard',exact:true})).toBeEnabled()
-  await page.getByRole('button',{name:'Dashboard',exact:true}).click()
+  await expect(page.getByRole('button',{name:'Home',exact:true})).toBeEnabled()
+  await page.getByRole('button',{name:'Home',exact:true}).click()
   await expect(page.getByRole('heading',{name:'This page could not be opened'})).toHaveCount(0)
 })

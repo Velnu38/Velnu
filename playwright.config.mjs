@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testIgnore: '**/private-integrations.spec.mjs',
   timeout: 30000,
   retries: 0,
   workers: 1,
@@ -13,9 +14,11 @@ export default defineConfig({
     screenshot: 'only-on-failure', trace: 'retain-on-failure', serviceWorkers: 'block',
   },
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
+    // Exercise the built app so Vite dependency discovery cannot reload active forms.
+    command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173',
+    timeout: 120000,
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
-    env: { VITE_SUPABASE_URL: 'https://example.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: 'trial-test-key', VITE_ENABLE_CUSTOMER_ACTIONS: 'true' },
+    env: { FINVIANT_BROWSER_TEST: 'true', VITE_SUPABASE_URL: 'https://example.supabase.co', VITE_SUPABASE_PUBLISHABLE_KEY: 'trial-test-key', VITE_ENABLE_CUSTOMER_ACTIONS: 'true' },
   },
 })
