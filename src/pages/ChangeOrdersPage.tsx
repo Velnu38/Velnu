@@ -1,3 +1,5 @@
+import ChangeOrderTotals from '../components/ChangeOrderTotals'
+import { changeOrderDisplayLine, type ChangeOrderAmounts } from '../lib/changeOrderAmounts'
 import DocumentDelivery from '../components/DocumentDelivery'
 import DocumentActions from '../components/DocumentActions'
 import DocumentBrand from '../components/DocumentBrand'
@@ -18,10 +20,11 @@ import { matchesChangeOrderContext, type DocumentChangeOrderContext } from '../l
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?:string|null; phone?:string|null }
 type Job = { id: string; title: string; status: string; customer_id: string; customers: Customer[] | Customer | null }
-type ChangeOrder = DocumentDates & { id: string; customer_id: string; job_id: string|null; estimate_id?:string|null; source_invoice_id?:string|null; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
+type ChangeOrder = DocumentDates & { id: string; customer_id: string; job_id: string|null; estimate_id?:string|null; source_invoice_id?:string|null; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; change_totals?: ChangeOrderAmounts | null; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string }
 
+const money = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
 
 function customerName(customer?: Customer | null) {
@@ -70,7 +73,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   const [sourceLines,setSourceLines]=useState<ChangeSourceLine[]>([])
   const [lineLoadError,setLineLoadError]=useState('')
   const [lineLoadComplete,setLineLoadComplete]=useState(false)
-  const [revision,setRevision]=useState<{line:ChangeSourceLine;quantity:string;price:string}|null>(null)
+  const [revision,setRevision]=useState<{line:ChangeSourceLine;description:string;quantity:string;price:string}|null>(null)
   const [source,setSource]=useState<DocumentChangeSource|null>(null)
   const saving=useRef(false)
   const [approvalLink, setApprovalLink] = useState<ApprovalLinkState | null>(null)
@@ -111,11 +114,17 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
 
   const addedLines=useMemo(()=>lines.filter(line=>!revision||line.description.trim()||line.unit_price!==''),[lines,revision])
   const additionsTotal=addedLines.length?previewDocumentTotal(addedLines):revision?0:null
-  const previousTotal=revision?previewDocumentTotal([revision.line]):null
-  const revisedTotal=revision&&revision.price!==''?previewDocumentTotal([{...revision.line,quantity:revision.quantity,unit_price:revision.price}]):null
+  const previousTotal=revision?(Number(revision.line.quantity)===0?0:previewDocumentTotal([revision.line])):null
+  const revisedTotal=revision&&revision.quantity!==''&&revision.price!==''
+    ? Number(revision.quantity)===0 ? 0 : previewDocumentTotal([{...revision.line,quantity:revision.quantity,unit_price:revision.price}])
+    : null
   const adjustment=revisedTotal!==null&&previousTotal!==null?Math.round((revisedTotal-previousTotal)*100)/100:null
   const preview=additionsTotal===null||revision&&adjustment===null?null:additionsTotal+(adjustment??0)
-  const currentTotal=source?.kind==='estimate'?Number(source.total)+visibleOrders.filter(order=>order.status==='approved').reduce((sum,order)=>sum+Number(order.total),0):null
+  const currentTotal=source?Number(source.current_total??source.total):null
+  const draftTotals:ChangeOrderAmounts|null=currentTotal!==null&&preview!==null ? {
+    current_total:currentTotal,change_amount:preview,revised_total:Math.round((currentTotal+preview)*100)/100,
+    deposit_paid:Number(source?.deposit_paid||0),other_paid:Number(source?.other_paid||0),
+  }:null
 
   function resetForm() {
     setRevision(null);setJobId(context?.jobId || ''); setTitle(context?'Change to '+context.documentNumber:''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
@@ -127,12 +136,13 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
       const job = availableJobs.find((row) => row.id === jobId)
       if (!context&&!job) throw new Error('Choose a job')
       if(context&&!source?.can_change)throw new Error('This work is complete or its source document is unavailable.')
-      if(revision&&(adjustment===null||adjustment<=0))throw new Error('Review a positive price adjustment before saving. Reductions and scope-only changes need a separate review.')
-      const change=revision?{id:revision.line.id,previous:revision.line,quantity:Number(revision.quantity),unit_price:Number(revision.price)}:undefined
+      if(revision&&adjustment===null)throw new Error('Enter valid revised values.')
+      if(draftTotals&&draftTotals.revised_total<0)throw new Error('The revised total cannot be below zero.')
+      const change=revision?{id:revision.line.id,previous:revision.line,description:revision.description,quantity:Number(revision.quantity),unit_price:Number(revision.price)}:undefined
       const sourceNote = context ? `Requested from ${context.documentType} ${context.documentNumber} (${context.documentId}).` : undefined
       const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines,change,estimateId:context?.estimateId,sourceNote})
       if (retryRef.current?.signature !== signature) retryRef.current = {signature, requestId: crypto.randomUUID()}
-      const additions={title,description,reason,schedule_impact_days:Number(scheduleImpactDays||0),schedule_note:scheduleNote,items:addedLines.map(line=>({description:line.description,quantity:Number(line.quantity),unit_price:Number(line.unit_price),tax_rate:Number(line.tax_rate||0)}))}
+      const additions={title,description,reason,expected_current_total:source?.current_total,schedule_impact_days:Number(scheduleImpactDays||0),schedule_note:scheduleNote,items:addedLines.map(line=>({description:line.description,quantity:Number(line.quantity),unit_price:Number(line.unit_price),tax_rate:Number(line.tax_rate||0)}))}
       const created=context?await createDocumentChangeOrder(context.documentType,context.documentId,retryRef.current.requestId,additions,change):await createChangeOrder(business.id, {
         request_id: retryRef.current.requestId,
         customer_id: job!.customer_id,
@@ -205,7 +215,7 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
         const job = order.jobs?.[0]
         return <article className="document-row change-order-row" key={order.id}>
           <button type="button" className="row-main estimate-document-open" onClick={()=>void openReview(order)}><strong>{order.change_order_number || 'Draft change order'} · {order.title}</strong><span>{customerName(customer)} · {job?.title || 'Job'}{order.schedule_impact_days ? ` · ${order.schedule_impact_days > 0 ? '+' : ''}${order.schedule_impact_days} day schedule impact` : ''}</span></button>
-          <div className="invoice-money"><strong className="money">${Number(order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
+          <div className="invoice-money"><strong className="money">${Number(order.change_totals?.change_amount??order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
           <div className="document-actions">
             <button type="button" className="primary-button compact" onClick={()=>void openReview(order)}>Review / Send</button>
             <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span>
@@ -222,13 +232,16 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
             <legend>Change an existing item</legend>
             <label>Current item<select value={revision?.line.id??''} onChange={event=>{
               const line=sourceLines.find(item=>item.id===event.target.value)
-              setRevision(line?{line,quantity:String(line.quantity),price:String(line.unit_price)}:null)
+              setRevision(line?{line,description:line.description,quantity:String(line.quantity),price:String(line.unit_price)}:null)
             }}><option value="">Add new work only</option>{sourceLines.map(line=><option key={line.id} value={line.id}>{line.description} · {line.quantity} × ${line.unit_price}</option>)}</select></label>
             {revision&&<><div className="form-grid">
-              <label>Revised quantity<input type="number" min="0.01" step="0.01" required value={revision.quantity} onChange={event=>setRevision({...revision,quantity:event.target.value})}/></label>
+              <label className="full">Revised description<input required maxLength={1000} value={revision.description} onChange={event=>setRevision({...revision,description:event.target.value})}/></label>
               <label>Revised unit price<input type="number" min="0" step="0.01" required value={revision.price} onChange={event=>setRevision({...revision,price:event.target.value})}/></label>
+              <label>Revised quantity<input type="number" min="0" step="0.01" required value={revision.quantity} onChange={event=>setRevision({...revision,quantity:event.target.value})}/></label>
+              <p className="quiet full">Set the quantity to 0 to remove this item from the revised scope.</p>
             </div><p>Current: ${previousTotal?.toFixed(2)} · Revised: {revisedTotal===null?'Enter the revised values':'$'+revisedTotal.toFixed(2)}{adjustment!==null&&<> · Difference: {adjustment<0?'−':'+'}${Math.abs(adjustment).toFixed(2)}</>}. Includes the original tax rate.</p>
-            {adjustment!==null&&adjustment<=0&&<p role="status">Price reductions and scope-only changes need a separate review. No charge has been created.</p>}</>}
+            {adjustment!==null&&adjustment<0&&<p role="status">The customer can approve this reduction. Review any affected issued invoice for a credit after approval.</p>}
+            {adjustment===0&&<p role="status">This revision has no price impact.</p>}</>}
           </fieldset>}
           {context&&lineLoadComplete&&sourceLines.length===0&&!!source?.items.length&&<p className="quiet full">These older invoice lines could not be matched to the approved scope. Review the linked records before adjusting an existing charge.</p>}
           {lineLoadError&&<p className="quiet full" role="status">{lineLoadError}</p>}
@@ -241,9 +254,10 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
         </div>
         {(!revision||addedLines.length>0)&&<DocumentLineEditor lines={lines} onChange={setLines} newLine={blankLine}/>}
         {revision&&addedLines.length===0&&<button type="button" className="text-button" onClick={()=>setLines([{...blankLine(),description:'Additional work'}])}>Add new item</button>}
-        <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong>{currentTotal!==null&&preview!==null&&<small>Current total: ${currentTotal.toFixed(2)} · Revised total: ${(currentTotal+preview).toFixed(2)}</small>}<small>Save and review, then send for approval. Your original document is preserved.</small></div>
+        {draftTotals ? <ChangeOrderTotals amounts={draftTotals}/> : <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong></div>}
+        <p className="quiet">Save and review, then send for approval.</p>
         {error && <p role="alert" className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change||!!revision&&(adjustment===null||adjustment<=0)}>{busy ? 'Saving…' : 'Save and review'}</button></div>
+        <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => { if(!saving.current){setShowForm(false); resetForm()} }}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change||!!revision&&adjustment===null||!!draftTotals&&draftTotals.revised_total<0}>{busy ? 'Saving…' : 'Save and review'}</button></div>
       </form>
     </FormDialog>}
     {reviewId&&<FormDialog label="Review change order" wide busy={busy} onClose={closeReview}><section className="change-order-review">
@@ -259,8 +273,12 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
           <div className="document-bill-to"><small>Prepared for</small><strong>{customerName(reviewed.customers?.[0])}</strong>{reviewed.customers?.[0]?.email&&<span>{reviewed.customers[0].email}</span>}{reviewed.customers?.[0]?.phone&&<span>{reviewed.customers[0].phone}</span>}</div>
           <h3>{reviewed.change_order_number||'Draft'} · {reviewed.title}</h3>
           {reviewed.description&&<p>{reviewed.description}</p>}{reviewed.reason&&<p><strong>Reason: </strong>{reviewed.reason}</p>}
-          {reviewItems.map(item=><div className="document-line-row" key={item.id}><span>{item.description}</span><span>{Number(item.quantity)} × ${Number(item.unit_price).toFixed(2)}</span><strong>${Number(item.line_total).toFixed(2)}</strong></div>)}
-          <div className="estimate-total"><span>Proposed change total</span><strong>${Number(reviewed.total).toFixed(2)}</strong>{Number(reviewed.tax_amount)>0&&<small>Includes ${Number(reviewed.tax_amount).toFixed(2)} tax.</small>}</div>
+          {reviewItems.map((row,index)=>{
+            const item=changeOrderDisplayLine(row,index,reviewed.change_totals)
+            return <div className="document-line-row" key={row.id}><span>{item.description}</span><span>{Number(item.quantity)} × {money.format(Number(item.unit_price))}</span><strong>{money.format(Number(item.line_total))}</strong></div>
+          })}
+          {reviewed.change_totals ? <ChangeOrderTotals amounts={reviewed.change_totals} approved={reviewed.status==='approved'}/> :
+            <div className="estimate-total"><span>Proposed change total</span><strong>${Number(reviewed.total).toFixed(2)}</strong>{Number(reviewed.tax_amount)>0&&<small>Includes ${Number(reviewed.tax_amount).toFixed(2)} tax.</small>}</div>}
           {!!reviewed.schedule_impact_days&&<p>Schedule impact: {reviewed.schedule_impact_days>0?'+':''}{reviewed.schedule_impact_days} days</p>}{reviewed.schedule_note&&<p>{reviewed.schedule_note}</p>}
         </article>
         {approvedId&&canBill&&<section aria-label="Change order billing">
@@ -268,7 +286,10 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
           {!billing&&!billingError&&<p role="status">Checking billing…</p>}
           {billing?.action==='included_on_final'&&<p>This approved change will be included when you create the final invoice from the estimate.</p>}
           {billing?.action==='verify_existing'&&<p>Review the existing final invoice before charging this change. It may already be included.</p>}
-          {billing?.action==='manual_review'&&<p>Review the linked records before billing this change.</p>}
+          {billing?.action==='manual_review'&&<p>{reviewed.change_totals?.manual_billing
+            ? 'Review the source invoice and payments before recording a credit or billing adjustment.'
+            : 'Review the linked records before billing this change.'}</p>}
+          {billing?.action==='scope_only'&&<p>The customer approved a scope change with no change to the amount due.</p>}
           {(billing?.action==='add_to_draft'||billing?.action==='create_invoice')&&<>
             <p>{billing.action==='add_to_draft'
               ?`Draft invoice total: $${Number(billing.total).toFixed(2)} → $${(Number(billing.total)+Number(billing.change_total)).toFixed(2)}`

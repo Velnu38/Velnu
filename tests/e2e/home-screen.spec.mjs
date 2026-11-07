@@ -53,7 +53,6 @@ for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation ch
   await expect(page.getByRole('dialog')).toBeVisible()
   if(kind!=='job'){
    const dialog=page.getByRole('dialog',{name:'Create an '+kind,exact:true})
-   await dialog.locator('summary').filter({hasText:'Add Customer'}).click()
    await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toBeVisible()
   }
  }
@@ -112,6 +111,5 @@ for(const kind of ['invoice','estimate'])test(`The ${kind} list opens its existi
  await mock(page);await page.goto('/?view='+kind+'s')
  await page.getByRole('button',{name:'Create '+kind,exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Create an '+kind,exact:true})
- await dialog.locator('summary').filter({hasText:'Add Customer'}).click()
  await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toBeVisible()
 })

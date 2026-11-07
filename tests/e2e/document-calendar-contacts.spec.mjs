@@ -24,7 +24,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/user_agreement_acceptances'))return reply({id:E,agreement_version:'2026-10-26-v2'})
   if(path.endsWith('/business_members'))return reply({business_id:B,role:owner?'owner':'office',access_modules:['calendar','jobs','billing','finances'],businesses:business})
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[{provider:'stripe',url:'https://buy.stripe.com/owner-link'}],payment_instructions:'Use your invoice number'})
-  if(path.endsWith('/rpc/get_document_change_context'))return reply({business_id:B,document_id:body.p_document,kind:body.p_kind,number:body.p_kind==='invoice'?'INV-QA':'EST-QA',customer_id:C,customer_name:'Test Customer',job_id:null,estimate_id:body.p_kind==='estimate'?E:null,work_status:completedWork?'completed':'unscheduled',can_change:!completedWork,total:105,address:'1 Test Street',items:[{description:'Original work',quantity:2,unit_price:50,tax_rate:5}]})
+  if(path.endsWith('/rpc/get_document_change_context'))return reply({business_id:B,document_id:body.p_document,kind:body.p_kind,number:body.p_kind==='invoice'?'INV-QA':'EST-QA',customer_id:C,customer_name:'Test Customer',job_id:null,estimate_id:body.p_kind==='estimate'?E:null,work_status:completedWork?'completed':'unscheduled',can_change:!completedWork,total:105,current_total:105,deposit_paid:body.p_kind==='invoice'?25:0,other_paid:0,address:'1 Test Street',items:[{description:'Original work',quantity:2,unit_price:50,tax_rate:5}]})
   if(path.endsWith('/rpc/get_change_order_source_lines'))return reply([{id:P,description:'Original work',quantity:2,unit_price:50,tax_rate:5}])
   if(path.endsWith('/rpc/create_linked_change_order')){state.changes.push(body);return reply({id:P,status:'draft',total:52.50})}
   if(path.endsWith('/rpc/create_document_change_order')){state.changes.push(body);return reply({id:P,status:'draft',total:20})}
@@ -49,7 +49,10 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   }
   if(path.endsWith('/invoices')){const invoice={id:E,invoice_number:'INV-QA',customer_id:C,job_id:null,estimate_id:null,status:'sent',issue_date:'2026-10-01',total:105,subtotal:100,tax_amount:5,amount_paid:0,balance_due:105,customers:customer,payment_links:[],payment_instructions:''};return reply(url.searchParams.get('id')?invoice:[invoice])}
   if(path.endsWith('/invoice_items'))return reply([{id:P,description:'Original work',quantity:2,unit_price:50,tax_rate:5,line_total:100}])
-  if(path.endsWith('/change_orders'))return reply(state.changes.map(c=>({id:P,customer_id:C,job_id:null,estimate_id:c.p_kind==='estimate'?E:null,source_invoice_id:c.p_kind==='invoice'?E:null,title:c.p_input.title,status:'draft',total:20,customers:[customer],jobs:[]})))
+  if(path.endsWith('/change_orders'))return reply(state.changes.map(c=>{
+   const change=c.p_revision?(c.p_revision.quantity*c.p_revision.unit_price-100)*1.05:20
+   return {id:P,customer_id:C,job_id:null,estimate_id:c.p_kind==='estimate'?E:null,source_invoice_id:c.p_kind==='invoice'?E:null,title:c.p_input.title,status:'draft',total:Math.max(0,change),customers:[customer],jobs:[],change_totals:{current_total:105,change_amount:change,revised_total:105+change,deposit_paid:c.p_kind==='invoice'?25:0,other_paid:0,revision_subtotal:c.p_revision?change/1.05:null,revision_tax:c.p_revision?change-change/1.05:null}}
+  }))
   if(path.endsWith('/customers')){if(method==='POST'){state.customers.push(body);return reply(body,201)}return reply(state.customers)}
   if(path.endsWith('/estimates'))return reply([{id:E,estimate_number:'EST-QA',customer_id:C,status:'accepted',issue_date:'2026-10-01',total:105,subtotal:100,tax_amount:5,customers:customer}])
   if(path.endsWith('/estimate_items'))return reply([{id:P,description:'Mow and trim',quantity:2,unit_price:50,tax_rate:5,line_total:100}])
@@ -161,21 +164,51 @@ test('viewer selects dates with the keyboard and sees that day without creation 
  await date.focus();await page.keyboard.press('Enter');await expect(date).toHaveAttribute('aria-pressed','true');await expect(calendar.getByText('Read-only scheduled visit',{exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.getByRole('button',{name:'+ Add entry'})).toHaveCount(0)
 })
 
-test('editing an original item previews only the difference and blocks accidental credits',async({page})=>{
- const state=await mock(page);await page.goto('/?view=invoices')
- await page.getByRole('button',{name:/^Open invoice INV-QA/}).click()
- await page.getByRole('button',{name:'Change order',exact:true}).click()
- const dialog=page.getByRole('dialog',{name:'Create change order'})
- await dialog.getByLabel('Current item').selectOption(P)
- await expect(dialog.getByLabel('Revised quantity')).toHaveValue('2')
- await expect(dialog.getByLabel('Revised unit price')).toHaveValue('50')
- await dialog.getByLabel('Revised quantity').fill('1')
- await expect(dialog.getByRole('button',{name:'Save and review'})).toBeDisabled()
- await expect(dialog.getByText(/Price reductions and scope-only changes/)).toBeVisible()
- await dialog.getByLabel('Revised quantity').fill('3')
- await expect(dialog.getByText(/Difference: \+\$52\.50/)).toBeVisible()
- await dialog.getByRole('button',{name:'Save and review'}).click()
- await expect.poll(()=>state.changes.length).toBe(1)
- expect(state.changes[0].p_revision).toMatchObject({id:P,quantity:3,unit_price:50})
- expect(state.changes[0].p_input.items).toEqual([])
+for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-$52.50','$52.50'],['2','$0.00','$105.00']]) {
+ test(`changing an original invoice item to quantity ${quantity} shows and saves the revised agreement`, async ({ page }) => {
+  const state = await mock(page)
+  await page.goto('/?view=invoices')
+  await page.getByRole('button', { name: /^Open invoice INV-QA/ }).click()
+  await page.getByRole('button', { name: 'Change order', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Create change order' })
+  await dialog.getByLabel('Current item').selectOption(P)
+  await expect(dialog.getByLabel('Revised quantity')).toHaveValue('2')
+  await expect(dialog.getByLabel('Revised unit price')).toHaveValue('50')
+  await dialog.getByLabel('Revised description').fill('Updated work')
+  await dialog.getByLabel('Revised quantity').fill(quantity)
+  const totals = dialog.locator('.change-order-totals')
+  await expect(totals.locator('dd')).toHaveText(['$105.00', difference, revised, '$25.00', quantity==='3'?'$132.50':quantity==='1'?'$27.50':'$80.00'])
+  await dialog.getByRole('button', { name: 'Save and review' }).click()
+  await expect.poll(() => state.changes.length).toBe(1)
+  expect(state.changes[0].p_revision).toMatchObject({ id: P, description: 'Updated work', quantity: Number(quantity), unit_price: 50 })
+  expect(state.changes[0].p_input).toMatchObject({ items: [], expected_current_total: 105 })
+  await expect(page.getByRole('dialog').locator('.change-order-totals')).toContainText(revised)
+ })
+}
+
+test('a customer sees and approves the same revised total shown in the change order', async ({ page }) => {
+ await mock(page, { signedIn: false })
+ let approved = false
+ await page.route('**/functions/v1/customer-approval', async route => {
+  const request = route.request().postDataJSON()
+  if (request.mode === 'approved') {
+   expect(request.typed_name).toBe('Test Customer')
+   approved = true
+  }
+  await route.fulfill({ json: {
+   document_type: 'change_order', business_name: 'Scheduling QA', customer: { name: 'Test Customer' },
+   document: { change_order_number: 'CO-QA', title: 'Reduce original scope', schedule_impact_days: 0,
+    change_totals: { current_total: 105, change_amount: -52.50, revised_total: 52.50, deposit_paid: 25, other_paid: 0, revision_subtotal: -50, revision_tax: -2.50 } },
+   items: [{ description: 'Original work → Revised work', quantity: 1, unit_price: 0, line_total: 0, tax_rate: 5 }],
+   completed: approved ? { action: 'approved', typed_name: 'Test Customer', created_at: new Date().toISOString() } : null,
+  } })
+ })
+ await page.goto('/?approval=' + 'a'.repeat(64))
+ const totals = page.locator('.change-order-totals')
+ await expect(totals.locator('dd')).toHaveText(['$105.00', '-$52.50', '$52.50', '$25.00', '$27.50'])
+ await expect(page.locator('.approval-row').last()).toContainText('-$50.00')
+ await page.getByLabel('Full name', { exact: true }).fill('Test Customer')
+ await page.getByRole('button', { name: 'Approve change order', exact: true }).click()
+ await expect(page.getByRole('heading', { name: 'Document approved' })).toBeVisible()
+ await expect(totals.locator('dd')).toHaveText(['$105.00', '-$52.50', '$52.50', '$25.00', '$27.50'])
 })

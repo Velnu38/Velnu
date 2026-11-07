@@ -14,7 +14,6 @@ export async function createWork(page, kind) {
   await page.getByRole('button', { name: 'Home', exact: true }).click()
   await page.getByRole('button', { name: 'Create new', exact: true }).click()
   await page.getByRole('navigation', { name: 'Create work' }).getByRole('link', { name: '+ New ' + kind, exact: true }).click()
-  if(kind==='invoice'||kind==='estimate'){await page.getByRole('dialog').locator('summary').filter({hasText:'Add Customer'}).click();await page.getByRole('dialog').locator('summary').filter({hasText:'Add Work Details'}).click()}
 }
 
 /** Ask Fin opens typing without microphone access on every viewport. */

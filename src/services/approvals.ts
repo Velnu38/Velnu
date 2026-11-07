@@ -28,7 +28,10 @@ export async function getCustomerApproval(token: string) {
   const { data, error } = await supabase.functions.invoke('customer-approval', {
     body: { token, mode: 'view' },
   })
-  if (error) throw error
+  if (error) {
+    const detail = await error.context?.clone().json().catch(() => null)
+    throw new Error(detail?.error || error.message)
+  }
   return data
 }
 
@@ -36,6 +39,9 @@ export async function submitCustomerApproval(token: string, action: 'approved' |
   const { data, error } = await supabase.functions.invoke('customer-approval', {
     body: { token, mode: action, typed_name: typedName.trim(), terms_agreed: agreedToTerms },
   })
-  if (error) throw error
+  if (error) {
+    const detail = await error.context?.clone().json().catch(() => null)
+    throw new Error(detail?.error || error.message)
+  }
   return data
 }

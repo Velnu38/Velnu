@@ -85,7 +85,6 @@ for(const width of [1440,390])for(const kind of ['invoice','estimate','job'])tes
  expect(await page.getByRole('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
  await page.screenshot({path:`test-results/audit-create-${kind}-${width}.png`,fullPage:true})
  if(kind!=='job'){
-  await page.getByRole('dialog').locator('summary').filter({hasText:'Add Customer'}).click()
   await page.getByRole('button',{name:'Create a new customer',exact:true}).click()
  await page.getByLabel('Customer name',{exact:true}).fill('Keep my draft')
   await page.mouse.click(2,2)

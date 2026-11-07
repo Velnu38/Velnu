@@ -1,5 +1,5 @@
 import { resolveFinInvoiceSeed, type FinInvoiceDraft } from '../lib/voiceDocument'
-import { customerOptionName, matchingCustomers, uniqueCustomerName } from '../lib/customerSuggestions'
+import { matchingCustomers, uniqueCustomerName } from '../lib/customerSuggestions'
 import CustomerEditDialog from '../components/CustomerEditDialog'
 import CreationPreview from '../components/CreationPreview'
 import {documentEndDate,previewAmounts} from '../lib/documentPreview'
@@ -68,10 +68,11 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   const [issueDate, setIssueDate] = useState(() => DateTime.now().setZone(business.timezone || 'UTC').toISODate()!)
   const [notes, setNotes] = useState('')
   const [defaultTax, setDefaultTax] = useState(0)
+  const [documentTax, setDocumentTax] = useState('0')
   const [pricingAdjustment,setPricingAdjustment] = useState(0)
   const [adjustPrices,setAdjustPrices] = useState(false)
   const [defaultsReady,setDefaultsReady] = useState(false)
-  useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setDefaultPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDocumentPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setPricingAdjustment(Number(d.pricing_adjustment_percent));setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
+  useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setDocumentTax(String(d.default_tax_rate));setDefaultPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDocumentPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setPricingAdjustment(Number(d.pricing_adjustment_percent));setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
   const quickCreate=useRef(new URLSearchParams(window.location.search).get('new')==='1')
   useEffect(()=>{if(defaultsReady&&quickCreate.current&&canManageFinances(business.role)){quickCreate.current=false;resetForm();setShowForm(true);const url=new URL(location.href);url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[defaultsReady,business.role])
   const [handoff,setHandoff]=useState('')
@@ -84,6 +85,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
     resetForm()
     setFinRequest(finDraft.command)
     const seed = resolveFinInvoiceSeed(finDraft, customers)
+    if (seed.taxRate !== null) setDocumentTax(seed.taxRate)
     const chosenId = finDraft.customerId
     const selected = chosenId ? customers.find(customer => customer.id === chosenId) : uniqueCustomerName(customers, seed.customerName)
     setCustomerId(selected?.id || '')
@@ -158,7 +160,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   }
 
   function resetForm() {
-    setCreationPreview(false); savedCreation.current=null; dateEdited.current=false
+    setCreationPreview(false); savedCreation.current=null; dateEdited.current=false; setDocumentTax(String(defaultTax))
     setFinRequest(''); setFinWarnings([]); setSpokenTotal(null); setHandoff('')
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); retryRef.current = null
   }
@@ -267,9 +269,9 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       {!creationPreview && spokenTotal && previewTotal !== null && Math.round(Number(spokenTotal) * 100) !== Math.round(previewTotal * 100) && <p role="status" className="form-message">Your stated total was {invoiceMoney.format(Number(spokenTotal))}. Check it against the calculated total below.</p>}
       {handoff&&<p className="form-message">Dictated request: {handoff}. Review each charge as a separate line.</p>}
       <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
-        <details className="composer-section" open={finRequest ? true : undefined}><summary>{customerId || customerDraft.name || customerDraft.company ? 'Customer · '+(creationCustomer ? customerOptionName({...creationCustomer,id:customerId,company:creationCustomer.company || null}) : customerDraft.name || 'Selected') : '＋ Add Customer'}</summary><div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} showSuggestions={!!finRequest && !!customerDraft.name && !customerId} disabled={busy||!!sourceJob||!!finRequest&&customerLoad!=='ready'}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer(true)}>Edit customer contact</button>}</div></details><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
+        <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={setCustomerId} onDraft={setCustomerDraft} showSuggestions={!!finRequest && !!customerDraft.name && !customerId} disabled={busy||!!sourceJob||!!finRequest&&customerLoad!=='ready'}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer(true)}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
         {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
-        <details className="composer-section" open={finRequest ? true : undefined}><summary>＋ Add Work Details</summary><DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine}/></details>
+        <DocumentLineEditor lines={lines} onChange={setLines} newLine={newLine} taxOptions taxDefault={{ rate: documentTax, onChange: setDocumentTax }}/>
         {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
         <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
         {error && <p className="form-message error-text">{error}</p>}
