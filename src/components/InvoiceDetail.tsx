@@ -1,135 +1,165 @@
-import {planUpgradeHref} from './PlanRestriction'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import {readableError} from '../lib/errors'
+import {invoiceActionPolicy,invoiceDisplayStatus,invoiceIsOverdue} from '../lib/invoiceActions'
+import {confirmNavigation} from '../lib/unsavedChanges'
 import DraftDocumentEditor from './DraftDocumentEditor'
 import CustomerEditDialog from './CustomerEditDialog'
 import {createReminder} from '../services/reminders'
 import {DateTime} from 'luxon'
 import {announceCalendarChange} from '../services/calendar'
 import FormDialog from './FormDialog'
-import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
-import { localInstant } from '../lib/calendarTime'
+import {formatServiceAddress,type ServiceAddress} from '../lib/googleMaps'
 import DocumentChangeOrders from './DocumentChangeOrders'
 import {useTierUsage} from '../lib/useTierUsage'
-import { canAccess,isPrimaryOwner } from '../lib/workspaceAccess'
-import './settings/settings.css'
-import {RecordResourcesDialog} from './RecordResources'
-import DocumentActions from './DocumentActions'
-import DocumentRecord, {DocumentTime, type DocumentDates} from './DocumentRecord'
-import DocumentSchedule from './calendar/DocumentSchedule'
-import { FormEvent, lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
-import { getInvoiceDetail } from '../services/invoiceDetail'
+import {canAccess,isPrimaryOwner} from '../lib/workspaceAccess'
+import UpgradeLink from './UpgradeLink'
+import RecordResources from './RecordResources'
+import {RecordDetailHeader,RecordTabs,RecordActionBar} from './RecordDetail'
+import DocumentRecord,{DocumentTime,type DocumentDates} from './DocumentRecord'
+import {type FormEvent,lazy,Suspense,useEffect,useId,useRef,useState} from 'react'
+import {canManageFinances,type CurrentBusiness} from '../lib/business'
+import {getInvoiceDetail,type InvoicePaymentOperations,type InvoiceWork} from '../services/invoiceDetail'
 import RecordPaymentDialog from './RecordPaymentDialog'
-import { updateInvoiceStatus } from '../services/invoices'
-import DocumentDelivery from './DocumentDelivery'
+import InvoiceReminderDialog from './InvoiceReminderDialog'
+import {updateInvoiceStatus} from '../services/invoices'
+import DocumentDeliveryDialog,{DocumentDeliveryRecovery} from './DocumentDeliveryDialog'
 import DocumentPdfPreview from './DocumentPdfPreview'
-import {useBusinessRefresh} from '../lib/useBusinessRefresh'
-import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
+import {offersDocumentChangeOrders} from '../lib/documentChangeOrders'
 
 const InvoiceJobDialog=lazy(()=>import('./scheduling/InvoiceJobDialog'))
-const ChangeOrdersPage = lazy(() => import('../pages/ChangeOrdersPage'))
+const ChangeOrdersPage=lazy(()=>import('../pages/ChangeOrdersPage'))
+type Customer={id:string;first_name:string|null;last_name:string|null;company:string|null;email:string|null;phone:string|null}
+type Invoice=DocumentDates&{properties?:ServiceAddress|ServiceAddress[]|null;deposit_estimate_id:string|null;deposit_source_invoice_id:string|null;deposit_credit:number;id:string;invoice_number:string|null;status:string;issue_date:string;due_date:string|null;subtotal:number;tax_amount:number;total:number;amount_paid:number;balance_due:number;notes:string|null;customer_message:string|null;sent_at:string|null;paid_at:string|null;customer_id:string;job_id:string|null;estimate_id:string|null;customers:Customer|Customer[]|null}
+type Item={id:string;description:string;quantity:number;unit_price:number;tax_rate:number;line_total:number}
+type Payment={id:string;amount:number;method:string|null;status:string;paid_at:string;notes:string|null;provider?:string|null}
+type Message={id:string;direction:string;channel:string;recipient:string|null;subject:string|null;body:string;status:string;sent_at:string|null;created_at:string}
+type Detail={invoice:Invoice;items:Item[];payments:Payment[];messages:Message[];paymentOperations:InvoicePaymentOperations;work:InvoiceWork;changeOrderContext:{canChange:boolean;workStatus:string}}
+const money=(value:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value||0))
+function customerName(customer?:Customer|null){return customer?[customer.first_name,customer.last_name].filter(Boolean).join(' ')||customer.company||'Customer':'Customer'}
 
-type Customer = { id:string; first_name:string|null; last_name:string|null; company:string|null; email:string|null; phone:string|null }
-type Invoice = DocumentDates & { properties?:ServiceAddress|ServiceAddress[]|null; deposit_estimate_id:string|null; deposit_source_invoice_id:string|null; deposit_credit:number; payment_links?: unknown; payment_instructions?: string; issuer_snapshot?: Partial<BusinessProfile> | null; id:string; invoice_number:string|null; status:string; issue_date:string; due_date:string|null; subtotal:number; tax_amount:number; total:number; amount_paid:number; balance_due:number; notes:string|null; customer_message:string|null; sent_at:string|null; paid_at:string|null; customer_id:string; job_id:string|null; estimate_id:string|null; customers:Customer|Customer[]|null }
-type Item = { id:string; description:string; quantity:number; unit_price:number; tax_rate:number; line_total:number }
-type Payment = { id:string; amount:number; method:string|null; status:string; paid_at:string; notes:string|null }
-type Message = { id:string; direction:string; channel:string; recipient:string|null; subject:string|null; body:string; status:string; sent_at:string|null; created_at:string }
-type Detail = { invoice:Invoice; items:Item[]; payments:Payment[]; messages:Message[] }
-
-function customerName(customer?: Customer | null) {
-  if (!customer) return 'Customer'
-  return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer'
-}
-
-export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit=false }: { business:CurrentBusiness; invoiceId:string; onBack:()=>void; initialEdit?:boolean }) {
+export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=false}:{business:CurrentBusiness;invoiceId:string;onBack:()=>void;initialEdit?:boolean}){
   const plan=useTierUsage(business.id)?.plan
-  const [detail,setDetail]=useState<Detail|null>(null)
-  const [loading,setLoading]=useState(true)
-  const [busy,setBusy]=useState(false)
-  const [error,setError]=useState('')
-  const [showEdit,setShowEdit]=useState(initialEdit),[showCustomer,setShowCustomer]=useState(false)
+  const canManage=canManageFinances(business.role)&&canAccess(business,'billing')
+  const canSeeWork=canAccess(business,'jobs'),canCalendar=canAccess(business,'calendar')
+  const [detail,setDetail]=useState<Detail|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState('')
+  const [showEdit,setShowEdit]=useState(initialEdit&&canManage),[showCustomer,setShowCustomer]=useState(false)
+  const [showPayment,setShowPayment]=useState(false),[showReminder,setShowReminder]=useState(false),[showFollowUp,setShowFollowUp]=useState(false)
+  const [showJob,setShowJob]=useState(false),[showChangeOrders,setShowChangeOrders]=useState<string|null>(null)
+  const [delivery,setDelivery]=useState<'send'|'share'|'schedule'|'retry'|null>(null),[recovery,setRecovery]=useState(false)
+  const [receipt,setReceipt]=useState(''),[jobNotice,setJobNotice]=useState('')
+  const [tab,setTab]=useState('document'),[resourcesOpened,setResourcesOpened]=useState(false)
+  const tabsId=useId(),tabIds={document:tabsId+'-document',resources:tabsId+'-resources',activity:tabsId+'-activity'}
+  const [reminderAt,setReminderAt]=useState(''),[reminderNote,setReminderNote]=useState('Follow up on unpaid invoice')
   const reminderSaving=useRef(false),reminderRetry=useRef<{signature:string;id:string}|null>(null)
-  const [receipt,setReceipt]=useState('')
-  const [showJob,setShowJob]=useState(false)
-  const [showResources,setShowResources]=useState(false)
-  const [jobNotice,setJobNotice]=useState('')
-  const [showPayment,setShowPayment]=useState(false)
-  const [showReminder,setShowReminder]=useState(false)
-  const [showChangeOrders,setShowChangeOrders]=useState<string | null>(null)
-  const [reminderAt,setReminderAt]=useState('')
-  const [reminderNote,setReminderNote]=useState('Follow up on unpaid invoice')
-
-  const refreshGeneration=useRef(0),refreshMounted=useRef(false)
-  const refreshScope=useRef('');refreshScope.current=business.id+':'+invoiceId
-  async function refresh(){const generation=++refreshGeneration.current,scope=business.id+':'+invoiceId;const current=()=>refreshMounted.current&&generation===refreshGeneration.current&&scope===refreshScope.current;setLoading(true);setError('');try{const next=await getInvoiceDetail(business.id,invoiceId) as Detail;if(current())setDetail(next)}catch(err){if(current())setError(err instanceof Error?err.message:'Unable to load invoice')}finally{if(current())setLoading(false)}}
-  useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
-  useBusinessRefresh(business.id,()=>refresh())
-  useEffect(()=>{refreshMounted.current=true;setDetail(null);setShowChangeOrders(null);void refresh();return()=>{refreshMounted.current=false;refreshGeneration.current++}},[business.id,invoiceId])
-
-  async function saveReminder(event:FormEvent){
-    event.preventDefault();if(!detail||busy||reminderSaving.current)return;reminderSaving.current=true;setBusy(true);setError('')
-    try{const due=new Date(localInstant(reminderAt,business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone));if(Number.isNaN(due.getTime())||due.getTime()<=Date.now())throw new Error('Choose a reminder date and time in the future.');const signature=JSON.stringify({due:due.toISOString(),note:reminderNote});if(reminderRetry.current?.signature!==signature)reminderRetry.current={signature,id:crypto.randomUUID()};await createReminder(business,{id:reminderRetry.current.id,invoiceId:detail.invoice.id,customerId:detail.invoice.customer_id,dueAt:due.toISOString(),note:reminderNote});reminderRetry.current=null;setShowReminder(false);setReminderAt('');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to create reminder')}finally{reminderSaving.current=false;setBusy(false)}
+  const refreshGeneration=useRef(0),refreshMounted=useRef(false),refreshScope=useRef('')
+  refreshScope.current=business.id+':'+invoiceId
+  async function refresh(){
+    const generation=++refreshGeneration.current,scope=business.id+':'+invoiceId
+    const current=()=>refreshMounted.current&&generation===refreshGeneration.current&&scope===refreshScope.current
+    setLoading(true)
+    try{const next=await getInvoiceDetail(business.id,invoiceId,{work:canSeeWork,calendar:canCalendar,paymentOperations:canManage}) as Detail;if(current()){setDetail(next);setError('')}}
+    catch(failure){if(current())setError(readableError(failure,'Unable to load invoice.'))}
+    finally{if(current())setLoading(false)}
   }
-
-  async function markSent(){if(!detail||busy)return;if(!window.confirm('This only records that you sent the invoice outside Finviant Office. It does not email the customer. Continue?'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'sent');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to mark invoice sent')}finally{setBusy(false)}}
-
-  async function voidInvoice(){if(!detail||busy||detail.invoice.status==='void'||Number(detail.invoice.amount_paid)>0)return;if(!window.confirm('Void this invoice? This cannot be undone, and the invoice will remain in your records.'))return;setBusy(true);setError('');try{await updateInvoiceStatus(detail.invoice.id,'void');await refresh()}catch(err){setError(err instanceof Error?err.message:'Unable to void invoice')}finally{setBusy(false)}}
-
-  if(loading&&!detail)return <div className="detail-loading">Loading invoice…</div>
-  if(!detail)return <div className="empty-state"><h2>Invoice unavailable</h2>{error&&<p role="alert">{error}</p>}<button className="secondary-button" onClick={onBack}>Back to invoices</button></div>
-  const invoice=detail.invoice
-  const customer=Array.isArray(invoice.customers)?invoice.customers[0]:invoice.customers
-  const canScheduleJob=!invoice.deposit_estimate_id&&canManageFinances(business.role)&&canAccess(business,'jobs')&&canAccess(business,'calendar')
-  const overdue=Number(invoice.balance_due)>0&&!!invoice.due_date&&invoice.due_date<DateTime.now().setZone(business.timezone || 'America/New_York').toISODate()!
+  useAssistantRefresh(refresh,failure=>setError(readableError(failure,'The saved change could not refresh. Reload; do not repeat the save.')))
+  useBusinessRefresh(business.id,()=>refresh())
+  useEffect(()=>{
+    refreshMounted.current=true;setDetail(null);setShowChangeOrders(null);setRecovery(false);setDelivery(null);setTab('document');setResourcesOpened(false)
+    void refresh();return()=>{refreshMounted.current=false;refreshGeneration.current++}
+  },[business.id,invoiceId,canManage,canSeeWork,canCalendar])
+  async function saveReminder(event:FormEvent){
+    event.preventDefault();if(!detail||busy||reminderSaving.current)return
+    reminderSaving.current=true;setBusy(true);setError('')
+    try{
+      const due=DateTime.fromISO(reminderAt,{zone:business.timezone||'UTC'})
+      if(!due.isValid||due.toMillis()<=Date.now())throw Error('Choose a reminder date and time in the future.')
+      const signature=JSON.stringify({due:due.toISO(),note:reminderNote})
+      if(reminderRetry.current?.signature!==signature)reminderRetry.current={signature,id:crypto.randomUUID()}
+      await createReminder(business,{id:reminderRetry.current.id,invoiceId:detail.invoice.id,customerId:detail.invoice.customer_id,dueAt:due.toUTC().toISO()!,note:reminderNote})
+      reminderRetry.current=null;setShowFollowUp(false);setReminderAt('');setReceipt('Your follow-up reminder was saved. No customer message was sent.');await refresh()
+    }catch(failure){setError(readableError(failure,'Unable to create reminder.'))}finally{reminderSaving.current=false;setBusy(false)}
+  }
+  async function markSent(){
+    if(!detail||busy||recovery||detail.invoice.status!=='draft'||!canManage)return
+    if(!window.confirm('Record that you already sent this invoice outside Finviant? This does not send a customer message.'))return
+    setBusy(true);try{await updateInvoiceStatus(detail.invoice.id,'sent');setReceipt('Recorded as sent outside Finviant.');await refresh()}catch(failure){setError(readableError(failure,'Unable to mark invoice sent.'))}finally{setBusy(false)}
+  }
+  async function voidInvoice(){
+    if(!detail||busy||!canManage||detail.paymentOperations.state!=='clear'||detail.invoice.status==='void'||Number(detail.invoice.amount_paid)>0)return
+    if(!window.confirm('Void this invoice? It will remain in your records.'))return
+    setBusy(true);try{await updateInvoiceStatus(detail.invoice.id,'void');await refresh()}catch(failure){setError(readableError(failure,'Unable to void invoice.'))}finally{setBusy(false)}
+  }
+  // Panels stay mounted after opening, so changing tabs preserves expense drafts.
+  function changeTab(id:string){setTab(id===tabIds.resources?'resources':id===tabIds.activity?'activity':'document');if(id===tabIds.resources)setResourcesOpened(true)}
+  if(loading&&!detail)return <div className="detail-loading" role="status">Loading invoice…</div>
+  if(!detail)return <div className="empty-state"><h2>Invoice unavailable</h2>{error&&<p role="alert">{error}</p>}<button className="secondary-button" onClick={()=>void refresh()}>Retry invoice</button><button className="text-button" onClick={onBack}>Back to invoices</button></div>
+  const {invoice}=detail,customer=Array.isArray(invoice.customers)?invoice.customers[0]:invoice.customers
+  const today=DateTime.now().setZone(business.timezone||'UTC').toISODate()!
+  const policy=invoiceActionPolicy(invoice,{today,canManage,paymentState:detail.paymentOperations.state,recovery})
+  const overdue=invoiceIsOverdue(invoice,today),status=invoiceDisplayStatus(invoice,today)
+  const canSchedule=canManage&&canSeeWork&&canCalendar&&!invoice.deposit_estimate_id&&invoice.status!=='void'
+  const job=detail.work.job,appointment=detail.work.appointment
+  const jobHref=invoice.job_id?'/?view=work&document='+encodeURIComponent(invoice.job_id):null
+  const hasAppointment=canCalendar?!!appointment:!!job?.scheduled_start
+  const activeJob=job&&!['completed','canceled'].includes(job.status)
+  const canChange=!invoice.deposit_estimate_id&&canManage&&detail.changeOrderContext.canChange&&offersDocumentChangeOrders('invoice',invoice.status,detail.changeOrderContext.workStatus)
+  const hasMore=canManage&&invoice.status!=='void'
+  const grossReceived=detail.payments.filter(payment=>['succeeded','partially_refunded','refunded'].includes(payment.status)).reduce((sum,payment)=>sum+Number(payment.amount),0)
+  const netReceived=detail.paymentOperations.state==='unavailable'?null:grossReceived-detail.paymentOperations.refunds.reduce((sum,refund)=>sum+Number(refund.amount),0)
+  const context={documentId:invoice.id,documentNumber:invoice.invoice_number||'Invoice',customerId:invoice.customer_id,jobId:invoice.job_id,estimateId:invoice.estimate_id,documentType:'invoice' as const}
   const site=Array.isArray(invoice.properties)?invoice.properties[0]:invoice.properties
-  const issuedBrand=invoice.issuer_snapshot?.name ? { ...business, ...invoice.issuer_snapshot, name: invoice.issuer_snapshot.name } : business
-
-  const changeContext = { documentId:invoice.id, documentNumber:invoice.invoice_number || 'Invoice', customerId:invoice.customer_id, jobId:invoice.job_id, estimateId:invoice.estimate_id, documentType: 'invoice' as const }
-  if (showChangeOrders && !invoice.deposit_estimate_id) return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={changeContext} initialOrder={showChangeOrders} onBack={()=>{setShowChangeOrders(null);void refresh()}} /></Suspense>
-
+  const action=(id:'send'|'mark_paid'|'reminder'|'edit'|null,primary:boolean)=>id?<button type="button" className={primary?'primary-button':'secondary-button'} disabled={busy} onClick={()=>id==='send'?setDelivery('send'):id==='mark_paid'?setShowPayment(true):id==='reminder'?setShowReminder(true):setShowEdit(true)}>{id==='send'?'Send invoice':id==='mark_paid'?'Mark Paid':id==='reminder'?'Send reminder':'Edit draft'}</button>:null
+  if(showChangeOrders&&!invoice.deposit_estimate_id)return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={context} initialOrder={showChangeOrders} onBack={()=>{setShowChangeOrders(null);void refresh()}}/></Suspense>
   return <div className="page-stack invoice-detail-page">
-    <div className="detail-top"><button className="back-button" onClick={onBack}>← Invoices</button></div>
-    <section className="invoice-hero">
-      <div><p className="eyebrow">{invoice.status}</p><div className="record-resources-title"><h1>{invoice.invoice_number||'Invoice'}</h1><button type="button" className="secondary-button compact record-resources-entry calendar-no-print" onClick={()=>setShowResources(true)}>Photos &amp; expenses</button></div><p>{customerName(customer)}{customer?.email?` · ${customer.email}`:''}</p></div>
-      <div className="invoice-hero-balance"><span>Balance due</span><strong>${Number(invoice.balance_due).toFixed(2)}</strong><small>Total ${Number(invoice.total).toFixed(2)}</small></div>
-    </section>
-    {showEdit&&<DraftDocumentEditor businessId={business.id} kind="invoice" id={invoice.id} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()}/>}
-    {showCustomer&&<CustomerEditDialog businessId={business.id} customerId={invoice.customer_id} onClose={()=>setShowCustomer(false)} onSaved={()=>void refresh()}/>}
-    {canManageFinances(business.role)&&invoice.status!=='void'&&<DocumentDelivery onBusyChange={setBusy} key={invoice.id} businessId={business.id} kind="invoice" documentId={invoice.id} refreshKey={invoice.updated_at||''} email={customer?.email} phone={customer?.phone} disabled={busy} onEditContact={()=>setShowCustomer(true)} onSent={async()=>{await refresh();announceCalendarChange()}}/>}
-    <DocumentActions primary={<>
-      {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowPayment(true)}>Mark Paid</button>}
-      {canManageFinances(business.role)&&invoice.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
-        {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
-
-      {plan==='free'&&isPrimaryOwner(business)&&<a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a>}
-      {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
-    </>} secondary={canManageFinances(business.role)&&invoice.status!=='void'?<>
-      {invoice.status==='draft'&&<button type="button" onClick={markSent} disabled={busy}>Mark sent manually</button>}
-      {!['void','paid'].includes(invoice.status)&&Number(invoice.amount_paid)===0&&<button type="button" className="danger-action" onClick={voidInvoice} disabled={busy}>Void invoice</button>}
+    <div className="detail-top"><button className="back-button" onClick={()=>{if(confirmNavigation())onBack()}}>← Invoices</button></div>
+    <RecordDetailHeader title={invoice.invoice_number||'Invoice'} eyebrow="Invoice" status={status} subtitle={<>{customerName(customer)}{customer?.email?' · '+customer.email:''}</>}>
+      <div className="invoice-hero-balance"><span>{invoice.status==='void'?'Voided total':'Balance due'}</span><strong>{money(invoice.status==='void'?invoice.total:invoice.balance_due)}</strong><small>Applied payments {money(invoice.amount_paid)} · {invoice.status==='void'?'No payment requested':'Total '+money(invoice.total)}</small></div>
+    </RecordDetailHeader>
+    {canManage&&<DocumentDeliveryRecovery businessId={business.id} kind="invoice" documentId={invoice.id} refreshKey={invoice.updated_at||''} onOpen={()=>setDelivery('retry')} onRecoveryChange={setRecovery}/>}
+    {canManage&&detail.paymentOperations.state!=='clear'&&<aside role="status" className="form-message"><p>{detail.paymentOperations.message||(detail.paymentOperations.state==='pending'?'An online payment is processing. Wait for confirmation before recording or requesting another payment.':detail.paymentOperations.state==='review_required'?'An online payment needs reconciliation. Review the payment before requesting or recording more funds.':'Payment processing status is unavailable. Refresh before recording another payment.')}</p>{detail.paymentOperations.state==='unavailable'&&<button type="button" className="text-button" disabled={loading} onClick={()=>void refresh()}>Retry payment status</button>}</aside>}
+    <RecordActionBar primary={action(policy.primary,true)} secondary={action(policy.secondary,false)} disabled={busy} more={hasMore?<>
+      {policy.canSendCopy&&!recovery&&<button type="button" onClick={()=>setDelivery('share')}>Send invoice copy</button>}
+      {canManage&&invoice.status==='draft'&&policy.primary!=='send'&&!recovery&&<button type="button" onClick={()=>setDelivery('send')}>Send invoice</button>}
+      {canManage&&plan==='pro'&&!['paid','void'].includes(invoice.status)&&!recovery&&detail.paymentOperations.state==='clear'&&<button type="button" onClick={()=>setDelivery('schedule')}>Schedule email delivery</button>}
+      {canManage&&invoice.status!=='void'&&!recovery&&<button type="button" onClick={()=>setShowCustomer(true)}>Edit customer contact</button>}
+      {canManage&&invoice.status==='draft'&&!recovery&&<button type="button" onClick={()=>void markSent()}>Mark sent manually</button>}
+      {canManage&&canCalendar&&!['draft','paid','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" onClick={()=>setShowFollowUp(true)}>Remind me to follow up</button>}
+      {canSchedule&&invoice.job_id&&activeJob&&!hasAppointment&&<a href={jobHref+'&schedule=1'}>Schedule existing job</a>}
+      {canSchedule&&!invoice.job_id&&<button type="button" onClick={()=>setShowJob(true)}>Schedule job</button>}
+      {canChange&&<button type="button" onClick={()=>setShowChangeOrders('new')}>New change order</button>}
+      {policy.canVoid&&!recovery&&<button type="button" className="danger-action" onClick={()=>void voidInvoice()}>Void invoice</button>}
     </>:undefined}/>
-    {receipt&&<p role="status" className="form-message success-text">{receipt}</p>}
-    {jobNotice&&<p className="form-message" role="status">{jobNotice}</p>}
-    {error&&<p className="form-message error-text" role="alert">{error}</p>}
-    {(invoice.estimate_id||invoice.deposit_estimate_id)&&<p><a href={'/?view=estimates&document='+encodeURIComponent(invoice.estimate_id||invoice.deposit_estimate_id!)}>Open original approved estimate</a>{invoice.deposit_estimate_id&&' · Deposit invoice'}</p>}
-    {invoice.deposit_source_invoice_id&&<p><a href={'/?view=invoices&document='+encodeURIComponent(invoice.deposit_source_invoice_id)}>Paid deposit credited: ${Number(invoice.deposit_credit).toFixed(2)}</a></p>}
-    {!invoice.deposit_estimate_id && canManageFinances(business.role) && <DocumentChangeOrders key={'changes:' + changeContext.documentId} business={business} context={changeContext} allowNew={offersDocumentChangeOrders('invoice', invoice.status)} onOpen={setShowChangeOrders} />}
-    <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>
-    {showResources&&<RecordResourcesDialog business={business} target={{kind:'invoice',id:invoice.id}} title={invoice.invoice_number||'Invoice'} linkedJobId={invoice.job_id} onClose={()=>setShowResources(false)}/>}
-    {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet invoice-attention-policy">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
-    {!canScheduleJob&&<DocumentSchedule business={business} kind="invoice" id={invoice.id} jobId={invoice.job_id} />}
-    {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>{setShowJob(false);void refresh()}} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
-
-    <section className="invoice-detail-grid">
-      <div>{(invoice.status==='void'||!canManageFinances(business.role))&&<DocumentPdfPreview source={{businessId:business.id,kind:'invoice',documentId:invoice.id}} title="Invoice PDF"/>}{invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}</div>
-      <aside className="invoice-side-stack">
-        <article className="detail-card"><p className="eyebrow">Payments</p><h2>Payment history</h2>{detail.payments.length===0?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span></div><strong>${Number(payment.amount).toFixed(2)}</strong></div>)}</div>}</article>
-        <article className="detail-card"><p className="eyebrow">Activity</p><h2>Messages</h2>{detail.messages.length===0?<p className="quiet">No invoice messages yet.</p>:<div className="message-list">{detail.messages.map(message=><div className="message-item" key={message.id}><div><strong>{message.channel.toUpperCase()}</strong><span>{message.status==='sent'?'Accepted for delivery':message.status}</span></div><p>{message.body}</p><small><DocumentTime value={message.sent_at||message.created_at} timezone={business.timezone}/></small></div>)}</div>}</article>
-      </aside>
+    {receipt&&<p role="status" className="form-message success-text">{receipt}</p>}{jobNotice&&<p role="status" className="form-message">{jobNotice}</p>}{error&&<p role="alert" className="form-message error-text">{error}</p>}
+    {invoice.job_id&&canSeeWork&&<p className="quiet">{job?.status==='completed'?'Linked work completed.':job?.status==='canceled'?'Linked job canceled.':hasAppointment?<>{canCalendar?'Appointment: ':'Work scheduled: '}<DocumentTime value={appointment?.starts_at||job?.scheduled_start} timezone={business.timezone}/>{job?.status==='in_progress'?' · Work in progress.':''}</>:detail.work.available?'Linked job has no active appointment.':'Linked job status could not be verified.'} <a href={jobHref!}>Open linked job</a></p>}
+    {plan==='free'&&<UpgradeLink plan="free" required="basic" canUpgrade={isPrimaryOwner(business)}>View Individual upgrade to remove Finviant branding</UpgradeLink>}
+    <RecordTabs tabs={[{id:tabIds.document,label:'Details'},{id:tabIds.resources,label:'Photos & expenses'},{id:tabIds.activity,label:'Activity',badge:detail.payments.length+detail.paymentOperations.refunds.length+detail.messages.length}]} active={tabIds[tab as keyof typeof tabIds]} onChange={changeTab} label="Invoice details"/>
+    <section id={tabIds.document+'-panel'} role="tabpanel" aria-labelledby={tabIds.document+'-tab'} hidden={tab!=='document'}>
+      <DocumentPdfPreview compact source={{businessId:business.id,kind:'invoice',documentId:invoice.id}} title="Issued invoice PDF" refreshKey={invoice.updated_at||''}/>
+      <p className="quiet">The PDF preserves the issued document. Current received funds and balance are shown above and in Activity.</p>
+      <dl className="mini-metrics"><div><dt>Issued</dt><dd>{invoice.issue_date}</dd></div><div><dt>Due</dt><dd>{invoice.due_date||'No due date'}</dd></div>{site&&<div><dt>Service address</dt><dd>{formatServiceAddress(site)}</dd></div>}</dl>
+      {invoice.customer_message&&<p className="paper-message">{invoice.customer_message}</p>}
+      {invoice.deposit_credit>0&&<p>Deposit credited: {money(invoice.deposit_credit)}{invoice.deposit_source_invoice_id&&<> · <a href={'/?view=invoices&document='+encodeURIComponent(invoice.deposit_source_invoice_id)}>Open deposit invoice</a></>}</p>}
+      {(invoice.estimate_id||invoice.deposit_estimate_id)&&<p><a href={'/?view=estimates&document='+encodeURIComponent(invoice.estimate_id||invoice.deposit_estimate_id!)}>Open original approved estimate</a>{invoice.deposit_estimate_id&&' · Schedule the approved estimate, not this deposit invoice.'}</p>}
+      {invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}
+      {!invoice.deposit_estimate_id&&canManage&&<DocumentChangeOrders business={business} context={context} allowNew={false} onOpen={setShowChangeOrders}/>}
+      {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
+      <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>
     </section>
-    {showPayment&&<RecordPaymentDialog businessId={business.id} invoice={{...invoice,customers:customer?[customer]:[]}} onClose={()=>setShowPayment(false)} onSaved={message=>{
-      setShowPayment(false);setReceipt(message);void refresh()
-    }}/>}
-    {showReminder&&<FormDialog label="Schedule reminder" busy={busy} onClose={()=>setShowReminder(false)}><div className="modal-head"><div><p className="eyebrow">Reminder</p><h2>Schedule invoice follow-up</h2></div><button className="icon-button" disabled={busy} onClick={()=>setShowReminder(false)} aria-label="Close" type="button">×</button></div><form className="form-grid" onSubmit={saveReminder}><label className="full">Remind me at<input type="datetime-local" value={reminderAt} onChange={e=>setReminderAt(e.target.value)} required/></label><label className="full">Note<textarea value={reminderNote} onChange={e=>setReminderNote(e.target.value)}/></label>{error&&<p className="form-message error-text full">{error}</p>}<div className="modal-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={()=>setShowReminder(false)}>Cancel</button><button className="primary-button" disabled={busy}>{busy?'Saving…':'Schedule reminder'}</button></div></form></FormDialog>}
+    <section id={tabIds.resources+'-panel'} role="tabpanel" aria-labelledby={tabIds.resources+'-tab'} hidden={tab!=='resources'}>{canSeeWork&&jobHref&&<p><a href={jobHref+'&tab=photos-expenses'}>View linked job photos &amp; expenses</a></p>}{resourcesOpened&&<RecordResources business={business} target={{kind:'invoice',id:invoice.id}} active={tab==='resources'}/>}</section>
+    <section id={tabIds.activity+'-panel'} role="tabpanel" aria-labelledby={tabIds.activity+'-tab'} hidden={tab!=='activity'}>
+      <article className="detail-card"><h2>Payment history</h2><p>Received funds, net of refunds: <strong>{netReceived===null?'Not verified':money(netReceived)}</strong> · Applied to invoice: <strong>{money(invoice.amount_paid)}</strong></p>
+        {!detail.payments.length&&!detail.paymentOperations.refunds.length?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'} · {payment.provider==='stripe_customer'?'Verified online payment':'Recorded payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span>{payment.notes&&<small>{payment.notes}</small>}</div><strong>{money(payment.amount)}</strong></div>)}{detail.paymentOperations.refunds.map(refund=><div className="history-row compact-history" key={refund.id}><div className="row-main"><strong>Customer refund</strong><DocumentTime value={refund.refunded_at} timezone={business.timezone}/></div><strong>−{money(refund.amount)}</strong></div>)}</div>}
+        {canManage&&detail.paymentOperations.state==='unavailable'&&<p role="alert">Refund history could not be verified. Refresh before reconciling this ledger.</p>}
+      </article>
+      <article className="detail-card"><h2>Messages</h2>{!detail.messages.length?<p className="quiet">No invoice messages yet.</p>:<div className="message-list">{detail.messages.map(message=><div className="message-item" key={message.id}><div><strong>{message.channel.toUpperCase()}</strong><span>{['sent','accepted'].includes(message.status)?'Accepted for delivery':message.status}</span></div>{message.subject&&<strong>{message.subject}</strong>}<p>{message.body}</p><small><DocumentTime value={message.sent_at||message.created_at} timezone={business.timezone}/></small></div>)}</div>}</article>
+    </section>
+    {showEdit&&canManage&&invoice.status==='draft'&&<DraftDocumentEditor businessId={business.id} kind="invoice" id={invoice.id} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()}/>}
+    {showCustomer&&canManage&&<CustomerEditDialog businessId={business.id} customerId={invoice.customer_id} onClose={()=>setShowCustomer(false)} onSaved={()=>void refresh()}/>}
+    <DocumentDeliveryDialog open={delivery!==null} onClose={()=>setDelivery(null)} initialIntent={delivery||'send'} title={delivery==='share'?'Send invoice copy':delivery==='retry'?'Review earlier invoice send':delivery==='schedule'?'Schedule invoice email':'Send invoice'} businessId={business.id} kind="invoice" documentId={invoice.id} refreshKey={invoice.updated_at||''} email={customer?.email} phone={customer?.phone} disabled={busy||!canManage||invoice.status==='void'} onEditContact={()=>setShowCustomer(true)} onBusyChange={setBusy} onSent={async()=>{await refresh();announceCalendarChange()}}/>
+    {showJob&&canSchedule&&!invoice.job_id&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>setShowJob(false)} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved appointment.':'Job and appointment saved. No customer message was sent.');setShowJob(false);void refresh()}}/></Suspense>}
+    {showPayment&&policy.canRecordPayment&&<RecordPaymentDialog businessId={business.id} invoice={{...invoice,customers:customer?[customer]:[]}} onClose={()=>setShowPayment(false)} onSaved={message=>{setShowPayment(false);setReceipt(message);void refresh()}}/>}
+    {showReminder&&policy.canRemind&&<InvoiceReminderDialog business={business} invoiceId={invoice.id} onClose={()=>setShowReminder(false)} onSent={()=>void refresh()}/>}
+    {showFollowUp&&<FormDialog label="Remind me to follow up" busy={busy} onClose={()=>setShowFollowUp(false)}><div className="modal-head"><h2>Remind me to follow up</h2><button type="button" className="icon-button" aria-label="Close reminder" onClick={()=>setShowFollowUp(false)}>×</button></div><p>This creates an internal reminder. It does not send a customer message.</p><form className="form-grid" onSubmit={saveReminder}><label>Remind me at ({business.timezone||'UTC'})<input type="datetime-local" value={reminderAt} onChange={event=>setReminderAt(event.target.value)} required/></label><label>Note<textarea value={reminderNote} onChange={event=>setReminderNote(event.target.value)} required/></label>{error&&<p role="alert">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" onClick={()=>setShowFollowUp(false)}>Cancel</button><button className="primary-button" disabled={busy}>{busy?'Saving…':'Save reminder'}</button></div></form></FormDialog>}
   </div>
 }

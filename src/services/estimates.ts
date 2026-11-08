@@ -4,6 +4,44 @@ import { collectBusinessRecords } from '../lib/businessRecords'
 import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
+import { createShareToken } from '../lib/personalDelivery'
+
+export type EstimateWorkflowContext = {
+  estimate_id: string
+  job: { id: string; title?: string; status: string; scheduled_start: string | null; scheduled_end: string | null; assigned_user_ids?: string[] } | null
+  appointment: { id: string; status: string; starts_at: string; ends_at: string | null } | null
+  schedule: { id: string; status: string; scheduled_start_time: string; scheduled_end_time: string; timezone?: string } | null
+  invitation: { status: string; expires_at: string } | null
+  final_invoice_id: string | null
+}
+
+/** A read-only projection; booking and customer authority stay in their existing RPCs. */
+export async function getEstimateWorkflowContexts(businessId: string, estimateIds: string[]) {
+  const ids = [...new Set(estimateIds)]
+  const rows: EstimateWorkflowContext[] = []
+  for (let offset = 0; offset < ids.length; offset += 200) {
+    const { data, error } = await supabase.rpc('get_estimate_workflow_context', { p_business: businessId, p_estimates: ids.slice(offset, offset + 200) })
+    if (error) throw error
+    if (!Array.isArray(data)) throw new Error('The estimate work details could not be verified. Refresh before scheduling.')
+    rows.push(...data as EstimateWorkflowContext[])
+  }
+  return rows
+}
+
+/** Reuse requestId after an uncertain response; the issued agreement is never reopened. */
+export async function createRevisedEstimate(estimateId: string, requestId: string) {
+  const { data, error } = await supabase.rpc('create_revised_estimate', { p_estimate: estimateId, p_request: requestId })
+  if (error) throw error
+  if (!data?.estimate_id || typeof data.estimate_id !== 'string') throw new Error('The revised draft could not be confirmed. Retry this same request; do not create another estimate.')
+  return data as { estimate_id: string; already_created: boolean }
+}
+
+export async function prepareEstimateCopy(businessId: string, estimateId: string, token = createShareToken()) {
+  const { data, error } = await supabase.rpc('prepare_document_copy', { p_business: businessId, p_kind: 'estimate', p_document: estimateId, p_token: token })
+  if (error) throw error
+  if (!data?.snapshot || typeof data.revision_id !== 'string') throw new Error('The read-only estimate copy could not be verified. Try this same copy again.')
+  return { url: new URL('/?document_share=' + token, window.location.origin).toString(), revisionId: data.revision_id as string }
+}
 
 export interface EstimateLineInput {
   description: string

@@ -19,10 +19,10 @@ async function amount(value){const input=document.querySelector('dialog input[ty
 try{
  await act(async()=>{await server.ssrLoadModule('/tests/billing-ui/harness.tsx')});await tick()
  assert.match(document.body.textContent,/Deposit credited/)
- await click(button('Record partial payment'))
+ await click(button('Mark Paid'))
  await amount('25');await click(button('Record partial payment',document.querySelector('dialog')))
  assert.equal(window.calls.find(c=>c.name==='record_manual_payment')?.input.payment_amount,25)
- await click(button('Mark Paid'));assert.equal(document.querySelector('dialog input[type=number]').value,'50');assert.equal(document.querySelector('dialog input[type=number]').readOnly,true)
+ await click(button('Mark Paid'));assert.equal(document.querySelector('dialog input[type=number]').value,'50');assert.equal(document.querySelector('dialog input[type=number]').readOnly,false)
  await click(button('Mark Paid',document.querySelector('dialog')))
  assert.equal(window.calls.filter(c=>c.name==='record_manual_payment').reduce((sum,c)=>sum+c.input.payment_amount,0),75)
  assert.equal(button('Mark Paid'),undefined)

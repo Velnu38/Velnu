@@ -31,6 +31,8 @@ import './components/customer-picker.css';
 import './components/document-review.css';
 import './components/document-composer.css';
 import './components/document-pdf.css';
+import './components/record-detail.css';
+import './components/upgrade-link.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing root element');

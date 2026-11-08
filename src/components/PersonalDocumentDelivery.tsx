@@ -22,9 +22,10 @@ type Props = {
   onManagedEmailRequested?: (fresh: DeliverySetup) => void | Promise<void>
   onPendingChange?: (pending: PendingPersonalSend | null) => void
   pdfArtifact?: DocumentPdfArtifact | null
+  hidePdfDownload?: boolean
 }
 
-export default function PersonalDocumentDelivery({ businessId, kind, documentId, email, phone, setup, disabled, onEditContact, onSent, onBusyChange, reminder, allowProPersonal = false, onManagedEmailRequested, onPendingChange, pdfArtifact }: Props) {
+export default function PersonalDocumentDelivery({ businessId, kind, documentId, email, phone, setup, disabled, onEditContact, onSent, onBusyChange, reminder, allowProPersonal = false, onManagedEmailRequested, onPendingChange, pdfArtifact, hidePdfDownload = false }: Props) {
   const [pending, setPending] = useState<PendingPersonalSend | null>(null)
   const [draftHref, setDraftHref] = useState('')
   const [shareUrl, setShareUrl] = useState('')
@@ -143,7 +144,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
     </div>}
     <div className="personal-delivery-actions">
       <button type="button" className="secondary-button" disabled={locked || !!pending} onClick={() => void prepare('copy')}>Copy Link</button>
-      {(preparedPdf?.pdf || pdfArtifact) && <button type="button" className="secondary-button" disabled={locked} onClick={() => downloadDocumentPdf((preparedPdf?.pdf || pdfArtifact)!)}>Download PDF</button>}
+      {!hidePdfDownload && (preparedPdf?.pdf || pdfArtifact) && <button type="button" className="secondary-button" disabled={locked} onClick={() => downloadDocumentPdf((preparedPdf?.pdf || pdfArtifact)!)}>Download PDF</button>}
       {!pending && (!preparedPdf || canShareDocumentPdf(preparedPdf.pdf)) && <button type="button" className="secondary-button" disabled={locked} onClick={() => void sharePdfByEmail()}>{preparedPdf ? 'Share PDF by email' : 'Prepare PDF to share'}</button>}
       {shareUrl && <a className="secondary-button" href={shareUrl} target="_blank" rel="noopener noreferrer">View customer link</a>}
     </div>

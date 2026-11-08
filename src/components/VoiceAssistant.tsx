@@ -16,6 +16,7 @@ import {requestFin,executeFinReview,cancelFinReview,type FinReply,type FinExecut
 import {uiCatalog,recordHref,navigationHref,type Plan} from '../../supabase/functions/fin-workflow/protocol'
 import type { CurrentBusiness } from '../lib/business'
 import {transcribeVoice,getTranscriptionStatus,type AiCommandSource} from '../services/ai'
+import { isPlanNavigationHref, PlanNavigationLink } from './UpgradeLink'
 
 type BrowserSpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type BrowserRecognizer = {
@@ -30,7 +31,14 @@ type BrowserRecognizer = {
 }
 
 function SafeFinText({text}:{text:string}){return <>{text.split(/(\*\*[^*\n]{1,100}\*\*)/g).map((part,i)=>part.startsWith('**')&&part.endsWith('**')?<strong key={i}>{part.slice(2,-2)}</strong>:part)}</>}
-function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>void}){return <section className="fin-answer" aria-label="Fin’s answer"><p className="eyebrow">Fin · Your office assistant</p><p className="fin-answer-text"><SafeFinText text={result.answer}/></p>{result.clarification&&<p className="fin-clarification"><strong>{result.clarification}</strong></p>}{result.sources?.length>0&&<details><summary>Based on saved records</summary><ul>{result.sources.map(s=><li key={s.key}>{s.label}{recordHref(s.key)&&<a href={recordHref(s.key)!} onClick={onNavigate}>Open record</a>}</li>)}</ul></details>}{result.navigation?.map(key=>Object.hasOwn(uiCatalog,key)&&<a key={key} className="secondary-button" href={navigationHref(key)!} onClick={onNavigate}>Open {uiCatalog[key as keyof typeof uiCatalog]}</a>)}<details><summary>Records checked and limits</summary><p>Checked {new Date(result.as_of).toLocaleString()}</p><ul>{result.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>}
+export function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>void}){return <section className="fin-answer" aria-label="Fin’s answer"><p className="eyebrow">Fin · Your office assistant</p><p className="fin-answer-text"><SafeFinText text={result.answer}/></p>{result.clarification&&<p className="fin-clarification"><strong>{result.clarification}</strong></p>}{result.sources?.length>0&&<details><summary>Based on saved records</summary><ul>{result.sources.map(s=><li key={s.key}>{s.label}{recordHref(s.key)&&<a href={recordHref(s.key)!} onClick={onNavigate}>Open record</a>}</li>)}</ul></details>}{result.navigation?.map(key=>{
+ const href=Object.hasOwn(uiCatalog,key)?navigationHref(key):null
+ if(!href)return null
+ const title=<>Open {uiCatalog[key as keyof typeof uiCatalog]}</>
+ return isPlanNavigationHref(href)
+  ? <PlanNavigationLink key={key} href={href} onClick={onNavigate}>{title}</PlanNavigationLink>
+  : <a key={key} className="secondary-button" href={href} onClick={onNavigate}>{title}</a>
+})}<details><summary>Records checked and limits</summary><p>Checked {new Date(result.as_of).toLocaleString()}</p><ul>{result.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>}
 
 export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: { business: CurrentBusiness; onChanged: () => void; onOpenInvoice: (draft: FinInvoiceDraft | InvoiceSourceTarget) => boolean }) {
   const [open, setOpen] = useState(false)

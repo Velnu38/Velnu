@@ -11,7 +11,7 @@ import RecordListControls, { RecordListPagination, useRecordList } from '../comp
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
-import { createJob, getJob, listJobs, updateJobStatus } from '../services/jobs'
+import { createJob, getJob, listJobs, updateJobStatus, type JobWorkflow } from '../services/jobs'
 import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
@@ -22,19 +22,19 @@ import { canAccess,isPrimaryOwner } from '../lib/workspaceAccess'
 import { useTierUsage } from '../lib/useTierUsage'
 import DispatchJobDialog from '../components/scheduling/DispatchJobDialog'
 import { getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
-import { jobInvoiceAction, jobNeedsStatusUpdate, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, nextJobAction, type JobStatus } from '../lib/jobActions'
+import { hasActiveJobAppointment, jobInvoiceAction, jobNeedsStatusUpdate, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, linkedJobInvoiceAction, nextJobAction, type JobStatus } from '../lib/jobActions'
 import CustomerPicker from '../components/CustomerPicker'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
-type Job = ReminderJob & { status: string; scheduled_start: string | null; scheduled_end?: string | null; assigned_user_ids?: string[]; customers: Customer | Customer[] | null; properties?: Property[] | null }
+type Job = ReminderJob & JobWorkflow & { status: string; scheduled_start: string | null; scheduled_end?: string | null; assigned_user_ids?: string[]; customers: Customer | Customer[] | null; properties?: Property[] | null }
 type JobQuickFilter = 'today' | 'active' | 'unscheduled' | null
 
 export default function JobsPage({ business, embedded = false, onCreateReminder }: { business: CurrentBusiness; embedded?: boolean; onCreateReminder?: (job: ReminderJob) => void }) {
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const timezone = business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
   const Heading = embedded ? 'h2' : 'h1'
-  const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean}|null>(null)
+  const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean;initialSchedule?:boolean}|null>(null)
   const [group, setGroup] = useState<JobGroup | 'all'>('all')
   const [quickFilter, setQuickFilter] = useState<JobQuickFilter>(customerScope ? null : 'active')
   const [loading, setLoading] = useState(true)
@@ -58,6 +58,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const jobFormLabel = requireAppointment ? 'Add a job to the calendar' : 'Create a job'
   function closeJobForm() { setShowForm(false); setRequireAppointment(false) }
   const requestedJob = useRef(query.get('view') === 'work' ? query.get('document') : null)
+  const requestedSchedule = useRef(query.get('schedule') === '1')
   const pendingSave = useRef<{ fingerprint: string; id: string } | null>(null)
   const saving = useRef(false)
   const mounted = useRef(false)
@@ -82,7 +83,8 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     const [jobRows, customerRows, linkedJob] = await Promise.all([listJobs(business.id, customerScope), listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
     if (linkedJob) {
-      setDetailsJob({id:linkedJob.id,initialPhotos:query.get('tab')==='photos-expenses'})
+      setDetailsJob({id:linkedJob.id,initialPhotos:query.get('tab')==='photos-expenses',initialSchedule:requestedSchedule.current})
+      if (requestedSchedule.current) { const url = new URL(location.href); url.searchParams.delete('schedule'); history.replaceState(history.state, '', url.pathname + url.search + url.hash); requestedSchedule.current = false }
       setGroup('all'); setQuickFilter(null); requestedJob.current = null
     }
     setJobs(jobRows as Job[])
@@ -150,12 +152,12 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const filteredJobs = jobs.filter(job => !teamScheduling || workerFilter === 'all' || job.assigned_user_ids?.includes(workerFilter))
   const grouped: Record<JobGroup | 'all', Job[]> = { all: [], current: [], upcoming: [], history: [] }
   const now = new Date()
-  for (const job of filteredJobs) { grouped[jobGroup(job, now, timezone)].push(job); grouped.all.push(job) }
+  for (const job of filteredJobs) { grouped[jobGroup({...job,scheduled_start:hasActiveJobAppointment(job)?job.active_appointment!.starts_at:null}, now, timezone)].push(job); grouped.all.push(job) }
   const todayDate = DateTime.now().setZone(timezone).toISODate()
-  const todayJobs = filteredJobs.filter(job => job.scheduled_start && DateTime.fromISO(job.scheduled_start).setZone(timezone).toISODate() === todayDate && !['completed','canceled'].includes(job.status))
+  const todayJobs = filteredJobs.filter(job => hasActiveJobAppointment(job) && DateTime.fromISO(job.active_appointment!.starts_at).setZone(timezone).toISODate() === todayDate && !['completed','canceled'].includes(job.status))
   const activeJobs = filteredJobs.filter(job => ['lead','scheduled','in_progress'].includes(job.status))
     .sort((a,b) => Number(jobNeedsStatusUpdate(b,now,timezone)) - Number(jobNeedsStatusUpdate(a,now,timezone)))
-  const unscheduledJobs = filteredJobs.filter(job => job.status === 'lead' && !job.scheduled_start)
+  const unscheduledJobs = filteredJobs.filter(job => ['lead','scheduled'].includes(job.status) && !hasActiveJobAppointment(job))
   const selectedJobs = quickFilter === 'today' ? todayJobs
     : quickFilter === 'active' ? activeJobs
       : quickFilter === 'unscheduled' ? unscheduledJobs
@@ -178,7 +180,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       <nav className="work-filters module-job-filters" aria-label="Job timing">{(['all', 'upcoming', 'history'] as const).map(item => <button type="button" key={item} aria-pressed={quickFilter === null && group === item} onClick={() => { setQuickFilter(null); setGroup(item); recordList.setPage(0) }}>{item === 'all' ? 'All' : item === 'upcoming' ? 'Upcoming' : 'History'}{!loading && !error && <span>{grouped[item].length}</span>}</button>)}</nav>
       {teamScheduling&&team.length>0&&<label className="worker-select">Assigned team member<select value={workerFilter} onChange={e=>{setWorkerFilter(e.target.value);recordList.setPage(0)}}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.is_you?'My jobs · ':''}{w.label}</option>)}</select></label>}
       {notice&&<p role="status" className="guided-success">{notice} {invoiceAction&&canAccess(business,"billing")&&<a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
-      <p className="work-group-description">{quickFilter === 'today' ? 'Scheduled work for the business day in your timezone.' : quickFilter === 'active' ? 'All unfinished work. Appointments needing a status update appear first.' : quickFilter === 'unscheduled' ? 'Leads that need an appointment before work can begin.' : group === 'all' ? 'All jobs, including completed and canceled work.' : group === 'upcoming' ? 'Jobs scheduled for tomorrow or later that have not started.' : 'Completed and canceled jobs stay here for reference.'}</p>
+      <p className="work-group-description">{quickFilter === 'today' ? 'Scheduled work for the business day in your timezone.' : quickFilter === 'active' ? 'All unfinished work. Appointments needing a status update appear first.' : quickFilter === 'unscheduled' ? 'Jobs that need an active appointment before work can begin.' : group === 'all' ? 'All jobs, including completed and canceled work.' : group === 'upcoming' ? 'Jobs scheduled for tomorrow or later that have not started.' : 'Completed and canceled jobs stay here for reference.'}</p>
       {!loading && !error && <RecordListControls label="jobs" list={recordList} showPagination={false} />}
       <section className="module-record-list jobs-record-list" aria-label={`${quickFilter || group} jobs`} aria-busy={loading}>
         {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : selectedJobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{quickFilter === 'today' ? 'No jobs scheduled today' : quickFilter === 'active' ? 'No active jobs' : quickFilter === 'unscheduled' ? 'Nothing needs scheduling' : group === 'all' ? 'No jobs yet' : group === 'history' ? 'No past jobs' : `No ${group} jobs`}</h3><p>{quickFilter === 'today' ? 'Appointments scheduled for today will appear here.' : quickFilter === 'active' ? 'Current and upcoming jobs will appear here.' : quickFilter === 'unscheduled' ? 'Jobs without an appointment will appear here.' : group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Choose Create job to add a job, or check Upcoming.'}</p></div> : recordList.visible.map((job) => {
@@ -186,23 +188,25 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           const crew = team.filter(worker => job.assigned_user_ids?.includes(worker.id)).map(worker => worker.label)
           const action = nextJobAction(job, canWrite(business.role) && canAccess(business,'jobs'), canDispatch)
+          const invoiceLink = canAccess(business,'billing') ? linkedJobInvoiceAction(job.invoice) : null
+          const booked = hasActiveJobAppointment(job)
           const needsUpdate = jobNeedsStatusUpdate(job,now,timezone)
           return <article className="job-row module-job-card" key={job.id}>
-            <div className="row-main module-job-main"><div className="module-job-time">{job.scheduled_start ? <><strong>{new Date(job.scheduled_start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: timezone })}</strong><span>{new Date(job.scheduled_start).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: timezone })}</span></> : <><strong>Not booked</strong><span>Appointment</span></>}</div><div className="module-job-copy"><strong className="job-card-title">{job.title}</strong><span>{customerName}</span>{job.properties?.[0] && <div className="job-location"><span className="job-location-address">{formatServiceAddress(job.properties[0])}</span><GoogleMapTools address={job.properties[0]} compact directionsOnly /></div>}{(teamScheduling || crew.length > 0) && <small className="module-job-crew">{crew.length ? `Crew · ${crew.join(', ')}` : 'Crew not assigned'}</small>}</div></div>
+            <div className="row-main module-job-main"><div className="module-job-time">{booked && job.active_appointment ? <><strong>{new Date(job.active_appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: timezone })}</strong><span>{new Date(job.active_appointment.starts_at).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: timezone })}</span></> : <><strong>{job.status==='completed'?'Completed':job.status==='canceled'?'Canceled':'Not booked'}</strong><span>{['completed','canceled'].includes(job.status)?'History':'Appointment'}</span></>}</div><div className="module-job-copy"><strong className="job-card-title">{job.title}</strong><span>{customerName}</span>{job.properties?.[0] && <div className="job-location"><span className="job-location-address">{formatServiceAddress(job.properties[0])}</span><GoogleMapTools address={job.properties[0]} compact directionsOnly /></div>}{(teamScheduling || crew.length > 0) && <small className="module-job-crew">{crew.length ? `Crew · ${crew.join(', ')}` : 'Crew not assigned'}</small>}{canAccess(business,'billing') && job.invoice && <small>Invoice · {job.invoice.number || job.invoice.status} · {job.invoice.status.replaceAll('_',' ')}</small>}</div></div>
             <div className="module-job-actions">
               <span className={`module-record-status ${job.status === 'completed' ? 'is-positive' : job.status === 'lead' ? 'is-pending' : ''}`}>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_',' ')}</span>
               {needsUpdate && <span className="job-status-followup">Past appointment · confirm job status</span>}
               <div className="job-row-actions">
                 <button type="button" className="secondary-button compact" onClick={()=>setDetailsJob({id:job.id})}>Open job</button>
-                {action && <button type="button" className="primary-button compact" disabled={busy} onClick={()=>action==='schedule'?setDispatch(job):void changeStatus(job.id,action==='start'?'in_progress':'completed')}>{action==='schedule'?'Book appointment':action==='start'?'Start job':'Mark complete'}</button>}
+                {action ? <button type="button" className="primary-button compact" disabled={busy} onClick={()=>action==='schedule'?setDispatch(job):void changeStatus(job.id,action==='start'?'in_progress':'completed')}>{action==='schedule'?'Schedule job':action==='start'?'Start job':'Mark complete'}</button> : job.status==='completed' && invoiceLink ? <a className="primary-button compact" href={invoiceLink.href}>{invoiceLink.label}</a> : null}
               </div>
             </div>
           </article>
         })}
       </section>
       {!loading && !error && <RecordListPagination label="jobs" list={recordList} className="jobs-bottom-pagination" />}
-      {detailsJob&&<JobDetailsDialog key={detailsJob.id} business={business} jobId={detailsJob.id} initialPhotos={detailsJob.initialPhotos} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
-      {dispatch&&<DispatchJobDialog business={business} job={dispatch} onClose={()=>setDispatch(null)} onSaved={()=>{setInvoiceAction(null);setNotice('Appointment saved. Confirm the time with your customer.');void refresh().catch(()=>setError('The schedule was saved, but the list could not refresh. Select Refresh to load the updated jobs.'))}}/>}
+      {detailsJob&&<JobDetailsDialog key={detailsJob.id} business={business} jobId={detailsJob.id} initialPhotos={detailsJob.initialPhotos} initialSchedule={detailsJob.initialSchedule} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
+      {dispatch&&<DispatchJobDialog business={business} job={dispatch} needsAppointmentRepair={!hasActiveJobAppointment(dispatch)} onClose={()=>setDispatch(null)} onSaved={()=>{setInvoiceAction(null);setNotice('Appointment saved. Confirm the time with your customer.');void refresh().catch(()=>setError('The schedule was saved, but the list could not refresh. Select Refresh to load the updated jobs.'))}}/>}
       {showForm && <FormDialog label={jobFormLabel} busy={busy} onClose={closeJobForm}>
         <div className="modal-head"><div><p className="eyebrow">New job</p><h2>{jobFormLabel}</h2></div><button className="icon-button" onClick={closeJobForm} aria-label="Close" type="button">×</button></div>
         <form className="form-grid" onSubmit={submit}>

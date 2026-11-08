@@ -33,6 +33,7 @@ import { validPaymentLink } from '../lib/paymentLinks'
 import '../components/scheduling/scheduling.css'
 import { getJob } from '../services/jobs'
 import { createJobInvoice } from '../services/schedulingWorkflow'
+import { invoiceIsOverdue as isOverdueInvoice, invoiceDisplayStatus } from '../lib/invoiceActions'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?:string|null; phone?:string|null }
 type Invoice = DocumentDates & { customer_id: string; id: string; invoice_number: string | null; status: string; issue_date: string; due_date: string | null; subtotal: number; tax_amount: number; total: number; amount_paid: number; balance_due: number; customers: Customer[] | null }
@@ -225,28 +226,23 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
 
   const today = DateTime.now().setZone(business.timezone || 'UTC').toISODate()!
   function invoiceIsOverdue(invoice: Invoice) {
-    return Number(invoice.balance_due) > 0 && invoice.status !== 'draft' && invoice.status !== 'void'
-      && (invoice.status === 'overdue' || !!invoice.due_date && invoice.due_date < today)
+    return isOverdueInvoice(invoice,today)
   }
   function invoiceStatus(invoice: Invoice) {
-    if (invoice.status === 'void') return 'Void'
-    if (Number(invoice.balance_due) <= 0 || invoice.status === 'paid') return 'Paid'
-    if (invoiceIsOverdue(invoice)) return 'Overdue'
-    if (invoice.status === 'partial') return 'Partly paid'
-    return invoice.status.replaceAll('_', ' ')
+    return invoiceDisplayStatus(invoice,today)
   }
   const filteredInvoices = useMemo(() => invoices.filter(invoice => {
     if (statusFilter === 'all') return true
     if (statusFilter === 'open') return Number(invoice.balance_due) > 0 && !['draft', 'void'].includes(invoice.status)
     if (statusFilter === 'draft') return invoice.status === 'draft'
     if (statusFilter === 'sent') return ['sent', 'viewed', 'partial'].includes(invoice.status) && !invoiceIsOverdue(invoice)
-    if (statusFilter === 'paid') return invoice.status === 'paid' || Number(invoice.balance_due) <= 0 && invoice.status !== 'void'
+    if (statusFilter === 'paid') return invoice.status === 'paid' || Number(invoice.balance_due) <= 0 && !['draft','void'].includes(invoice.status)
     return invoiceIsOverdue(invoice)
   }), [invoices, statusFilter, today])
   const recordList = useRecordList(filteredInvoices, row => [row.invoice_number, customerName(row.customers?.[0]), row.issue_date, row.due_date, invoiceStatus(row)].join(' '))
   const openInvoices = invoices.filter(invoice => Number(invoice.balance_due) > 0 && !['draft', 'void'].includes(invoice.status))
   const overdueInvoices = invoices.filter(invoiceIsOverdue)
-  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' || Number(invoice.balance_due) <= 0 && invoice.status !== 'void')
+  const paidInvoices = invoices.filter(invoice => invoice.status === 'paid' || Number(invoice.balance_due) <= 0 && !['draft','void'].includes(invoice.status))
   function chooseFilter(filter: InvoiceFilter) { setStatusFilter(filter); recordList.setPage(0) }
 
   if (selectedInvoiceId) return <InvoiceDetail initialEdit={editCreatedInvoice} business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);setEditCreatedInvoice(false);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />

@@ -18,11 +18,12 @@ type Work = {
 }
 export type JobScheduleMode = 'appointment' | 'crew'
 
-export default function DispatchJobDialog({ business, job, mode = 'appointment', initialDay, onClose, onSaved, onReschedule }: {
+export default function DispatchJobDialog({ business, job, mode = 'appointment', initialDay, needsAppointmentRepair = false, onClose, onSaved, onReschedule }: {
   business: CurrentBusiness
   job: Work
   mode?: JobScheduleMode
   initialDay?: string
+  needsAppointmentRepair?: boolean
   onClose: () => void
   onSaved: () => void
   onReschedule?: () => void
@@ -34,7 +35,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
   const bookingLimit = !job.scheduled_start && usage?.plan === 'free' && usage.jobs_limit !== null && usage.jobs_used >= usage.jobs_limit
   const crewOnly = mode === 'crew'
   const lockedCrew = crewOnly && plan !== 'pro'
-  const title = crewOnly ? 'Assign crew' : job.scheduled_start ? 'Reschedule appointment' : 'Book appointment'
+  const title = crewOnly ? 'Assign crew' : job.scheduled_start && !needsAppointmentRepair ? 'Reschedule appointment' : 'Schedule job'
   const [context, setContext] = useState<SchedulingContext | null>(null)
   const [selectedWorkers, setWorkers] = useState(job.assigned_user_ids ?? [])
   const [error, setError] = useState('')
@@ -68,7 +69,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
   const crewChanged = selectedWorkers.length !== currentWorkers.length || selectedWorkers.some(id => !currentWorkers.includes(id))
   const myId = context?.team.find(worker => worker.is_you)?.id
   const mustReassign = !!plan && plan !== 'pro' && currentWorkers.some(id => id !== myId)
-  const hasChanged = crewOnly ? selectedWorkers.length > 0 && crewChanged : !!start && !!end && (start !== originalStart || end !== originalEnd)
+  const hasChanged = crewOnly ? selectedWorkers.length > 0 && crewChanged : !!start && !!end && (needsAppointmentRepair || start !== originalStart || end !== originalEnd)
   const canSave = !!plan && !!context && hasChanged && !lockedCrew &&
     (crewOnly || (!bookingLimit && (!mustReassign || useMySchedule)))
 
@@ -155,7 +156,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
       <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>Cancel</button>
       {canResolveWithTime && onReschedule && <button type="button" className="secondary-button" disabled={busy} onClick={onReschedule}>Reschedule appointment</button>}
       {!lockedCrew && <button type="button" className="primary-button" disabled={busy || !canSave} onClick={() => void save()}>
-        {busy ? 'Saving…' : crewOnly ? 'Save crew' : job.scheduled_start ? 'Save new time' : 'Book appointment'}
+        {busy ? 'Saving…' : crewOnly ? 'Save crew' : job.scheduled_start && !needsAppointmentRepair ? 'Save new time' : 'Schedule job'}
       </button>}
     </div>
   </FormDialog>

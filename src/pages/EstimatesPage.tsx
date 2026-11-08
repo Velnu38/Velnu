@@ -1,4 +1,4 @@
-import {planUpgradeHref} from '../components/PlanRestriction'
+import UpgradeLink from '../components/UpgradeLink'
 import EstimateBilling from '../components/EstimateBilling'
 import {useTierUsage} from '../lib/useTierUsage'
 import CreationPreview from '../components/CreationPreview'
@@ -12,7 +12,7 @@ import {readableError} from '../lib/errors'
 import DocumentLineEditor from '../components/DocumentLineEditor'
 import DraftDocumentEditor from '../components/DraftDocumentEditor'
 import CustomerEditDialog from '../components/CustomerEditDialog'
-import DocumentActions from '../components/DocumentActions'
+import {RecordDetailHeader,RecordTabs,RecordActionBar} from '../components/RecordDetail'
 import DocumentRecord, {CreatedStamp,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
 import DocumentChangeOrders from '../components/DocumentChangeOrders'
@@ -21,22 +21,28 @@ import { DateTime } from 'luxon'
 import RecordListControls, { RecordListPagination, useRecordList } from '../components/RecordListControls'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import { getDocumentSettings } from '../services/settings'
-import { RecordResourcesDialog } from '../components/RecordResources'
-import DocumentSchedule from '../components/calendar/DocumentSchedule'
+import RecordResources from '../components/RecordResources'
 import { previewDocumentTotal } from '../lib/financialValidation'
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { listCustomers } from '../services/customers'
-import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
+import { convertEstimateToInvoice, createEstimate, createRevisedEstimate, getEstimateWorkflowContexts, listEstimates, listEstimateItems, prepareEstimateCopy, updateEstimateStatus, type EstimateWorkflowContext } from '../services/estimates'
 import DocumentPdfPreview from '../components/DocumentPdfPreview'
 import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import { createApprovalLink } from '../services/approvals'
-import DocumentDelivery from '../components/DocumentDelivery'
+import DocumentDeliveryDialog,{DocumentDeliveryRecovery} from '../components/DocumentDeliveryDialog'
 import { customerDocumentActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 import ScheduleEstimateDialog from '../components/scheduling/ScheduleEstimateDialog'
+import DispatchJobDialog from '../components/scheduling/DispatchJobDialog'
+import {getJob} from '../services/jobs'
+import {hasActiveJobAppointment} from '../lib/jobActions'
+import {readPendingPersonalSend} from '../services/personalDelivery'
+import {createShareToken} from '../lib/personalDelivery'
+import {estimateActionState} from '../lib/estimateActions'
+import {confirmNavigation} from '../lib/unsavedChanges'
 import { canAccess } from '../lib/workspaceAccess'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import CustomerEntry, { emptyCustomerDraft, newCustomerFields } from '../components/CustomerEntry'
@@ -56,7 +62,16 @@ const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '',
 const estimateMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function EstimatesPage({ business }: { business: CurrentBusiness }) {
-  const [resourceEstimate, setResourceEstimate] = useState<Pick<Estimate, 'id' | 'estimate_number' | 'job_id'> | null>(null)
+  const [activeTab,setActiveTab]=useState('details')
+  const [resourcesOpened,setResourcesOpened]=useState(false)
+  const [deliveryMode,setDeliveryMode]=useState<'send'|'copy'|null>(null)
+  const [pendingPersonal,setPendingPersonal]=useState(false)
+  const [deliveryNeedsReview,setDeliveryNeedsReview]=useState(false)
+  const [workflows,setWorkflows]=useState<Record<string,EstimateWorkflowContext>>({})
+  const [workflowError,setWorkflowError]=useState('')
+  const [dispatchJob,setDispatchJob]=useState<Awaited<ReturnType<typeof getJob>>|null>(null)
+  const revisionRequests=useRef(new Map<string,string>()),copyTokens=useRef(new Map<string,string>())
+  const readRequest=useRef(0),previewRequest=useRef(0)
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -103,16 +118,22 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
-    const [estimateRows, customerRows] = await Promise.all([listEstimates(business.id, customerScope), listCustomers(business.id)])
+    const current=++readRequest.current
+    const loaded = await Promise.all([listEstimates(business.id, customerScope), listCustomers(business.id)]).catch(err=>{if(current!==readRequest.current)return null;throw err})
+    if(!loaded)return [] as Estimate[]
+    const [estimateRows, customerRows] = loaded
+    if(current!==readRequest.current)return estimateRows as Estimate[]
     setEstimates(estimateRows as Estimate[])
     setPreviewTarget(previous=>previous?(estimateRows as Estimate[]).find(row=>row.id===previous.id)||previous:null)
     setCustomers(customerRows as Customer[])
+    try{const context=await getEstimateWorkflowContexts(business.id,estimateRows.map(row=>row.id));if(current===readRequest.current){setWorkflows(Object.fromEntries(context.map(row=>[row.estimate_id,row])));setWorkflowError('')}}catch(err){if(current===readRequest.current)setWorkflowError(readableError(err,'Work details could not refresh. Check the existing job before scheduling.'))}
     return estimateRows as Estimate[]
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useBusinessRefresh(business.id,()=>refresh().then(()=>{}))
-  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates')) }, [business.id])
+  useEffect(() => {setEstimates([]);setPreviewTarget(null);setWorkflows({});void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates'));return()=>{readRequest.current++;previewRequest.current++} }, [business.id,customerScope])
+  useEffect(()=>{let active=true;setPendingPersonal(false);const check=()=>{if(previewTarget&&['draft','sent'].includes(previewTarget.status))void readPendingPersonalSend(business.id,'estimate',previewTarget.id).then(value=>{if(active)setPendingPersonal(!!value)})};check();window.addEventListener('focus',check);window.addEventListener('finviant:delivery-state',check);return()=>{active=false;window.removeEventListener('focus',check);window.removeEventListener('finviant:delivery-state',check)}},[business.id,previewTarget?.id,previewTarget?.status,deliveryMode])
 
   const linkedDocumentOpened = useRef(false)
   useEffect(() => {
@@ -251,34 +272,79 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
 
 
   async function openPreview(target: Estimate) {
+    const current=++previewRequest.current
     setPreviewBusy(true); setError('')
     try {
       const items = await listEstimateItems(business.id, target.id)
+      if(current!==previewRequest.current)return false
       setPreviewItems(items as PreviewItem[])
+      if(previewTarget?.id!==target.id){setActiveTab('details');setResourcesOpened(false);setDeliveryMode(null);setDeliveryNeedsReview(false)}
       setPreviewTarget(target)
       history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope,target.id));return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load the estimate preview.');return false
-    } finally { setPreviewBusy(false) }
+      if(current===previewRequest.current)setError(err instanceof Error ? err.message : 'Unable to load the estimate preview.');return false
+    } finally { if(current===previewRequest.current)setPreviewBusy(false) }
   }
 
+  const canManage=canManageFinances(business.role)&&canAccess(business,'billing')
+  const canSchedule=canManage&&canAccess(business,'calendar')&&canAccess(business,'jobs')
+  const permissions={canManage,canSchedule,canOpenJob:canAccess(business,'jobs'),canOpenInvoice:canAccess(business,'billing')}
+  const actionState=(estimate:Estimate)=>estimateActionState(estimate,{...workflows[estimate.id],timezone:business.timezone},permissions)
+  const previewState=previewTarget?actionState(previewTarget):null
+  const previewWorkflow=previewTarget?workflows[previewTarget.id]:undefined
+  async function revise(estimate:Estimate){
+    if(saving.current||!actionState(estimate).canRevise)return
+    if(!confirmNavigation())return
+    if(!window.confirm('Create a new draft from this estimate? Its issued PDF, customer decision and history will stay unchanged.'))return
+    saving.current=true;setBusy(true);setError('')
+    try{let request=revisionRequests.current.get(estimate.id);if(!request){request=crypto.randomUUID();revisionRequests.current.set(estimate.id,request)}const result=await createRevisedEstimate(estimate.id,request);const rows=await refresh();const draft=rows.find(row=>row.id===result.estimate_id);if(!draft)throw new Error('The revised draft is saved. Retry this same action to reopen it; do not create another estimate.');if(await openPreview(draft)){setShowEdit(draft.status==='draft');setNotice(draft.status==='draft'?'Revised draft created. Review the dates, scope and customer terms before sending.':'The revised estimate already exists. Its current status and history are shown here.')}}catch(err){setError(readableError(err,'Unable to confirm the revised draft. Retry this same action.'))}finally{saving.current=false;setBusy(false)}
+  }
+  async function schedule(estimate:Estimate){
+    const state=actionState(estimate)
+    if(!canSchedule||!workflows[estimate.id])return
+    if(state.work.jobId){const current=++previewRequest.current;setPreviewBusy(true);setError('');try{const job=await getJob(business.id,state.work.jobId);if(current===previewRequest.current)setDispatchJob(job)}catch(err){if(current===previewRequest.current)setError(readableError(err,'Unable to load the existing job.'))}finally{if(current===previewRequest.current)setPreviewBusy(false)}}else setScheduleTarget(estimate)
+  }
+  async function runPrimary(estimate:Estimate){
+    const primary=actionState(estimate).primary
+    if(!primary)return
+    if(primary.key==='send'||primary.key==='follow_up'){if(await openPreview(estimate))setDeliveryMode(estimate.status==='sent'&&actionState(estimate).deadlineExpired&&!pendingPersonal&&!deliveryNeedsReview?'copy':'send')}
+    else if(primary.key==='revise')await revise(estimate)
+    else if(primary.key==='schedule_job')await schedule(estimate)
+  }
+  function primaryControl(estimate:Estimate,compact=false){
+    const primary=actionState(estimate).primary
+    if(!primary)return null
+    const className='primary-button'+(compact?' compact':'')
+    if(primary.key==='open_job')return <a className={className} href={'/?view=work&document='+encodeURIComponent(primary.jobId!)}>{primary.label}</a>
+    if(primary.key==='open_invoice')return <a className={className} href={'/?view=invoices&document='+encodeURIComponent(primary.invoiceId!)}>{primary.label}</a>
+    if(primary.key==='open_schedule')return <a className={className} href="/?view=dashboard">View schedule</a>
+    const waitingWork=primary.key==='schedule_job'&&!workflows[estimate.id]
+    return <button type="button" className={className} disabled={busy||previewBusy||waitingWork} onClick={()=>void runPrimary(estimate)}>{previewTarget?.id===estimate.id&&['send','follow_up'].includes(primary.key)?pendingPersonal?'Confirm sent':deliveryNeedsReview?'Review delivery':primary.label:primary.label}</button>
+  }
+  async function prepareCopy(revisionId?:string){
+    if(!previewTarget)throw new Error('Open this estimate before preparing its copy.')
+    const key=previewTarget.id+':'+(revisionId||previewTarget.updated_at||'')
+    let token=copyTokens.current.get(key);if(!token){token=createShareToken();copyTokens.current.set(key,token)}
+    return prepareEstimateCopy(business.id,previewTarget.id,token)
+  }
+  function closePreview(){previewRequest.current++;setPreviewTarget(null);setDeliveryMode(null);history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope))}
+  function selectTab(tab:string){setActiveTab(tab);if(tab==='resources')setResourcesOpened(true)}
+  function openChangeOrder(id:string){if(confirmNavigation())setShowChangeOrders(id)}
   function estimateStatus(estimate: Estimate) {
-    if (estimate.status === 'sent' || estimate.status === 'viewed') return 'Awaiting customer approval'
-    if (estimate.status === 'accepted' || estimate.status === 'converted') return 'Approved'
-    return estimate.status.replaceAll('_', ' ')
+    return actionState(estimate).displayStatus
   }
   const filteredEstimates = useMemo(() => estimates.filter(estimate => {
     if (statusFilter === 'all') return true
-    if (statusFilter === 'pipeline') return ['draft', 'sent', 'viewed'].includes(estimate.status)
+    if (statusFilter === 'pipeline') return ['draft', 'sent'].includes(estimate.status)
     if (statusFilter === 'draft') return estimate.status === 'draft'
-    if (statusFilter === 'sent') return ['sent', 'viewed'].includes(estimate.status)
+    if (statusFilter === 'sent') return estimate.status==='sent'
     if (statusFilter === 'approved') return ['accepted', 'converted'].includes(estimate.status)
     return ['declined', 'expired'].includes(estimate.status)
   }), [estimates, statusFilter])
   const recordList = useRecordList(filteredEstimates, row => [row.estimate_number, customerName(row.customers?.[0]), row.issue_date, row.expires_on, estimateStatus(row)].join(' '))
-  const awaitingApproval = estimates.filter(estimate => ['sent', 'viewed'].includes(estimate.status))
+  const awaitingApproval = estimates.filter(estimate => estimate.status==='sent')
   const approvedEstimates = estimates.filter(estimate => ['accepted', 'converted'].includes(estimate.status))
-  const pipelineEstimates = estimates.filter(estimate => ['draft', 'sent', 'viewed'].includes(estimate.status))
+  const pipelineEstimates = estimates.filter(estimate => ['draft', 'sent'].includes(estimate.status))
   function chooseFilter(filter: EstimateFilter) { setStatusFilter(filter); recordList.setPage(0) }
   const emptyFilterMessage = {
     all: 'No estimates in this view.',
@@ -313,14 +379,14 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         return <article className="document-row module-record-card estimate-module-record" key={estimate.id}>
           <div className="module-record-main"><button type="button" className="module-record-open" disabled={previewBusy} onClick={() => openPreview(estimate)} aria-label={`Open estimate ${estimate.estimate_number || ''} for ${customerName(customer)}`}><strong>{estimate.estimate_number || 'Draft estimate'}</strong></button><span>{customerName(customer)} · Issued {new Date(estimate.issue_date + 'T00:00:00').toLocaleDateString()}{estimate.expires_on ? ` · Expires ${new Date(estimate.expires_on + 'T00:00:00').toLocaleDateString()}` : ''}</span><CreatedStamp value={estimate.created_at} timezone={business.timezone}/></div>
           <div className="module-record-total"><span>Estimate total</span><strong>{estimateMoney.format(Number(estimate.total))}</strong><small>{estimate.status === 'converted' ? 'Invoice created' : 'Customer quote'}</small></div>
-          <div className="module-record-actions"><span className={`module-record-status ${['accepted','converted'].includes(estimate.status) ? 'is-positive' : ['sent','viewed'].includes(estimate.status) ? 'is-pending' : ''}`}>{currentStatus}</span><button type="button" className="primary-button compact" disabled={previewBusy} onClick={() => openPreview(estimate)}>Open estimate</button>{canManageFinances(business.role)&&['accepted','converted'].includes(estimate.status)&&!estimate.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" className="secondary-button compact" onClick={()=>setScheduleTarget(estimate)}>Book appointment</button>}<button type="button" className="text-button record-resources-shortcut" aria-label={`Photos and expenses for ${estimate.estimate_number || 'estimate'}`} onClick={() => setResourceEstimate(estimate)}>Photos &amp; expenses</button></div>
+          <div className="module-record-actions"><span className={`module-record-status ${['accepted','converted'].includes(estimate.status) ? 'is-positive' : estimate.status==='sent' ? 'is-pending' : ''}`}>{currentStatus}</span>{primaryControl(estimate,true)}</div>
         </article>
       })}
       {estimates.length > 0 && recordList.total === 0 && !recordList.search && <div className="module-empty-filter"><strong>{emptyFilterMessage}</strong><span>Choose another status or view all estimates.</span></div>}
     </section>
     {!previewTarget && <RecordListPagination label="estimates" list={recordList} className="estimate-bottom-pagination" />}
     {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
-    {resourceEstimate && <RecordResourcesDialog business={business} target={{ kind: 'estimate', id: resourceEstimate.id }} title={resourceEstimate.estimate_number || 'Estimate'} linkedJobId={resourceEstimate.job_id} onClose={() => setResourceEstimate(null)} />}
+    {dispatchJob&&<DispatchJobDialog business={business} job={dispatchJob} needsAppointmentRepair={!hasActiveJobAppointment(dispatchJob)} onClose={()=>setDispatchJob(null)} onSaved={()=>void refresh()}/>}
     {showForm && <FormDialog label="Create an estimate" autoFocusFields={false} busy={busy} cleanVersion={savedCreation.current} onClose={() => { if(savedCreation.current)void finishCreation(savedCreation.current);else {setShowForm(false);resetForm()} }} wide>
       <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
@@ -343,36 +409,41 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     </FormDialog>}
 
 
-    {previewTarget && <FormDialog label="Estimate preview" wide onClose={()=>{setPreviewTarget(null);history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope))}}><section className="estimate-preview-modal">
-        <div className="modal-head">
-          <div><p className="eyebrow">{previewTarget.estimate_number ? 'Estimate ' + previewTarget.estimate_number : 'Saved estimate'}</p><div className="record-resources-title"><h2>Estimate preview</h2><button type="button" className="secondary-button compact record-resources-entry calendar-no-print" onClick={()=>setResourceEstimate(previewTarget)}>Photos &amp; expenses</button></div></div>
-          <button className="icon-button" onClick={() => {setPreviewTarget(null);history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope))}} aria-label="Close preview" type="button">×</button>
-        </div>
+    {previewTarget && <FormDialog label="Estimate preview" wide busy={busy} onClose={closePreview}><section className="estimate-preview-modal">
+        <RecordDetailHeader eyebrow="Estimate" title={previewTarget.estimate_number||'Saved estimate'} status={<span className="status-chip">{previewState?.displayStatus}</span>} subtitle={<>{customerName(previewTarget.customers?.[0])} · {estimateMoney.format(Number(previewTarget.total))}</>}><button className="icon-button" onClick={closePreview} disabled={busy} aria-label="Close preview" type="button">×</button></RecordDetailHeader>
         {showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={previewTarget.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)setPreviewTarget(next)})}}/>}
-        {canManageFinances(business.role)&&['draft','sent'].includes(previewTarget.status)&&<DocumentDelivery onBusyChange={setBusy} key={"delivery:"+previewTarget.id} businessId={business.id} kind="estimate" documentId={previewTarget.id} refreshKey={previewTarget.updated_at||''} email={previewTarget.customers?.[0]?.email} phone={previewTarget.customers?.[0]?.phone} disabled={busy} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
-        <DocumentActions primary={<>
-          {canManageFinances(business.role)&&previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
-          {canManageFinances(business.role)&&previewTarget.status==='sent'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
-          {canManageFinances(business.role)&&['accepted','converted'].includes(previewTarget.status)&&!previewTarget.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" disabled={busy} onClick={()=>setScheduleTarget(previewTarget)}>Book appointment</button>}
-          {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={`/?view=work&document=${encodeURIComponent(previewTarget.job_id)}`}>Open linked job</a>}
-          {canManageFinances(business.role)&&previewTarget.status==='accepted'&&<button type="button" disabled={busy} onClick={()=>{setError('');setNotice('');setConvertTarget(previewTarget)}}>Create final invoice</button>}
-
-        </>} secondary={canManageFinances(business.role)?<>
-          {!['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer</button>}
-          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerDocumentActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Approval link</button>}
-          {previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
-          {previewTarget.status==='sent'&&<><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'expired')}>Expire</button></>}
-        </>:undefined}/>
+        <RecordActionBar primary={primaryControl(previewTarget)} secondary={canManage&&previewTarget.status==='draft'?<button type="button" className="secondary-button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>:undefined} disabled={busy} more={<>
+          {canManage&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer contact</button>}
+          {canManage&&<button type="button" disabled={busy} onClick={()=>setDeliveryMode(['draft','sent'].includes(previewTarget.status)?'send':'copy')}>{['draft','sent'].includes(previewTarget.status)?'Sending options':'Share estimate copy'}</button>}
+          {canManage&&previewTarget.status==='sent'&&<button type="button" disabled={busy||pendingPersonal||deliveryNeedsReview} onClick={()=>void changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
+          {canManage&&previewTarget.status==='sent'&&plan==='pro'&&customerDocumentActionsEnabled&&!previewState?.deadlineExpired&&<button type="button" disabled={busy} onClick={()=>void shareForApproval(previewTarget)}>Customer approval link</button>}
+          {canManage&&previewTarget.status==='draft'&&!pendingPersonal&&!deliveryNeedsReview&&<button type="button" disabled={busy} onClick={()=>void changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
+          {canManage&&previewTarget.status==='sent'&&<><button type="button" disabled={busy||pendingPersonal||deliveryNeedsReview} onClick={()=>void changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy||pendingPersonal||deliveryNeedsReview} onClick={()=>void changeStatus(previewTarget.id,'expired')}>Expire estimate</button></>}
+          {canManage&&previewState?.canRevise&&previewTarget.status!=='expired'&&<button type="button" disabled={busy||pendingPersonal||deliveryNeedsReview} onClick={()=>void revise(previewTarget)}>Create revised draft</button>}
+          {canManage&&previewTarget.status==='accepted'&&!previewWorkflow?.final_invoice_id&&<button type="button" disabled={busy||!previewWorkflow} onClick={()=>{if(!confirmNavigation())return;setError('');setNotice('');setConvertTarget(previewTarget)}}>Create final invoice now</button>}
+          {canManage&&previewWorkflow&&offersDocumentChangeOrders('estimate',previewTarget.status,previewWorkflow.job?.status)&&<button type="button" disabled={busy} onClick={()=>openChangeOrder('new')}>Create change order</button>}
+          {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={'/?view=work&document='+encodeURIComponent(previewTarget.job_id)}>Open linked job</a>}
+          {previewWorkflow?.final_invoice_id&&canAccess(business,'billing')&&previewTarget.status!=='converted'&&<a href={'/?view=invoices&document='+encodeURIComponent(previewWorkflow.final_invoice_id)}>Open final invoice</a>}
+          <button type="button" onClick={()=>selectTab('resources')}>Photos &amp; expenses</button>
+          <button type="button" onClick={()=>selectTab('activity')}>View activity</button>
+        </>}/>
         {notice&&<p role="status" className="form-message success-text">{notice}</p>}
         {error&&<p role="alert" className="form-message error-text">{error}</p>}
-        {canManageFinances(business.role) && changeContext && <DocumentChangeOrders key={'changes:' + changeContext.documentId} business={business} context={changeContext} allowNew={offersDocumentChangeOrders('estimate', previewTarget.status)} onOpen={setShowChangeOrders} />}
-        <DocumentRecord dates={previewTarget} timezone={business.timezone} customerId={previewTarget.customer_id} customerName={customerName(previewTarget.customers?.[0])}/>
-        {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManageFinances(business.role)} timezone={business.timezone||'America/New_York'}/>}
-        <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
-        {plan==='free'&&isPrimaryOwner(business)&&<p className="quiet"><a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a></p>}
-        {(!canManageFinances(business.role)||!['draft','sent'].includes(previewTarget.status))&&<DocumentPdfPreview source={{businessId:business.id,kind:'estimate',documentId:previewTarget.id}} title="Estimate PDF"/>}
-
+        {canManage&&['draft','sent'].includes(previewTarget.status)&&<DocumentDeliveryRecovery businessId={business.id} kind="estimate" documentId={previewTarget.id} refreshKey={previewTarget.updated_at||''} onRecoveryChange={setDeliveryNeedsReview} onOpen={()=>setDeliveryMode('send')}/>}
+        <RecordTabs label="Estimate sections" tabs={[{id:previewTarget.id+'-details',label:'Details'},{id:previewTarget.id+'-resources',label:'Photos & expenses'},{id:previewTarget.id+'-activity',label:'Activity'}]} active={previewTarget.id+'-'+activeTab} onChange={id=>selectTab(id.slice(previewTarget.id.length+1))}/>
+        <div role="tabpanel" id={previewTarget.id+'-details-panel'} aria-labelledby={previewTarget.id+'-details-tab'} hidden={activeTab!=='details'}>
+          <DocumentPdfPreview compact source={{businessId:business.id,kind:'estimate',documentId:previewTarget.id}} refreshKey={previewTarget.updated_at||''} title="Estimate PDF"/>
+          {previewState?.deadlineExpired&&previewTarget.status==='sent'&&<p role="status" className="quiet">The response deadline has passed. This issued copy remains available; create a revised draft for a new customer approval.</p>}
+          {previewTarget.status==='declined'&&<p className="quiet">The customer declined this estimate. Its issued PDF and history are retained.</p>}
+          <section className="detail-card" aria-label="Estimate work"><h3>Work &amp; appointment</h3>{!previewWorkflow?<p role="status">{workflowError||'Checking existing work and appointments…'} {workflowError&&<button type="button" className="text-button" onClick={()=>void refresh()}>Retry work details</button>}</p>:<><p><strong>{previewState?.work.label}</strong>{previewState?.work.startsAt&&<> · {DateTime.fromISO(previewState.work.startsAt).setZone(business.timezone||'UTC').toFormat('MMM d, yyyy · h:mm a ZZZZ')}</>}</p>{previewWorkflow.invitation?.status==='approved'&&<p className="quiet">Customer booking invitation: {Date.parse(previewWorkflow.invitation.expires_at)>Date.now()?'waiting for a choice':'expired'} · until {DateTime.fromISO(previewWorkflow.invitation.expires_at).setZone(business.timezone||'UTC').toFormat('MMM d, yyyy · h:mm a ZZZZ')}.</p>}{previewWorkflow.schedule&&!previewTarget.job_id&&<p className="quiet">Existing {previewWorkflow.schedule.status} document schedule. <a href="/?view=dashboard">View work calendar</a></p>}{previewState?.work.jobId&&canAccess(business,'jobs')&&<p><a href={'/?view=work&document='+encodeURIComponent(previewState.work.jobId)}>Manage linked job</a></p>}</>}</section>
+          {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManage} timezone={business.timezone||'America/New_York'} refreshKey={previewTarget.updated_at||''}/>}
+          {canManage&&changeContext&&<DocumentChangeOrders key={'changes:'+changeContext.documentId} business={business} context={changeContext} allowNew={false} onOpen={openChangeOrder}/>}
+          {plan==='free'&&<p className="quiet"><UpgradeLink plan="free" required="basic" canUpgrade={isPrimaryOwner(business)}>View Individual upgrade to remove Finviant branding</UpgradeLink></p>}
+        </div>
+        <div role="tabpanel" id={previewTarget.id+'-resources-panel'} aria-labelledby={previewTarget.id+'-resources-tab'} hidden={activeTab!=='resources'}>{resourcesOpened&&<><p className="quiet">Private business photos and expenses for this estimate.</p>{previewTarget.job_id&&canAccess(business,'jobs')&&<p><a href={'/?view=work&document='+encodeURIComponent(previewTarget.job_id)+'&tab=photos-expenses'}>View linked job photos &amp; expenses</a></p>}<RecordResources key={business.id+':'+previewTarget.id} business={business} target={{kind:'estimate',id:previewTarget.id}} active={activeTab==='resources'}/></>}</div>
+        <div role="tabpanel" id={previewTarget.id+'-activity-panel'} aria-labelledby={previewTarget.id+'-activity-tab'} hidden={activeTab!=='activity'}><DocumentRecord dates={previewTarget} timezone={business.timezone} customerId={previewTarget.customer_id} customerName={customerName(previewTarget.customers?.[0])}/><p className="quiet">Customer decisions and issued copies retain their original document revision.</p></div>
+        {canManage&&deliveryMode&&<DocumentDeliveryDialog open onClose={()=>setDeliveryMode(null)} readOnly={deliveryMode==='copy'} prepareCopy={prepareCopy} title={deliveryMode==='copy'?'Share estimate copy':previewTarget.status==='sent'?'Follow up on estimate':'Send estimate'} initialIntent={deliveryMode==='copy'?'share':'send'} onBusyChange={setBusy} businessId={business.id} kind="estimate" documentId={previewTarget.id} refreshKey={previewTarget.updated_at||''} email={previewTarget.customers?.[0]?.email} phone={previewTarget.customers?.[0]?.phone} disabled={busy} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
       </section>
     </FormDialog>}
     {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onReplace={async()=>{const link=await createApprovalLink(business.id,'estimate',approvalLink.documentId,{rotate:true});setApprovalLink({...approvalLink,url:link.url,expiresAt:link.expires_at})}} onClose={() => setApprovalLink(null)} />}

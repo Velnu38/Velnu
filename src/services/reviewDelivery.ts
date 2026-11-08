@@ -6,6 +6,13 @@ const pending=new Map<string,string>()
 /** Rotate only when the server proved the original operation never contacted the provider. */
 export const betaEmailWasNotAttempted=(detail:{code?:unknown;beta_send_not_started?:unknown}|null|undefined)=>detail?.beta_send_not_started===true&&(detail.code==='beta_recipient_not_approved'||detail.code==='beta_configuration_unavailable')
 const sendKey=(business:string,kind:DeliveryDocumentKind,id:string)=>`finviant-reviewed-email:${business}:${kind}:${id}`
+/** Read the existing opaque operation; presentation must never rotate it. */
+export function getReviewedSendOperationId(business:string,kind:DeliveryDocumentKind,id:string):string|null{
+ const key=sendKey(business,kind,id)
+ let operation=pending.get(key)||null
+ try{operation=operation||sessionStorage.getItem(key)}catch{/* In-memory state remains available. */}
+ return operation
+}
 export function clearReviewedSend(business:string,kind:DeliveryDocumentKind,id:string){const key=sendKey(business,kind,id);pending.delete(key);try{sessionStorage.removeItem(key)}catch{/* Optional storage. */}}
 export async function getDocumentDeliveryContext(business:string,kind:DeliveryDocumentKind,id:string):Promise<DocumentDeliveryContext>{
  const table=kind==='invoice'?'invoices':kind==='estimate'?'estimates':'change_orders'

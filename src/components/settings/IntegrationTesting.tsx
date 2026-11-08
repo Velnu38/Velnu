@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { PlanNavigationLink } from '../UpgradeLink'
 
 type Operation={id:string;kind:string;status:string;provider_id:string|null;created_at:string;result:{message?:string}}
 type TestStatus={sms_owner_verified?:boolean;subscription?:{status:string;cancel_at_period_end:boolean}|null;configuration:{stripe:boolean;stripe_webhook:boolean;connect_webhook:boolean;sms:boolean};state:{stripe_account?:string;stripe_customer?:string;stripe_subscription?:string};operations:Operation[];invoices:{id:string;invoice_number:string;balance_due:number}[]}
@@ -42,7 +43,9 @@ export default function IntegrationTesting({businessId}:{businessId:string}){
   <button type="button" className="secondary-button" disabled={busy} onClick={()=>void refresh()}>Refresh test results</button>
   {error&&<p className="form-message error-text" role="alert">{error}</p>}
   {message&&<p className="form-message" role="status">{message}</p>}
-  {link&&<p><a className="primary-button" href={link.url} target="_blank" rel="noopener noreferrer">{link.action==='connect'?'Continue test merchant setup':link.action==='portal'?'Open test billing portal':'Open test checkout'}</a></p>}
+  {link&&<p>{link.action==='connect'
+   ? <a className="primary-button" href={link.url} target="_blank" rel="noopener noreferrer">Continue test merchant setup</a>
+   : <PlanNavigationLink href={link.url} target="_blank">{link.action==='portal'?'Open test billing portal':'Open test checkout'}</PlanNavigationLink>}</p>}
   {!status&&!error&&<p role="status">Checking test configuration…</p>}
   {status&&<>
    <section className="settings-inset"><h3>Finviant subscription test</h3>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PlanNavigationLink } from "../UpgradeLink";
 import {
   subscriptionAction,
   type SubscriptionState,
@@ -38,7 +39,7 @@ export default function SubscriptionSettings({
   return (
     <section className="settings-panel">
       <p className="eyebrow">Owner controls</p>
-      <h2>Subscription</h2><p><a className="secondary-button" href="/?view=settings&section=plans">Plans, usage &amp; tier testing</a></p>
+      <h2>Subscription</h2><p><PlanNavigationLink href="/?view=settings&section=plans">Plans, usage &amp; tier testing</PlanNavigationLink></p>
       {error && (
         <p className="form-message error-text" role="alert">
           {error}

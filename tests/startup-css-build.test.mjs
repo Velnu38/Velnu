@@ -41,7 +41,9 @@ test('bootstrap component styles retain their previous cascade order in the entr
 
 test('workspace-only styles still have separate lazy assets', async () => {
   const assets = await readdir(new URL('assets/', output))
-  for (const pattern of [/^DashboardPage-.*\.css$/, /^settings-.*\.css$/]) {
+  // Vite names shared CSS after its importer. Removing an invoice's Settings
+  // stylesheet dependency can rename this unchanged lazy asset to SettingsPage.
+  for (const pattern of [/^DashboardPage-.*\.css$/, /^(?:settings|SettingsPage)-.*\.css$/]) {
     const asset = assets.find(name => pattern.test(name))
     assert.ok(asset, `A lazy stylesheet matching ${pattern} is emitted`)
     assert.ok(!stylesheetPaths.some(path => path.endsWith('/' + asset)), `${asset} is not loaded by the HTML entry`)

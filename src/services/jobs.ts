@@ -3,6 +3,22 @@ import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 import { completeJob } from './schedulingWorkflow'
 import { announceCalendarChange } from './calendar'
+import type { JobAppointment, JobInvoice } from '../lib/jobActions'
+
+export type JobWorkflow = { active_appointment: JobAppointment | null; invoice: JobInvoice | null }
+type WorkflowRow = JobWorkflow & { job_id: string }
+
+async function jobWorkflows(businessId: string, ids: string[]) {
+  const rows: WorkflowRow[] = []
+  for (let start = 0; start < ids.length; start += 200) {
+    const { data, error } = await supabase.rpc('get_job_workflow_context', { p_business: businessId, p_jobs: ids.slice(start, start + 200) })
+    if (error) throw error
+    if (!Array.isArray(data)) throw new Error('The current job schedule could not be verified. Refresh to try again.')
+    if (ids.slice(start, start + 200).some(id => !data.some((row: WorkflowRow) => row.job_id === id))) throw new Error('A job changed or is no longer available. Refresh to review the current jobs.')
+    rows.push(...data)
+  }
+  return new Map(rows.map(row => [row.job_id, { active_appointment: row.active_appointment ?? null, invoice: row.invoice ?? null }]))
+}
 
 export interface JobInput {
   customer_id: string
@@ -21,14 +37,15 @@ export async function listJobs(businessId: string, customerId?: string) {
   const data = await collectBusinessRecords((from, to) => {
     let query = supabase
     .from('jobs')
-    .select('id, title, description, status, scheduled_start, scheduled_end, assigned_user_ids, source_estimate_id, customer_id, property_id, customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)', { count: 'exact' })
+    .select('id, title, description, status, scheduled_start, scheduled_end, assigned_user_ids, source_estimate_id, customer_id, property_id, created_at, updated_at, completed_at, customers!jobs_customer_id_fkey(id,first_name,last_name,company),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)', { count: 'exact' })
     .eq('business_id', businessId)
     .order('id').range(from, to)
     if (customerId) query = query.eq('customer_id', customerId)
     return query
   })
   data.sort((a, b) => String(a.scheduled_start || '9999').localeCompare(String(b.scheduled_start || '9999')) || a.id.localeCompare(b.id))
-  return (data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers), properties: asList(row.properties) }))
+  const workflow = await jobWorkflows(businessId, (data ?? []).map(row => row.id))
+  return (data ?? []).map((row: any) => ({ ...row, ...workflow.get(row.id), customers: asList(row.customers), properties: asList(row.properties) }))
 }
 
 export async function createJob(businessId: string, input: JobInput) {
@@ -57,10 +74,19 @@ export async function updateJobStatus(jobId: string, status: JobInput['status'])
 /** Resolve a source link directly, including jobs beyond the first list page. */
 export async function getJob(businessId: string, id: string) {
   const { data, error } = await supabase.from('jobs')
-    .select('id,title,description,status,scheduled_start,scheduled_end,assigned_user_ids,source_estimate_id,customer_id,customers!jobs_customer_id_fkey(id,first_name,last_name,company,email,phone),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)')
+    .select('id,title,description,status,scheduled_start,scheduled_end,assigned_user_ids,source_estimate_id,customer_id,created_at,updated_at,completed_at,customers!jobs_customer_id_fkey(id,first_name,last_name,company,email,phone),properties!jobs_property_id_fkey(id,label,address_line1,address_line2,city,state,postal_code)')
     .eq('business_id', businessId).eq('id', id).single()
   if (error) throw error
-  return { ...data, customers: asList(data.customers), properties: asList(data.properties) }
+  const workflow = await jobWorkflows(businessId, [id])
+  return { ...data, ...workflow.get(id), customers: asList(data.customers), properties: asList(data.properties) }
+}
+
+export async function reopenJob(jobId: string, requestId: string) {
+  const { data, error } = await supabase.rpc('reopen_job', { p_job: jobId, p_request: requestId })
+  if (error) throw error
+  if (!data || data.job_id !== jobId || data.status !== 'lead') throw new Error('The reopened job could not be confirmed. Refresh before trying again.')
+  announceCalendarChange()
+  return data
 }
 
 export async function saveJobNotes(businessId: string, id: string, notes: string, previous: string|null) {

@@ -1,6 +1,17 @@
 import { supabase } from '../lib/supabase'
+import { getDocumentChangeContext } from './changeOrders'
 
-export async function getInvoiceDetail(businessId: string, invoiceId: string) {
+export type InvoicePaymentOperations = {
+  state: 'clear' | 'pending' | 'review_required' | 'unavailable'
+  message?: string
+  refunds: Array<{ id:string;amount:number;refunded_at:string;currency:string }>
+}
+export type InvoiceWork = {
+  job: {id:string;title:string;status:string;scheduled_start:string|null;scheduled_end:string|null;completed_at:string|null}|null
+  appointment: {id:string;starts_at:string;ends_at:string|null;status:string}|null
+  available: boolean
+}
+export async function getInvoiceDetail(businessId: string, invoiceId: string, options: {work?:boolean;calendar?:boolean;paymentOperations?:boolean} = {}) {
   const [invoice, items, payments, messages] = await Promise.all([
     supabase
       .from('invoices')
@@ -16,7 +27,7 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string) {
       .order('sort_order', { ascending: true }),
     supabase
       .from('payments')
-      .select('id,amount,method,status,paid_at,notes,provider,provider_payment_id')
+      .select('id,amount,method,status,paid_at,notes,provider')
       .eq('business_id', businessId)
       .eq('invoice_id', invoiceId)
       .order('paid_at', { ascending: false }),
@@ -34,11 +45,33 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string) {
   if (payments.error) throw payments.error
   if (messages.error) throw messages.error
 
+  const operations: Promise<InvoicePaymentOperations> = options.paymentOperations ? Promise.resolve(supabase.rpc('get_invoice_payment_operations', {
+    p_business:businessId,p_invoice:invoiceId,
+  })).then(result => {
+    if(result.error || !result.data || !['clear','pending','review_required'].includes(result.data.state) || !Array.isArray(result.data.refunds)) throw Error('Payment status unavailable')
+    return result.data as InvoicePaymentOperations
+  }).catch(() => ({state:'unavailable',message:'Payment processing and refund status could not be verified. Refresh before recording another payment.',refunds:[]})) : Promise.resolve({state:'unavailable',refunds:[]})
+  const linkedWork: Promise<InvoiceWork> = options.work && invoice.data.job_id ? (async()=>{
+    const [job,appointment] = await Promise.all([
+      supabase.from('jobs').select('id,title,status,scheduled_start,scheduled_end,completed_at').eq('business_id',businessId).eq('id',invoice.data.job_id).maybeSingle(),
+      options.calendar ? supabase.from('appointments').select('id,starts_at,ends_at,status').eq('business_id',businessId).eq('job_id',invoice.data.job_id)
+        .in('status',['scheduled','confirmed','in_progress']).order('starts_at',{ascending:false}).limit(1).maybeSingle() : Promise.resolve({data:null,error:null}),
+    ])
+    if(job.error || appointment.error || !job.data) return {job:null,appointment:null,available:false}
+    return {job:job.data,appointment:appointment.data,available:true}
+  })().catch(()=>({job:null,appointment:null,available:false})) : Promise.resolve({job:null,appointment:null,available:true})
+  const changes = options.paymentOperations && !invoice.data.deposit_estimate_id ? getDocumentChangeContext('invoice',invoiceId)
+    .then(context=>({canChange:context.can_change===true,workStatus:context.work_status})).catch(()=>({canChange:false,workStatus:''})) : Promise.resolve({canChange:false,workStatus:''})
+  const [paymentOperations,work,changeOrderContext] = await Promise.all([operations,linkedWork,changes])
+
   return {
     invoice: invoice.data,
     items: items.data ?? [],
     payments: payments.data ?? [],
     messages: messages.data ?? [],
+    paymentOperations,
+    work,
+    changeOrderContext,
   }
 }
 

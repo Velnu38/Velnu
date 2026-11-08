@@ -2,10 +2,11 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { DateTime } from 'luxon'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { canAccess, isPrimaryOwner } from '../lib/workspaceAccess'
-import { getJob, saveJobNotes, updateJobStatus } from '../services/jobs'
-import { getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
+import { getJob, reopenJob, saveJobNotes, updateJobStatus } from '../services/jobs'
+import { completeJob, getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
 import type { ReminderJob } from '../services/reminders'
-import { jobInvoiceAction, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, type JobStatus } from '../lib/jobActions'
+import { createReminder } from '../services/reminders'
+import { hasActiveJobAppointment, jobInvoiceAction, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, linkedJobInvoiceAction, nextJobAction, type JobStatus } from '../lib/jobActions'
 import { formatServiceAddress } from '../lib/googleMaps'
 import FormDialog from './FormDialog'
 import PlanRestriction from './PlanRestriction'
@@ -15,17 +16,20 @@ import RecordResources from './RecordResources'
 import { useTierUsage } from '../lib/useTierUsage'
 import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import DispatchJobDialog, { type JobScheduleMode } from './scheduling/DispatchJobDialog'
+import { RecordDetailHeader, RecordTabs, RecordActionBar } from './RecordDetail'
+import { localInstant } from '../lib/calendarTime'
 
 type Props = {
   business: CurrentBusiness
   jobId: string
   initialPhotos?: boolean
+  initialSchedule?: boolean
   onClose: () => void
   onUpdated?: () => void
   onCreateReminder?: (job: ReminderJob) => void
 }
 
-export default function JobDetailsDialog({ business, jobId, initialPhotos = false, onClose, onUpdated, onCreateReminder }: Props) {
+export default function JobDetailsDialog({ business, jobId, initialPhotos = false, initialSchedule = false, onClose, onUpdated, onCreateReminder }: Props) {
   const [job, setJob] = useState<Awaited<ReturnType<typeof getJob>> | null>(null)
   const plan = useTierUsage(business.id)?.plan
   const teamScheduling = plan === 'pro'
@@ -33,10 +37,14 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
   const [notes, setNotes] = useState(''), [error, setError] = useState('')
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState('')
   const [dispatch, setDispatch] = useState<JobScheduleMode | null>(null), [notesVersion, setNotesVersion] = useState(0)
-  const [panel, setPanel] = useState<'details' | 'photos'>(initialPhotos ? 'photos' : 'details')
+  const [panel, setPanel] = useState<'details' | 'photos' | 'activity'>(initialPhotos ? 'photos' : 'details')
   const [photosOpened, setPhotosOpened] = useState(initialPhotos)
   const tabsId = useId()
-  const detailsTab = useRef<HTMLButtonElement>(null), photosTab = useRef<HTMLButtonElement>(null)
+  const scheduleIntent = useRef(initialSchedule)
+  const reopenRequest = useRef(crypto.randomUUID())
+  const reminderRequest = useRef<{signature:string;id:string}|null>(null)
+  const [showReminder, setShowReminder] = useState(false), [reminderAt, setReminderAt] = useState(''), [reminderNote, setReminderNote] = useState('')
+  const [reminderError, setReminderError] = useState('')
   const saving = useRef(false)
   const request = useRef(0)
   const recordKey = useRef(business.id + ':' + jobId)
@@ -45,15 +53,24 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
   currentJob.current = job; currentNotes.current = notes
   const canEdit = canWrite(business.role) && canAccess(business, 'jobs')
   const canDispatch = ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'jobs') && canAccess(business, 'calendar')
+  const dispatchPermission = useRef(canDispatch)
+  dispatchPermission.current = canDispatch
   const canChangeSchedule = canDispatch && job && !['completed', 'canceled'].includes(job.status)
+  const canInvoice = ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'billing')
+  const canRemind = canEdit && canAccess(business, 'calendar')
   const zone = business.timezone || 'UTC'
 
   useEffect(() => {
     let active = true
     const current = ++request.current
     setJob(null); setNotes(''); setTeam(null); setError(''); setNotice('')
+    reopenRequest.current = crypto.randomUUID(); reminderRequest.current = null; setShowReminder(false)
     void getJob(business.id, jobId).then(row => {
-      if (active && current === request.current) { setJob(row); setNotes(row.description || '') }
+      if (active && current === request.current) {
+        setJob(row); setNotes(row.description || '')
+        if (scheduleIntent.current && dispatchPermission.current && !['completed', 'canceled'].includes(row.status)) setDispatch('appointment')
+        scheduleIntent.current = false
+      }
     }).catch(() => { if (active && current === request.current) setError('Unable to load this job. Close and try again.') })
     void getScheduleTeam(business.id).then(rows => { if (active) setTeam(rows) }).catch(() => {})
     return () => { active = false; request.current++ }
@@ -108,66 +125,139 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
     } finally { saving.current = false; setBusy(false) }
   }
 
+  async function reopen() {
+    if (saving.current || !job || !canDispatch || !['completed', 'canceled'].includes(job.status)) return
+    if (!window.confirm('Reopen this job to arrange more work? Review and save its appointment next. Previous appointments and invoices remain in your records; no customer message is sent.')) return
+    saving.current = true; setBusy(true); setError(''); setNotice('')
+    try {
+      await reopenJob(job.id, reopenRequest.current)
+      reopenRequest.current = crypto.randomUUID()
+      await reloadAfterChange()
+      setNotice('Job reopened. Review and save its appointment; no customer message was sent.')
+      setDispatch('appointment')
+    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to reopen the job. Refresh before trying again.') }
+    finally { saving.current = false; setBusy(false) }
+  }
+
+  async function prepareInvoice() {
+    if (saving.current || !job || !canInvoice) return
+    saving.current = true; setBusy(true); setError('')
+    try {
+      const result = await completeJob(job.id, true)
+      setInvoiceAction(jobInvoiceAction(result)); setNotice(jobStatusNotice('completed', result))
+      await reloadAfterChange()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to prepare the invoice.') }
+    finally { saving.current = false; setBusy(false) }
+  }
+
+  function addReminder() {
+    if (!job) return
+    if (onCreateReminder) { onCreateReminder({ id: job.id, title: job.title, customer_id: job.customer_id }); return }
+    setReminderNote('Follow up on ' + job.title); setReminderAt(''); setReminderError(''); setShowReminder(true)
+  }
+  async function saveReminder(event: FormEvent) {
+    event.preventDefault()
+    if (saving.current || !job || !canRemind) return
+    saving.current = true; setBusy(true); setReminderError('')
+    try {
+      const dueAt = localInstant(reminderAt, zone), signature = JSON.stringify({jobId, dueAt, reminderNote})
+      if (reminderRequest.current?.signature !== signature) reminderRequest.current = {signature, id: crypto.randomUUID()}
+      await createReminder(business, {id: reminderRequest.current.id, jobId, customerId: job.customer_id, note: reminderNote, dueAt})
+      reminderRequest.current = null; setShowReminder(false); setNotice('Reminder saved for this job.')
+    } catch (e) { setReminderError(e instanceof Error ? e.message : 'Unable to save the reminder.') }
+    finally { saving.current = false; setBusy(false) }
+  }
+
   const crew = team?.filter(worker => job?.assigned_user_ids?.includes(worker.id)).map(worker => worker.label) || []
   const scheduled = (value: string) => DateTime.fromISO(value).setZone(zone).toFormat('MMM d, yyyy · h:mm a')
-  function selectPanel(next: 'details' | 'photos') {
+  function selectPanel(next: 'details' | 'photos' | 'activity') {
     setPanel(next)
     if (next === 'photos') setPhotosOpened(true)
   }
+  const dirty = !!job && notes !== (job.description || '')
+  const booked = !!job && hasActiveJobAppointment(job)
+  const action = job && nextJobAction(job, canEdit, canDispatch)
+  const linkedInvoice = canInvoice ? linkedJobInvoiceAction(job?.invoice) : null
+  const closed = !!job && ['completed','canceled'].includes(job.status)
+  const canCancel = canEdit && !!job && !closed
+  const canReopen = canDispatch && closed
+  const canRequestReview = job?.status === 'completed' && ['owner','admin','office'].includes(business.role) && canEdit && !!plan
+  const hasMoreActions = !!job && (canRemind || canCancel || canReopen || canRequestReview ||
+    (canChangeSchedule && (action !== 'schedule' || teamScheduling)) ||
+    (linkedInvoice && job.status !== 'completed') || (job.status === 'completed' && canInvoice && !linkedInvoice))
+  const primary = action ? <button type="button" className="primary-button" disabled={busy} onClick={() => action === 'schedule' ? setDispatch('appointment') : void changeStatus(action === 'start' ? 'in_progress' : 'completed')}>
+    {action === 'schedule' ? 'Schedule job' : action === 'start' ? 'Start job' : 'Mark complete'}
+  </button> : job?.status === 'completed' && linkedInvoice ? <a className="primary-button" href={linkedInvoice.href}>{linkedInvoice.label}</a> : null
+  const tab = (id: string) => tabsId + '-' + id
   return <>
     <FormDialog label="Job details" cleanVersion={notesVersion} busy={busy} onClose={onClose} wide autoFocusFields={false}>
-      <div className="record-resources-head"><h2>{job?.title || 'Job details'}</h2><button type="button" className="secondary-button" disabled={busy} onClick={onClose}>Close</button></div>
+      <RecordDetailHeader title={job?.title || 'Job details'} eyebrow="Job" subtitle={job ? job.customers.map(c => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.company).join(', ') : business.name}
+        status={job ? jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_', ' ') : undefined}>
+        <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>Close</button>
+      </RecordDetailHeader>
       {error && <p role="alert">{error}</p>}
       {!job && !error && <p role="status">Loading job details…</p>}
       {job && <>
-        <div className="record-detail-tabs" role="tablist" aria-label="Job sections" onKeyDown={event=>{
-          if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return
-          event.preventDefault()
-          const next=event.key==='Home'?'details':event.key==='End'?'photos':panel==='details'?'photos':'details'
-          selectPanel(next)
-          const tab=next==='details'?detailsTab:photosTab
-          tab.current?.focus()
-        }}>
-          <button type="button" ref={detailsTab} id={tabsId+'-details-tab'} role="tab" aria-selected={panel==='details'} tabIndex={panel==='details'?0:-1}
-            aria-controls={tabsId+'-details'} onClick={()=>selectPanel('details')}>Job details</button>
-          <button type="button" ref={photosTab} id={tabsId+'-photos-tab'} role="tab" aria-selected={panel==='photos'} tabIndex={panel==='photos'?0:-1}
-            aria-controls={tabsId+'-photos'} onClick={()=>selectPanel('photos')}>Photos &amp; expenses</button>
-        </div>
-        <div role="tabpanel" id={tabsId+'-details'} aria-labelledby={tabsId+'-details-tab'} hidden={panel!=='details'}>
-        <p>{job.customers.map(c => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.company).join(', ')}</p>
+        <RecordActionBar primary={primary} disabled={busy} more={hasMoreActions ? <>
+          {canChangeSchedule && action !== 'schedule' && <button type="button" disabled={busy} onClick={() => setDispatch('appointment')}>{booked ? 'Reschedule appointment' : 'Schedule job'}</button>}
+          {canChangeSchedule && teamScheduling && <button type="button" disabled={busy} onClick={() => setDispatch('crew')}>Assign crew</button>}
+          {canRemind && <button type="button" disabled={busy} onClick={addReminder}>Add reminder</button>}
+          {linkedInvoice && job.status !== 'completed' && <a href={linkedInvoice.href}>{linkedInvoice.label}</a>}
+          {job.status === 'completed' && canInvoice && !linkedInvoice && (job.source_estimate_id
+            ? <button type="button" disabled={busy} onClick={() => void prepareInvoice()}>Prepare invoice</button>
+            : <a href={'/?view=invoices&job=' + encodeURIComponent(job.id)}>Add charges &amp; invoice</a>)}
+          {canRequestReview && plan && <GoogleReviewRequest business={business} plan={plan} customer={job.customers[0]} />}
+          {canCancel && <button type="button" className="danger-action" disabled={busy} onClick={() => void changeStatus('canceled')}>Cancel job</button>}
+          {canReopen && <button type="button" disabled={busy} onClick={() => void reopen()}>Reopen job</button>}
+        </> : undefined} />
+        {notice && <p role="status">{notice} {invoiceAction && canInvoice && !linkedInvoice && <a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
+        <RecordTabs label="Job sections" tabs={[{id:tab('details'),label:'Details'},{id:tab('photos'),label:'Photos & expenses'},{id:tab('activity'),label:'Activity'}]}
+          active={tab(panel)} onChange={id => selectPanel(id === tab('photos') ? 'photos' : id === tab('activity') ? 'activity' : 'details')} />
+        <div role="tabpanel" id={tab('details')+'-panel'} aria-labelledby={tab('details')+'-tab'} hidden={panel!=='details'}>
         <dl className="job-details-summary">
           <div><dt>Status</dt><dd>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_', ' ')}</dd></div>
-          <div><dt>Appointment</dt><dd>{job.status === 'canceled' ? 'Canceled' : job.scheduled_start ? scheduled(job.scheduled_start) : 'Not booked'}</dd></div>
-          {job.scheduled_end && job.status !== 'canceled' && <div><dt>Ends</dt><dd>{scheduled(job.scheduled_end)}</dd></div>}
+          <div><dt>Appointment</dt><dd>{job.status === 'canceled' ? 'Canceled' : booked ? scheduled(job.active_appointment!.starts_at) : job.status === 'completed' && job.scheduled_start ? scheduled(job.scheduled_start) + ' · past appointment' : 'Not booked'}</dd></div>
+          {booked && job.active_appointment?.ends_at && <div><dt>Ends</dt><dd>{scheduled(job.active_appointment.ends_at)}</dd></div>}
           {(teamScheduling || !!job.assigned_user_ids?.length) && <div><dt>Crew</dt><dd>{crew.length ? crew.join(', ') : job.assigned_user_ids?.length ? 'Crew details unavailable' : 'Not assigned'}</dd></div>}
         </dl>
+        {canInvoice && job.invoice && <p><strong>Invoice</strong> · <a href={linkedInvoice?.href}>{job.invoice.number || 'Invoice'}</a> · {job.invoice.status.replaceAll('_',' ')}</p>}
+        {job.status === 'completed' && !job.invoice && canInvoice && <p className="quiet">Work is complete. Use More to prepare an invoice or add the charges.</p>}
+        {['completed','canceled'].includes(job.status) && <p className="quiet">This job is in history. Its earlier appointments and financial records stay linked.</p>}
         <p className="quiet">Times shown in {zone.replaceAll('_', ' ')}.</p>
         <p><strong>Service address</strong><br />{job.properties[0] ? formatServiceAddress(job.properties[0]) : 'No service address recorded. Confirm the address with your customer.'}</p>
         {job.properties[0] && <GoogleMapTools address={job.properties[0]} compact />}
-        <div className="job-details-controls" data-editor-independent>
-          {canEdit && <label>Change status<select aria-label={`Status for ${job.title}`} value={job.status} disabled={busy} onChange={event => void changeStatus(event.target.value as JobStatus)}>
-            {(Object.entries(jobStatusLabels) as [JobStatus, string][]).map(([status, label]) => <option key={status} value={status} disabled={status === 'scheduled' && !job.scheduled_start}>{label}</option>)}
-          </select></label>}
-          {canChangeSchedule && <button type="button" className="secondary-button" disabled={busy} onClick={() => setDispatch('appointment')}>{job.scheduled_start ? 'Reschedule appointment' : 'Book appointment'}</button>}
-          {canChangeSchedule && teamScheduling && <button type="button" className="secondary-button" disabled={busy} onClick={() => setDispatch('crew')}>Assign crew</button>}
-          {onCreateReminder && canEdit && <button type="button" className="secondary-button" disabled={busy} onClick={() => onCreateReminder({ id: job.id, title: job.title, customer_id: job.customer_id })}>Add reminder</button>}
-        </div>
-        {job.status==='completed' && ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'jobs') && plan && <GoogleReviewRequest business={business} plan={plan} customer={job.customers[0]} />}
         {canChangeSchedule && plan && !teamScheduling && <PlanRestriction plan={plan} required="pro" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)} />}
-        <form className="job-details-notes" data-unsaved={notes !== (job.description || '')} onSubmit={save}>
+        <form className="job-details-notes" data-unsaved={dirty} onSubmit={save}>
           <label>Job notes and materials needed<textarea value={notes} maxLength={4000} rows={7} disabled={busy || !canEdit} onChange={event => { setNotes(event.target.value); setNotice('') }} placeholder="Scope, materials to bring, access instructions, and updates…" /></label>
-          {canEdit && <button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Save job details'}</button>}
+          {canEdit && dirty && <button className="secondary-button" disabled={busy}>{busy ? 'Saving…' : 'Save job details'}</button>}
         </form>
-        {notice && <p role="status">{notice} {invoiceAction&&job.status==="completed"&&canAccess(business,"billing")&&<a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
         </div>
-        <div role="tabpanel" id={tabsId+'-photos'} aria-labelledby={tabsId+'-photos-tab'} hidden={panel!=='photos'}>
+        <div role="tabpanel" id={tab('photos')+'-panel'} aria-labelledby={tab('photos')+'-tab'} hidden={panel!=='photos'}>
           {photosOpened && <RecordResources key={business.id+':'+jobId} business={business} target={{ kind: 'job', id: jobId }} active={panel==='photos'} />}
+        </div>
+        <div role="tabpanel" id={tab('activity')+'-panel'} aria-labelledby={tab('activity')+'-tab'} hidden={panel!=='activity'}>
+          <h3>Activity</h3><dl className="job-details-summary">
+            {job.created_at && <div><dt>Job created</dt><dd>{scheduled(job.created_at)}</dd></div>}
+            {job.completed_at && <div><dt>Work completed</dt><dd>{scheduled(job.completed_at)}</dd></div>}
+            {job.updated_at && <div><dt>Last updated</dt><dd>{scheduled(job.updated_at)}</dd></div>}
+            {job.active_appointment && <div><dt>Current appointment</dt><dd>{scheduled(job.active_appointment.starts_at)} · {job.active_appointment.status.replaceAll('_',' ')}</dd></div>}
+          </dl>
+          {linkedInvoice && <p><a href={linkedInvoice.href}>{linkedInvoice.label}</a>{job.invoice?.number ? ' · ' + job.invoice.number : ''} · {job.invoice?.status.replaceAll('_',' ')}</p>}
         </div>
       </>}
     </FormDialog>
-    {dispatch && job && <DispatchJobDialog key={dispatch} business={business} job={job} mode={dispatch} onReschedule={() => setDispatch('appointment')} onClose={() => setDispatch(null)} onSaved={() => {
+    {dispatch && job && <DispatchJobDialog key={dispatch} business={business} job={job} needsAppointmentRepair={!hasActiveJobAppointment(job)} mode={dispatch} onReschedule={() => setDispatch('appointment')} onClose={() => setDispatch(null)} onSaved={() => {
       setNotice(dispatch === 'crew' ? 'Crew saved.' : 'Appointment saved. Confirm the time with your customer.')
       setError(''); void reloadAfterChange()
     }} />}
+    {showReminder && <FormDialog label="Add job reminder" busy={busy} onClose={() => setShowReminder(false)}>
+      <header className="modal-head"><h2>Add reminder</h2><button type="button" className="icon-button" aria-label="Close reminder" disabled={busy} onClick={() => setShowReminder(false)}>×</button></header>
+      <form className="form-grid" onSubmit={saveReminder}>
+        <label className="full">Remind me at ({zone})<input type="datetime-local" required value={reminderAt} disabled={busy} onChange={event => setReminderAt(event.target.value)} /></label>
+        <label className="full">Reminder note<textarea required maxLength={2000} value={reminderNote} disabled={busy} onChange={event => setReminderNote(event.target.value)} /></label>
+        {reminderError && <p role="alert" className="full">{reminderError}</p>}
+        <div className="modal-actions full"><button type="button" className="secondary-button" disabled={busy} onClick={() => setShowReminder(false)}>Cancel</button><button className="primary-button" disabled={busy}>Save reminder</button></div>
+      </form>
+    </FormDialog>}
   </>
 }
