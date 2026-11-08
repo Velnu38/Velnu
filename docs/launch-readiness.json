@@ -1,0 +1,460 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-08",
+  "timezone": "America/New_York",
+  "repository": "Velnu38/Velnu",
+  "branch": "ux/private-testing-20261029",
+  "auditedCommit": "5963cd5d21897c495eb38b98398ef1a2b7cb0bfe",
+  "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
+  "observations": [
+    {
+      "title": "Live release",
+      "detail": "finviant.com/www returned HTTP 200 without a Vercel sign-in redirect. Deployment dpl_8HpqyfUaRXQgc8LAcFyX2cFRDFTB was READY; domain branch binding matches this branch. Project metadata still says SSO/all: verify actual per-environment protection rather than treating that metadata or noindex as authentication.",
+      "evidence": "Vercel get_deployment/get_project and unauthenticated HTTP reads",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Private-beta population",
+      "detail": "1 business, 1 Auth account, 1 enrolled test slot. ten_pro_test_accounts, tier_testing and private_beta_email_delivery are enabled. These observations do not establish capacity for hundreds of businesses.",
+      "evidence": "Aggregate read-only SQL on xvybcmyoblfgzokaifsx",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Current backend",
+      "detail": "The public domain serves the existing staging/private-beta Supabase project xvybcmyoblfgzokaifsx. The separate production project qusmeexjbwphoezlcmie is not the domain-bound backend; its release/migration/restore readiness was not certified by this review.",
+      "evidence": "Deployment environment guard, prior domain verification and active beta database",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Integrations",
+      "detail": "1 activated email sender and 4 delivered outbox records; beta recipient approval remains enforced. 0 active SMS senders; 0 configured/live verified payment merchants. 1 Outlook integration marked connected, no Google connection. A connected row is not refresh/sync certification. Preview environment metadata contains Outlook configuration names and no Google configuration names; values were not retrieved.",
+      "evidence": "Aggregate delivery/merchant/calendar SQL and encrypted-only Vercel environment metadata",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Database/security",
+      "detail": "Database approximately 26 MB; 16 connections observed against max_connections=60 (point-in-time snapshot, not throughput). Every public table has RLS. Security advisor: 0 ERROR categories; leaked-password protection disabled, extension-in-public warning, 5 anon and 40 authenticated definer execution findings; 45 private RLS/no-policy INFO findings require intentional deny-by-default review.",
+      "evidence": "Supabase security advisor and aggregate database SQL",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Database/performance",
+      "detail": "Performance advisor: 23 auth_rls_initplan WARN findings, 49 unindexed foreign-key INFO findings, 39 unused-index INFO findings, 1 auth connection-budget INFO finding. Index recommendations need measured plans and workload; unused indexes are not automatic deletion candidates.",
+      "evidence": "Supabase performance advisor",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Workers and queues",
+      "detail": "Three cron jobs are active: calendar each minute, tier delivery each 5 minutes, recurring invoice drafts each 15 minutes. Last-24-hour scheduler records: calendar 1,168 runs, tier delivery 288, recurring drafts 96, zero scheduler failures. Calendar queue currently empty. SQL cron success can merely mean an HTTP job was dispatched; verify worker response/completion and end-to-end lag separately.",
+      "evidence": "cron.job / cron.job_run_details and aggregate calendar queue SQL; commands/credentials were not retrieved",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Storage and telemetry",
+      "detail": "Business logos are publicly served, 2 MB/file; receipt/job photos and document PDFs use private buckets (10 MB and 8 MB/file respectively). PostHog exists with opt-in, allowlisted events/properties and replay disabled. No Sentry or Vercel Speed Insights SDK was found. The runtime API rejected a 24h lookup as Hobby retention; a 30m grouped lookup returned no rows, not an uptime/error-free certificate.",
+      "evidence": "Storage metadata, src/lib/analytics.ts, package/source inspection and Vercel logs API",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Validation limits",
+      "detail": "Latest feature evidence: 152 tier/handler/database checks, 55 startup/build checks and card DOM journeys passed in the preceding release. Current audit: npm production and full dependency audits each report 0 advisories. Fresh GitHub checks confirm Calendar integration checks failed at 5963cd5 and Pricing tier checks failed at 6e3f1a4; detailed triage and a complete green release remain CI-01. The old eight-hour campaign is historical and did not exercise hundreds of authenticated tenants concurrently.",
+      "evidence": "Previous release receipts; fresh npm audit --omit=dev / npm audit; CI definitions and preserved historical logs; https://github.com/Velnu38/Velnu/actions/runs/42505556501 and https://github.com/Velnu38/Velnu/actions/runs/42505357331",
+      "verifiedAt": "2026-11-08"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "REL-01",
+      "priority": "P0",
+      "gate": "public",
+      "status": "open",
+      "title": "Choose and rehearse the production cutover",
+      "owner": "Developer + owner",
+      "why": "The domain still uses the beta backend. A URL/key swap can strand business data, storage, tokens and callbacks.",
+      "acceptance": "Approve production ownership, stable release branch, data/storage/auth migration or retention plan, all migrations, environment-bound secrets/redirects, backup and rollback; rehearse with a second tenant before moving domains. No automatic cutover in this assessment.",
+      "evidence": []
+    },
+    {
+      "id": "REL-02",
+      "priority": "P0",
+      "gate": "public",
+      "status": "blocked_external",
+      "title": "Use commercial hosting and set budget alerts",
+      "owner": "Owner",
+      "why": "The runtime API identifies Hobby retention; Hobby is not a commercial launch plan. Supabase compute/backups/provider quotas also need verification.",
+      "acceptance": "Confirm Vercel commercial plan and Supabase paid production sizing/backup coverage; approve provider budgets, spend alerts, pause behavior and log retention. Record actual plan evidence; purchasing/upgrading is not performed by this audit.",
+      "evidence": []
+    },
+    {
+      "id": "REL-03",
+      "priority": "P0",
+      "gate": "public",
+      "status": "open",
+      "title": "Release ordinary customer onboarding safely",
+      "owner": "Developer + owner",
+      "why": "The ten-tester grant, tier testing and approved-recipient rules cannot be the production entitlement model.",
+      "acceptance": "Test signup, email verification, password recovery, company setup, agreement acceptance, invitations/revocations and deletion with genuine separate owners; preserve operator-only test tools, disable public test Pro grants and data-reset beta behavior only in the approved production environment.",
+      "evidence": []
+    },
+    {
+      "id": "CI-01",
+      "priority": "P0",
+      "gate": "public",
+      "status": "open",
+      "title": "Restore a green release gate for current user flows",
+      "owner": "Developer",
+      "why": "Some browser/financial fixtures predate the PDF handoff and current labels; the domain-bound branch auto-deploys before a complete test certificate.",
+      "acceptance": "Update obsolete fixtures without weakening functional assertions; pass complete current build, financial/tenant/voice/storage/calendar and authenticated browser journeys for the same immutable release commit. Enforce required checks and staged deployment/promotion before domain release; unify supported Node versions and include the actual release branch in CI.",
+      "evidence": []
+    },
+    {
+      "id": "SEC-01",
+      "priority": "P0",
+      "gate": "public",
+      "status": "blocked_external",
+      "title": "Harden Auth and privileged accounts",
+      "owner": "Owner + developer",
+      "why": "Compromised-password protection is disabled; public signup needs operational abuse controls.",
+      "acceptance": "Enable and verify leaked-password protection, MFA for infrastructure/operators, production Auth SMTP/redirects/session policy, least-privilege access and recovery. Verify bot/rate controls on signup, recovery and verification; record lockout/recovery tests.",
+      "evidence": []
+    },
+    {
+      "id": "SEC-02",
+      "priority": "P0",
+      "gate": "public",
+      "status": "not_verified",
+      "title": "Finish independent tenant, RPC and storage security review",
+      "owner": "Developer / security reviewer",
+      "why": "RLS presence and zero ERROR lints do not prove correct policies; public definer/token endpoints intentionally bypass normal login.",
+      "acceptance": "Review all anon/authenticated definer grants and fixed search paths, operator functions, AI/tool authorization, customer token expiry/revocation, storage isolation, webhook signatures/replay and CSP. Test at least two real tenant sessions across role changes and expired sessions; clear exploitable high findings and record intentional exceptions. Never add permissive policies to internal deny-by-default tables.",
+      "evidence": []
+    },
+    {
+      "id": "SEC-03",
+      "priority": "P0",
+      "gate": "public",
+      "status": "open",
+      "title": "Add distributed abuse limits and backpressure",
+      "owner": "Developer",
+      "why": "Monthly quotas, one calendar OAuth limiter and client buttons are not complete per-minute abuse protection.",
+      "acceptance": "Enforce account/business/IP burst limits on public token reads, signup, AI/voice, PDF, OCR, uploads and sends; verify retry-after behavior, concurrent quota races, upload/content bounds and global provider-cost ceilings. Use a shared store or atomic database counters, not per-instance memory alone.",
+      "evidence": []
+    },
+    {
+      "id": "OPS-01",
+      "priority": "P0",
+      "gate": "public",
+      "status": "not_verified",
+      "title": "Prove backup and recovery",
+      "owner": "Owner + developer",
+      "why": "No current restore drill or storage recovery evidence establishes a safe recovery point.",
+      "acceptance": "Confirm database backups/PITR as selected, separately back up private storage objects and configuration, restore an isolated full business and verify document/file hashes, permissions and financial totals. Measure recovery time/data loss against approved RTO/RPO; protect backup credentials and rehearse rollback.",
+      "evidence": []
+    },
+    {
+      "id": "OPS-02",
+      "priority": "P0",
+      "gate": "public",
+      "status": "open",
+      "title": "Install operational monitoring and route alerts",
+      "owner": "Developer + owner",
+      "why": "PostHog is product analytics, not an error or uptime monitor; limited/empty runtime logs leave major blind spots.",
+      "acceptance": "Configure Sentry or equivalent error tracing, Vercel real-user Web Vitals, synthetic public/authenticated smoke monitors, provider/queue/DB dashboards and spend alerts. Scrub contact/document content, tokens, query strings and audio. Trigger a test incident and verify it reaches the named on-call owner; set retention and sampling budgets.",
+      "evidence": []
+    },
+    {
+      "id": "OPS-03",
+      "priority": "P0",
+      "gate": "public",
+      "status": "not_verified",
+      "title": "Verify scheduled work and reconcile uncertain deliveries",
+      "owner": "Developer",
+      "why": "Active cron schedules and accepted HTTP dispatches do not establish successful background work.",
+      "acceptance": "Observe actual worker completion, heartbeat age, queue lag, failed/dead tasks, token refresh, provider 429s, expired leases, duplicate/missed runs and outage recovery. Provide operator review for uncertain sends; alert without automatically duplicating a possibly delivered message.",
+      "evidence": []
+    },
+    {
+      "id": "PERF-01",
+      "priority": "P0",
+      "gate": "public",
+      "status": "open",
+      "title": "Tune RLS, queries and connection budgets",
+      "owner": "Developer",
+      "why": "Advisors flag 23 RLS evaluation warnings and 49 missing FK indexes on a tiny database.",
+      "acceptance": "Review plans on representative tenant sizes; fix applicable auth initplan patterns and high-value FK/filter/order indexes, then rerun tenant authorization tests. Verify transaction pooler/TLS/dedicated calendar role, aggregate serverless pool limits (calendar pool max=3 per instance), Auth reserve, timeouts and pagination. Measure before/after; do not blindly drop 39 unused indexes.",
+      "evidence": []
+    },
+    {
+      "id": "PERF-02",
+      "priority": "P0",
+      "gate": "public",
+      "status": "not_verified",
+      "title": "Measure capacity with realistic isolated tenant load",
+      "owner": "Developer / QA",
+      "why": "One business and a malformed-input campaign do not establish a hundreds-of-business capacity claim.",
+      "acceptance": "Use isolated, provider-approved staging and synthetic distinct authenticated tenants; run smoke, 10/50/100-concurrent-user ramps across at least 300 workspaces, then a 60-minute soak and queue catch-up. Cover realistic invoices/jobs/history/photos, concurrent bookings/payments, PDF/AI/OCR work with bounded stub providers, and second-tenant isolation. Record p95/p99 latency, failures, saturation and cost; proceed toward 1,000 workspaces only after the first target passes.",
+      "evidence": []
+    },
+    {
+      "id": "EMAIL-01",
+      "priority": "P0",
+      "gate": "public",
+      "status": "blocked_external",
+      "title": "Release general transactional email",
+      "owner": "Owner + developer",
+      "why": "Current active sender/delivered records are restricted beta evidence; arbitrary customers remain excluded.",
+      "acceptance": "Validate production SPF/DKIM/DMARC and alignment, authorized reply routing for each business, signup emails, attachments, customer/card links, suppression/bounce/complaint handling, delivery events and quota exhaustion; verify controlled inbox receipt before deliberately changing beta recipient policy. Inbox placement cannot be guaranteed.",
+      "evidence": []
+    },
+    {
+      "id": "BILL-01",
+      "priority": "P0",
+      "gate": "paid",
+      "status": "open",
+      "title": "Implement and reconcile paid subscription activation",
+      "owner": "Developer + owner",
+      "why": "Subscription status/cancellation code exists, but no verified purchase-to-entitlement checkout path is established.",
+      "acceptance": "Verify live product/price mapping, checkout, signed billing events, idempotency and reconciliation, renewals, failed payments/grace, upgrades/downgrades, cancellation/refunds and owner-only billing. Paid entitlements must come from verified provider state, never user metadata or test tier selection.",
+      "evidence": []
+    },
+    {
+      "id": "SMS-01",
+      "priority": "P0",
+      "gate": "pro",
+      "status": "blocked_external",
+      "title": "Activate and certify managed SMS",
+      "owner": "Owner + developer",
+      "why": "No SMS sender is active. Card SMS code is implemented and should not be rebuilt as unfinished work.",
+      "acceptance": "Complete provider registration, verified sending/reply route, opt-in/STOP/START handling, signed callbacks, consent/recipient scope, segment-cost display and quota tests on controlled live numbers. Check uncertain sends/reconciliation and cross-business sender isolation. Keep activation gates until accepted.",
+      "evidence": []
+    },
+    {
+      "id": "PAY-01",
+      "priority": "P0",
+      "gate": "pro",
+      "status": "blocked_external",
+      "title": "Certify customer merchant payments and reconciliation",
+      "owner": "Owner + developer",
+      "why": "No live verified merchant is configured. Mark Paid remains a manual record, not a charge.",
+      "acceptance": "Verify merchant onboarding, hosted checkout/payment links, account binding, signatures/replay, deposit/partial/full payments, refunds/disputes, dashboard balance and activity. Test and live modes stay separate; link visits must never mark paid. Native Tap to Pay is separately deferred.",
+      "evidence": []
+    },
+    {
+      "id": "CAL-01",
+      "priority": "P0",
+      "gate": "pro",
+      "status": "blocked_external",
+      "title": "Finish Google setup and multi-account calendar certification",
+      "owner": "Owner + developer",
+      "why": "No Google connection/configuration names observed; one connected Outlook row does not prove multi-tenant refresh reliability.",
+      "acceptance": "Finish the Google external OAuth app/verification as required, scopes/redirects, publishing and token refresh; verify Google and Outlook connections, refresh/reconnect/revoke, background sync, conflicts, duplicates, time zones/DST and job/calendar consistency with separate accounts.",
+      "evidence": []
+    },
+    {
+      "id": "AI-01",
+      "priority": "P1",
+      "gate": "paid",
+      "status": "not_verified",
+      "title": "Verify AI, voice and receipt scanning live",
+      "owner": "Developer + owner",
+      "why": "Mocked quota/transcript checks are useful but do not establish provider/model access or real phone behavior. Receipt scanning uses AWS Textract.",
+      "acceptance": "Validate actual configured AI/model access, per-business provider budgets, request review/confirmation, failure recovery and two genuine tenant sessions; test iPhone/Android microphones/codecs, slow networks and receipt OCR-to-expense accuracy with controlled provider calls. Record unit costs and degraded/manual alternatives.",
+      "evidence": []
+    },
+    {
+      "id": "INT-01",
+      "priority": "P1",
+      "gate": "advertised",
+      "status": "not_verified",
+      "title": "Validate remaining advertised external integrations",
+      "owner": "Developer + owner",
+      "why": "QuickBooks is bounded read-only import; Google review requests are personal-app links, not a certified Google Business Profile integration.",
+      "acceptance": "Test QuickBooks OAuth refresh/disconnect, supported transaction import/pagination and reconciliation against a controlled real company. Verify all advertised receipt/review/payment/calendar claims match live capability; finish integration or label setup requirements before selling that benefit.",
+      "evidence": []
+    },
+    {
+      "id": "DEVICE-01",
+      "priority": "P1",
+      "gate": "public",
+      "status": "not_verified",
+      "title": "Complete real-device and accessibility acceptance",
+      "owner": "QA + owner",
+      "why": "Desktop browser and DOM contact downloads do not certify native contact saving or phone document/voice flows.",
+      "acceptance": "Test current iPhone Safari and Android Chrome: card Save to Contacts, file/native share, PDFs, approval/booking/payment links, voice permission/fallback and interrupted sessions; verify keyboard/screen reader, zoom, touch targets and critical workflows without lost edits.",
+      "evidence": []
+    },
+    {
+      "id": "OPS-04",
+      "priority": "P1",
+      "gate": "public",
+      "status": "open",
+      "title": "Set customer support, privacy and incident operations",
+      "owner": "Owner + developer",
+      "why": "Hundreds of businesses need a staffed response path, data handling rules and operator safeguards.",
+      "acceptance": "Assign support/on-call ownership, severity/response targets, incident and breach escalation, least-privilege support access, customer data export/deletion/retention procedures, documented status/maintenance communication and reviewed customer/privacy terms. Confirm refund/cancellation procedures before charging.",
+      "evidence": []
+    },
+    {
+      "id": "COST-01",
+      "priority": "P1",
+      "gate": "paid",
+      "status": "not_verified",
+      "title": "Validate tier unit economics and shared capacity",
+      "owner": "Owner + developer",
+      "why": "200 SMS segments and 600 Fin requests are finite business-wide limits; no zero-cost scaling assumption is justified.",
+      "acceptance": "Measure per-tenant AI/voice/OCR/email/SMS/storage/egress/support costs and p50/p95 usage, alert at 80/100% capacity, preserve manual workflows and explicit upgrade links. Assess larger SMS capacity or optional opt-in prepaid purchases without automatic unexpected charges; disclose all shared limits.",
+      "evidence": []
+    },
+    {
+      "id": "AUTO-01",
+      "priority": "P2",
+      "gate": "optional",
+      "status": "open",
+      "title": "Extend owner-controlled follow-up automation",
+      "owner": "Developer",
+      "why": "Scheduled email/overdue invoice reminders already exist; broader estimate/appointment automation is optional expansion.",
+      "acceptance": "Add only needed follow-up rules with owner enablement, reviewed timing, response/payment suppression and retry safety; do not advertise unimplemented rules.",
+      "evidence": []
+    },
+    {
+      "id": "EXPORT-01",
+      "priority": "P2",
+      "gate": "optional",
+      "status": "open",
+      "title": "Expand migration and complete business archives",
+      "owner": "Developer",
+      "why": "Customer CSV/vCard and service/workbook exports exist; historical document/address import and full archive are incomplete.",
+      "acceptance": "Define a versioned full export/import including addresses, document/PDF/photo history, roles and financial references; provide chunked exports beyond the existing 50,000-record scan boundary and test restore/duplicates.",
+      "evidence": []
+    },
+    {
+      "id": "PORTAL-01",
+      "priority": "P2",
+      "gate": "optional",
+      "status": "deferred",
+      "title": "Dedicated customer site",
+      "owner": "Owner-deferred",
+      "why": "Keep the requested future item; it is not required for independent document, booking, payment or E-Business Card pages.",
+      "acceptance": "Implement only after a future owner-approved portal scope; current standalone action pages remain supported.",
+      "evidence": []
+    },
+    {
+      "id": "TAP-01",
+      "priority": "P2",
+      "gate": "optional",
+      "status": "deferred",
+      "title": "Native Tap to Pay and expanded field-worker tools",
+      "owner": "Owner-deferred",
+      "why": "Manual/external payments and internal worker profiles are distinct from native card acceptance, payroll/GPS or worker login/notifications.",
+      "acceptance": "Obtain a separate approved scope, provider/device feasibility, pricing and security validation before development; do not imply these are included now.",
+      "evidence": []
+    }
+  ],
+  "recommendations": [
+    {
+      "tool": "Vercel commercial plan + Observability + Speed Insights",
+      "purpose": "Hosting, server logs and real-user loading/responsiveness",
+      "current": "Commercial eligibility/retention requires attention; Speed Insights SDK not found.",
+      "configuration": "Confirm plan, then add route-normalized Web Vitals: p75 LCP/INP/CLS by device; request error/latency dashboards and tested alerts. Strip share/OAuth tokens and query-string PII.",
+      "cost": "Paid hosting/optional monitoring usage; owner approval before purchases."
+    },
+    {
+      "tool": "Sentry React + server/Edge tracing (or one equivalent)",
+      "purpose": "Actionable errors, release-linked stack traces and sampled traces",
+      "current": "Not found in dependencies/source reviewed.",
+      "configuration": "Private source-map upload by immutable release; request IDs across Vercel/Supabase/providers; no default PII, document bodies, voice or card/share tokens. Replay off initially; limited sampling and retention.",
+      "cost": "Start small; verify current free/paid quotas. No account created or SDK installed by this assessment."
+    },
+    {
+      "tool": "One independent uptime/synthetic monitor",
+      "purpose": "Detect blank pages, failed sign-in and broken customer journeys",
+      "current": "No external alert delivery was verified.",
+      "configuration": "Check home and branded demo every 1\u20135 minutes; isolated authenticated synthetic test for dashboard and a read-only customer journey; page a named owner on sustained failure.",
+      "cost": "Choose one hosted service or approved existing monitor; set cadence and budget explicitly."
+    },
+    {
+      "tool": "Supabase advisors + database statistics + restore tooling",
+      "purpose": "Query, RLS, connection, queue and recovery health",
+      "current": "Available; advisor findings and cron metadata inspected.",
+      "configuration": "Review expensive plans using representative data; alert on saturation/dead jobs/queue age. Verify DB backup/PITR and separate storage backup through an actual isolated restore.",
+      "cost": "Production compute/backups/PITR may add charges; confirm actual settings before selecting."
+    },
+    {
+      "tool": "Grafana k6 + Lighthouse CI",
+      "purpose": "Capacity and frontend performance budgets",
+      "current": "No current hundreds-of-tenants load certificate.",
+      "configuration": "Use bounded isolated staging ramps with thresholds/abort limits; Lighthouse budgets for home/auth/dashboard/card; stub billable providers. Correlate results with DB/worker saturation.",
+      "cost": "Local/open-source runners possible; cloud load-generator usage optional and approval-dependent."
+    },
+    {
+      "tool": "GitHub dependency review/Dependabot + secret scanning/CodeQL + OWASP ZAP baseline",
+      "purpose": "Supply chain, exposed secrets, static and passive web checks",
+      "current": "Fresh npm audits show zero advisories; comprehensive scanning configuration not certified.",
+      "configuration": "Pin actions and dependencies; scan PRs; store scrubbed evidence; passive baseline on authorized staging plus authenticated tenant tests. Manual review remains necessary for financial/RPC authorization.",
+      "cost": "Feature availability depends on repository visibility and GitHub plan. No intrusive live scan performed."
+    },
+    {
+      "tool": "Distributed rate limiter + existing provider dashboards",
+      "purpose": "Abuse/cost control and delivery operations",
+      "current": "Quotas and a calendar OAuth limit exist; broad burst coverage not found.",
+      "configuration": "Prefer existing atomic Postgres limits initially or a shared Redis/Upstash store if measurements justify it. Enforce server-side; monitor Resend bounce/complaints, Twilio opt-outs/segments, Stripe events and AI spend.",
+      "cost": "Avoid adding Redis or overlapping APM products until required; provider costs remain usage-based."
+    },
+    {
+      "tool": "Existing PostHog",
+      "purpose": "Product adoption/conversion",
+      "current": "Installed; opt-in, event allowlist, replay disabled.",
+      "configuration": "Keep for product questions, maintain consent/scrubbing and investigate usage funnels; use operational monitoring separately.",
+      "cost": "Retain existing stack; do not duplicate analytics by default."
+    },
+    {
+      "tool": "Existing ChatGPT GitHub, Vercel and Supabase connections",
+      "purpose": "Read configuration/CI evidence and maintain the assessment",
+      "current": "Already connected and used in this review; no additional admin plugin is required for the current audit.",
+      "configuration": "Use these for administration and evidence. Customer-facing error/performance monitoring still requires the actual app SDKs, platform settings, dashboards and alert routes above; installing a chat plugin alone does not instrument Finviant.",
+      "cost": "Retain existing connections; avoid migrating backend platforms or installing unrelated plugins to solve monitoring."
+    }
+  ],
+  "sources": [
+    [
+      "Vercel commercial-use policy",
+      "https://vercel.com/docs/limits/fair-use-guidelines"
+    ],
+    [
+      "Vercel account plans and retention",
+      "https://vercel.com/docs/plans"
+    ],
+    [
+      "Vercel Speed Insights",
+      "https://vercel.com/docs/speed-insights"
+    ],
+    [
+      "Vercel alerts",
+      "https://vercel.com/docs/alerts"
+    ],
+    [
+      "Sentry sensitive-data configuration",
+      "https://docs.sentry.io/platforms/javascript/guides/react/data-management/sensitive-data/"
+    ],
+    [
+      "Supabase production checklist",
+      "https://supabase.com/docs/guides/deployment/going-into-prod"
+    ],
+    [
+      "Supabase backups",
+      "https://supabase.com/docs/guides/platform/backups"
+    ],
+    [
+      "Supabase pooling and connection limits",
+      "https://supabase.com/docs/guides/database/connecting-to-postgres/pooling-and-limits"
+    ],
+    [
+      "k6 pass/fail thresholds",
+      "https://grafana.com/docs/k6/latest/using-k6/thresholds/"
+    ],
+    [
+      "ZAP passive baseline",
+      "https://www.zaproxy.org/docs/docker/baseline-scan/"
+    ]
+  ]
+}
