@@ -10,7 +10,7 @@ HTMLElement.prototype.scrollIntoView=function(){};HTMLDialogElement.prototype.sh
 globalThis.IS_REACT_ACT_ENVIRONMENT=true
 const React=await import('react'),{act}=React,{createRoot}=await import('react-dom/client'),root=createRoot(document.getElementById('root'))
 const server=await createServer({server:{middlewareMode:true,hmr:false},appType:'custom',optimizeDeps:{noDiscovery:true,include:[]}})
-const B='11111111-1111-4111-8111-111111111111';let filter='attention',payment='clear',count=0,calendarJobStatus=null,calls=[],supabase
+const B='11111111-1111-4111-8111-111111111111';let filter='attention',payment='clear',count=0,calendarJobStatus=null,calls=[],supabase,plan='pro'
 const tick=()=>act(()=>new Promise(r=>setTimeout(r,35)))
 const button=t=>[...document.querySelectorAll('button')].find(el=>el.textContent.trim()===t)
 const click=async t=>{assert.ok(button(t),t);await act(async()=>button(t).click());await tick()}
@@ -20,7 +20,7 @@ try{
  ({supabase}=await server.ssrLoadModule('/src/lib/supabase.ts'))
  supabase.auth.getSession=async()=>({data:{session:{access_token:'test'}},error:null})
  supabase.rpc=(name,args)=>{calls.push({name,args});let data=[]
-  if(name==='get_plan_usage')data={plan:'pro',financial_history:true}
+  if(name==='get_plan_usage')data={plan,financial_history:true}
   if(name==='get_dashboard_invoice_totals')data={open_invoices:1,outstanding_balance:100}
   if(name==='get_schedule_team')data=[{id:'owner',label:'Owner',is_you:true}]
   if(name==='set_job_status_atomic'){calendarJobStatus=args.p_status;data={id:args.p_job_id,status:args.p_status}}
@@ -39,8 +39,10 @@ try{
  assert.ok(document.querySelector('.home-calendar-compact'));assert.ok(document.querySelector('.performance-compact'));assert.ok(document.querySelector('#home-attention'))
  await click('Quick Links');assert.equal(document.querySelector('dialog').getAttribute('aria-label'),'Quick Links')
  for(const destination of ['invoices','estimates','work','reminders','customers'])assert.ok(document.querySelector(`.home-create-options a[href*="view=${destination}"]`))
+ assert.equal(document.querySelector('.home-create-options a[aria-label="Team Management"]').getAttribute('href'),'/?view=settings&section=team')
+ assert.equal(document.querySelector('.home-create-options button'),null,'calendar creation is removed from Quick Links')
  await act(async()=>document.querySelector('button[aria-label="Close"]').click());await tick()
- assert.equal([...document.querySelectorAll('button')].filter(el=>el.textContent.trim()==='Refresh').length,1);assert.equal(document.querySelector('.home-header-actions details').open,false)
+ assert.equal([...document.querySelectorAll('button')].filter(el=>el.textContent.trim()==='Refresh').length,1);assert.equal(document.querySelector('.home-header-actions details'),null);assert.ok(document.querySelector('.home-header-actions>.refresh-button'));const beforeRefresh=calls.filter(c=>c.name==='get_dashboard_invoice_totals').length;await click('Refresh');await tick();assert.ok(calls.filter(c=>c.name==='get_dashboard_invoice_totals').length>beforeRefresh,'Home refresh retains its data reload')
  assert.equal(document.querySelector('.worker-select'),null,'solo owner does not need a redundant crew filter')
  const extras=[...document.querySelectorAll('.home-calendar-extras>details')];assert.equal(extras.length,2);assert.ok(extras.every(el=>!el.open));assert.ok(document.querySelector('.home-calendar-extras a'))
  await click('Today');await click('Month');assert.match(document.body.textContent,/Monthly calendar/);await click('Week')
@@ -62,7 +64,16 @@ try{
  window.confirm=()=>false;await click('Mark complete');assert.equal(completions,0)
  window.confirm=()=>true;const finish=button('Mark complete');await act(async()=>{finish.click();finish.click()});await tick();await tick();assert.equal(completions,1);assert.match(document.body.textContent,/invoice draft is ready/);assert.equal(button('Mark complete'),undefined)
  await act(async()=>root.render(React.createElement(Calendar,{business:{...business,role:'viewer'},compact:true,key:'viewer'})));await tick();assert.equal(button('Start job'),undefined);assert.equal(button('Mark complete'),undefined);assert.equal(button('Add to calendar'),undefined)
+ for(const tier of ['free','basic','pro']){
+  plan=tier;calendarJobStatus=null;await act(async()=>root.render(React.createElement(Home,{business,key:'home-'+tier})));await tick();await tick();await click('Quick Links');assert.ok(document.querySelector('.home-create-options a[aria-label="Team Management"]'),'owner Team Management link on '+tier);assert.equal(document.querySelector('.home-create-options button'),null)
+  await act(async()=>document.querySelector('button[aria-label="Close"]').click());await tick()
+ }
+ for(const role of ['office','technician','viewer']){
+  const member={...business,role,primary_owner:false};await act(async()=>root.render(React.createElement(Home,{business:member,key:role})));await tick();await tick()
+  if(role==='viewer'){assert.equal(button('Quick Links'),undefined);continue}
+  await click('Quick Links');assert.equal(!!document.querySelector('.home-create-options a[aria-label="Team Management"]'),role==='office');assert.equal(document.querySelector('.home-create-options button'),null)
+ }
  assert.ok(!calls.some(c=>c.name.startsWith('send_')||c.name==='record_manual_payment'||c.name==='set_tier_test'),'read-only layout checks never send or record money')
- console.log('PASS Home Quick Links, existing destinations, visible queue/filter switching, approval breakdown, pagination, payment-processing guard, calendar modes/Today/solo filter, financial drilldown visible reconnect issues, shared job start/completion confirmation, duplicate-click protection and viewer restrictions')
+ console.log('PASS Home Quick Links, Team Management tier/permission visibility, removed calendar shortcut, visible Refresh, existing destinations, visible queue/filter switching, approval breakdown, pagination, payment-processing guard, calendar modes/Today/solo filter, financial drilldown visible reconnect issues, shared job start/completion confirmation, duplicate-click protection and viewer restrictions')
 }finally{await act(async()=>root.unmount());await supabase?.auth.stopAutoRefresh();await supabase?.removeAllChannels();await server.close();dom.window.close()}
 process.exit(0)

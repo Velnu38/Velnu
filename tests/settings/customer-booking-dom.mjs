@@ -56,6 +56,7 @@ try{
  assert.equal(button('Confirm appointment').disabled,true)
  await choose(S1);await fullName('Alex Customer')
  assert.equal(button('Confirm appointment').disabled,false)
+ const readsBeforeRefresh=calls.length;await click('Refresh times');assert.ok(calls.length>readsBeforeRefresh,'Refresh times reloads availability');assert.equal(document.querySelector('input[autocomplete=name]').value,'Alex Customer');assert.ok(document.querySelector('input[name=customer-slot]:checked'),'refresh preserves an available selected time');assert.equal(calls.filter(call=>call.p_slot).length,0,'refresh never confirms a booking')
  const zoneToggle=[...document.querySelectorAll('input[type=checkbox]')][0]
  if(zoneToggle){await act(async()=>zoneToggle.click());await tick();assert.match(document.querySelector('input[name=customer-slot]').closest('label').textContent,/1:00 PM–3:00 PM/)}
  view.slots=[structuredClone(slots[1])]
@@ -135,6 +136,7 @@ try{
   if(name==='get_scheduling_context')return {data:structuredClone(context),error:null}
   if(name==='suggest_scheduling_slots')return {data:structuredClone(slots),error:null}
   if(name==='get_schedule_team')return {data:structuredClone(context.team),error:null}
+  if(name==='get_job_workflow_context')return {data:args.p_jobs.map(id=>({job_id:id,active_appointment:{id:'live-booking',starts_at:jobRow.scheduled_start,ends_at:jobRow.scheduled_end,status:'scheduled'},invoice:null})),error:null}
   if(name==='approve_scheduling_offer')return {data:{id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',expires_at:'2040-03-20T23:59:00Z',status:'approved'},error:null}
   throw new Error('Unexpected owner RPC: '+name)
  }

@@ -1,3 +1,4 @@
+import RefreshButton from '../components/RefreshButton'
 import { useEffect, useRef, useState } from 'react'
 import { getSharedDocument, type SharedDocument } from '../services/personalDelivery'
 import { supabase } from '../lib/supabase'
@@ -78,7 +79,7 @@ export default function SharedDocumentPage({ token }: { token: string }) {
     <header className="customer-document-summary"><div><p className="eyebrow">{doc.company.name}</p><h1>{label} {doc.number}</h1></div><p>Status: <strong>{status.replaceAll('_', ' ')}</strong></p></header>
     <DocumentPdfPreview source={{ token, tokenType: 'share' }} title={`${label} ${doc.number}`} />
     <section className="customer-document-live" aria-label="Document status and actions">
-      <h2>{doc.kind === 'invoice' ? 'Payment status' : 'Approval status'}</h2>
+      <div className="refresh-heading"><h2>{doc.kind === 'invoice' ? 'Payment status' : 'Approval status'}</h2><RefreshButton label="Refresh status" onClick={() => setAttempt(value => value + 1)}/></div>
       {doc.kind === 'invoice' ? <>
         <p>Paid: {money(Number(doc.live_amount_paid ?? doc.amount_paid ?? 0))}</p><p><strong>Current balance: {money(balance)}</strong></p>
         {balance <= 0 && status === 'paid' ? <p>This invoice is paid. Keep the PDF for your records.</p> : <>
@@ -93,7 +94,7 @@ export default function SharedDocumentPage({ token }: { token: string }) {
         : <p>{doc.action_reason || 'This document is available for viewing. Contact the business with your decision or questions.'}</p>}
       {error && <p role="alert">{error}</p>}
       <p className="quiet">The PDF preserves the issued document. Payment and approval status above can update separately.</p>
-      <button className="text-button" onClick={() => setAttempt(value => value + 1)}>Refresh status</button>
+
     </section>
     <p>{doc.company.email} {doc.company.phone}</p><p className="quiet">Keep this private document link secure.</p>
   </main>

@@ -1,3 +1,4 @@
+import RefreshButton from '../RefreshButton'
 import {useEffect,useRef,useState,type FormEvent} from 'react'
 import {getSmsSetupStatus,requestMobileCode,confirmMobileCode,type SmsSetupStatus} from '../../services/smsSetup'
 import {normalizeMobile} from '../../lib/smsPhone'
@@ -19,7 +20,7 @@ export default function SmsSetup({businessId}:{businessId:string}){
   try{setStatus(await confirmMobileCode(businessId,requested,code.trim()));setRequested('');setCode('');setPhone('');guard.markClean();setNotice('Your mobile number is verified. Messaging activation still needs the provider setup below.')}catch(e){setError((e as Error).message)}finally{inFlight.current=false;setBusy(false)}
  }
  return <section className="settings-panel" aria-label="Owner mobile verification" data-saving={busy?'true':undefined}>
-  <h2>Text messaging setup</h2><p>Before sending texts, the primary business owner must verify an SMS-capable mobile number. Account creation continues to use email.</p>
+  <div className="refresh-heading"><h2>Text messaging setup</h2><RefreshButton label="Refresh verification status" disabled={busy} onClick={()=>void refresh()}/></div><p>Before sending texts, the primary business owner must verify an SMS-capable mobile number. Account creation continues to use email.</p>
   {!status&&!error&&<p role="status">Checking your verified number…</p>}
   {status&&<p className="form-message" role="status">{status.owner_mobile_verified?`Owner mobile verified · ending ${status.phone_last4}`:'Owner mobile verification required. SMS sending is locked until verification succeeds.'}</p>}
   {status&&!status.phone_verification_available&&<p className="form-message">Mobile verification is awaiting SMS provider setup. Your email login remains available.</p>}
@@ -30,7 +31,7 @@ export default function SmsSetup({businessId}:{businessId:string}){
    {requested&&requested===normalized&&<><label>Verification code<input type="text" autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} required/></label><button className="primary-button" disabled={!/^\d{6}$/.test(code)}>{busy?'Checking…':'Verify mobile number'}</button></>}
   </fieldset></form>
   {notice&&<p className="form-message" role="status">{notice}</p>}{error&&<p className="form-message error-text" role="alert">{error}</p>}
-  <button type="button" className="text-button" disabled={busy} onClick={()=>void refresh()}>Refresh verification status</button>
+
   <div className="settings-inset"><h3>Messaging activation</h3><p>Customer invoice and estimate texting is awaiting provider activation. Verifying your mobile is one required step; sender registration, recipient permission and delivery configuration are also required. No customer message is sent by this setup.</p></div>
  </section>
 }

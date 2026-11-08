@@ -1,3 +1,4 @@
+import RefreshButton from './RefreshButton'
 import {useEffect,useRef,useState} from 'react'
 import {supportRequest,type CaseRow,type CaseDetail} from '../services/platformAdmin'
 import FormDialog from './FormDialog'
@@ -14,8 +15,8 @@ export default function SupportCases({businessId}:{businessId:string}){
   setCreating(false);setDetail(r);setTitle('');setDescription('');setReply('');request.current=null;setNotice('Saved to your support case. Replies appear here; no email was sent.');await load()
  }catch(e){setError((e as Error).message)}finally{running.current=false;setBusy(false)}}
  function changed(){request.current=null}
- return <section className="settings-panel support-cases"><h2>Help & support</h2><p>Report a problem to Finviant and follow replies here. Include the steps you took and what you expected. Do not include passwords, API keys, card details or customer documents.</p>
- <div className="settings-actions"><button className="primary-button" onClick={()=>{setCreating(true);setDetail(null);setTitle('');setDescription('');request.current=null;setError('')}}>Report an issue</button><button className="secondary-button" onClick={()=>void load()}>Refresh cases</button></div>
+ return <section className="settings-panel support-cases"><div className="refresh-heading"><h2>Help &amp; support</h2><div className="work-heading-actions"><RefreshButton label="Refresh cases" disabled={busy} onClick={()=>void load()}/><button type="button" className="primary-button" onClick={()=>{setCreating(true);setDetail(null);setTitle('');setDescription('');request.current=null;setError('')}}>Report an issue</button></div></div><p>Report a problem to Finviant and follow replies here. Include the steps you took and what you expected. Do not include passwords, API keys, card details or customer documents.</p>
+
  {error&&!detail&&!creating&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
  {rows.length===0?<p>No support cases yet.</p>:<ul className="admin-case-list">{rows.map(r=><li key={r.id}><button className="secondary-button" onClick={()=>void open(r.id)}>{r.title} · {r.status.replaceAll('_',' ')}</button><small>{new Date(r.updated_at).toLocaleString()}</small></li>)}</ul>}
  <div className="settings-actions"><button className="secondary-button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Previous cases</button><span>{total} cases · Page {page+1}</span><button className="secondary-button" disabled={(page+1)*25>=total} onClick={()=>setPage(p=>p+1)}>Next cases</button></div>

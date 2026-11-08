@@ -1,3 +1,4 @@
+import RefreshButton from '../RefreshButton'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { PlanNavigationLink } from '../UpgradeLink'
@@ -37,10 +38,10 @@ export default function IntegrationTesting({businessId}:{businessId:string}){
  }
  const config=status?.configuration
  return <section className="settings-panel integration-tests" aria-label="Private integration tests">
-  <h2>Integration testing</h2>
+  <div className="refresh-heading"><h2>Integration testing</h2><RefreshButton label="Refresh test results" disabled={busy} onClick={()=>void refresh()}/></div>
   <p className="form-message"><strong>Internal testing only.</strong> Stripe uses test money. Test payments do not change invoice balances or activate paid access. Twilio sends real texts only to approved tester numbers and may incur messaging charges.</p>
   <p>Keep important records backed up. Testing data may be reset. Website access remains restricted separately from these provider tests.</p>
-  <button type="button" className="secondary-button" disabled={busy} onClick={()=>void refresh()}>Refresh test results</button>
+
   {error&&<p className="form-message error-text" role="alert">{error}</p>}
   {message&&<p className="form-message" role="status">{message}</p>}
   {link&&<p>{link.action==='connect'

@@ -30,7 +30,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
   for(const label of ['Home','Invoices','Estimates','Jobs','More'])await expect(dock.getByRole('button',{name:label,exact:true})).toBeVisible()
   await dock.getByRole('button',{name:'More',exact:true}).click()
   const more=page.getByRole('dialog',{name:'More navigation'})
-  for(const label of ['Customers','Schedule','Help & Support','Company Profile','Team & Access','Email & Text Setup','Invoice & Estimate Setup','Calendar Connections','Working Hours & Team Availability'])await expect(more.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
+  for(const label of ['Customers','Schedule','Help & Support','Company Profile','Team Management','Email & Text Setup','Invoice & Estimate Setup','Calendar Connections'])await expect(more.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
   await more.getByRole('button',{name:'Close',exact:true}).click()
  }else{
   for(const label of ['Home','Invoices','Estimates','Jobs','More'])await expect(page.locator('.sidebar').getByRole('button',{name:label,exact:true})).toBeVisible()
@@ -79,11 +79,11 @@ for(const width of [320,390,1440])test(`Home Quick Links opens the existing Cust
  await expect(chooser).toHaveCount(0)
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(timeOrigin)
 })
-test('Home calendar creation reuses the entry editor and Escape restores the trigger',async({page})=>{
+test('Home keeps calendar creation on the calendar and removes it from Quick Links',async({page})=>{
  await mock(page);await page.goto('/')
  const trigger=page.getByRole('button',{name:'Quick Links',exact:true})
  await trigger.click();await page.keyboard.press('Escape');await expect(trigger).toBeFocused()
- await trigger.click();await page.getByRole('button',{name:'+ New calendar entry',exact:true}).click()
+ await trigger.click();const chooser=page.getByRole('dialog',{name:'Quick Links',exact:true});await expect(chooser.getByRole('button',{name:'+ New calendar entry',exact:true})).toHaveCount(0);await expect(chooser.getByRole('link',{name:'Team Management',exact:true})).toHaveAttribute('href','/?view=settings&section=team');await chooser.getByRole('button',{name:'Close',exact:true}).click();await page.getByRole('button',{name:'Add to calendar',exact:true}).click()
  await expect(page.getByRole('dialog',{name:'Add to your calendar',exact:true})).toBeVisible()
 })
 for(const role of ['technician','viewer'])test(`Home preserves ${role} module and creation restrictions`,async({page})=>{

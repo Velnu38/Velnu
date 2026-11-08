@@ -1,3 +1,4 @@
+import RefreshButton from './RefreshButton'
 import PlanRestriction from './PlanRestriction'
 import { useEffect, useState } from 'react'
 import { getStorageUsage, storageSize, type StorageUsage as Usage } from '../lib/businessStorage'
@@ -22,7 +23,7 @@ export default function StorageUsage({ businessId, version = 0, detailed = false
   }, [businessId, version, refresh])
   if (warningsOnly) return <AttachmentStorageWarning usage={usage} />
   return <section aria-label="Business storage" className="storage-usage">
-    {detailed && <h2>Business storage</h2>}
+    {detailed && <div className="refresh-heading"><h2>Business storage</h2><RefreshButton label="Refresh storage" busy={!usage&&!error} onClick={() => setRefresh(value => value + 1)}/></div>}
     {error ? <p role="status">Storage usage is unavailable. Uploads still check your allowance.</p> : !usage ? <p role="status">Checking storage…</p> : <>
       <p><strong>{storageSize(usage.used_bytes)} of {storageSize(usage.limit_bytes)}</strong> used across this business.</p>
       <progress aria-label="Storage used" value={Math.min(usage.used_bytes, usage.limit_bytes)} max={usage.limit_bytes} />
@@ -30,6 +31,6 @@ export default function StorageUsage({ businessId, version = 0, detailed = false
       {canUpgrade&&usage.warning==='full'&&usage.plan!=='pro'&&<PlanRestriction plan={usage.plan} required={usage.plan==='free'?'basic':'pro'} feature="attachment storage" limit canUpgrade/>}
       {usage.pending_bytes > 0 && <p className="quiet">Includes {storageSize(usage.pending_bytes)} reserved for unconfirmed uploads. Refresh after uploading; contact Help &amp; Support if this remains pending.</p>}
     </>}
-    {detailed && <><p>Photos and hosted logos share one allowance: Free 100 MB, Individual 2 GB, Business 10 GB. It does not reset monthly or multiply with team members. Your active entitlement determines the allowance.</p><p>Pictures: up to 10 MB each. Logos: up to 2 MB on an eligible plan. Core invoice, estimate, customer and payment records do not count toward this attachment allowance. Reaching the limit does not automatically delete files or create overage charges.</p><p>Remove optional pictures from the associated job, estimate or invoice. Earlier logos may remain in use by issued documents and continue to count toward storage.</p><button type="button" className="secondary-button" onClick={() => setRefresh(value => value + 1)}>Refresh storage</button></>}
+    {detailed && <><p>Photos and hosted logos share one allowance: Free 100 MB, Individual 2 GB, Business 10 GB. It does not reset monthly or multiply with team members. Your active entitlement determines the allowance.</p><p>Pictures: up to 10 MB each. Logos: up to 2 MB on an eligible plan. Core invoice, estimate, customer and payment records do not count toward this attachment allowance. Reaching the limit does not automatically delete files or create overage charges.</p><p>Remove optional pictures from the associated job, estimate or invoice. Earlier logos may remain in use by issued documents and continue to count toward storage.</p></>}
   </section>
 }

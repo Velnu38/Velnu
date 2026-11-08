@@ -1,3 +1,4 @@
+import RefreshButton from '../components/RefreshButton'
 import WorkspaceBack from '../components/WorkspaceBack'
 import '../components/reminders.css'
 import { lazy, Suspense, type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
@@ -115,7 +116,7 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
 
   return <div className="page-stack"><WorkspaceBack />
     <div className="page-heading split-heading"><div><p className="eyebrow">Reminders</p><h1>Keep the next step in sight.</h1></div><div className="work-heading-actions">
-      <button type="button" className="secondary-button compact" disabled={loading || busy || !!completing} onClick={() => void refresh()}>Refresh</button>
+      <RefreshButton busy={loading} disabled={busy || !!completing} onClick={() => void refresh()}/>
       {canWrite(business.role) && <button type="button" className="primary-button compact" disabled={showForm} onClick={() => { setShowForm(true); setSuccess('') }}>+ New reminder</button>}
     </div></div>
     {success && <p className="reminder-success" role="status">{success}</p>}

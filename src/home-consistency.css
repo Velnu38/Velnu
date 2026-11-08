@@ -3,7 +3,6 @@
 .home-view .home-header-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .home-view .dashboard-page .home-create-button{width:auto;min-width:142px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;text-align:center;font-size:16px;padding:12px 22px;border-radius:12px}
 .home-view .home-attention-link{font-size:13px;color:#102c4b;text-underline-offset:3px}
-.home-view .home-header-actions>.record-more>summary{min-height:48px;min-width:88px;justify-content:center;background:#fff}
 .home-view .home-overview{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
 .home-view .home-overview>.dashboard-calendar,.home-view .home-overview>:not(.dashboard-calendar):not(.performance-compact):not(.home-attention-tile){grid-column:1/-1}
 .home-view .dashboard-tile-title{font-size:22px;line-height:1.25;letter-spacing:-.025em}

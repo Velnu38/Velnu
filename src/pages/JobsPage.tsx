@@ -1,3 +1,4 @@
+import RefreshButton from '../components/RefreshButton'
 import PlanRestriction from '../components/PlanRestriction'
 import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import CustomerRecordScope from '../components/CustomerRecordScope'
@@ -168,7 +169,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     <div className="page-stack workspace-module jobs-module"><WorkspaceBack />
       <div className="page-heading split-heading module-page-heading">
         <div><p className="eyebrow">Jobs</p><Heading>Keep every job moving.</Heading><p className="module-page-intro">{teamScheduling ? 'See the work ahead, assign a crew, and open job details in one place.' : 'See upcoming work, book appointments, and open job details.'}</p></div>
-        <div className="work-heading-actions"><button type="button" className="secondary-button compact" disabled={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}>Refresh</button>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={openNewJob}><span aria-hidden="true">＋</span> Create job</button>}</div>
+        <div className="work-heading-actions"><RefreshButton busy={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}/>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={openNewJob}><span aria-hidden="true">＋</span> Create job</button>}</div>
       </div>
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
       <CustomerRecordScope customerId={customerScope} customers={customers} view="work"/>
