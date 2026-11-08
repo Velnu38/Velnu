@@ -20,3 +20,5 @@
   .more-navigation-grid { grid-template-columns: minmax(0,1fr); }
   .more-navigation-grid a { min-height: 64px; }
 }
+
+.plan-feature-previews{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}.plan-feature-preview{padding:16px;border:1px solid #d5e0df;border-radius:12px;background:#f5f8f8;color:#334f5e}.plan-feature-preview>strong{display:block;font-size:14px}.plan-feature-preview>p{font-size:13px;line-height:1.5;color:#526473;margin:8px 0 12px}.plan-feature-preview .plan-availability-label{font-size:12px}

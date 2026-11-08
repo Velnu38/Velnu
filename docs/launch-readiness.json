@@ -84,6 +84,12 @@
       "detail": "New businesses receive Welcome \u2192 required business contacts for Email/Text/Both \u2192 tier-aware sending readiness \u2192 explicit saved completion. Verified account email can prefill business reply contact by choice; branding, AI profile and service preferences remain in Settings. New private onboarding state resumes after refresh and validates selected channels server-side; existing workspaces are not reenrolled. Saved contact details are separate from managed sender/reply activation. Rollback SQL verified actual new-business gate, channel persistence and completion without retaining a workspace. DOM and database regressions passed; real-phone visual/provider sending acceptance remains open.",
       "evidence": "20261108203002_streamlined_business_onboarding.sql; tests/onboarding; active beta rollback SQL; docs/ONBOARDING_REVIEW_2026-11-08.md",
       "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Plan feature discovery presentation",
+      "detail": "Shared paid features are labeled Individual and Business Plans; Pro-only previews Business Pro. Existing restriction components and More previews use subtle readable tint with underlined Explore links, including nonowner guidance. Included features remain ordinary controls; pending sender/provider setup remains separate. Tier entitlements, actions and payment behavior are unchanged.",
+      "evidence": "tests/settings/feature-preview-dom.mjs and upgrade-navigation-dom.mjs; source-only presentation changes",
+      "verifiedAt": "2026-11-08"
     }
   ],
   "tasks": [

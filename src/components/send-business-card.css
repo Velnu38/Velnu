@@ -141,3 +141,5 @@
     width: 100%;
   }
 }
+
+.card-upgrade{background:#f5f8f8;border:1px solid #d5e0df;border-radius:10px;padding:12px;color:#425b69}

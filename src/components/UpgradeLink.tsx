@@ -4,7 +4,9 @@ import { settingsHref } from '../lib/settingsNavigation'
 import './upgrade-link.css'
 
 export type UpgradeTier = Exclude<VelnuTier, 'free'>
-const tierRank: Record<VelnuTier, number> = { free: 0, basic: 1, pro: 2 }
+export const tierRank: Record<VelnuTier, number> = { free: 0, basic: 1, pro: 2 }
+
+export const planAvailabilityLabel = (tier: UpgradeTier) => tier === 'basic' ? 'Individual and Business Plans' : 'Business Pro'
 
 export function planUpgradeHref(tier: UpgradeTier) {
   return settingsHref('plans') + '&tier=' + tier
@@ -40,6 +42,6 @@ export default function UpgradeLink({ plan, required, canUpgrade, children }: {
 }) {
   if (!(tierRank[required] > tierRank[plan])) return null
   return canUpgrade
-    ? <PlanNavigationLink href={planUpgradeHref(required)}>{children || `View ${monthlyPlans[required].name} upgrade`}</PlanNavigationLink>
+    ? <PlanNavigationLink href={planUpgradeHref(required)}>{children || `Explore ${monthlyPlans[required].name}`}</PlanNavigationLink>
     : <span className="plan-owner-notice">Ask your workspace owner about {monthlyPlans[required].name}.</span>
 }

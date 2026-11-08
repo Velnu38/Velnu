@@ -24,3 +24,5 @@ jobs:
       - run: node tests/auth-access/dom.mjs
       - run: node tests/admin-mfa/dom.mjs
       - run: node tests/onboarding/dom.mjs
+      - run: node tests/settings/feature-preview-dom.mjs
+      - run: node tests/settings/upgrade-navigation-dom.mjs

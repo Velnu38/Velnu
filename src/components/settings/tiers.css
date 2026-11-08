@@ -6,3 +6,5 @@
 .tier-card:focus{outline:2px solid #236b78;outline-offset:3px}
 
 .tier-usage-grid progress{width:100%;accent-color:#007e73}.tier-usage-grid small{color:#795014}.saved-service-items{padding:12px 0;border-bottom:1px solid #dce5e9;margin-bottom:14px}.saved-service-items summary{cursor:pointer;font-weight:650}.saved-service-items label{display:grid;gap:6px;margin:12px 0}.saved-service-items select{max-width:100%}
+
+.plan-availability-label{display:inline-block;color:#425b69;background:#e8eef0;border:1px solid #d2dfe1;border-radius:5px;padding:3px 7px;margin-bottom:7px;font-size:12px;line-height:1.4;font-weight:650}.plan-restriction .plan-feature-benefit{margin-top:5px;color:#526473}.plan-restriction[data-required-plan]{background:#f5f8f8;border-color:#d5e0df;border-left-color:#7e9891}
