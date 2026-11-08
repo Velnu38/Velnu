@@ -21,6 +21,13 @@ export type AttentionItem =
 export type AttentionCategoryCounts = {schedule:number;invoice:number;overdue:number;follow_up:number}
 export type AttentionFilter = 'attention' | 'approvals' | keyof AttentionCategoryCounts
 export type AttentionPage = {page:number;page_size:number;total:number;attention_count:number;approval_count:number;category_counts:AttentionCategoryCounts;items:AttentionItem[]}
+/** The same read-only processing guard used by invoice details. */
+export async function attentionPaymentState(business:string,invoice:string):Promise<'clear'|'pending'|'review_required'|'unavailable'> {
+  try {
+    const {data,error}=await supabase.rpc('get_invoice_payment_operations',{p_business:business,p_invoice:invoice})
+    return !error&&data&&['clear','pending','review_required'].includes(data.state)?data.state:'unavailable'
+  } catch { return 'unavailable' }
+}
 export async function getAttentionPage(business:string,page:number,filter:AttentionFilter):Promise<AttentionPage> {
   const {data,error}=await supabase.rpc('get_dashboard_attention_page',{p_business:business,p_page:page,p_page_size:5,p_filter:filter})
   if(error)throw new Error(error.message || 'Needs Attention could not be loaded.')

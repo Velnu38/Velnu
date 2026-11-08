@@ -8,6 +8,7 @@ export type AgendaWork = {
   document_kind: string;
   document_id: string;
   job_id?: string | null;
+  job_status?: string;
   assigned_user_ids?: string[];
   address?: string;
   customer_name?: string;

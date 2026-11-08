@@ -133,7 +133,7 @@ export async function loadCalendarRange(businessId: string, startDay: string, en
   for (let start = 0; start < ids.length; start += 100) {
     try {
       const rows = await collectWorkbookPages((offset, last) => supabase.from('jobs')
-        .select('id,description,customers!jobs_customer_id_fkey(first_name,last_name,company),properties!jobs_property_id_fkey(address_line1,address_line2,city,state,postal_code)', { count: 'exact' })
+        .select('id,status,description,customers!jobs_customer_id_fkey(first_name,last_name,company),properties!jobs_property_id_fkey(address_line1,address_line2,city,state,postal_code)', { count: 'exact' })
         .eq('business_id', businessId).in('id', ids.slice(start, start + 100)).order('id').range(offset, last))
       for (const row of rows) jobs[row.id] = row
     } catch { detailsUnavailable = true }
@@ -141,7 +141,7 @@ export async function loadCalendarRange(businessId: string, startDay: string, en
   const detailed = work.map(item => {
     const job = jobs[item.job_id]
     if (!job) return item
-    return { ...item, description: job.description || '', address: asList(job.properties).map(formatServiceAddress).join('; '), customer_name: asList(job.customers).map(customer => [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || '').join(', ') }
+    return { ...item, job_status: job.status, description: job.description || '', address: asList(job.properties).map(formatServiceAddress).join('; '), customer_name: asList(job.customers).map(customer => [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || '').join(', ') }
   })
   return { detailsUnavailable, work: detailed as unknown as AgendaWork[], reminders: (reminders as AgendaReminder[]).sort((a, b) => a.due_at.localeCompare(b.due_at)) }
 }

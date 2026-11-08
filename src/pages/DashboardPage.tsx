@@ -14,6 +14,8 @@ import AttentionReminders from '../components/AttentionReminders'
 import FormDialog from '../components/FormDialog'
 import WorkspaceIcon from '../components/WorkspaceIcon'
 import { DateTime } from 'luxon'
+import {RecordMoreMenu} from '../components/RecordDetail'
+import '../home-consistency.css'
 
 const CalendarEntryDialog = lazy(() => import('../components/calendar/CalendarEntryDialog'))
 
@@ -101,23 +103,17 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
   return <div className="page-stack dashboard-page">
     <header className="page-heading split-heading dashboard-business-header">
       <div className="dashboard-business-identity">{logo && <img className="dashboard-business-logo" src={logo} alt={business.name + ' logo'} />}<div><p className="home-eyebrow">Your workspace</p><h1>{business.name}</h1><p className="home-intro">Your business, at a glance.</p></div></div>
-      <div className="home-header-actions">{(canCreateBilling || canCreateJob || canCreateEntry) && <button type="button" className="primary-button compact home-create-button" aria-label="Create new" aria-describedby="home-quick-links" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}>
-        <span className="home-create-copy">
-          <span className="home-create-label"><span aria-hidden="true">＋</span> New</span>
-          <span className="home-create-subtitle" id="home-quick-links">Quick Links</span>
-        </span>
-      </button>}<button className="secondary-button compact" onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button></div>
+      <div className="home-header-actions">{attentionCount>0&&canAccess(business,'billing')&&<a className="home-attention-link" href="#home-attention" onClick={event=>{event.preventDefault();setOpenAttention(value=>value+1)}}>{attentionCount} {attentionCount===1?'item needs':'items need'} attention</a>}{(canCreateBilling || canCreateJob || canCreateEntry) && <button type="button" className="primary-button compact home-create-button" aria-label="Quick Links" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}>Quick Links</button>}<RecordMoreMenu><button type="button" disabled={loading} onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }}>{loading ? 'Refreshing…' : 'Refresh'}</button></RecordMoreMenu></div>
     </header>
     <div className="home-overview">
-      {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} />}
-      {attentionCount>0&&canAccess(business,'billing')&&<button type="button" className="text-button attention-jump" onClick={()=>setOpenAttention(value=>value+1)}>Jump to Needs Attention</button>}
+      {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} compact />}
       {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey+':financial'} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
+      {canAccess(business,'billing') && <BillingHub key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} openRequest={openAttention} onPendingChange={setAttentionCount} approvalBreakdown={{estimates:snapshot.pendingEstimateCount,changeOrders:snapshot.pendingChangeOrderCount}} />}
       {canAccess(business,'finances') && <CustomerPaymentReviews key={workspaceKey+':payment-reviews'} businessId={business.id} />}
-      {canAccess(business,'billing') && <BillingHub key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} openRequest={openAttention} onPendingChange={setAttentionCount} />}
     </div>
 
-    {showCreate && <FormDialog label="Create new" onClose={() => setShowCreate(false)}>
-      <div className="modal-head"><div><p className="eyebrow">{business.name}</p><h2>Create new</h2></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowCreate(false)}>×</button></div>
+    {showCreate && <FormDialog label="Quick Links" onClose={() => setShowCreate(false)}>
+      <div className="modal-head"><div><p className="eyebrow">{business.name}</p><h2>Quick Links</h2></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowCreate(false)}>×</button></div>
       <nav className="home-create-options" aria-label="Create work and quick links">
         {canCreateBilling && <><a href="/?view=invoices&new=1" aria-label="+ New invoice"><WorkspaceIcon kind="invoices"/><span><strong>Invoice</strong><small>Bill a customer for your work</small></span><span aria-hidden="true">›</span></a><a href="/?view=estimates&new=1" aria-label="+ New estimate"><WorkspaceIcon kind="estimates"/><span><strong>Estimate</strong><small>Prepare a quote for a customer</small></span><span aria-hidden="true">›</span></a></>}
         {canCreateJob && <a href="/?view=work&new=1" aria-label="+ New job"><WorkspaceIcon kind="work"/><span><strong>Job</strong><small>Plan and manage customer work</small></span><span aria-hidden="true">›</span></a>}

@@ -12,8 +12,8 @@ export async function openWorkArea(page, area) {
 /** Home groups creation in one accessible chooser. */
 export async function createWork(page, kind) {
   await page.getByRole('button', { name: 'Home', exact: true }).click()
-  await page.getByRole('button', { name: 'Create new', exact: true }).click()
-  await page.getByRole('navigation', { name: 'Create work' }).getByRole('link', { name: '+ New ' + kind, exact: true }).click()
+  await page.getByRole('button', { name: 'Quick Links', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Create work and quick links' }).getByRole('link', { name: '+ New ' + kind, exact: true }).click()
 }
 
 /** Ask Fin opens typing without microphone access on every viewport. */

@@ -749,7 +749,7 @@ for (const width of [1280, 390]) test(`Add entry creates reminders from the sche
   const tile = page.getByRole('region', { name: 'Work calendar' })
   await expect(page.getByRole('heading', { name: 'Reminders due', exact: true })).toHaveCount(0)
   await expect(tile.getByRole('button', { name: '+ Reminder', exact: true })).toHaveCount(0)
-  await tile.getByRole('button', { name: '+ Add entry', exact: true }).click()
+  await tile.getByRole('button', { name: 'Add to calendar', exact: true }).click()
   const dialog=page.getByRole('dialog',{name:'Add to your calendar'})
   await dialog.getByRole('button',{name:'Reminder',exact:true}).click()
   await dialog.getByLabel('Title',{exact:true}).fill('Order replacement parts')
@@ -785,14 +785,14 @@ test('calendar dashboard shows daily work, overdue reminders, completion, and an
   await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', headers:{'access-control-expose-headers':'content-range','content-range':'0-0/1'}, body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
   await page.goto('/')
   const calendar = page.getByRole('region', {name:'Work calendar'})
-  await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
+  await expect(calendar.getByRole('heading',{name:'Weekly Schedule'})).toBeVisible()
   await expect(calendar.getByRole('link',{name:'Roof inspection'})).toBeVisible()
   await expect(page.getByRole('region',{name:'Needs Attention',exact:true}).getByText('Confirm materials',{exact:true})).toBeVisible()
   await page.getByRole('region',{name:'Needs Attention',exact:true}).getByRole('button',{name:'Complete Confirm materials'}).click()
   await expect(page.getByRole('region',{name:'Needs Attention',exact:true}).getByText('Confirm materials',{exact:true})).toHaveCount(0)
   await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
   await calendar.getByRole('button',{name:'Next week'}).click()
-  await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
+  await expect(calendar.getByRole('heading',{name:'Weekly Schedule'})).toBeVisible()
 })
 
 test('calendar settings shows connected identity, calendar choices and persists toggle', async ({ page }) => {
@@ -827,7 +827,7 @@ test('calendar widget fits a phone without horizontal overflow', async ({ page }
   const logo=page.locator('.dashboard-business-header').getByRole('img',{name:'Barone Landscaping and Property Maintenance logo'})
   await expect(logo).toBeVisible()
   await expect.poll(()=>logo.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0)
-  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Create new',exact:true}).boundingBox()).y)
+  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Quick Links',exact:true}).boundingBox()).y)
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 
@@ -837,7 +837,7 @@ test('dashboard layout uses the business name, puts financials and calendar abov
   await expect(heading).toBeVisible()
   await expect(page.locator('.dashboard-business-header')).not.toContainText(/your attention|caught up|organized/i)
   await expect(page.locator('.dashboard-business-header img')).toHaveCount(0)
-  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Create new',exact:true}).boundingBox()).y)
+  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Quick Links',exact:true}).boundingBox()).y)
   const calendar = page.getByRole('region', { name: 'Work calendar' })
   const workAreas = page.getByRole('region', { name: 'Work areas' })
   expect((await calendar.boundingBox()).y).toBeLessThan((await workAreas.boundingBox()).y)
@@ -989,9 +989,9 @@ for (const width of [1440, 390]) {
     const activeBounds=await activeBox.boundingBox(),summaryBounds=await jobWidget.locator('.jobs-summary').boundingBox()
     expect(Math.abs(activeBounds.width-summaryBounds.width)).toBeLessThan(1)
     await expect(page.locator('.sidebar,.mobile-nav,.mobile-more-grid').getByRole('button',{name:'Jobs',exact:true})).toHaveCount(1)
-    await page.getByRole('button',{name:'Create new',exact:true}).click()
+    await page.getByRole('button',{name:'Quick Links',exact:true}).click()
     await expect(page.getByRole('link',{name:'+ New job',exact:true})).toHaveCount(1)
-    await page.getByRole('dialog',{name:'Create new',exact:true}).getByRole('button',{name:'Close',exact:true}).click()
+    await page.getByRole('dialog',{name:'Quick Links',exact:true}).getByRole('button',{name:'Close',exact:true}).click()
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
     await expect(page.locator('.financial-transactions')).toHaveCount(0)
     await expect(page.getByRole('heading',{name:'Tell Finviant Office what needs to get done.'})).toHaveCount(0)
@@ -1145,7 +1145,7 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  await page.route('**/rest/v1/calendar_work?**',r=>{calls.push(r.request().url());return r.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'0-2/3'},body:JSON.stringify(items)})})
  await page.goto('/')
  const calendar=page.getByRole('region',{name:'Work calendar'})
- await expect(calendar.getByRole('heading',{name:'Weekly schedule'})).toBeVisible()
+ await expect(calendar.getByRole('heading',{name:'Weekly Schedule'})).toBeVisible()
  await expect(calendar.getByRole('link',{name:/Kitchen installation/})).toBeVisible()
  await expect(calendar.getByRole('button',{name:'Today',exact:true})).toHaveCount(0)
  await expect(calendar.getByRole('button',{name:/Open (calendar|schedule)/})).toHaveCount(0)
@@ -1332,9 +1332,9 @@ for(const width of [1440,390])test(`attention pages reach the entire mixed queue
  for(const count of [hub.locator('.billing-metric.overdue strong'),hub.locator('.billing-metric.approval strong')])await expect(count).toHaveCSS('color','rgb(180, 35, 24)')
  await expect(hub.getByRole('button',{name:/new estimate|create invoice|new invoice/i})).toHaveCount(0)
  await expect(hub.getByRole('link',{name:/new estimate|create invoice|new invoice/i})).toHaveCount(0)
- await page.getByRole('button',{name:'Create new',exact:true}).click()
+ await page.getByRole('button',{name:'Quick Links',exact:true}).click()
  await expect(page.getByRole('navigation',{name:'Create work'}).getByRole('link',{name:'+ New invoice',exact:true})).toBeVisible()
- await page.getByRole('dialog',{name:'Create new',exact:true}).getByRole('button',{name:'Close',exact:true}).click()
+ await page.getByRole('dialog',{name:'Quick Links',exact:true}).getByRole('button',{name:'Close',exact:true}).click()
  const seen=new Set()
  for(let n=1;n<=19;n++){
   await expect(pager).toContainText(`Page ${n} of 19`)
@@ -1491,9 +1491,9 @@ for (const width of [390, 1440]) test(`Needs Attention category buttons open fil
   const hub = page.getByRole('article', {name:'Needs attention overview'})
   const categories = hub.getByRole('group', {name:'Needs Attention categories'})
   for (const [label, filter, item, count] of [
-    ['Schedule work','schedule','APPROVED-0',6],
-    ['Finish invoices','invoice','Finished lawn work',1],
-    ['Overdue payments','overdue','INV-LATE',1],
+    ['Needs scheduling','schedule','APPROVED-0',6],
+    ['Billing review','invoice','Finished lawn work',1],
+    ['Overdue invoices','overdue','INV-LATE',1],
     ['Follow-ups due','follow_up','Call customer 5013',1],
   ]) {
     const button = categories.getByRole('button', {name:`${label} ${count}`, exact:true})

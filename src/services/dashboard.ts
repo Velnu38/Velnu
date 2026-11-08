@@ -16,6 +16,8 @@ export interface DashboardSnapshot {
   }>
   overdueInvoiceCount: number
   pendingApprovalCount: number
+  pendingEstimateCount?: number
+  pendingChangeOrderCount?: number
   dueReminderCount: number
   overdueInvoices: Array<{
     id: string
@@ -126,6 +128,8 @@ export async function getDashboardSnapshot(businessId: string, timezone = 'Ameri
     dueReminderCount: dueReminders.count ?? (dueReminders.data ?? []).length,
     pendingApprovalCount: (estimatesAwaiting.count ?? (estimatesAwaiting.data ?? []).length)
       + (changeOrdersAwaiting.count ?? (changeOrdersAwaiting.data ?? []).length),
+    pendingEstimateCount: estimatesAwaiting.count ?? (estimatesAwaiting.data ?? []).length,
+    pendingChangeOrderCount: changeOrdersAwaiting.count ?? (changeOrdersAwaiting.data ?? []).length,
     overdueInvoices: (overdueInvoices.data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) })) as DashboardSnapshot['overdueInvoices'],
     dueReminders: (dueReminders.data ?? []) as DashboardSnapshot['dueReminders'],
     todayAppointments: (todayAppointments.data ?? []).map((row: any) => ({ ...row, customers: asList(row.customers) })) as DashboardSnapshot['todayAppointments'],
