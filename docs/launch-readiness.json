@@ -165,7 +165,7 @@
       "title": "Install operational monitoring and route alerts",
       "owner": "Developer + owner",
       "why": "PostHog is product analytics, not an error or uptime monitor; limited/empty runtime logs leave major blind spots.",
-      "acceptance": "Configure Sentry or equivalent error tracing, Vercel real-user Web Vitals, synthetic public/authenticated smoke monitors, provider/queue/DB dashboards and spend alerts. Scrub contact/document content, tokens, query strings and audio. Trigger a test incident and verify it reaches the named on-call owner; set retention and sampling budgets.",
+      "acceptance": "Configure Sentry or equivalent error tracing, Vercel real-user Web Vitals, synthetic public/authenticated smoke monitors, provider/queue/DB dashboards and spend alerts. Scrub contact/document content, tokens, query strings and audio. Trigger a test incident and verify it reaches the named on-call owner; set retention and sampling budgets. Surface safe error, uptime and performance summaries in the Finviant Admin Dashboard with last-checked time, degraded/unavailable states and links to restricted provider dashboards. Keep raw customer content, tokens and privileged logs out of summaries. Verify a simulated outage/error reaches the owner and appears in the dashboard; current database/queue counts alone do not satisfy this gate.",
       "evidence": []
     },
     {
@@ -297,7 +297,7 @@
       "title": "Set customer support, privacy and incident operations",
       "owner": "Owner + developer",
       "why": "Hundreds of businesses need a staffed response path, data handling rules and operator safeguards.",
-      "acceptance": "Assign support/on-call ownership, severity/response targets, incident and breach escalation, least-privilege support access, customer data export/deletion/retention procedures, documented status/maintenance communication and reviewed customer/privacy terms. Confirm refund/cancellation procedures before charging.",
+      "acceptance": "Assign support/on-call ownership, severity/response targets, incident and breach escalation, least-privilege support access, customer data export/deletion/retention procedures, documented status/maintenance communication and reviewed customer/privacy terms. Confirm refund/cancellation procedures before charging. Establish a connected-chat troubleshooting workflow with read-only investigation by default, explicit owner authorization for consequential writes (data deletion, billing changes and major deployments), least-privilege/revocable provider access and auditable changes. Retain direct owner access to all providers, a named backup developer and an emergency runbook. Keep assessment evidence, incident history and handoff instructions current. Document that connected chat is not continuous monitoring or guaranteed emergency response; test escalation without an active chat.",
       "evidence": []
     },
     {
@@ -415,9 +415,9 @@
     },
     {
       "tool": "Existing ChatGPT GitHub, Vercel and Supabase connections",
-      "purpose": "Read configuration/CI evidence and maintain the assessment",
+      "purpose": "Assist customer-issue investigation, maintenance and assessment updates",
       "current": "Already connected and used in this review; no additional admin plugin is required for the current audit.",
-      "configuration": "Use these for administration and evidence. Customer-facing error/performance monitoring still requires the actual app SDKs, platform settings, dashboards and alert routes above; installing a chat plugin alone does not instrument Finviant.",
+      "configuration": "Retain connected chat as a troubleshooting assistant, with read-only investigation by default and owner authorization for consequential changes. Keep permissions least-privilege and revocable, preserve direct provider access and a developer emergency backup, and maintain current assessment/incident/handoff records. Chat is not continuous monitoring or a guaranteed emergency response service. Configure independent error monitoring, uptime alerts and performance measurements, and surface safe status summaries in Finviant Admin (OPS-02); complete support/escalation procedures (OPS-04).",
       "cost": "Retain existing connections; avoid migrating backend platforms or installing unrelated plugins to solve monitoring."
     }
   ],
