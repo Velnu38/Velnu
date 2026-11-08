@@ -174,6 +174,7 @@ function WorkspaceApp() {
   if (publicPath === '/install') return <InstallPage />
   if (!authReady) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening Finviant Office…</p></main>
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
+  if (publicPath === '/auth' && initialAuthMode === 'reset') return <AuthScreen initialMode="reset" />
   if (initialInvite) return <TeamInvitationPage token={initialInvite} session={session} />
   if (!session) {
     if (publicPath === '/auth' || publicPath === '/admin' || publicPath === '/plans' || initialQuery.has('view') || invalidAuthLink) {

@@ -60,6 +60,7 @@ export default function PasswordRecovery({ session, invalidLink, onDone }: { ses
           <button className="primary-button" disabled={busy}>{busy ? 'Updating…' : 'Update password'}</button>
         </form>
       </>}
+      {!complete && <a className="text-button" href="/auth?mode=reset">Request a fresh reset link</a>}
       {message && <p className="form-message" role="status">{message}</p>}
     </section>
   </main>
