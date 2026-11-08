@@ -154,7 +154,7 @@ export default function TeamSettings({
       <div className="split-heading">
         <div>
           <p className="eyebrow">Owner controls</p>
-          <h2>Team & access</h2>
+          <h2>Account Access</h2>
         </div>
         <span className="status-chip">
           {team ? `${used} of ${team.seat_limit} seats` : "Loading…"}
@@ -163,7 +163,7 @@ export default function TeamSettings({
       <p className="quiet">
         Pro includes five users total: you and four team members. Only you can
         invite people, remove access, or change permissions. Pending invitations
-        reserve a seat.
+        reserve a seat. Internal worker profiles do not use account seats.
       </p>
       {team?.private_preview && (
         <p className="form-message">

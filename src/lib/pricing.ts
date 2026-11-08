@@ -21,14 +21,15 @@ export type TierAllowance = {
 
 export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
  free: {tier:'free',name:'Free',priceMonthlyUsd:0,documentsPerMonth:Infinity,customerLimit:10,aiCreditsPerMonth:20,fileStorageMb:100,onlineApprovalsPerMonth:Infinity,hostedLogo:false,status:'Try the complete workflow',features:['10 active customers · 5 new job bookings/month','Invoices, estimates, approval and payment links','Send through your own email and text apps','20 introductory Fin requests · 10 voice minutes once','100 MB attachments · 30-day financial view · 1 user']},
- basic: {tier:'basic',name:'Individual',priceMonthlyUsd:19.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:150,fileStorageMb:2000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'For a busy solo business',features:['No customer, document or job count cap','Send through your own email and text apps','150 Fin requests · 60 voice minutes/month','2 GB attachments · Custom logo · Full financial history','1 user · Manual customer follow-ups']},
- pro: {tier:'pro',name:'Business Pro',priceMonthlyUsd:39.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:600,fileStorageMb:10000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'Let Finviant send and follow up',features:['Everything in Individual · 5 users including owner','Finviant email and SMS after sender activation','2,000 email recipients · 200 US SMS segments/month','600 Fin requests · 180 voice minutes/month shared','10 GB attachments · Scheduled sending and reminders','Crew scheduling and customer booking links']},
+ basic: {tier:'basic',name:'Individual',priceMonthlyUsd:19.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:150,fileStorageMb:2000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'For a busy solo business',features:['No customer, document or job count cap','Send through your own email and text apps','150 Fin requests · 60 voice minutes/month','2 GB attachments · Custom logo · Full financial history','1 account user · 5 active worker profiles · Manual follow-ups']},
+ pro: {tier:'pro',name:'Business Pro',priceMonthlyUsd:39.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:600,fileStorageMb:10000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'Let Finviant send and follow up',features:['Everything in Individual · 5 account users including owner · 25 active workers','Finviant email and SMS after sender activation','2,000 email recipients · 200 US SMS segments/month','600 Fin requests · 180 voice minutes/month shared','10 GB attachments · Scheduled sending and reminders','Crew scheduling and customer booking links']},
 }
 export const businessAnnualPrice = 399.50
 export const tierComparison = [
  ['Monthly price','$0','$19.95','$39.95'],
  ['Annual price','—','—','$399.50 upfront ($33.29/month equivalent)'],
- ['Users','1','1','5 including owner'],
+ ['Account users','1','1','5 including owner'],
+ ['Active worker profiles','Owner only','5','25'],
  ['Active customers','10','No count cap','No count cap'],
  ['New job bookings','5/month','No count cap','No count cap'],
  ['Invoices, estimates, change orders','Included','Included','Included'],
@@ -45,7 +46,7 @@ export const tierComparison = [
  ['Uploaded company logo','—','2 MB','2 MB'],
  ['Calendar, jobs, internal reminders','Included','Included','Included'],
  ['Manual scheduling and rescheduling','1 user · 5 new bookings/month','1 user · Unlimited','Up to 5 users · Unlimited'],
- ['Crew assignment, team availability and dispatch','—','—','Included'],
+ ['Internal crew assignment, worker hours and time off','Owner only','5 workers','25 workers'],
  ['Customer self-booking from approved estimates','—','—','Private booking links; email after sender activation'],
  ['Financial Performance','Last 30 days','Full history','Full history'],
  ['Manual income/expenses, record export','Included','Included','Included'],

@@ -27,8 +27,9 @@ export default function ScheduleEstimateDialog({business,estimateId,initialMode=
   const plan = usage?.plan
   const bookingLimit = usage?.plan==='free' && usage.jobs_limit!==null && usage.jobs_used>=usage.jobs_limit
   const teamScheduling = plan === 'pro'
+  const internalCrew = teamScheduling || plan === 'basic'
   const mode = teamScheduling ? selectedMode : 'book'
-  const workers = teamScheduling ? selectedWorkers : context?.team.filter(worker => worker.is_you).map(worker => worker.id) ?? []
+  const workers = internalCrew ? selectedWorkers : context?.team.filter(worker => worker.is_you).map(worker => worker.id) ?? []
   const invitationVisible = teamScheduling || !created?.url
   const workerKey=[...workers].sort().join(',')
   useEffect(()=>{
@@ -91,8 +92,8 @@ export default function ScheduleEstimateDialog({business,estimateId,initialMode=
           <label>Job length<select value={duration} onChange={e=>setDuration(Number(e.target.value))}>{[15,30,45,60,90,120,180,240,360,480,600,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label>
           <label>Look for times from<input type="date" min={DateTime.now().setZone(zone).toISODate()!} max={DateTime.now().setZone(zone).plus({days:45}).toISODate()!} value={from} onChange={e=>setFrom(e.target.value)}/></label>
         </div>
-        {teamScheduling && <fieldset className="guided-workers"><legend>Crew for this appointment</legend>{context.team.map(w=><label key={w.id}><input type="checkbox" checked={workers.includes(w.id)} onChange={e=>{setWorkers(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id));setApproved(false)}}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}
-        {teamScheduling && !workers.length && <p role="status">Choose at least one team member. Working alone? Select yourself.</p>}
+        {internalCrew && <fieldset className="guided-workers"><legend>Crew for this appointment</legend>{context.team.map(w=><label key={w.id}><input type="checkbox" checked={workers.includes(w.id)} onChange={e=>{setWorkers(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id));setApproved(false)}}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}
+        {internalCrew && !workers.length && <p role="status">Choose at least one team member. Working alone? Select yourself.</p>}
         <div className="guided-section-head"><h3>{mode==='book'?'Choose the agreed time':'Review appointment options'}</h3><button type="button" className="text-button" disabled={finding || !workers.length} onClick={()=>setRefresh(n=>n+1)}>Refresh times</button></div>
         <p className="quiet">{zone.replaceAll('_',' ')} · Includes {context.preferences.buffer_minutes} minutes between jobs. Finviant bookings and blocked time are checked; confirm any outside commitments.</p>
         {finding?<p role="status">Checking availability…</p>:slots.length?<div className="guided-slot-grid" role="group" aria-label="Available appointment times">{slots.map(slot=><label className={chosen.includes(slot.starts_at)?'selected':''} key={slot.starts_at}><input type={mode==='book'?'radio':'checkbox'} name="appointment-slot" checked={chosen.includes(slot.starts_at)} disabled={mode==='offer'&&chosen.length>=6&&!chosen.includes(slot.starts_at)} onChange={()=>toggle(slot.starts_at)}/><span>{when(slot)}</span></label>)}</div>:workers.length>0&&!error&&<p className="guided-empty">No free times in this two-week window. Try a later start date or a shorter visit. Working hours and time off are in Settings.</p>}

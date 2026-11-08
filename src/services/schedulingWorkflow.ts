@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 import { announceCalendarChange } from './calendar'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-export type Worker = {id:string;label:string;role:string;is_you:boolean}
+export type Worker = {id:string;label:string;role:string;is_you:boolean;active?:boolean}
 export type Slot = {id?:string;starts_at:string;ends_at:string}
 export type SchedulingPreferences = {work_days:number[];start_minutes:number;end_minutes:number;duration_minutes:number;buffer_minutes:number;notice_hours:number}
 export type SchedulingContext = {

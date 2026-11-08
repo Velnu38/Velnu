@@ -14,12 +14,12 @@ export default function CalendarEntryDialog({business,day,entryId,onClose,onSave
   const zone=business.timezone||'America/New_York',saving=useRef(false),retry=useRef<{signature:string;id:string}|null>(null)
   const dispatch=['owner','admin','office'].includes(business.role)&&canAccess(business,'jobs')&&canAccess(business,'calendar')
   const usage = useTierUsage(business.id)
-  const teamScheduling = usage?.plan === 'pro'
+  const teamScheduling = usage?.plan === 'pro' || usage?.plan === 'basic'
   const ai = !!usage && canUseAssistant(business) && usage.ai_limit > 0 && usage.voice_limit > 0 && usage.ai_used < usage.ai_limit
   const [bookJob,setBookJob]=useState(false)
   const [kind,setKind]=useState<'event'|'reminder'>(entryId||dispatch?'event':'reminder'),[title,setTitle]=useState(''),[notes,setNotes]=useState(''),[start,setStart]=useState(day+'T09:00'),[end,setEnd]=useState(day+'T10:00')
   const [team,setTeam]=useState<Worker[]>([]),[selectedWorker,setWorker]=useState(''),[previous,setPrevious]=useState<CalendarEntry>(),[loading,setLoading]=useState(!!entryId),[busy,setBusy]=useState(false),[error,setError]=useState('')
-  useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);if(!entryId)setWorker(rows.find(w=>w.is_you)?.id||rows[0]?.id||'')}}).catch(()=>{});
+  useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows.filter(w=>w.active!==false));if(!entryId)setWorker(rows.find(w=>w.is_you&&w.active!==false)?.id||rows.find(w=>w.active!==false)?.id||'')}}).catch(()=>{});
     if(entryId)void getCalendarEntry(business.id,entryId).then(row=>{if(!active)return;setPrevious(row);setTitle(row.title);setNotes(row.notes||'');setStart(DateTime.fromISO(row.starts_at).setZone(zone).toFormat("yyyy-MM-dd'T'HH:mm"));setEnd(row.ends_at?DateTime.fromISO(row.ends_at).setZone(zone).toFormat("yyyy-MM-dd'T'HH:mm"):'');setWorker(row.assigned_user_id||'')}).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)})
     return()=>{active=false}
   },[business.id,entryId,zone])
@@ -47,7 +47,7 @@ export default function CalendarEntryDialog({business,day,entryId,onClose,onSave
       <label className="full">Details<textarea maxLength={1800} value={notes} disabled={busy} onChange={e=>setNotes(e.target.value)}/></label>
       <label>{kind==='event'?'Starts':'Remind me on'}<input type="datetime-local" required value={start} disabled={busy} onChange={e=>setStart(e.target.value)}/></label>
       {kind==='event'&&<><label>Ends<input type="datetime-local" required value={end} disabled={busy} onChange={e=>setEnd(e.target.value)}/></label>{teamScheduling && <label className="full">Team member<select required value={worker} disabled={busy} onChange={e=>setWorker(e.target.value)}><option value="">Choose team member</option>{team.map(w=><option key={w.id} value={w.id}>{w.label}{w.is_you?' (you)':''}</option>)}</select></label>}</>}
-      {kind==='event' && !teamScheduling && previous?.assigned_user_id && worker && previous.assigned_user_id !== worker && <p className="quiet full">Saving assigns this event to you. Team scheduling requires Business Pro.</p>}
+      {kind==='event' && !teamScheduling && previous?.assigned_user_id && worker && previous.assigned_user_id !== worker && <p className="quiet full">Saving assigns this event to you. Additional worker scheduling requires Individual or Business Pro.</p>}
       <p className="quiet full">Times use {zone.replaceAll('_',' ')}. This saves to Finviant and does not send a customer message.</p>
       {error&&<p role="alert" className="form-message error-text full">{error}</p>}
       {previous&&dispatch&&!previous.job_id&&<button type="button" className="text-button danger-action full" disabled={busy} onClick={async()=>{if(saving.current||!window.confirm('Cancel this calendar event? It will leave the active schedule and remain in your records.'))return;saving.current=true;setBusy(true);setError('');try{await cancelCalendarEntry(business.id,previous);onSaved();onClose()}catch(e){setError(e instanceof Error?e.message:'Unable to cancel event.')}finally{saving.current=false;setBusy(false)}}}>Cancel event</button>}

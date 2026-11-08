@@ -15,10 +15,10 @@ import type { CurrentBusiness } from "../lib/business";
 import MoreNavigation from '../components/MoreNavigation'
 import { canOpenSettingsSection, settingsOptionForPlan, settingsOptions, settingsSectionFromSearch, type SettingsSection } from '../lib/settingsNavigation'
 import BusinessProfileEditor from "../components/BusinessProfileEditor";
-import TeamSettings from "../components/settings/TeamSettings";
+import TeamManagement from "../components/settings/TeamManagement";
 import DocumentSettings from "../components/settings/DocumentSettings";
 import SubscriptionSettings from "../components/settings/SubscriptionSettings";
-import SchedulingSettings from "../components/scheduling/SchedulingSettings";
+
 import "../components/settings/settings.css";
 
 export default function SettingsPage({ business, onSaved }: {
@@ -43,10 +43,10 @@ export default function SettingsPage({ business, onSaved }: {
     if (id === "support") return <SupportCases businessId={business.id} />;
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
-    if (id === "team") return <TeamSettings business={business} />;
+    if (id === "team") return <TeamManagement business={business} />;
     if (id === "documents") return <DocumentSettings business={business} onSaved={onSaved} />;
     if (id === "calendar") return <IntegrationSettings businessId={business.id} />;
-    if (id === "scheduling") return <SchedulingSettings business={business} />;
+    if (id === "scheduling") return <TeamManagement business={business} initialAvailability />;
     return <SubscriptionSettings businessId={business.id} />;
   }
 
@@ -54,7 +54,7 @@ export default function SettingsPage({ business, onSaved }: {
     <div className="page-stack"><WorkspaceBack />
       <div className="page-heading">
         <p className="eyebrow">{business.name}</p>
-        <h1>{option?.title || requestedOption?.title || 'More'}</h1>
+        <h1>{section === 'scheduling' ? 'Team Management' : option?.title || requestedOption?.title || 'More'}</h1>
         <p className="quiet">{option?.description || 'Manage your business, setup, and connections.'}</p>
       </div>
       {operator && <p><a className="secondary-button" href="/admin">Open Finviant Admin Dashboard</a></p>}

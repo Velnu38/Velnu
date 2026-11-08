@@ -11,7 +11,7 @@ import './more-navigation.css'
 export default function MoreNavigation({ business }: { business: CurrentBusiness }) {
   const plan = useTierUsage(business.id)?.plan
   const options = settingsOptions
-    .filter(option => option.id !== 'sms' && canOpenSettingsSection(business, option.id))
+    .filter(option => option.id !== 'sms' && option.id !== 'scheduling' && canOpenSettingsSection(business, option.id))
     .flatMap(option => settingsOptionForPlan(option, plan) ?? [])
   const setup = options.filter(option => option.group === 'setup')
   const account = options.filter(option => option.group === 'account')

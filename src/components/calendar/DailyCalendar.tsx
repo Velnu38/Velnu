@@ -37,7 +37,8 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [connectedResult, setConnectedResult] = useState<{key:string;agenda:ConnectedAgenda}|null>(null)
   const [connectedError, setConnectedError] = useState('')
   const [connectedLoading, setConnectedLoading] = useState(true)
-  const teamScheduling = useTierUsage(business.id)?.plan === 'pro'
+  const plan = useTierUsage(business.id)?.plan
+  const teamScheduling = plan === 'pro' || plan === 'basic'
   const [team,setTeam]=useState<Worker[]>([]),[worker,setWorker]=useState('all')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(value=>{if(!active)return;setTeam(value);if(business.role==='technician')setWorker(value.find(item=>item.is_you)?.id || 'all')}).catch(()=>{});return()=>{active=false}},[business.id,business.role])
   const [entry,setEntry]=useState<{day:string;id?:string}|null>(null)

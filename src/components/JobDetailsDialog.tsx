@@ -32,7 +32,7 @@ type Props = {
 export default function JobDetailsDialog({ business, jobId, initialPhotos = false, initialSchedule = false, onClose, onUpdated, onCreateReminder }: Props) {
   const [job, setJob] = useState<Awaited<ReturnType<typeof getJob>> | null>(null)
   const plan = useTierUsage(business.id)?.plan
-  const teamScheduling = plan === 'pro'
+  const teamScheduling = plan === 'pro' || plan === 'basic'
   const [team, setTeam] = useState<Worker[] | null>(null)
   const [notes, setNotes] = useState(''), [error, setError] = useState('')
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState('')
@@ -226,7 +226,7 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
         <p className="quiet">Times shown in {zone.replaceAll('_', ' ')}.</p>
         <p><strong>Service address</strong><br />{job.properties[0] ? formatServiceAddress(job.properties[0]) : 'No service address recorded. Confirm the address with your customer.'}</p>
         {job.properties[0] && <GoogleMapTools address={job.properties[0]} compact />}
-        {canChangeSchedule && plan && !teamScheduling && <PlanRestriction plan={plan} required="pro" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)} />}
+        {canChangeSchedule && plan && !teamScheduling && <PlanRestriction plan={plan} required="basic" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)} />}
         <form className="job-details-notes" data-unsaved={dirty} onSubmit={save}>
           <label>Job notes and materials needed<textarea value={notes} maxLength={4000} rows={7} disabled={busy || !canEdit} onChange={event => { setNotes(event.target.value); setNotice('') }} placeholder="Scope, materials to bring, access instructions, and updates…" /></label>
           {canEdit && dirty && <button className="secondary-button" disabled={busy}>{busy ? 'Saving…' : 'Save job details'}</button>}

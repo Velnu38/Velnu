@@ -34,7 +34,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
   const plan = usage?.plan
   const bookingLimit = !job.scheduled_start && usage?.plan === 'free' && usage.jobs_limit !== null && usage.jobs_used >= usage.jobs_limit
   const crewOnly = mode === 'crew'
-  const lockedCrew = crewOnly && plan !== 'pro'
+  const lockedCrew = crewOnly && plan !== 'pro' && plan !== 'basic'
   const title = crewOnly ? 'Assign crew' : job.scheduled_start && !needsAppointmentRepair ? 'Reschedule appointment' : 'Schedule job'
   const [context, setContext] = useState<SchedulingContext | null>(null)
   const [selectedWorkers, setWorkers] = useState(job.assigned_user_ids ?? [])
@@ -68,7 +68,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
   const currentWorkers = job.assigned_user_ids ?? []
   const crewChanged = selectedWorkers.length !== currentWorkers.length || selectedWorkers.some(id => !currentWorkers.includes(id))
   const myId = context?.team.find(worker => worker.is_you)?.id
-  const mustReassign = !!plan && plan !== 'pro' && currentWorkers.some(id => id !== myId)
+  const mustReassign = plan === 'free' && currentWorkers.some(id => id !== myId)
   const hasChanged = crewOnly ? selectedWorkers.length > 0 && crewChanged : !!start && !!end && (needsAppointmentRepair || start !== originalStart || end !== originalEnd)
   const canSave = !!plan && !!context && hasChanged && !lockedCrew &&
     (crewOnly || (!bookingLimit && (!mustReassign || useMySchedule)))
@@ -117,7 +117,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
       <button type="button" className="calendar-arrow" aria-label={`Close ${title.toLowerCase()}`} disabled={busy} onClick={onClose}>×</button>
     </header>
     {bookingLimit && !crewOnly && <PlanRestriction plan="free" required="basic" feature="new job bookings" limit canUpgrade={isPrimaryOwner(business)}/>}
-    {plan && plan !== 'pro' && crewOnly && <PlanRestriction plan={plan} required="pro" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)}/>}
+    {plan === 'free' && crewOnly && <PlanRestriction plan={plan} required="basic" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)}/>}
     {!context && !error && <p role="status">Loading scheduling options…</p>}
     {crewOnly ? !lockedCrew && <>
       <p className="quiet">{job.scheduled_start

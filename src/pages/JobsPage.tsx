@@ -48,11 +48,11 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [newCrew,setNewCrew]=useState<string[]>([]),[newDuration,setNewDuration]=useState(120)
   const [notice,setNotice]=useState(''),[dispatch,setDispatch]=useState<Job|null>(null),[team,setTeam]=useState<Worker[]>([]),[workerFilter,setWorkerFilter]=useState('all')
   const usage = useTierUsage(business.id)
-  const teamScheduling = usage?.plan === 'pro'
+  const teamScheduling = usage?.plan === 'pro' || usage?.plan === 'basic'
   const bookingLimit=usage?.plan==='free'&&usage.jobs_limit!==null&&usage.jobs_used>=usage.jobs_limit
   const assignedWorkers = teamScheduling ? newCrew : team.filter(worker => worker.is_you).map(worker => worker.id)
   const canDispatch=['owner','admin','office'].includes(business.role)&&canAccess(business,'calendar')&&canAccess(business,'jobs')
-  useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);setNewCrew(rows.filter(w=>w.is_you).map(w=>w.id))}}).catch(()=>{});return()=>{active=false}},[business.id])
+  useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);setNewCrew(rows.filter(w=>w.is_you&&w.active!==false).map(w=>w.id))}}).catch(()=>{});return()=>{active=false}},[business.id])
   const query = new URLSearchParams(window.location.search)
   const [requireAppointment,setRequireAppointment]=useState(()=>canDispatch&&query.get('schedule')==='1')
   const jobFormLabel = requireAppointment ? 'Add a job to the calendar' : 'Create a job'
@@ -219,7 +219,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
           {bookingLimit&&<PlanRestriction plan="free" required="basic" feature="new job bookings" limit canUpgrade={isPrimaryOwner(business)}/>}
           <label className="full">{requireAppointment?'Starts':'Schedule ('+timezone+')'}<input type="datetime-local" required={requireAppointment} disabled={!canDispatch||bookingLimit} value={form.scheduled_start} onChange={(e) => setForm({ ...form, scheduled_start: e.target.value })} /></label>
           {requireAppointment&&<label className="full">Ends<input type="datetime-local" value={form.scheduled_end} disabled={bookingLimit} onChange={event=>setForm({...form,scheduled_end:event.target.value})}/></label>}
-          {!requireAppointment&&form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label>{teamScheduling && <fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}</>}{error && <p className="form-message error-text full">{error}</p>}
+          {!requireAppointment&&form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label>{teamScheduling && <fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.filter(w=>w.active!==false).map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}</>}{error && <p className="form-message error-text full">{error}</p>}
           <div className="modal-actions full"><button type="button" className="secondary-button" onClick={closeJobForm}>Cancel</button><button className="primary-button" disabled={busy||bookingLimit&&(requireAppointment||!!form.scheduled_start)||!requireAppointment&&!!form.scheduled_start&&(!form.property_id&&!noAddress||!assignedWorkers.length)}>{busy ? 'Saving…' : requireAppointment ? 'Schedule job' : 'Save job'}</button></div>
         </form>
       </FormDialog>}

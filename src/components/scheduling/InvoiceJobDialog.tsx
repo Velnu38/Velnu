@@ -12,7 +12,7 @@ export default function InvoiceJobDialog({business,invoiceId,onClose,onSaved}:{b
  const zone=business.timezone || 'America/New_York',saving=useRef(false),request=useRef(crypto.randomUUID())
  const usage=useTierUsage(business.id)
  const plan=usage?.plan
- const teamScheduling=plan==='pro'
+ const teamScheduling=plan==='pro'||plan==='basic'
  const bookingLimit=usage?.plan==='free'&&usage.jobs_limit!==null&&usage.jobs_used>=usage.jobs_limit
  const [context,setContext]=useState<InvoiceJobContext|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false)
  const [title,setTitle]=useState(''),[site,setSite]=useState(''),[selectedWorkers,setWorkers]=useState<string[]>([]),[start,setStart]=useState(''),[duration,setDuration]=useState(120)
@@ -28,7 +28,7 @@ export default function InvoiceJobDialog({business,invoiceId,onClose,onSaved}:{b
     <label>Job length<select value={duration} onChange={e=>setDuration(Number(e.target.value))}>{[...new Set([15,30,45,60,90,120,180,240,360,480,600,720,duration])].sort((a,b)=>a-b).map(n=><option key={n} value={n}>{n<60?n+' minutes':n/60+' hours'}</option>)}</select></label>
     <label className="full">Service address<select aria-label="Service address" value={site} onChange={e=>setSite(e.target.value)}><option value="">No saved service address</option>{context.properties?.map(p=><option key={p.id} value={p.id}>{p.label?p.label+' · ':''}{p.address}</option>)}</select></label>
     <details className="full"><summary>{teamScheduling ? 'Job name and crew' : 'Job name'}{teamScheduling && (workers.length===1?' · '+(context.team.find(w=>w.id===workers[0])?.label || '1 selected'): ' · '+workers.length+' selected')}</summary><label>Job name<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)}/></label>{teamScheduling && <fieldset className="guided-workers"><legend>Assigned crew</legend>{context.team.map(w=><label key={w.id}><input type="checkbox" checked={workers.includes(w.id)} onChange={e=>setWorkers(v=>e.target.checked?[...v,w.id]:v.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}</details>
-    {plan&&plan!=='pro'&&<PlanRestriction plan={plan} required="pro" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)}/>}
+    {plan==='free'&&<PlanRestriction plan={plan} required="basic" feature="Crew assignment" canUpgrade={isPrimaryOwner(business)}/>}
     {bookingLimit&&<PlanRestriction plan="free" required="basic" feature="new job bookings" limit canUpgrade={isPrimaryOwner(business)}/>}
     <p className="quiet full">Customer, scope and invoice stay linked. The end time is calculated for you. Saving checks availability and creates one job and calendar event. This does not send a customer message or change the invoice balance.</p>
     {teamScheduling&&!workers.length&&<p role="status" className="full">Choose a crew member under Job name and crew.</p>}
