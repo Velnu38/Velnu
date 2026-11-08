@@ -30,7 +30,7 @@ const initialInvite = getStartupTeamInvitation(initialQuery, {
 })
 const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get('type') === 'recovery'
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
-const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
+const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : initialQuery.get('mode') === 'reset' ? 'reset' : 'signin'
 export default function App() {
   const cardToken = new URLSearchParams(window.location.search).get('business_card')
   if (cardToken !== null) return <BusinessCardPage token={cardToken}/>

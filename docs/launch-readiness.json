@@ -33,7 +33,7 @@
     },
     {
       "title": "Database/security",
-      "detail": "Database approximately 26 MB; 16 connections observed against max_connections=60 (point-in-time snapshot, not throughput). Every public table has RLS. Security advisor: 0 ERROR categories; leaked-password protection disabled, extension-in-public warning, 5 anon and 40 authenticated definer execution findings; 45 private RLS/no-policy INFO findings require intentional deny-by-default review.",
+      "detail": "Database approximately 26 MB; 16 connections observed against max_connections=60 (point-in-time snapshot, not throughput). Every public table has RLS. Security advisor: 0 ERROR categories; leaked-password protection enabled and warning cleared on 2026-11-08, extension-in-public warning, 5 anon and 40 authenticated definer execution findings; 45 private RLS/no-policy INFO findings require intentional deny-by-default review.",
       "evidence": "Supabase security advisor and aggregate database SQL",
       "verifiedAt": "2026-11-08"
     },
@@ -71,6 +71,12 @@
       "title": "Authentication redirect correction",
       "detail": "Corrected active beta Supabase Site URL from obsolete stage1 Vercel preview address (with invalid wildcard) to https://finviant.com and added domain-scoped https://finviant.com/** redirect allowlist. Dashboard confirmed saved settings. Tester must request a new password reset; existing email links retain their old destination. Complete phone recovery and first-workspace creation remain unverified.",
       "evidence": "Supabase Auth URL Configuration saved state on xvybcmyoblfgzokaifsx; 2026-11-08",
+      "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Authentication and recovery review",
+      "detail": "Enabled leaked-password protection and secure password change; saved minimum 15 characters for new/reset passwords. Confirm-email and dual-confirm email changes remain enabled; anonymous/manual linking disabled. Sessions now expire after 720h absolute or 168h inactivity; refresh reuse detection enabled, 10s grace, access JWT expiry 3600s. Provider throttles sign-in/signup and verification at 30 requests/5min/IP, refresh 150/5min/IP. Built-in Auth email sender and disabled security-change notifications remain launch gaps; document Resend delivery is separate. Canonical redirects, recovery messages, confirmation fields and sign-out retry tested with mocked forms, not actual inbox/device completion.",
+      "evidence": "Supabase saved dashboard configuration, security advisor warning cleared; docs/AUTH_ACCESS_REVIEW_2026-11-08.md; tests/auth-access and tests/admin-mfa",
       "verifiedAt": "2026-11-08"
     }
   ],
@@ -126,7 +132,7 @@
       "status": "blocked_external",
       "title": "Harden Auth and privileged accounts",
       "owner": "Owner + developer",
-      "why": "Compromised-password protection is disabled; public signup needs operational abuse controls.",
+      "why": "Leaked-password protection and bounded sessions are now enabled; production authentication delivery, infrastructure MFA, emergency recovery and measured abuse resistance still need certification.",
       "acceptance": "Enable and verify leaked-password protection, MFA for infrastructure/operators, production Auth SMTP/redirects/session policy, least-privilege access and recovery. Verify bot/rate controls on signup, recovery and verification; record lockout/recovery tests.",
       "evidence": []
     },
@@ -359,6 +365,17 @@
       "owner": "Owner-deferred",
       "why": "Manual/external payments and internal worker profiles are distinct from native card acceptance, payroll/GPS or worker login/notifications.",
       "acceptance": "Obtain a separate approved scope, provider/device feasibility, pricing and security validation before development; do not imply these are included now.",
+      "evidence": []
+    },
+    {
+      "id": "AUTH-01",
+      "priority": "P0",
+      "gate": "public",
+      "status": "open",
+      "title": "Certify production signup and account recovery end to end",
+      "owner": "Developer + owner",
+      "why": "Built-in authentication email is not a production sender; real inbox/device recovery and emergency access need verification.",
+      "acceptance": "Configure a dedicated verified Auth SMTP or supported email hook (separate from document sending) with delivery logs, budget/rate limits, branded templates and password/email/MFA-change notifications. Complete real new-user signup/confirmation/onboarding, duplicate signup, password reset on iPhone/Android and another browser, expired/replayed/scanner-consumed links, rate controls and revoked-session/token-window tests. Document loss-of-email and administrator lost-MFA identity verification and auditable recovery with no chat-only bypass or shared temporary passwords. Verify supported account MFA enrollment/challenge before advertising it; ordinary user MFA is not currently offered. Recheck redirect, password, SMTP and session settings on production cutover.",
       "evidence": []
     }
   ],
