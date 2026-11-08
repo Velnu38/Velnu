@@ -1,5 +1,6 @@
 import PlanRestriction from '../components/PlanRestriction'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import {readableError} from '../lib/errors'
 import RecordListControls,{useRecordList} from '../components/RecordListControls'
 import FormDialog from '../components/FormDialog'
@@ -38,12 +39,21 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
 
   function openCustomer(id:string){setSelectedCustomerId(id);history.replaceState(history.state,'','/?view=customers&document='+encodeURIComponent(id))}
 
+  const refreshGeneration=useRef(0),refreshMounted=useRef(false)
+  const refreshBusiness=useRef(business.id);refreshBusiness.current=business.id
   async function refresh() {
-    setCustomers((await listCustomers(business.id)) as Customer[])
+    const generation=++refreshGeneration.current,requestedBusiness=business.id
+    try {
+      const rows=await listCustomers(requestedBusiness)
+      if(refreshMounted.current&&generation===refreshGeneration.current&&requestedBusiness===refreshBusiness.current)setCustomers(rows as Customer[])
+    } catch(error) {
+      if(refreshMounted.current&&generation===refreshGeneration.current&&requestedBusiness===refreshBusiness.current)throw error
+    }
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
-  useEffect(() => { void refresh().catch(err => setError(readableError(err, 'Unable to load customers'))) }, [business.id])
+  useBusinessRefresh(business.id,()=>refresh().catch(err=>setError(readableError(err,'Unable to refresh customers.'))))
+  useEffect(() => { refreshMounted.current=true;setCustomers([]);void refresh().catch(err => setError(readableError(err, 'Unable to load customers')));return()=>{refreshMounted.current=false;refreshGeneration.current++} }, [business.id])
 
   async function submit(event: FormEvent) {
     event.preventDefault()

@@ -1,27 +1,20 @@
 import { supabase } from '../lib/supabase'
 
-const links=new Map<string,{approval_link_id:string;token:string;expires_at:string;relative_url:string;url:string}>()
 export type ApprovalDocumentType = 'estimate' | 'change_order'
+export type ApprovalLink = { approval_link_id: string; token: string; expires_at: string | null; revision_id: string; relative_url: string; url: string }
 
-export async function createApprovalLink(businessId: string, documentType: ApprovalDocumentType, documentId: string, expiresDays = 14) {
-  const key=businessId+':'+documentType+':'+documentId,cached=links.get(key)
-  if(cached&&Date.parse(cached.expires_at)>Date.now()){try{const approval=await getCustomerApproval(cached.token);if(!approval?.completed)return cached;links.delete(key)}catch{links.delete(key);throw new Error('Unable to verify the existing link. Retry after reconnecting; no replacement link was created.')}}
-  if(!window.confirm('Create an approval link? This replaces any earlier approval link for this document, including links sent in previous emails.'))throw new Error('No new approval link was created.')
+/** The server reuses the current link; replacement is an explicit, atomic operation. */
+export async function createApprovalLink(businessId: string, documentType: ApprovalDocumentType, documentId: string, options: { rotate?: boolean } = {}): Promise<ApprovalLink> {
   const { data, error } = await supabase.functions.invoke('create-approval-link', {
-    body: {
-      business_id: businessId,
-      document_type: documentType,
-      document_id: documentId,
-      expires_days: expiresDays,
-    },
+    body: { business_id: businessId, document_type: documentType, document_id: documentId, rotate: options.rotate === true },
   })
-  if (error) throw error
-  const relative = String(data.relative_url ?? `/?approval=${encodeURIComponent(data.token)}`)
-  const link={
-    ...data,
-    url: new URL(relative, window.location.origin).toString(),
-  } as { approval_link_id: string; token: string; expires_at: string; relative_url: string; url: string }
-  links.set(key,link);return link
+  if (error) {
+    const detail = await error.context?.clone().json().catch(() => null)
+    throw new Error(detail?.error || error.message || 'The customer link could not be prepared.')
+  }
+  if (!data?.token || !/^[a-f0-9]{64}$/.test(data.token)) throw new Error('The customer link could not be verified. Try again.')
+  const relative = '/?approval=' + encodeURIComponent(data.token)
+  return { ...data, relative_url: relative, url: new URL(relative, window.location.origin).toString() }
 }
 
 export async function getCustomerApproval(token: string) {
@@ -35,9 +28,9 @@ export async function getCustomerApproval(token: string) {
   return data
 }
 
-export async function submitCustomerApproval(token: string, action: 'approved' | 'declined', typedName: string, agreedToTerms = false) {
+export async function submitCustomerApproval(token: string, action: 'approved' | 'declined', typedName: string, agreedToTerms = false, expectedRevisionId?: string) {
   const { data, error } = await supabase.functions.invoke('customer-approval', {
-    body: { token, mode: action, typed_name: typedName.trim(), terms_agreed: agreedToTerms },
+    body: { token, mode: action, typed_name: typedName.trim(), terms_agreed: agreedToTerms, ...(expectedRevisionId ? { expected_revision_id: expectedRevisionId } : {}) },
   })
   if (error) {
     const detail = await error.context?.clone().json().catch(() => null)

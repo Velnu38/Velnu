@@ -13,6 +13,7 @@ import GoogleMapTools from './GoogleMapTools'
 import GoogleReviewRequest from './GoogleReviewRequest'
 import RecordResources from './RecordResources'
 import { useTierUsage } from '../lib/useTierUsage'
+import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import DispatchJobDialog, { type JobScheduleMode } from './scheduling/DispatchJobDialog'
 
 type Props = {
@@ -37,6 +38,11 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
   const tabsId = useId()
   const detailsTab = useRef<HTMLButtonElement>(null), photosTab = useRef<HTMLButtonElement>(null)
   const saving = useRef(false)
+  const request = useRef(0)
+  const recordKey = useRef(business.id + ':' + jobId)
+  const currentJob = useRef(job), currentNotes = useRef(notes)
+  recordKey.current = business.id + ':' + jobId
+  currentJob.current = job; currentNotes.current = notes
   const canEdit = canWrite(business.role) && canAccess(business, 'jobs')
   const canDispatch = ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'jobs') && canAccess(business, 'calendar')
   const canChangeSchedule = canDispatch && job && !['completed', 'canceled'].includes(job.status)
@@ -44,23 +50,30 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
 
   useEffect(() => {
     let active = true
+    const current = ++request.current
+    setJob(null); setNotes(''); setTeam(null); setError(''); setNotice('')
     void getJob(business.id, jobId).then(row => {
-      if (active) { setJob(row); setNotes(row.description || '') }
-    }).catch(() => { if (active) setError('Unable to load this job. Close and try again.') })
+      if (active && current === request.current) { setJob(row); setNotes(row.description || '') }
+    }).catch(() => { if (active && current === request.current) setError('Unable to load this job. Close and try again.') })
     void getScheduleTeam(business.id).then(rows => { if (active) setTeam(rows) }).catch(() => {})
-    return () => { active = false }
+    return () => { active = false; request.current++ }
   }, [business.id, jobId])
 
-  async function reloadAfterChange() {
-    onUpdated?.()
+  async function refreshJob(afterChange = false) {
+    const current = ++request.current, key = business.id + ':' + jobId
     try {
       const fresh = await getJob(business.id, jobId)
+      if (current !== request.current || key !== recordKey.current) return
       // Preserve the notes version used by the optimistic save guard, and the user's draft.
-      setJob(current => current ? { ...fresh, description: current.description } : fresh)
+      const previous = currentJob.current, dirty = previous && currentNotes.current !== (previous.description || '')
+      if (!dirty) { setNotes(fresh.description || ''); setNotesVersion(value => value + 1) }
+      setJob(dirty ? { ...fresh, description: previous.description } : fresh)
     } catch {
-      setError('The change was saved, but the updated job could not be loaded. Close and reopen the job to refresh it.')
+      if (afterChange && current === request.current && key === recordKey.current) setError('The change was saved, but the updated job could not be loaded. Close and reopen the job to refresh it.')
     }
   }
+  useBusinessRefresh(business.id, () => { if (job?.id === jobId && !saving.current) return refreshJob() })
+  async function reloadAfterChange() { onUpdated?.(); await refreshJob(true) }
 
   async function save(event: FormEvent) {
     event.preventDefault()

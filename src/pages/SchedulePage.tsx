@@ -1,3 +1,4 @@
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import BookExistingJobDialog from '../components/scheduling/BookExistingJobDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -44,6 +45,7 @@ export default function SchedulePage({ business, embedded = false }: { business:
     }
   }
 
+  useBusinessRefresh(business.id,()=>refresh())
   useEffect(() => {
     mounted.current = true
     setAppointments([])
@@ -58,7 +60,7 @@ export default function SchedulePage({ business, embedded = false }: { business:
       groups.set(key, [...(groups.get(key) ?? []), appointment])
     })
     return [...groups.entries()]
-  }, [appointments])
+  }, [appointments,zone])
 
   async function changeStatus(id: string, status: Appointment['status']) {
     try { await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show'); await refresh() }
@@ -66,11 +68,11 @@ export default function SchedulePage({ business, embedded = false }: { business:
   }
 
   return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><Heading>Know where you need to be next.</Heading></div><div className="related-page-actions"><a className="secondary-button compact" href="/?view=reminders">Manage Reminders</a>{canBook && <button className="primary-button compact" onClick={() => setShowForm(true)}>Book existing job</button>}</div></div>
+    <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><Heading>Know where you need to be next.</Heading><p className="quiet">Appointment times are shown in {zone.replaceAll('_',' ')}.</p></div><div className="related-page-actions"><a className="secondary-button compact" href="/?view=reminders">Manage Reminders</a>{canBook && <button className="primary-button compact" onClick={() => setShowForm(true)}>Book existing job</button>}</div></div>
     {notice&&<p role="status">{notice}</p>}
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
     <section className="schedule-card">
-      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Finviant Office when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main">{appointment.jobs?.[0]&&canAccess(business,'jobs')?<a href={'/?view=work&document='+encodeURIComponent(appointment.jobs[0].id)}><strong>{appointment.title}</strong></a>:<strong>{appointment.title}</strong>}<span>{name(appointment.customers?.[0])}</span>{appointment.jobs?.[0]?.properties?.[0] && <div className="schedule-location"><span>{formatServiceAddress(appointment.jobs[0].properties![0])}</span><GoogleMapTools address={appointment.jobs[0].properties![0]} compact /></div>}</div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
+      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Finviant Office when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone:zone })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone:zone })}</span>}</div><div className="row-main">{appointment.jobs?.[0]&&canAccess(business,'jobs')?<a href={'/?view=work&document='+encodeURIComponent(appointment.jobs[0].id)}><strong>{appointment.title}</strong></a>:<strong>{appointment.title}</strong>}<span>{name(appointment.customers?.[0])}</span>{appointment.jobs?.[0]?.properties?.[0] && <div className="schedule-location"><span>{formatServiceAddress(appointment.jobs[0].properties![0])}</span><GoogleMapTools address={appointment.jobs[0].properties![0]} compact /></div>}</div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
     </section>
     {showForm&&canBook&&<BookExistingJobDialog business={business} onClose={()=>setShowForm(false)} onSaved={()=>{
       setNotice('Appointment saved.');void refresh()

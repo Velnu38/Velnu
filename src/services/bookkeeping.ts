@@ -27,10 +27,11 @@ type PaymentRow = {
   invoice_id?: string | null
   id: string
   amount: number
-  paid_at: string
-  status: string
+  occurred_at: string
+  direction: EntryDirection
+  currency: string
   method: string | null
-  invoices: unknown
+  invoice_number: string | null
 }
 type QBRow = {
   id: string
@@ -54,11 +55,12 @@ export async function listVelnuWorkbook(businessId: string, period?: WorkbookRan
   }
   const [payments, manual] = await Promise.all([
     collectWorkbookPages((from, to) => {
-      let query = supabase.from('payments')
-        .select('id,invoice_id,amount,paid_at,status,method,invoices!payments_invoice_id_fkey(invoice_number)', { count: 'exact' })
-        .eq('business_id', businessId).eq('status', 'succeeded')
-      if (period) query = query.gte('paid_at', fromUTC).lt('paid_at', toUTC)
-      return query.order('id', { ascending: true }).range(from, to)
+      // Gross receipts and verified refund outflows share one database snapshot.
+      // A missing/unavailable ledger fails visibly rather than showing an
+      // incorrect financial total during a provider update or rollout.
+      return supabase.rpc('list_invoice_cash_activity', {
+        p_business: businessId, p_from: period ? fromUTC : null, p_to: period ? toUTC : null,
+      }, { count: 'exact' }).order('id', { ascending: true }).range(from, to)
     }),
     collectWorkbookPages((from, to) => {
       let query = supabase.from('bookkeeping_entries')
@@ -69,18 +71,18 @@ export async function listVelnuWorkbook(businessId: string, period?: WorkbookRan
     }),
   ])
   const received = (payments as PaymentRow[]).map(p => {
-    const inv = asList(p.invoices as { invoice_number: string | null } | null)[0]
-    const invoice = inv?.invoice_number || 'Invoice'
+    const invoice = p.invoice_number || 'Invoice'
+    const refund = p.direction === 'expense'
     return {
       id: p.id,
-      entry_date: period ? DateTime.fromISO(p.paid_at).setZone(period.timezone).toISODate()! : p.paid_at.slice(0, 10),
-      direction: 'income' as EntryDirection,
-      description: 'Payment received · ' + invoice,
-      category: 'Paid services',
+      entry_date: period ? DateTime.fromISO(p.occurred_at).setZone(period.timezone).toISODate()! : p.occurred_at.slice(0, 10),
+      direction: p.direction,
+      description: (refund ? 'Customer refund · ' : 'Payment received · ') + invoice,
+      category: refund ? 'Customer refunds' : 'Paid services',
       amount: dollars(p.amount),
-      currency: 'USD',
+      currency: p.currency,
       source: 'invoice_payment' as const,
-      source_label: 'Invoice payment',
+      source_label: refund ? 'Invoice refund' : 'Invoice payment',
       source_id: p.invoice_id,
       source_view: 'invoices' as const,
       source_reference: invoice,

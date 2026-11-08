@@ -38,7 +38,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       }
       const result = mode === 'signin'
         ? await supabase.auth.signInWithPassword({ email: address, password })
-        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: `${window.location.origin}/${invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : ''}` } })
+        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: `${window.location.origin}/${invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : ''}`, ...(invitationToken && /^[a-f0-9]{64}$/.test(invitationToken) ? { data: { finviant_invite: invitationToken } } : {}) } })
       if (result.error) throw result.error
       if (mode === 'signup' && !result.data.session) {
         setAwaitingConfirmation(true)
@@ -47,7 +47,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unable to connect. Please try again.'
       if (mode === 'signup' && limitedProTesting && /database error saving new user/i.test(detail)) {
-        setMessage('Your account could not be created. Private testing is limited to 10 login accounts. Contact the test administrator to check available access.')
+        setMessage('Your account could not be created. Private beta registration requires an approved email or invitation and is limited to 10 login accounts. Contact the test administrator to check access.')
         return
       }
       setMessage(mode === 'signin' && /invalid login credentials/i.test(detail)

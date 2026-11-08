@@ -30,6 +30,7 @@ import './components/ask-fin.css';
 import './components/customer-picker.css';
 import './components/document-review.css';
 import './components/document-composer.css';
+import './components/document-pdf.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing root element');

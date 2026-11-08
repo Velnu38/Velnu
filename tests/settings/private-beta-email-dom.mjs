@@ -9,6 +9,14 @@ process.env.VITE_ENABLE_PRIVATE_BETA_EMAIL='true'
 const dom=new JSDOM('<html><body><div id="root"></div></body></html>',{url:'http://localhost/tests/beta-email',pretendToBeVisual:true})
 for(const key of ['window','document','HTMLElement','Element','Node','Event','MouseEvent','MutationObserver','HTMLDialogElement','history','location','localStorage','sessionStorage'])globalThis[key]=key==='window'?dom.window:dom.window[key]
 Object.defineProperty(globalThis,'navigator',{value:dom.window.navigator,configurable:true})
+const realFetch=globalThis.fetch
+const PDF_REVISION='77777777-7777-4777-8777-777777777777'
+globalThis.fetch=async(url,options)=>String(url).endsWith('/functions/v1/document-pdf')
+ ?new Response(new TextEncoder().encode('%PDF-1.7\ncanonical-test-pdf'),{headers:{'Content-Type':'application/pdf','Content-Disposition':'inline; filename="Invoice.pdf"','X-Finviant-Revision-Id':PDF_REVISION}})
+ :realFetch(url,options)
+const realAnchorClick=dom.window.HTMLAnchorElement.prototype.click
+dom.window.HTMLAnchorElement.prototype.click=function(){if(!this.download)return realAnchorClick.call(this)}
+
 globalThis.IS_REACT_ACT_ENVIRONMENT=true
 const React=await import('react')
 const {createRoot}=await import('react-dom/client')
@@ -22,6 +30,7 @@ let outcome='accepted',plan='pro',betaStopConfirmed=true
 let supabase
 try{
   ;({supabase}=await server.ssrLoadModule('/src/lib/supabase.ts'))
+  supabase.auth.getSession=async()=>({data:{session:{user:{id:'owner'},access_token:'owner-test-token'}},error:null})
   supabase.rpc=async name=>({data:name==='get_delivery_setup'?{plan,email:'owner@example.test',phone:'+17575550100',personal_email_ready:true,personal_sms_ready:false,managed_email_ready:true,managed_sms_ready:false,acknowledged:true}:null,error:null})
   const invoke=async(name,input)=>{
     calls.push({name,...input.body})
@@ -55,7 +64,7 @@ try{
 
   plan='basic';await mount('personal-email')
   assert.equal(button('Send Email').disabled,false)
-  assert.match(document.body.textContent,/Opens your email or messaging app to finish sending/)
+  assert.match(document.body.textContent,/Personal email downloads the finished PDF/)
   assert.doesNotMatch(document.body.textContent,/Private beta email sends only/)
   assert.equal(calls.length,4)
 

@@ -8,6 +8,7 @@ import {validateDocumentInput} from '../lib/financialValidation'
 import CustomerRecordScope from '../components/CustomerRecordScope'
 import { customerRecordsHref } from '../lib/customerRecords'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import {readableError} from '../lib/errors'
 import DocumentLineEditor from '../components/DocumentLineEditor'
 import {CreatedStamp,type DocumentDates} from '../components/DocumentRecord'
@@ -127,21 +128,23 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
     return()=>{active=false}
   },[business.id,business.role,defaultsReady,defaultTax])
 
+  const refreshGeneration=useRef(0), refreshMounted=useRef(false)
+  const refreshBusiness=useRef(business.id);refreshBusiness.current=business.id
   async function refresh() {
-    await Promise.all([
-      listInvoices(business.id, customerScope).then(rows => setInvoices(rows as Invoice[])),
-      listCustomers(business.id).then(rows => {
-        setCustomers(rows as Customer[])
-        setCustomerLoad('ready')
-      }).catch(error => {
-        setCustomerLoad('failed')
-        throw error
-      }),
-    ])
+    const generation=++refreshGeneration.current,requestedBusiness=business.id
+    try {
+      const [invoiceRows,customerRows]=await Promise.all([listInvoices(requestedBusiness,customerScope),listCustomers(requestedBusiness)])
+      if(!refreshMounted.current||generation!==refreshGeneration.current||requestedBusiness!==refreshBusiness.current)return
+      setInvoices(invoiceRows as Invoice[]);setCustomers(customerRows as Customer[]);setCustomerLoad('ready')
+    } catch(error) {
+      if(!refreshMounted.current||generation!==refreshGeneration.current||requestedBusiness!==refreshBusiness.current)return
+      setCustomerLoad('failed');throw error
+    }
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
-  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load invoices')) }, [business.id])
+  useBusinessRefresh(business.id,()=>refresh().catch(err=>setError(readableError(err,'Unable to refresh invoices.'))))
+  useEffect(() => { refreshMounted.current=true;setInvoices([]);setCustomers([]);setCustomerLoad('loading');void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load invoices'));return()=>{refreshMounted.current=false;refreshGeneration.current++} }, [business.id,customerScope])
 
   const pricedLines = useMemo(() => adjustPrices && isPrimaryOwner(business) ? lines.map(line => { try { return {...line,unit_price:line.unit_price ? adjustedPrice(line.unit_price,pricingAdjustment) : ''} } catch { return {...line,unit_price:'invalid'} } }) : lines,[lines,adjustPrices,pricingAdjustment,business.primary_owner])
   const previewTotal = useMemo(() => previewDocumentTotal(pricedLines), [pricedLines])
@@ -173,12 +176,12 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); setPropertyId(''); setServiceAddress(''); retryRef.current = null
   }
 
-  async function submit(sendEmail=false, stayOnPreview=false) {
+  async function submit(sendEmail=false, stayOnPreview=false, expectedRevisionId?:string) {
      if(saving.current)return;saving.current=true;setBusy(true); setError('')
     try {
       if(savedCreation.current){
         if(stayOnPreview)return savedCreation.current
-        if(sendEmail)await sendReviewedDocument(business.id, 'invoice',savedCreation.current,creationCustomer?.email||'');
+        if(sendEmail)await sendReviewedDocument(business.id, 'invoice',savedCreation.current,creationCustomer?.email||'',undefined,expectedRevisionId);
         await finishCreation(savedCreation.current); return
       }
       if(previewTotal === null)throw new Error('Check the description, quantity, price and tax on each line.')
@@ -212,7 +215,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
         history.replaceState(history.state,'',customerRecordsHref('invoices',customerScope,created.id))
         return created.id
       }
-      if(sendEmail)await sendReviewedDocument(business.id, 'invoice',created.id,creationCustomer?.email||'')
+      if(sendEmail)await sendReviewedDocument(business.id, 'invoice',created.id,creationCustomer?.email||'',undefined,expectedRevisionId)
       await finishCreation(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create invoice')
@@ -296,7 +299,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       </form>
 
       {editCreationCustomer&&creationContactId&&<CustomerEditDialog businessId={business.id} customerId={creationContactId} contactField={editCreationCustomer==='all'?undefined:editCreationCustomer} onClose={()=>setEditCreationCustomer(null)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,serviceAddress,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
+      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,serviceAddress,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
     </FormDialog>}
   </div>
 }

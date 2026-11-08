@@ -45,6 +45,7 @@ export default function App() {
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [authError, setAuthError] = useState('')
+  const [betaAccess, setBetaAccess] = useState<'checking' | 'allowed' | 'denied'>('checking')
   const userId = session?.user.id ?? null
 
   useEffect(() => {
@@ -88,8 +89,19 @@ export default function App() {
     setSelectedTier(null)
     setPlanStatus('checking')
     setAgreementStatus('checking')
+    setBetaAccess('checking')
     if (!userId || recovery || approvalToken || initialInvite) return () => { active = false }
-    void Promise.all([getPlanPreference(userId), supabase.rpc('get_membership_entry')]).then(([tier, member]) => {
+    void Promise.resolve(supabase.rpc('get_private_beta_access')).then(async result => {
+      if (result.error) throw result.error
+      if (result.data?.allowed !== true) {
+        if (active) setBetaAccess('denied')
+        return null
+      }
+      if (active) setBetaAccess('allowed')
+      return Promise.all([getPlanPreference(userId), supabase.rpc('get_membership_entry')])
+    }).then(result => {
+      if (!result) return
+      let [tier, member] = result
       if (member.error) throw member.error
       if (member.data) tier = tier || 'pro'
       if (!active) return
@@ -157,8 +169,10 @@ export default function App() {
     }
     return <LandingPage />
   }
-  if (publicPath === '/admin') return <Suspense fallback={<main className="loading-page">Opening administration…</main>}><PlatformAdminPage /></Suspense>
   if (error) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><h2>We couldn’t open your workspace.</h2><p>{error}</p><button className="secondary-button" onClick={() => location.reload()}>Try again</button><button className="text-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
+  if (betaAccess === 'denied') return <main className="loading-page"><h1>Private beta access required</h1><p>This account has not been admitted to the Finviant private beta. Contact the test administrator.</p><button className="secondary-button" onClick={() => void supabase.auth.signOut()}>Sign out</button></main>
+  if (betaAccess === 'checking') return <main className="loading-page">Checking private beta access…</main>
+  if (publicPath === '/admin') return <Suspense fallback={<main className="loading-page">Opening administration…</main>}><PlatformAdminPage /></Suspense>
   if (planStatus === 'checking') return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Preparing your private test workspace…</p></main>
   if (planStatus === 'needed' || planRequested) return <PlanSelection
     userId={session.user.id} email={session.user.email ?? 'your account'} currentTier={selectedTier}

@@ -145,13 +145,29 @@ export async function updateBusinessProfile(business: CurrentBusiness, draft: Bu
 
 export async function uploadBusinessLogo(business: CurrentBusiness, file: File): Promise<string> {
   if (!business.primary_owner) throw new Error('Only owners and administrators can upload logos.')
-  const valid: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+  const valid: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'png' }
   const extension = valid[file.type]
   if (!extension) throw new Error('Choose a PNG, JPG, or WebP logo.')
   if (file.size > LOGO_BYTES_LIMIT) throw new Error('The logo must be smaller than 2 MB.')
   if (file.size === 0) throw new Error('The image file is empty.')
+  let body: Blob = file
+  if (file.type === 'image/webp') {
+    if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') throw new Error('Your browser could not convert this logo. Export it as PNG or JPG and try again.')
+    const bitmap = await createImageBitmap(file).catch(() => { throw new Error('This logo could not be opened. Export it as PNG or JPG and try again.') })
+    try {
+      if (!bitmap.width || !bitmap.height || bitmap.width > 8192 || bitmap.height > 8192 || bitmap.width * bitmap.height > 25_000_000) throw new Error('Choose a smaller logo image before uploading.')
+      const canvas = document.createElement('canvas')
+      canvas.width = bitmap.width; canvas.height = bitmap.height
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('Your browser could not convert this logo. Export it as PNG or JPG and try again.')
+      // Preserve the original pixels and transparency in a PDF-compatible format.
+      context.drawImage(bitmap, 0, 0)
+      body = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value?.type === 'image/png' ? resolve(value) : reject(new Error('Your browser could not convert this logo. Export it as PNG or JPG and try again.')), 'image/png'))
+      if (body.size > LOGO_BYTES_LIMIT) throw new Error('The converted logo is larger than 2 MB. Export a smaller PNG or JPG and try again.')
+    } finally { bitmap.close() }
+  }
   const path = business.id + '/logo-' + crypto.randomUUID() + '.' + extension
-  await uploadAttachment('velnu-business-logos', path, file)
+  await uploadAttachment('velnu-business-logos', path, body)
   return path
 }
 

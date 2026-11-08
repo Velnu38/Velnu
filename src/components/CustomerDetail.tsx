@@ -1,3 +1,4 @@
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
 import CustomerEditDialog from './CustomerEditDialog'
@@ -32,6 +33,7 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
   const request=useRef(0)
   const billing=canAccess(business,'billing'),jobs=canAccess(business,'jobs')
   async function refresh(){const current=++request.current;setLoading(true);setError('');try{const next=await getCustomerDetail(business.id,customerId,{billing,jobs}) as Detail;if(current===request.current)setDetail(next)}catch(e){if(current===request.current)setError(e instanceof Error?e.message:'Unable to load customer records.')}finally{if(current===request.current)setLoading(false)}}
+  useBusinessRefresh(business.id,()=>refresh())
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useEffect(()=>{setDetail(null);void refresh();return()=>{request.current++}},[business.id,customerId,billing,jobs])
   if(loading&&!detail)return <div className="detail-loading">Loading customer…</div>

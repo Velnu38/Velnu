@@ -13,7 +13,7 @@ export type SchedulingContext = {
   offer?:{id:string;status:string;expires_at:string;job_id:string|null}|null
 }
 export type OfferInput = {title:string;property_id:string|null;workers:string[];slots:Slot[];note:string;recipient_email?:string|null}
-export type BookingView = {business_name:string;business_phone:string|null;title:string;timezone:string;note:string;address:string|null;status:'approved'|'booked'|'canceled';expires_at:string;slots:Required<Slot>[];confirmed:Slot|null}
+export type BookingView = {business_name:string;business_phone:string|null;title:string;timezone:string;note:string;address:string|null;status:'approved'|'booked'|'canceled'|'expired'|'paused'|'replaced'|'revoked'|'unavailable';status_reason?:string;can_book?:boolean;checked_at?:string;booking_reference?:string|null;business_email?:string|null;business_logo_path?:string|null;document_accent?:string|null;estimate_number?:string|null;booked_at?:string|null;expires_at:string;slots:Required<Slot>[];confirmed:(Slot&{status?:'scheduled'|'confirmed'|'in_progress'|'completed'|'canceled'})|null}
 export type Completion = {job_id:string;status:'completed';invoice_ready:boolean;invoice_id:string|null;needs_pricing:boolean;needs_review:boolean}
 export type WorkflowActions = {approved_count?:number;completed_count?:number;approved:Array<{id:string;estimate_number:string|null;customer_name:string;offer:{status:string;expires_at:string}|null}>;completed:Array<{id:string;title:string;invoice_id:string|null;invoice_status:string|null;error_code:string|null}>}
 async function rpc<T>(name:string,args:Record<string,unknown>):Promise<T> {
@@ -54,7 +54,8 @@ export async function customerBooking(token:string,slot?:string,name?:string) {
   // A customer link has its own narrow authority, independent of any staff session.
   publicBookingClient ??= createClient(import.meta.env.VITE_SUPABASE_URL,import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})
   const {data,error}=await publicBookingClient.rpc('customer_schedule_offer',{p_token:token,p_slot:slot || null,p_name:name || null})
-  if(error) throw new Error(error.message || 'This scheduling link is unavailable.')
+  if(error) throw Object.assign(new Error(error.message || 'This scheduling link is unavailable.'),{code:error.code})
+  if(!data||typeof data.business_name!=='string'||!Array.isArray(data.slots)||typeof data.timezone!=='string')throw new Error('The appointment details could not be verified. Refresh the invitation and try again.')
   return data as BookingView
 }
 export function sendAvailability(offer:string,token:string,sendId:string) {return action<{status:string;warning?:string|null}>({action:'send_availability',offer_id:offer,token,send_id:sendId,approved:true})}

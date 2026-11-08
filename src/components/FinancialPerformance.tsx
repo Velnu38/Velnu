@@ -1,3 +1,4 @@
+import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import ReceiptLink from './ReceiptLink'
 import {useTierUsage} from '../lib/useTierUsage'
 import { useEffect, useId, useMemo, useState } from 'react'
@@ -60,13 +61,7 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   const requestKey = [business.id, business.role, business.access_modules?.join(','), range.from, range.to, zone].join(':')
   const ready = !loading && !error && result?.key === requestKey
   const rows = useMemo(() => result?.key === requestKey ? result.rows.filter(row => row.currency === 'USD' && row.entry_date >= range.from && row.entry_date < range.to) : [], [result, requestKey, range.from, range.to])
-  useEffect(() => {
-    const refresh = () => { if (!document.hidden) { setDay(DateTime.now().setZone(zone).toISODate()!); setVersion(value => value + 1) } }
-    window.addEventListener('finviant-work-changed', refresh)
-    window.addEventListener('focus', refresh)
-    document.addEventListener('visibilitychange', refresh)
-    return () => { window.removeEventListener('finviant-work-changed', refresh); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh) }
-  }, [zone])
+  useBusinessRefresh(business.id, () => { setDay(DateTime.now().setZone(zone).toISODate()!); setVersion(value => value + 1) })
   useEffect(() => {
     let active = true
     setLoading(true); setError('')

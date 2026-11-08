@@ -15,6 +15,14 @@ consoleOutput.on('jsdomError',error=>{
 const dom=new JSDOM('<html><body><div id="root"></div></body></html>',{url:'https://finviant.test/?view=invoices',pretendToBeVisual:true,virtualConsole:consoleOutput})
 for(const key of ['window','document','HTMLElement','HTMLInputElement','HTMLSelectElement','HTMLTextAreaElement','Element','Node','Event','CustomEvent','MouseEvent','MutationObserver','HTMLDialogElement','history','location','localStorage','sessionStorage'])globalThis[key]=key==='window'?dom.window:dom.window[key]
 Object.defineProperty(globalThis,'navigator',{value:dom.window.navigator,configurable:true})
+const realFetch=globalThis.fetch
+const PDF_REVISION='77777777-7777-4777-8777-777777777777'
+globalThis.fetch=async(url,options)=>String(url).endsWith('/functions/v1/document-pdf')
+ ?new Response(new TextEncoder().encode('%PDF-1.7\ncanonical-test-pdf'),{headers:{'Content-Type':'application/pdf','Content-Disposition':'inline; filename="Invoice.pdf"','X-Finviant-Revision-Id':PDF_REVISION}})
+ :realFetch(url,options)
+const realAnchorClick=dom.window.HTMLAnchorElement.prototype.click
+dom.window.HTMLAnchorElement.prototype.click=function(){if(!this.download)return realAnchorClick.call(this)}
+
 Object.defineProperty(window,'innerWidth',{value:390,configurable:true})
 Object.defineProperty(window,'innerHeight',{value:844,configurable:true})
 HTMLDialogElement.prototype.showModal=function(){this.open=true}
@@ -39,7 +47,7 @@ const managedCalls=()=>calls.filter(c=>c.name.startsWith('send-')).length
 let supabase
 try{
   ;({supabase}=await server.ssrLoadModule('/src/lib/supabase.ts'))
-  supabase.auth.getSession=async()=>({data:{session:{user:{id:U}}},error:null})
+  supabase.auth.getSession=async()=>({data:{session:{user:{id:U},access_token:'owner-test-token'}},error:null})
   supabase.rpc=async(name,args)=>{
     if(name==='get_delivery_setup'){
       setupReads++
@@ -75,7 +83,7 @@ try{
 
   // A phone returning from another tab must refresh a cross-device tier change.
   reset();plan='basic';await mount(DocumentDelivery,savedProps('focus-refresh'),'focus-refresh')
-  assert.match(document.body.textContent,/Opens your email or messaging app/)
+  assert.match(document.body.textContent,/Personal email downloads the finished PDF/)
   const beforeFocus=setupReads;plan='pro'
   await act(async()=>window.dispatchEvent(new Event('focus')));await tick()
   assert.ok(setupReads>beforeFocus,'Focus refreshes authoritative sending setup')
@@ -114,7 +122,7 @@ try{
   // Reminders previously displayed the personal Send Email before the Pro sender.
   reset();plan='pro'
   await mount(InvoiceReminderDialog,{business,invoiceId:'pro-reminder',onClose:()=>{},onSent:()=>{}},'pro-reminder')
-  assert.doesNotMatch(document.body.textContent,/Opens your email or messaging app/)
+  assert.doesNotMatch(document.body.textContent,/Personal email downloads the finished PDF/)
   await click(button('Send Email')?'Send Email':'Send Email with Finviant')
   assert.equal(calls.filter(c=>c.name==='send-invoice-reminder').length,1)
   assert.equal(personalCalls(),0);assert.equal(nativeNavigations,0)

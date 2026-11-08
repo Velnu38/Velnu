@@ -9,7 +9,7 @@ await build({ entryPoints: ['src/services/bookkeeping.ts'], outfile: '.qa-build/
 })
 const { listVelnuWorkbook, listQuickBooksWorkbook, addManualEntry } = await import('../../.qa-build/bookkeeping.mjs')
 const tenant = '11111111-1111-4111-8111-111111111111'
-const paymentRows = Array.from({ length: 1001 }, (_, i) => ({ id: 'p' + i, amount: 1, paid_at: '2026-10-28T12:00:00Z', status: 'succeeded', method: 'cash', invoices: { invoice_number: 'INV-' + i } }))
+const paymentRows = Array.from({ length: 1001 }, (_, i) => ({ id: 'p' + i, amount: 1, occurred_at: '2026-10-28T12:00:00Z', direction: 'income', currency: 'USD', method: 'cash', invoice_number: 'INV-' + i }))
 const manualRows = Array.from({ length: 1001 }, (_, i) => ({ id: 'm' + i, amount: 2, entry_date: '2026-10-28', direction: 'expense', description: 'Expense ' + i, category: 'Parts', currency: 'USD' }))
 
 async function fixture(options, run) {
@@ -17,14 +17,15 @@ async function fixture(options, run) {
   globalThis.fetch = async (input, init) => {
     const request = new Request(input, init), url = new URL(request.url)
     assert.equal(url.hostname, 'qa.invalid', 'No external requests allowed')
-    assert.equal(url.searchParams.get('business_id'), 'eq.' + tenant)
+    const cash = url.pathname.endsWith('/rpc/list_invoice_cash_activity')
+    if (cash) assert.equal((await request.json()).p_business, tenant)
+    else assert.equal(url.searchParams.get('business_id'), 'eq.' + tenant)
     assert.equal(url.searchParams.get('order'), 'id.asc')
     assert.match(request.headers.get('prefer') || '', /count=exact/)
     const table = url.pathname.split('/').at(-1), from = Number(url.searchParams.get('offset') || 0), limit = Number(url.searchParams.get('limit') || 1000)
     calls.push({ table, from, limit })
     if (options.failSecond && from > 0) return new Response(JSON.stringify({ message: 'QA page unavailable' }), { status: 503, headers: { 'content-type': 'application/json' } })
-    const rows = table === 'payments' ? paymentRows : table === 'bookkeeping_entries' ? manualRows : manualRows.map(r => ({ ...r, txn_date: r.entry_date, source_type: 'Purchase' }))
-    if (table === 'payments') assert.equal(url.searchParams.get('status'), 'eq.succeeded')
+    const rows = cash ? (options.cashRows || paymentRows) : table === 'bookkeeping_entries' ? manualRows : manualRows.map(r => ({ ...r, txn_date: r.entry_date, source_type: 'Purchase' }))
     const page = rows.slice(from, from + limit)
     return new Response(JSON.stringify(page), { headers: { 'content-type': 'application/json', ...(options.missingCount ? {} : { 'content-range': from + '-' + (from + page.length - 1) + '/' + rows.length }) } })
   }
@@ -84,14 +85,14 @@ test('ranged workbook uses business-zone month boundaries and exposes original r
   globalThis.fetch = async (input, init) => {
     const request = new Request(input, init), url = new URL(request.url)
     assert.equal(url.hostname, 'qa.invalid')
-    assert.equal(url.searchParams.get('business_id'), 'eq.' + tenant)
-    const payment = url.pathname.endsWith('/payments')
+    const payment = url.pathname.endsWith('/rpc/list_invoice_cash_activity')
     if (payment) {
-      assert.deepEqual(url.searchParams.getAll('paid_at'), ['gte.2026-11-01T04:00:00.000Z','lt.2026-12-01T05:00:00.000Z'])
+      assert.deepEqual(await request.json(), { p_business:tenant,p_from:'2026-11-01T04:00:00.000Z',p_to:'2026-12-01T05:00:00.000Z' })
     } else {
+      assert.equal(url.searchParams.get('business_id'), 'eq.' + tenant)
       assert.deepEqual(url.searchParams.getAll('entry_date'), ['gte.2026-11-01','lt.2026-12-01'])
     }
-    const row = payment ? { id:'p1',invoice_id:'inv1',amount:123.45,paid_at:'2026-12-01T04:30:00Z',status:'succeeded',method:'cash',invoices:{invoice_number:'INV-1'} }
+    const row = payment ? { id:'p1',invoice_id:'inv1',amount:123.45,occurred_at:'2026-12-01T04:30:00Z',direction:'income',currency:'USD',method:'cash',invoice_number:'INV-1' }
       : { id:'m1',job_id:'job1',entry_date:'2026-11-30',direction:'expense',amount:12,currency:'USD',category:'Parts',description:'Copper',notes:'Receipt 123',jobs:{title:'Kitchen repair'} }
     return new Response(JSON.stringify([row]), {headers:{'content-type':'application/json','content-range':'0-0/1'}})
   }
@@ -102,4 +103,28 @@ test('ranged workbook uses business-zone month boundaries and exposes original r
     const expense = rows.find(row => row.source === 'manual')
     assert.equal(expense.source_reference,'Kitchen repair');assert.equal(expense.source_view,'work');assert.equal(expense.notes,'Receipt 123')
   } finally { globalThis.fetch = original }
+})
+
+test('verified refunds remain separate nonremovable dated outflows without deleting gross income', () => fixture({ cashRows: [
+  { id:'receipt1',invoice_id:'inv1',invoice_number:'INV-1',amount:100,direction:'income',currency:'USD',occurred_at:'2026-10-28T12:00:00Z',method:'card' },
+  { id:'re_refund1',invoice_id:'inv1',invoice_number:'INV-1',amount:25,direction:'expense',currency:'USD',occurred_at:'2026-11-02T12:00:00Z',method:'card' },
+] }, async () => {
+  const rows = (await listVelnuWorkbook(tenant)).filter(row => row.source === 'invoice_payment')
+  assert.equal(rows.length, 2)
+  assert.equal(rows.filter(row => row.direction === 'income').reduce((sum,row)=>sum+row.amount,0),100)
+  const refund = rows.find(row => row.direction === 'expense')
+  assert.equal(refund.amount,25);assert.equal(refund.entry_date,'2026-11-02');assert.equal(refund.source_label,'Invoice refund')
+  assert.equal(refund.source_id,'inv1');assert.equal(refund.removable,false)
+}))
+
+test('a missing invoice cash ledger fails visibly rather than displaying an incorrect zero total', async () => {
+  const original = globalThis.fetch
+  globalThis.fetch = async (input,init) => {
+    const request = new Request(input,init), url = new URL(request.url)
+    assert.equal(url.hostname,'qa.invalid')
+    if(url.pathname.endsWith('/rpc/list_invoice_cash_activity')) return new Response(JSON.stringify({message:'Invoice cash activity unavailable'}),{status:503,headers:{'content-type':'application/json'}})
+    return new Response('[]',{headers:{'content-type':'application/json','content-range':'0-0/0'}})
+  }
+  try { await assert.rejects(()=>listVelnuWorkbook(tenant),/cash activity unavailable/) }
+  finally { globalThis.fetch=original }
 })

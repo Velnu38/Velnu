@@ -1,4 +1,5 @@
 import PlanRestriction from '../components/PlanRestriction'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import CustomerRecordScope from '../components/CustomerRecordScope'
 import QuickCustomer from '../components/scheduling/QuickCustomer'
 import FormDialog from '../components/FormDialog'
@@ -74,9 +75,9 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     setShowForm(true)
   }
 
-  async function refresh() {
+  async function refresh(background=false) {
     const request = ++requestId.current
-    setLoading(true)
+    if(!background)setLoading(true)
     try {
     const [jobRows, customerRows, linkedJob] = await Promise.all([listJobs(business.id, customerScope), listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
@@ -89,6 +90,8 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     setError('')
     } finally { if (mounted.current && request === requestId.current) setLoading(false) }
   }
+
+  useBusinessRefresh(business.id,()=>refresh(true).catch(err=>setError(readableError(err,'Unable to refresh jobs.'))))
 
   useEffect(() => {
     mounted.current = true

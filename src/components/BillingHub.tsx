@@ -1,3 +1,4 @@
+import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import InvoiceReminderDialog from './InvoiceReminderDialog'
 import { useEffect, useRef, useState } from 'react'
 import { DateTime } from 'luxon'
@@ -36,6 +37,7 @@ export default function BillingHub({ business, refreshVersion = 0, openRequest =
   business: CurrentBusiness; refreshVersion?: number; openRequest?: number; onPendingChange?: (count: number) => void
 }) {
   const card = useRef<HTMLElement>(null)
+  const liveRefresh = useRef<() => void>(() => {})
   const savedView = useRef(history.state?.finviantAttention?.businessId === business.id ? history.state.finviantAttention : null)
   const [reminderInvoice,setReminderInvoice]=useState<string|null>(null)
   const [filter, setFilter] = useState<AttentionFilter>(savedView.current?.filter ?? 'attention')
@@ -73,11 +75,10 @@ export default function BillingHub({ business, refreshVersion = 0, openRequest =
       }).catch(()=>{if(active&&request===current){setPageError('Needs Attention is unavailable. Try again.');setPageLoading(false)}})
     }
     refresh()
-    const update=()=>refresh(true)
-    const timer=window.setInterval(update,30000)
-    window.addEventListener('finviant-work-changed',update);window.addEventListener('focus',update);document.addEventListener('visibilitychange',update)
-    return()=>{active=false;request++;clearInterval(timer);window.removeEventListener('finviant-work-changed',update);window.removeEventListener('focus',update);document.removeEventListener('visibilitychange',update)}
+    liveRefresh.current=()=>refresh(true)
+    return()=>{active=false;request++;liveRefresh.current=()=>{}}
   },[business.id,canSee,pageNumber,filter,refreshVersion,retry])
+  useBusinessRefresh(business.id, () => liveRefresh.current(), canSee)
   function changeFilter(value: AttentionFilter) {
     if (value !== filter) {
       setPageLoading(true)

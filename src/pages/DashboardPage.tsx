@@ -1,3 +1,4 @@
+import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import { canAccess, canOpenView, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
@@ -5,6 +6,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { businessLogoUrl, type CurrentBusiness } from '../lib/business'
 import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 import FinancialPerformance from '../components/FinancialPerformance'
+import CustomerPaymentReviews from '../components/CustomerPaymentReviews'
 import '../components/dashboard-interactive.css'
 import { readableError } from '../lib/errors'
 import '../components/dashboard-tiles.css'
@@ -84,19 +86,12 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     mounted.current = true
     setSnapshot(empty)
     void refresh()
-    const update = () => { if (!document.hidden) void refresh(true, true) }
-    const timer = window.setInterval(update, 30000)
-    window.addEventListener('finviant-work-changed', update)
-    window.addEventListener('focus', update)
-    document.addEventListener('visibilitychange', update)
     return () => {
       mounted.current = false; currentRequest.current++
-      clearInterval(timer)
-      window.removeEventListener('finviant-work-changed', update)
-      window.removeEventListener('focus', update)
-      document.removeEventListener('visibilitychange', update)
     }
   }, [business.id, business.timezone, business.access_modules?.join(','), business.role])
+
+  useBusinessRefresh(business.id, () => refresh(true, true))
 
   const logo = businessLogoUrl(business)
   const canCreateBilling = canAccess(business, 'billing') && ['owner', 'admin', 'office'].includes(business.role)
@@ -117,6 +112,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
       {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} />}
       {attentionCount>0&&canAccess(business,'billing')&&<button type="button" className="text-button attention-jump" onClick={()=>setOpenAttention(value=>value+1)}>Jump to Needs Attention</button>}
       {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey+':financial'} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
+      {canAccess(business,'finances') && <CustomerPaymentReviews key={workspaceKey+':payment-reviews'} businessId={business.id} />}
       {canAccess(business,'billing') && <BillingHub key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} openRequest={openAttention} onPendingChange={setAttentionCount} />}
     </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { confirmPersonalSent, nativeDocumentDraft, preparePersonalDocument, readPendingPersonalSend, releasePersonalApproval, storePendingPersonalSend, type PendingPersonalSend, type PersonalChannel } from '../services/personalDelivery'
+import { confirmPersonalSent, nativeDocumentDraft, preparePersonalDocument, readPendingPersonalSend, releasePersonalApproval, storePendingPersonalSend, type PendingPersonalSend, type PersonalChannel, type PreparedShare } from '../services/personalDelivery'
+import { canShareDocumentPdf, downloadDocumentPdf, getDocumentPdf, shareDocumentPdf, type DocumentPdfArtifact } from '../services/documentPdf'
 import { normalizeMobile } from '../lib/smsPhone'
 import { getDeliverySetup, type DeliverySetup } from '../services/tiers'
 import type { DeliveryDocumentKind } from '../services/reviewDelivery'
@@ -20,9 +21,10 @@ type Props = {
   allowProPersonal?: boolean
   onManagedEmailRequested?: (fresh: DeliverySetup) => void | Promise<void>
   onPendingChange?: (pending: PendingPersonalSend | null) => void
+  pdfArtifact?: DocumentPdfArtifact | null
 }
 
-export default function PersonalDocumentDelivery({ businessId, kind, documentId, email, phone, setup, disabled, onEditContact, onSent, onBusyChange, reminder, allowProPersonal = false, onManagedEmailRequested, onPendingChange }: Props) {
+export default function PersonalDocumentDelivery({ businessId, kind, documentId, email, phone, setup, disabled, onEditContact, onSent, onBusyChange, reminder, allowProPersonal = false, onManagedEmailRequested, onPendingChange, pdfArtifact }: Props) {
   const [pending, setPending] = useState<PendingPersonalSend | null>(null)
   const [draftHref, setDraftHref] = useState('')
   const [shareUrl, setShareUrl] = useState('')
@@ -30,11 +32,12 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [preparedPdf, setPreparedPdf] = useState<{ share: PreparedShare; pdf: DocumentPdfArtifact } | null>(null)
   const flight = useRef(false)
 
   useEffect(() => {
     let active = true
-    setPending(null); setDraftHref(''); setShareUrl(''); setCopyUrl(''); setNotice(''); setError('')
+    setPending(null); setDraftHref(''); setShareUrl(''); setCopyUrl(''); setNotice(''); setError(''); setPreparedPdf(null)
     void readPendingPersonalSend(businessId, kind, documentId).then(async saved => {
       if (!active || !saved) return
       setPending(saved)
@@ -46,7 +49,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
     return () => { active = false }
   }, [businessId, kind, documentId, email, phone, reminder?.subject, reminder?.body])
 
-  async function prepare(channel: PersonalChannel | 'copy') {
+  async function prepare(channel: PersonalChannel | 'copy' | 'pdf') {
     if (flight.current || disabled) return
     flight.current = true; setBusy(true); onBusyChange?.(true); setError(''); setNotice(''); setCopyUrl('')
     try {
@@ -60,21 +63,44 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
         if (!fresh.personal_email_ready) throw new Error('Complete your email app setup before opening a draft.')
       }
       const share = await preparePersonalDocument(businessId, kind, documentId)
-      const href = channel === 'copy' ? null : nativeDocumentDraft(share, channel, (channel === 'email' ? email : phone) || '', reminder)
+      const attachment = await getDocumentPdf({ token: share.token, tokenType: 'share' })
+      if (pdfArtifact?.revisionId && attachment.revisionId !== pdfArtifact.revisionId) throw new Error('This document changed after review. Reload its PDF and review the current version before sending.')
+      setPreparedPdf({ share, pdf: attachment })
+      const href = channel === 'copy' || channel === 'pdf' ? null : nativeDocumentDraft(share, channel, (channel === 'email' ? email : phone) || '', reminder)
       await releasePersonalApproval(businessId, kind, share.token)
       setShareUrl(share.url)
-      const ready = kind === 'invoice' ? '' : 'Ready for customer approval. '
-      if (channel === 'copy') {
+      const ready = kind !== 'invoice' && setup.plan === 'pro' ? 'Ready for customer approval. ' : ''
+      if (channel === 'pdf') {
+        setNotice(canShareDocumentPdf(attachment) ? 'PDF ready. Choose Share PDF by email, then select your email app.' : 'PDF ready. Download it and attach it in your email app.')
+      } else if (channel === 'copy') {
         try { await navigator.clipboard.writeText(share.url); setNotice(ready + 'Link copied.') }
         catch { setCopyUrl(share.url); setNotice(ready + 'Copy the link below.') }
       } else if (href) {
         const next = { token: share.token, channel }
         await storePendingPersonalSend(businessId, kind, documentId, next)
         onPendingChange?.(next)
-        setPending(next); setDraftHref(href); setNotice(ready + 'Finish in your app, then confirm here.')
+        if (channel === 'email') downloadDocumentPdf(attachment)
+        setPending(next); setDraftHref(href); setNotice(ready + (channel === 'email' ? 'PDF downloaded. Attach it to this email draft before sending, then confirm here.' : 'Finish in your messaging app, then confirm here.'))
         window.location.href = href
       }
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to prepare the document.') }
+    finally { flight.current = false; setBusy(false); onBusyChange?.(false) }
+  }
+
+  async function sharePdfByEmail() {
+    if (flight.current || disabled) return
+    if (!preparedPdf) { await prepare('pdf'); return }
+    flight.current = true; setBusy(true); onBusyChange?.(true); setError('')
+    try {
+      // The file is already prepared, so sharing starts within this user click.
+      const result = await shareDocumentPdf(preparedPdf.pdf, preparedPdf.share.subject, 'Please review the attached document. ' + preparedPdf.share.url)
+      if (result === 'cancelled') { setNotice('Sharing cancelled. No send was recorded.'); return }
+      if (result === 'unsupported') { setNotice('Download the PDF and attach it in your email app.'); return }
+      const next: PendingPersonalSend = { token: preparedPdf.share.token, channel: 'email' }
+      await storePendingPersonalSend(businessId, kind, documentId, next)
+      setPending(next); onPendingChange?.(next)
+      setNotice('Confirm here only after sending the PDF to this customer in your email app.')
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'The PDF could not be shared.') }
     finally { flight.current = false; setBusy(false); onBusyChange?.(false) }
   }
 
@@ -101,9 +127,9 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
   const locked = busy || disabled
   return <section className="document-delivery" aria-label="Send to customer">
     <div className="document-delivery-heading"><h2>Send to customer</h2><button type="button" className="text-button" disabled={locked} onClick={onEditContact}>Edit customer contact</button></div>
-    <p>Opens your email or messaging app to finish sending. Replies arrive in that app.</p>
+    <p>Personal email downloads the finished PDF and opens a draft. Attach that PDF before sending. Replies arrive in your app.</p>
     {pending ? <div className="personal-delivery-actions">
-      <p role="status">{kind!=='invoice' && 'Ready for customer approval. '}Confirm after sending in your {pending.channel==='email'?'email':'messaging'} app.</p>
+      <p role="status">{kind!=='invoice' && setup.plan==='pro' && 'Ready for customer approval. '}Confirm after sending to this customer in your {pending.channel==='email'?'email':'messaging'} app.</p>
       <button type="button" className="primary-button" disabled={locked} onClick={() => void confirm(true)}>Confirm sent</button>
       {draftHref && <a className="secondary-button" href={draftHref}>Reopen draft in your app</a>}
       <button type="button" className="text-button" disabled={locked} onClick={() => void confirm(false)}>I did not send it</button>
@@ -117,10 +143,12 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
     </div>}
     <div className="personal-delivery-actions">
       <button type="button" className="secondary-button" disabled={locked || !!pending} onClick={() => void prepare('copy')}>Copy Link</button>
+      {(preparedPdf?.pdf || pdfArtifact) && <button type="button" className="secondary-button" disabled={locked} onClick={() => downloadDocumentPdf((preparedPdf?.pdf || pdfArtifact)!)}>Download PDF</button>}
+      {!pending && (!preparedPdf || canShareDocumentPdf(preparedPdf.pdf)) && <button type="button" className="secondary-button" disabled={locked} onClick={() => void sharePdfByEmail()}>{preparedPdf ? 'Share PDF by email' : 'Prepare PDF to share'}</button>}
       {shareUrl && <a className="secondary-button" href={shareUrl} target="_blank" rel="noopener noreferrer">View customer link</a>}
     </div>
     {copyUrl && <label>Customer link<input value={copyUrl} readOnly onFocus={event => event.target.select()} /></label>}
-    <p className="quiet"><a href="/?view=settings&section=delivery">Sending setup</a> · Use Copy Link or Print / Save PDF to share another way.</p>
+    <p className="quiet"><a href="/?view=settings&section=delivery">Sending setup</a> · A customer link opens this same issued document. Sharing or downloading alone does not record a completed send.</p>
     {notice && <p role="status" className="form-message">{notice}</p>}
     {error && <p role="alert" className="error-text">{error}</p>}
   </section>

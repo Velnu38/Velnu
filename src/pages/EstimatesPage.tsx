@@ -28,11 +28,12 @@ import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 
 import { canManageFinances, type CurrentBusiness, type BusinessProfile } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { convertEstimateToInvoice, createEstimate, listEstimates, listEstimateItems, updateEstimateStatus } from '../services/estimates'
-import DocumentPaper from '../components/DocumentPaper'
+import DocumentPdfPreview from '../components/DocumentPdfPreview'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
 import { createApprovalLink } from '../services/approvals'
 import DocumentDelivery from '../components/DocumentDelivery'
-import { customerActionsEnabled } from '../lib/releaseFlags'
+import { customerDocumentActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 import ScheduleEstimateDialog from '../components/scheduling/ScheduleEstimateDialog'
@@ -48,7 +49,7 @@ type Customer = { id: string; first_name: string | null; last_name: string | nul
 type Estimate = DocumentDates & { properties?:ServiceAddress|ServiceAddress[]|null; issuer_snapshot?: Partial<BusinessProfile> | null; id: string; customer_id: string; job_id?: string | null; estimate_number: string | null; status: string; issue_date: string; expires_on: string | null; subtotal: number; tax_amount: number; total: number; customer_message?: string | null; customers: Customer[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type PreviewItem = { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }
-type ApprovalLinkState = { url: string; title: string; expiresAt: string }
+type ApprovalLinkState = { url: string; title: string; expiresAt: string | null; documentId: string }
 type EstimateFilter = 'all' | 'pipeline' | 'draft' | 'sent' | 'approved' | 'declined'
 
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
@@ -110,6 +111,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
+  useBusinessRefresh(business.id,()=>refresh().then(()=>{}))
   useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates')) }, [business.id])
 
   const linkedDocumentOpened = useRef(false)
@@ -157,12 +159,12 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId('');setServiceAddress(''); setExpiresOn(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate')); setNotes(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
-  async function submit(sendEmail=false, stayOnPreview=false) {
+  async function submit(sendEmail=false, stayOnPreview=false, expectedRevisionId?:string) {
      if(saving.current)return;saving.current=true;setBusy(true); setError(''); setNotice('')
     try {
       if(savedCreation.current){
         if(stayOnPreview)return savedCreation.current
-        if(sendEmail)await sendReviewedDocument(business.id, 'estimate',savedCreation.current,creationCustomer?.email||'');
+        if(sendEmail)await sendReviewedDocument(business.id, 'estimate',savedCreation.current,creationCustomer?.email||'',undefined,expectedRevisionId);
         await finishCreation(savedCreation.current); return
       }
       if(previewTotal === null)throw new Error('Check the description, quantity, price and tax on each line.')
@@ -196,7 +198,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope,created.id))
         return created.id
       }
-      if(sendEmail)await sendReviewedDocument(business.id, 'estimate',created.id,creationCustomer?.email||'')
+      if(sendEmail)await sendReviewedDocument(business.id, 'estimate',created.id,creationCustomer?.email||'',undefined,expectedRevisionId)
       await finishCreation(created.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create estimate')
@@ -223,11 +225,11 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   async function shareForApproval(estimate: Estimate) {
-    if (!customerActionsEnabled) return
+    if (!customerDocumentActionsEnabled) return
     setBusy(true); setError(''); setNotice('')
     try {
       const link = await createApprovalLink(business.id, 'estimate', estimate.id)
-      setApprovalLink({ url: link.url, title: `${estimate.estimate_number || 'Estimate'} approval link`, expiresAt: link.expires_at })
+      setApprovalLink({ url: link.url, title: `${estimate.estimate_number || 'Estimate'} approval link`, expiresAt: link.expires_at, documentId: estimate.id })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create approval link')
     } finally { setBusy(false) }
@@ -332,7 +334,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       </form>
 
       {editCreationCustomer&&creationContactId&&<CustomerEditDialog businessId={business.id} customerId={creationContactId} contactField={editCreationCustomer==='all'?undefined:editCreationCustomer} onClose={()=>setEditCreationCustomer(null)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,serviceAddress,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={()=>void submit(true)}/>}
+      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,serviceAddress,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
     </FormDialog>}
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
@@ -348,17 +350,17 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         </div>
         {showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={previewTarget.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)setPreviewTarget(next)})}}/>}
-        {canManageFinances(business.role)&&['draft','sent'].includes(previewTarget.status)&&<DocumentDelivery onBusyChange={setBusy} key={"delivery:"+previewTarget.id} businessId={business.id} kind="estimate" documentId={previewTarget.id} email={previewTarget.customers?.[0]?.email} phone={previewTarget.customers?.[0]?.phone} disabled={busy} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
+        {canManageFinances(business.role)&&['draft','sent'].includes(previewTarget.status)&&<DocumentDelivery onBusyChange={setBusy} key={"delivery:"+previewTarget.id} businessId={business.id} kind="estimate" documentId={previewTarget.id} refreshKey={previewTarget.updated_at||''} email={previewTarget.customers?.[0]?.email} phone={previewTarget.customers?.[0]?.phone} disabled={busy} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
         <DocumentActions primary={<>
           {canManageFinances(business.role)&&previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
           {canManageFinances(business.role)&&previewTarget.status==='sent'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
           {canManageFinances(business.role)&&['accepted','converted'].includes(previewTarget.status)&&!previewTarget.job_id&&canAccess(business,'calendar')&&canAccess(business,'jobs')&&<button type="button" disabled={busy} onClick={()=>setScheduleTarget(previewTarget)}>Book appointment</button>}
           {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={`/?view=work&document=${encodeURIComponent(previewTarget.job_id)}`}>Open linked job</a>}
           {canManageFinances(business.role)&&previewTarget.status==='accepted'&&<button type="button" disabled={busy} onClick={()=>{setError('');setNotice('');setConvertTarget(previewTarget)}}>Create final invoice</button>}
-          <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
+
         </>} secondary={canManageFinances(business.role)?<>
           {!['draft','sent'].includes(previewTarget.status)&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer</button>}
-          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Approval link</button>}
+          {previewTarget.status==='sent'&&<button type="button" disabled={busy||!customerDocumentActionsEnabled} onClick={()=>shareForApproval(previewTarget)}>Approval link</button>}
           {previewTarget.status==='draft'&&<button type="button" disabled={busy} onClick={()=>changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
           {previewTarget.status==='sent'&&<><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'declined')}>Record decline</button><button type="button" disabled={busy} className="danger-action" onClick={()=>changeStatus(previewTarget.id,'expired')}>Expire</button></>}
         </>:undefined}/>
@@ -369,10 +371,10 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManageFinances(business.role)} timezone={business.timezone||'America/New_York'}/>}
         <DocumentSchedule key={previewTarget.id} business={business} kind="estimate" id={previewTarget.id} jobId={previewTarget.job_id} />
         {plan==='free'&&isPrimaryOwner(business)&&<p className="quiet"><a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a></p>}
-        <DocumentPaper finviantBranding={plan==='free'} business={previewTarget.issuer_snapshot?.name ? {...business,...previewTarget.issuer_snapshot,name:previewTarget.issuer_snapshot.name}:business} kind="estimate" customer={previewTarget.customers?.[0]} serviceAddress={previewAddress?formatServiceAddress(previewAddress):undefined} number={previewTarget.estimate_number} issued={previewTarget.issue_date} ending={previewTarget.expires_on} items={previewItems} subtotal={previewTarget.subtotal} tax={previewTarget.tax_amount} total={previewTarget.total} message={previewTarget.customer_message}/>
+        {(!canManageFinances(business.role)||!['draft','sent'].includes(previewTarget.status))&&<DocumentPdfPreview source={{businessId:business.id,kind:'estimate',documentId:previewTarget.id}} title="Estimate PDF"/>}
 
       </section>
     </FormDialog>}
-    {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
+    {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onReplace={async()=>{const link=await createApprovalLink(business.id,'estimate',approvalLink.documentId,{rotate:true});setApprovalLink({...approvalLink,url:link.url,expiresAt:link.expires_at})}} onClose={() => setApprovalLink(null)} />}
   </div>
 }

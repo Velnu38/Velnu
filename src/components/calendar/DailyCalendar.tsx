@@ -1,3 +1,4 @@
+import {useBusinessRefresh} from '../../lib/useBusinessRefresh'
 import ConnectedCalendarEvents from './ConnectedCalendarEvents'
 import type { ConnectedAgenda } from '../../lib/calendarTypes'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -23,6 +24,7 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [day, setDay] = useState(today)
   const [view, setView] = useState<CalendarView>('week')
   const [version, setVersion] = useState(0)
+  useBusinessRefresh(business.id,()=>setVersion(value=>value+1))
   const [result, setResult] = useState<{ key: string; agenda: Agenda } | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)

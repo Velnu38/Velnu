@@ -23,7 +23,8 @@ import { getInvoiceDetail } from '../services/invoiceDetail'
 import RecordPaymentDialog from './RecordPaymentDialog'
 import { updateInvoiceStatus } from '../services/invoices'
 import DocumentDelivery from './DocumentDelivery'
-import DocumentPaper from './DocumentPaper'
+import DocumentPdfPreview from './DocumentPdfPreview'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import { offersDocumentChangeOrders } from '../lib/documentChangeOrders'
 
 const InvoiceJobDialog=lazy(()=>import('./scheduling/InvoiceJobDialog'))
@@ -59,9 +60,12 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
   const [reminderAt,setReminderAt]=useState('')
   const [reminderNote,setReminderNote]=useState('Follow up on unpaid invoice')
 
-  async function refresh(){setLoading(true);setError('');try{const next=await getInvoiceDetail(business.id,invoiceId) as Detail;setDetail(next)}catch(err){setError(err instanceof Error?err.message:'Unable to load invoice')}finally{setLoading(false)}}
+  const refreshGeneration=useRef(0),refreshMounted=useRef(false)
+  const refreshScope=useRef('');refreshScope.current=business.id+':'+invoiceId
+  async function refresh(){const generation=++refreshGeneration.current,scope=business.id+':'+invoiceId;const current=()=>refreshMounted.current&&generation===refreshGeneration.current&&scope===refreshScope.current;setLoading(true);setError('');try{const next=await getInvoiceDetail(business.id,invoiceId) as Detail;if(current())setDetail(next)}catch(err){if(current())setError(err instanceof Error?err.message:'Unable to load invoice')}finally{if(current())setLoading(false)}}
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
-  useEffect(()=>{setDetail(null);setShowChangeOrders(null);void refresh()},[business.id,invoiceId])
+  useBusinessRefresh(business.id,()=>refresh())
+  useEffect(()=>{refreshMounted.current=true;setDetail(null);setShowChangeOrders(null);void refresh();return()=>{refreshMounted.current=false;refreshGeneration.current++}},[business.id,invoiceId])
 
   async function saveReminder(event:FormEvent){
     event.preventDefault();if(!detail||busy||reminderSaving.current)return;reminderSaving.current=true;setBusy(true);setError('')
@@ -92,12 +96,12 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
     </section>
     {showEdit&&<DraftDocumentEditor businessId={business.id} kind="invoice" id={invoice.id} onClose={()=>setShowEdit(false)} onSaved={()=>void refresh()}/>}
     {showCustomer&&<CustomerEditDialog businessId={business.id} customerId={invoice.customer_id} onClose={()=>setShowCustomer(false)} onSaved={()=>void refresh()}/>}
-    {canManageFinances(business.role)&&invoice.status!=='void'&&<DocumentDelivery onBusyChange={setBusy} key={invoice.id} businessId={business.id} kind="invoice" documentId={invoice.id} email={customer?.email} phone={customer?.phone} disabled={busy} onEditContact={()=>setShowCustomer(true)} onSent={async()=>{await refresh();announceCalendarChange()}}/>}
+    {canManageFinances(business.role)&&invoice.status!=='void'&&<DocumentDelivery onBusyChange={setBusy} key={invoice.id} businessId={business.id} kind="invoice" documentId={invoice.id} refreshKey={invoice.updated_at||''} email={customer?.email} phone={customer?.phone} disabled={busy} onEditContact={()=>setShowCustomer(true)} onSent={async()=>{await refresh();announceCalendarChange()}}/>}
     <DocumentActions primary={<>
       {canManageFinances(business.role)&&!['draft','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowPayment(true)}>Mark Paid</button>}
       {canManageFinances(business.role)&&invoice.status==='draft'&&<button type="button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>}
         {canScheduleJob&&invoice.status!=='void'&&(invoice.job_id?<a href={'/?view=work&document='+encodeURIComponent(invoice.job_id)}>Open linked job</a>:<button type="button" disabled={busy} onClick={()=>setShowJob(true)}>Schedule job</button>)}
-      <button type="button" onClick={()=>window.print()}>Print / Save PDF</button>
+
       {plan==='free'&&isPrimaryOwner(business)&&<a href={planUpgradeHref('basic')}>View Individual upgrade to remove Finviant branding</a>}
       {canManageFinances(business.role)&&invoice.status!=='void'&&Number(invoice.balance_due)>0&&<button type="button" disabled={busy} onClick={()=>setShowReminder(true)}>Schedule reminder</button>}
     </>} secondary={canManageFinances(business.role)&&invoice.status!=='void'?<>
@@ -117,7 +121,7 @@ export default function InvoiceDetail({ business, invoiceId, onBack, initialEdit
     {showJob&&<Suspense fallback={<p role="status">Opening job scheduling…</p>}><InvoiceJobDialog business={business} invoiceId={invoice.id} onClose={()=>{setShowJob(false);void refresh()}} onSaved={result=>{setJobNotice(result.already_created?'This invoice already has a job. Open linked job to review its saved schedule.':'Job created and scheduled. Open linked job for details and materials.');void refresh()}}/></Suspense>}
 
     <section className="invoice-detail-grid">
-      <div><DocumentPaper finviantBranding={plan==='free'} business={issuedBrand} kind="invoice" customer={customer} serviceAddress={site?formatServiceAddress(site):undefined} number={invoice.invoice_number} issued={invoice.issue_date} ending={invoice.due_date} items={detail.items} subtotal={invoice.subtotal} tax={invoice.tax_amount} total={invoice.total} depositCredit={invoice.deposit_credit} paid={invoice.amount_paid} balance={invoice.balance_due} message={invoice.customer_message} paymentLinks={invoice.payment_links} paymentInstructions={invoice.payment_instructions} status={invoice.status}/>{invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}</div>
+      <div>{(invoice.status==='void'||!canManageFinances(business.role))&&<DocumentPdfPreview source={{businessId:business.id,kind:'invoice',documentId:invoice.id}} title="Invoice PDF"/>}{invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}</div>
       <aside className="invoice-side-stack">
         <article className="detail-card"><p className="eyebrow">Payments</p><h2>Payment history</h2>{detail.payments.length===0?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span></div><strong>${Number(payment.amount).toFixed(2)}</strong></div>)}</div>}</article>
         <article className="detail-card"><p className="eyebrow">Activity</p><h2>Messages</h2>{detail.messages.length===0?<p className="quiet">No invoice messages yet.</p>:<div className="message-list">{detail.messages.map(message=><div className="message-item" key={message.id}><div><strong>{message.channel.toUpperCase()}</strong><span>{message.status==='sent'?'Accepted for delivery':message.status}</span></div><p>{message.body}</p><small><DocumentTime value={message.sent_at||message.created_at} timezone={business.timezone}/></small></div>)}</div>}</article>

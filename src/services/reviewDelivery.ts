@@ -14,13 +14,13 @@ export async function getDocumentDeliveryContext(business:string,kind:DeliveryDo
  return {...data,customer:Array.isArray(data.customers)?data.customers[0]||null:data.customers}
 }
 /** A caller owns one request ID for the whole send, including uncertain retries. */
-export async function sendReviewedDocument(businessId:string,kind:DeliveryDocumentKind,documentId:string,recipient:string,requestId?:string):Promise<ReviewDeliveryReceipt>{
+export async function sendReviewedDocument(businessId:string,kind:DeliveryDocumentKind,documentId:string,recipient:string,requestId?:string,expectedRevisionId?:string):Promise<ReviewDeliveryReceipt>{
  const key=sendKey(businessId,kind,documentId)
  let saved=pending.get(key)
  try{saved=saved||sessionStorage.getItem(key)||undefined}catch{/* In-memory protection still applies. */}
  requestId=saved||requestId||crypto.randomUUID();pending.set(key,requestId)
  try{sessionStorage.setItem(key,requestId)}catch{/* Only an opaque request ID, never recipient or document content. */}
- const {data,error}=await supabase.functions.invoke(kind==='invoice'?'send-invoice-email':'send-document-email',{body:{business_id:businessId,...(kind==='invoice'?{invoice_id:documentId}:{document_type:kind,document_id:documentId}),expected_recipient:recipient,request_id:requestId}})
+ const {data,error}=await supabase.functions.invoke(kind==='invoice'?'send-invoice-email':'send-document-email',{body:{business_id:businessId,...(kind==='invoice'?{invoice_id:documentId}:{document_type:kind,document_id:documentId}),expected_recipient:recipient,request_id:requestId,...(expectedRevisionId?{expected_revision_id:expectedRevisionId}:{})}})
  if(error){
   const response=(error as {context?:unknown}).context
   const detail=response instanceof Response?await response.clone().json().catch(()=>null):null

@@ -1,3 +1,5 @@
+import DocumentPdfPreview from '../components/DocumentPdfPreview'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import ChangeOrderTotals from '../components/ChangeOrderTotals'
 import { changeOrderDisplayLine, type ChangeOrderAmounts } from '../lib/changeOrderAmounts'
 import DocumentDelivery from '../components/DocumentDelivery'
@@ -14,7 +16,7 @@ import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listJobs } from '../services/jobs'
 import { createChangeOrder, listChangeOrders, listChangeOrderItems, updateChangeOrderStatus, getDocumentChangeContext, createDocumentChangeOrder, getChangeOrderSourceLines, getChangeOrderBilling, billApprovedChangeOrder, type ChangeOrderBilling, type ChangeSourceLine, type DocumentChangeSource } from '../services/changeOrders'
 import { createApprovalLink } from '../services/approvals'
-import { customerActionsEnabled } from '../lib/releaseFlags'
+import { customerDocumentActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
 import { changeOrderStatusLabel, isLinkedChangeOrder, matchesChangeOrderContext, type DocumentChangeOrderContext } from '../lib/documentChangeOrders'
 
@@ -22,7 +24,7 @@ type Customer = { id: string; first_name: string | null; last_name: string | nul
 type Job = { id: string; title: string; status: string; customer_id: string; customers: Customer[] | Customer | null }
 type ChangeOrder = DocumentDates & { id: string; customer_id: string; job_id: string|null; estimate_id?:string|null; source_invoice_id?:string|null; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; change_totals?: ChangeOrderAmounts | null; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
-type ApprovalLinkState = { url: string; title: string; expiresAt: string }
+type ApprovalLinkState = { url: string; title: string; expiresAt: string | null; documentId: string }
 
 const money = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
@@ -103,6 +105,7 @@ export default function ChangeOrdersPage({ business, context, initialOrder, onBa
     return linkedOrders
   }
 
+  useBusinessRefresh(business.id,()=>refresh().then(()=>{}))
   useEffect(() => {
     let active = true
     const requested = context ? initialOrder : new URLSearchParams(location.search).get('document')
@@ -197,11 +200,11 @@ export default function ChangeOrdersPage({ business, context, initialOrder, onBa
   }
 
   async function shareForApproval(order: ChangeOrder) {
-    if (!customerActionsEnabled) return
+    if (!customerDocumentActionsEnabled) return
     setBusy(true); setError(''); setNotice('')
     try {
       const link = await createApprovalLink(business.id, 'change_order', order.id)
-      setApprovalLink({ url: link.url, title: `${order.change_order_number || 'Change order'} approval link`, expiresAt: link.expires_at })
+      setApprovalLink({ url: link.url, title: `${order.change_order_number || 'Change order'} approval link`, expiresAt: link.expires_at, documentId: order.id })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create approval link')
     } finally { setBusy(false) }
@@ -289,23 +292,11 @@ export default function ChangeOrdersPage({ business, context, initialOrder, onBa
           ? '/?view=invoices&document='+encodeURIComponent(reviewed.source_invoice_id)
           : '/?view=estimates&document='+encodeURIComponent(reviewed.estimate_id!)}>{reviewed.source_invoice_id ? 'Open original invoice' : 'Open original estimate'}</a></p>}
         <p className="quiet">{reviewed.status==='draft'?'Next: send this change to the customer for approval.':reviewed.status==='sent'?'Waiting for customer approval.':reviewed.status==='approved'?'Customer approved this change.':''}</p>
-        {canManageFinances(business.role)&&['draft','sent'].includes(reviewed.status)&&<DocumentDelivery onBusyChange={setBusy} key={reviewed.id} businessId={business.id} kind="change_order" documentId={reviewed.id} email={reviewed.customers?.[0]?.email} phone={reviewed.customers?.[0]?.phone} disabled={busy||reviewLoading||!!reviewError} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
+        {canManageFinances(business.role)&&['draft','sent'].includes(reviewed.status)&&<DocumentDelivery onBusyChange={setBusy} key={reviewed.id} businessId={business.id} kind="change_order" documentId={reviewed.id} refreshKey={reviewed.updated_at||''} email={reviewed.customers?.[0]?.email} phone={reviewed.customers?.[0]?.phone} disabled={busy||reviewLoading||!!reviewError} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={reviewed.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>void refresh()}/>}
         {reviewLoading&&<p role="status">Loading saved line items…</p>}
         {reviewError&&<div><p role="alert">{reviewError}</p><button type="button" className="secondary-button" onClick={()=>void openReview(reviewed)}>Reload line items</button></div>}
-        <article className="print-document change-order-preview-summary">
-          <DocumentBrand business={business} kind="Change order"/>
-          <div className="document-bill-to"><small>Prepared for</small><strong>{customerName(reviewed.customers?.[0])}</strong>{reviewed.customers?.[0]?.email&&<span>{reviewed.customers[0].email}</span>}{reviewed.customers?.[0]?.phone&&<span>{reviewed.customers[0].phone}</span>}</div>
-          <h3>{reviewed.change_order_number||'Draft'} · {reviewed.title}</h3>
-          {reviewed.description&&<p>{reviewed.description}</p>}{reviewed.reason&&<p><strong>Reason: </strong>{reviewed.reason}</p>}
-          {reviewItems.map((row,index)=>{
-            const item=changeOrderDisplayLine(row,index,reviewed.change_totals)
-            return <div className="document-line-row" key={row.id}><span>{item.description}</span><span>{Number(item.quantity)} × {money.format(Number(item.unit_price))}</span><strong>{money.format(Number(item.line_total))}</strong></div>
-          })}
-          {reviewed.change_totals ? <ChangeOrderTotals amounts={reviewed.change_totals} approved={reviewed.status==='approved'}/> :
-            <div className="estimate-total"><span>Proposed change total</span><strong>${Number(reviewed.total).toFixed(2)}</strong>{Number(reviewed.tax_amount)>0&&<small>Includes ${Number(reviewed.tax_amount).toFixed(2)} tax.</small>}</div>}
-          {!!reviewed.schedule_impact_days&&<p>Schedule impact: {reviewed.schedule_impact_days>0?'+':''}{reviewed.schedule_impact_days} days</p>}{reviewed.schedule_note&&<p>{reviewed.schedule_note}</p>}
-        </article>
+        {(!canManageFinances(business.role)||!['draft','sent'].includes(reviewed.status))&&<DocumentPdfPreview source={{businessId:business.id,kind:'change_order',documentId:reviewed.id}} title="Change order PDF"/>}
         {approvedId&&canBill&&<section aria-label="Change order billing">
           <h3>Billing next step</h3>
           {!billing&&!billingError&&<p role="status">Checking billing…</p>}
@@ -326,14 +317,14 @@ export default function ChangeOrdersPage({ business, context, initialOrder, onBa
           {billingError&&<p role="alert">{billingError} <button type="button" className="text-button" disabled={busy} onClick={()=>setBillingVersion(value=>value+1)}>Reload billing</button></p>}
         </section>}
         <DocumentRecord dates={reviewed} timezone={business.timezone} customerId={reviewed.customer_id} customerName={customerName(reviewed.customers?.[0])}/>
-        <DocumentActions primary={<><button type="button" onClick={()=>window.print()}>Print / Save PDF</button></>} secondary={canManageFinances(business.role)&&<>
+        <DocumentActions primary={null} secondary={canManageFinances(business.role)&&<>
           {reviewed.status==='draft'&&<button type="button" disabled={busy} onClick={()=>void changeStatus(reviewed.id,'sent')}>Mark sent manually</button>}
-          {reviewed.status==='sent'&&<button type="button" disabled={busy||!customerActionsEnabled} onClick={()=>void shareForApproval(reviewed)}>Approval link</button>}
+          {reviewed.status==='sent'&&<button type="button" disabled={busy||!customerDocumentActionsEnabled} onClick={()=>void shareForApproval(reviewed)}>Approval link</button>}
           {['draft','sent'].includes(reviewed.status)&&<button type="button" className="danger-action" disabled={busy} onClick={()=>void changeStatus(reviewed.id,'void')}>Void</button>}
         </>}/>
         {error&&<p role="alert" className="form-message error-text">{error}</p>}{notice&&<p role="status" className="form-message">{notice}</p>}
       </>:<p role="status">Loading saved change order…</p>}
     </section></FormDialog>}
-    {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
+    {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onReplace={async()=>{const link=await createApprovalLink(business.id,'change_order',approvalLink.documentId,{rotate:true});setApprovalLink({...approvalLink,url:link.url,expiresAt:link.expires_at})}} onClose={() => setApprovalLink(null)} />}
   </div>
 }
