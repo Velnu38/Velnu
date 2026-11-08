@@ -7,7 +7,7 @@ export const integrationTestingAvailable = import.meta.env?.VITE_SUPABASE_URL ==
 
 export const settingsOptions: { id: SettingsSection; title: string; description: string; group: 'business' | 'setup' | 'account'; icon: string }[] = [
   { id: 'support', title: 'Help & Support', description: 'Report an issue and follow Finviant replies.', group: 'business', icon: 'support' },
-  { id: 'documents', title: 'Invoice & Estimate Setup', description: 'Appearance, branding, taxes, and customer payment methods.', group: 'setup', icon: 'invoices' },
+  { id: 'documents', title: 'Invoice & Estimate Setup', description: 'Branding, taxes, payments, and your E-Business Card.', group: 'setup', icon: 'invoices' },
   { id: 'company', title: 'Company Profile', description: 'Business details and services.', group: 'setup', icon: 'company' },
   { id: 'team', title: 'Team Management', description: 'Workers, availability, and account access.', group: 'setup', icon: 'customers' },
   { id: 'sms', title: 'Text Messaging Setup', description: 'Verify your owner mobile number before sending SMS.', group: 'setup', icon: 'sms' },
@@ -22,6 +22,7 @@ export const settingsOptions: { id: SettingsSection; title: string; description:
 
 export function canOpenSettingsSection(business: CurrentBusiness, section: SettingsSection, testingEnabled = integrationTestingAvailable) {
   if (section === 'support' || section === 'storage') return true
+  if (section === 'documents') return isPrimaryOwner(business) || canAccess(business,'billing')
   if (section === 'calendar') return canAccess(business, 'calendar')
   if (section === 'scheduling' || section === 'team') return isPrimaryOwner(business) || ['owner', 'admin', 'office'].includes(business.role) && canAccess(business, 'calendar') && canAccess(business, 'jobs')
   if (section === 'testing' && !testingEnabled) return false

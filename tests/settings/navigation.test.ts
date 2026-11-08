@@ -15,7 +15,8 @@ test('primary owner retains setup and subscription access; private tests remain 
 test('delegated setup preserves calendar and scheduling permissions without owner privileges', () => {
   for (const role of ['owner', 'admin', 'office', 'technician', 'viewer'] as const) {
     const member = business(role, ['calendar', 'jobs', 'billing', 'finances'])
-    for (const section of ['company', 'documents', 'sms', 'subscription', 'testing'] as const) assert.equal(canOpenSettingsSection(member, section, true), false, role + ':' + section)
+    for (const section of ['company', 'sms', 'subscription', 'testing'] as const) assert.equal(canOpenSettingsSection(member, section, true), false, role + ':' + section)
+    assert.equal(canOpenSettingsSection(member,'documents'),['owner','admin','office'].includes(role))
     assert.equal(canOpenSettingsSection(member, 'support'), true)
     assert.equal(canOpenSettingsSection(member, 'calendar'), true)
     assert.equal(canOpenSettingsSection(member, 'scheduling'), ['owner', 'admin', 'office'].includes(role))

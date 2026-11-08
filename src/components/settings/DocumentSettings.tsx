@@ -1,3 +1,4 @@
+import EBusinessCard from './EBusinessCard'
 import StorageUsage from '../StorageUsage'
 import PaymentSettings from './PaymentSettings'
 import {isPrimaryOwner} from '../../lib/workspaceAccess'
@@ -184,6 +185,6 @@ export default function DocumentSettings({
         {busy ? "Saving…" : "Save document setup"}
       </button>
       </fieldset>
-    </form>{isPrimaryOwner(business)?<PaymentSettings business={business}/>:<p className="quiet">The primary account owner manages customer payment methods here.</p>}</>
+    </form><EBusinessCard business={business}/>{isPrimaryOwner(business)?<PaymentSettings business={business}/>:<p className="quiet">The primary account owner manages customer payment methods here.</p>}</>
   );
 }

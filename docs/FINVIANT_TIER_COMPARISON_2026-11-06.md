@@ -1,6 +1,6 @@
 # Finviant — recommended three-tier launch offering
 
-> Updated November 8, 2026 (UTC): Individual now includes 250 manually initiated managed email recipient deliveries/month after sender activation, plus 5 internal worker profiles. Pro includes 25 internal workers and 5 account users. Customer self-booking remains Pro-only. Current release limits and dated follow-ups are maintained in `ASSESSMENT_REPORT.md`.
+> Updated November 8, 2026 (UTC): Business Pro now includes one company E-Business Card with unlimited vCard downloads/device sharing; direct card email counts toward the existing Pro email allowance after activation. Direct card SMS is deferred. Individual now includes 250 manually initiated managed email recipient deliveries/month after sender activation, plus 5 internal worker profiles. Pro includes 25 internal workers and 5 account users. Customer self-booking remains Pro-only. Current release limits and dated follow-ups are maintained in `ASSESSMENT_REPORT.md`.
 
 Prepared November 6, 2026. Recommended names: **Free**, **Individual**, **Business Pro**. Individual corresponds to Basic in existing code; Business Pro corresponds to Pro. Prices are USD per business. Business Pro also offers $399.50 upfront annually (two months free; $79.90 saved). These are recommendations, not active checkout prices or a claim that all tier restrictions and integrations are live. Existing private testers retain their authorized access.
 
@@ -34,6 +34,7 @@ The tables below describe recommended inclusion. **Activation** means provider c
 | Mark Paid, partial-payment recording and remaining balance | Included | Included | Included |
 | Work Completed tracking | Included | Included | Included |
 | Overdue invoice and estimate attention indicators | Included | Included | Included |
+| E-Business Card: one company vCard, unlimited downloads/device sharing | — | — | Included; owner edits, authorized office users share |
 | Company name/contact information on documents | Included | Included | Included |
 | Uploaded company logo and removal of Finviant promotional branding | No; retain Finviant branding | Included | Included |
 | Account setup, security, agreement acceptance, help and support requests | Included | Included | Included |

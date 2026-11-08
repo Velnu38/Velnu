@@ -340,6 +340,7 @@ export default function LandingPage(){
 <p className="fp-lead">{"A professional document starts the conversation. Business Pro keeps sending, customer booking and follow-up connected to the work you’re managing."}
 </p>
 <div className="fp-prolist">
+<div className="fp-proitem"><span aria-hidden="true">✓</span><div><b>Put your business in their contacts</b><small>Your E-Business Card turns company details into a vCard customers can save on their phone. One company card, unlimited downloads and device sharing—exclusive to Business Pro.</small></div></div>
 <div className="fp-proitem">
 <span aria-hidden="true">{"✓"}
 </span>
@@ -495,6 +496,7 @@ export default function LandingPage(){
 <b>{"5 account users + 25 workers"}
 </b>
 </li>
+<li><b>{"E-Business Card · unlimited vCard sharing"}</b></li>
 <li>{"Finviant-managed email and SMS*"}
 </li>
 <li>{"2,000 email recipients / month"}
@@ -517,7 +519,7 @@ export default function LandingPage(){
 </b>
 <br />
 <b>{"Planned public pricing, USD per business. Business Pro annual: $399.50 upfront ($33.29/month equivalent)."}
-</b>{" This private beta does not activate subscriptions or charge these amounts. *Managed email, SMS and reminders require sender activation; SMS registration and consent requirements apply. Pro allowances are shared across the business."}
+</b>{" This private beta does not activate subscriptions or charge these amounts. *Managed email, SMS and reminders require sender activation; SMS registration and consent requirements apply. Pro allowances are shared across the business. Direct E-Business Card emails count toward the Pro email allowance and require activation; direct card SMS is not available. Recipients confirm saving to contacts, and downloaded copies can be forwarded."}
 </p>{"\n"}<h3 className="fp-tabletitle">{"A clear view of what changes."}
 </h3>
 <table className="fp-comparison">
@@ -534,6 +536,7 @@ export default function LandingPage(){
 </tr>
 </thead>
 <tbody>
+<tr><th scope="row">E-Business Card</th><td>—</td><td>—</td><td><b>One company card · unlimited downloads & device sharing</b></td></tr>
 <tr>
 <th scope="row">{"Professional PDFs"}
 </th>

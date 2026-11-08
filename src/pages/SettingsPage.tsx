@@ -1,3 +1,4 @@
+import EBusinessCard from '../components/settings/EBusinessCard'
 import PlanRestriction from '../components/PlanRestriction'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import { useTierUsage } from '../lib/useTierUsage'
@@ -44,7 +45,7 @@ export default function SettingsPage({ business, onSaved }: {
     if (id === "testing") return <IntegrationTesting businessId={business.id} />;
     if (id === "company") return <BusinessProfileEditor business={business} onSaved={onSaved} companyOnly />;
     if (id === "team") return <TeamManagement business={business} />;
-    if (id === "documents") return <DocumentSettings business={business} onSaved={onSaved} />;
+    if (id === "documents") return isPrimaryOwner(business)?<DocumentSettings business={business} onSaved={onSaved} />:<EBusinessCard business={business}/>;
     if (id === "calendar") return <IntegrationSettings businessId={business.id} />;
     if (id === "scheduling") return <TeamManagement business={business} initialAvailability />;
     return <SubscriptionSettings businessId={business.id} />;

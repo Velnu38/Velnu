@@ -22,7 +22,7 @@ export type TierAllowance = {
 export const monthlyPlans: Record<VelnuTier, TierAllowance> = {
  free: {tier:'free',name:'Free',priceMonthlyUsd:0,documentsPerMonth:Infinity,customerLimit:10,aiCreditsPerMonth:20,fileStorageMb:100,onlineApprovalsPerMonth:Infinity,hostedLogo:false,status:'Try the complete workflow',features:['10 active customers · 5 new job bookings/month','Invoices, estimates, approval and payment links','Send through your own email and text apps','20 introductory Fin requests · 10 voice minutes once','100 MB attachments · 30-day financial view · 1 user']},
  basic: {tier:'basic',name:'Individual',priceMonthlyUsd:19.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:150,fileStorageMb:2000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'For a busy solo business',features:['No customer, document or job count cap','250 manually initiated email recipients/month after activation; your text app','150 Fin requests · 60 voice minutes/month','2 GB attachments · Custom logo · Full financial history','1 account user · 5 active worker profiles · Manual follow-ups']},
- pro: {tier:'pro',name:'Business Pro',priceMonthlyUsd:39.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:600,fileStorageMb:10000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'Let Finviant send and follow up',features:['Everything in Individual · 5 account users including owner · 25 active workers','Finviant email and SMS after sender activation','2,000 email recipients · 200 US SMS segments/month','600 Fin requests · 180 voice minutes/month shared','10 GB attachments · Scheduled sending and reminders','Crew scheduling and customer booking links']},
+ pro: {tier:'pro',name:'Business Pro',priceMonthlyUsd:39.95,documentsPerMonth:Infinity,customerLimit:Infinity,aiCreditsPerMonth:600,fileStorageMb:10000,onlineApprovalsPerMonth:Infinity,hostedLogo:true,status:'Let Finviant send and follow up',features:['Everything in Individual · 5 account users including owner · 25 active workers','Finviant email and SMS after sender activation','2,000 email recipients · 200 US SMS segments/month','600 Fin requests · 180 voice minutes/month shared','10 GB attachments · Scheduled sending and reminders','Crew scheduling and customer booking links','E-Business Card · One company card · Unlimited vCard downloads and device sharing']},
 }
 export const businessAnnualPrice = 399.50
 export const tierComparison = [
@@ -36,6 +36,7 @@ export const tierComparison = [
  ['Approval, deposit/final invoice, Mark Paid','Included','Included','Included'],
  ['PDF/print, shared links, payment links','Included','Included','Included'],
  ['Customer email and text','Your apps','250 manual email recipients/month after activation; your text app','Finviant after activation; your apps available'],
+ ['E-Business Card','—','—','One company card; unlimited vCard downloads and device sharing'],
  ['Automatic overdue invoice emails','—','—','Owner-enabled rules after activation'],
  ['Managed email recipient deliveries','—','250/month; manual sending','2,000/month shared'],
  ['Managed US SMS segments','—','—','200/month shared'],
