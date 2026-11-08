@@ -90,6 +90,12 @@
       "detail": "Shared paid features are labeled Individual and Business Plans; Pro-only previews Business Pro. Existing restriction components and More previews use subtle readable tint with underlined Explore links, including nonowner guidance. Included features remain ordinary controls; pending sender/provider setup remains separate. Tier entitlements, actions and payment behavior are unchanged.",
       "evidence": "tests/settings/feature-preview-dom.mjs and upgrade-navigation-dom.mjs; source-only presentation changes",
       "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Business Pro-only external beta",
+      "detail": "All nonadministrator beta-owned workspaces are server-locked to Business Pro, including existing lower-tier overrides and future beta workspaces. Only the designated current administrator retains tier switching. External beta Plans & Usage shows Business Pro only; optional service preferences cannot select a lower plan. Production behavior is gated by the private beta flag. No customer data, usage counters, billing, MFA or administrator role changed.",
+      "evidence": "20261108213818_beta_business_only_access.sql; tests/tiers/beta-business-lock.test.ts; tests/settings/beta-business-lock-dom.mjs; live rollback verified admin Free/Individual/Pro switching and external raw-RPC denial",
+      "verifiedAt": "2026-11-08"
     }
   ],
   "tasks": [

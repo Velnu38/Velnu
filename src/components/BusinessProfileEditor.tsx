@@ -5,6 +5,7 @@ import StorageUsage from './StorageUsage'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import {getTierUsage} from '../services/tiers'
 import ServicePicker from './ServicePicker'
 import { getPendingServiceInterests, clearPendingServiceInterests, hasPendingServiceInterests, type ServiceInterest } from '../lib/serviceCatalog'
 import { loadBusinessServiceInterests, saveBusinessServiceInterests } from '../lib/businessServices'
@@ -24,6 +25,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
   const [draft, setDraft] = useState<BusinessProfileDraft>(() => business ? draftFromBusiness(business) : { ...emptyBusinessProfile })
   const [step, setStep] = useState(0)
   const [logo, setLogo] = useState<File | null>(null)
+  const [businessBetaOnly,setBusinessBetaOnly]=useState(false)
   const [logoAllowed, setLogoAllowed] = useState(false)
   const [logoPlan,setLogoPlan]=useState<VelnuTier|null>(null)
   const [localLogoUrl, setLocalLogoUrl] = useState<string | null>(null)
@@ -54,7 +56,9 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
   useEffect(() => {
     let active = true
     setLogoAllowed(false)
+    setBusinessBetaOnly(false)
     if (business) {
+      void getTierUsage(business.id).then(s=>{if(active)setBusinessBetaOnly(s.beta_locked===true)}).catch(()=>{})
       void Promise.resolve(supabase.rpc('get_business_storage_usage', { p_business_id: business.id })).then(({ data, error }) => {
         if (active) {
           setLogoAllowed(!error && (data?.plan === 'basic' || data?.plan === 'pro') && data?.logo_allowed === true)
@@ -213,7 +217,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
         <p className="quiet">Pick the tools that interest your company. The core web app works independently of these choices. The planned prices and limits appear below. Selecting a preference does not charge you or change your active access.</p>
         {servicesLoading
           ? <p className="form-message">Loading your saved choices…</p>
-          : <ServicePicker compact value={interests} onChange={setInterests}/>}
+          : <ServicePicker compact businessBetaOnly={businessBetaOnly} value={interests} onChange={setInterests}/>}
       </>}
       {error && <p role="alert" className="form-message error-text">{error}</p>}
       {notice && <p role="status" className="form-message">{notice}</p>}
@@ -222,6 +226,6 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
         <button className="primary-button" disabled={busy || (!companyOnly&&servicesLoading)}>{busy ? 'Saving…' : companyOnly ? 'Save company profile' : step < 3 ? 'Continue' : editing ? 'Save company profile & services' : 'Create my business'}</button>
       </div>
     </form>
-    {companyOnly&&business&&<details className="settings-inset" onInputCapture={serviceGuard.markDirty} onChangeCapture={serviceGuard.markDirty}><summary>Optional Finviant services</summary><p className="quiet">Save these preferences separately from your company details. Selections do not activate or purchase a service.</p>{servicesLoading?<p role="status">Loading service preferences…</p>:<ServicePicker compact value={interests} onChange={setInterests}/>}<button type="button" className="secondary-button" disabled={busy||servicesLoading} onClick={async()=>{if(busy)return;setBusy(true);setError('');try{await saveBusinessServiceInterests(business.id,interests);clearPendingServiceInterests();serviceGuard.markClean();setNotice('Service preferences saved. No services were purchased or activated.')}catch(e){setError(e instanceof Error?e.message:'Unable to save service preferences.')}finally{setBusy(false)}}}>Save service preferences</button></details>}
+    {companyOnly&&business&&<details className="settings-inset" onInputCapture={serviceGuard.markDirty} onChangeCapture={serviceGuard.markDirty}><summary>Optional Finviant services</summary><p className="quiet">Save these preferences separately from your company details. Selections do not activate or purchase a service.</p>{servicesLoading?<p role="status">Loading service preferences…</p>:<ServicePicker compact businessBetaOnly={businessBetaOnly} value={interests} onChange={setInterests}/>}<button type="button" className="secondary-button" disabled={busy||servicesLoading} onClick={async()=>{if(busy)return;setBusy(true);setError('');try{await saveBusinessServiceInterests(business.id,interests);clearPendingServiceInterests();serviceGuard.markClean();setNotice('Service preferences saved. No services were purchased or activated.')}catch(e){setError(e instanceof Error?e.message:'Unable to save service preferences.')}finally{setBusy(false)}}}>Save service preferences</button></details>}
   </section>
 }
