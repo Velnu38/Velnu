@@ -33,7 +33,7 @@ export default function AccountAgreement({ userId, email, selectedTier, onAccept
     <div className="agreement-panel">
       <header className="agreement-header">
         <div><a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant</strong></a>
-          <p className="eyebrow">STEP 2 OF 2 · ONE COMBINED AGREEMENT</p>
+          <p className="eyebrow">ACCOUNT AGREEMENT · BEFORE BUSINESS SETUP</p>
           <h1>Review your User Agreement, AI Disclosure & Privacy Notice</h1>
           <p>Signed in as {email}. Please read the combined agreement before entering your private test workspace.</p>
         </div>

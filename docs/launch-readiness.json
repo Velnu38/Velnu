@@ -78,6 +78,12 @@
       "detail": "Enabled leaked-password protection and secure password change; saved minimum 15 characters for new/reset passwords. Confirm-email and dual-confirm email changes remain enabled; anonymous/manual linking disabled. Sessions now expire after 720h absolute or 168h inactivity; refresh reuse detection enabled, 10s grace, access JWT expiry 3600s. Provider throttles sign-in/signup and verification at 30 requests/5min/IP, refresh 150/5min/IP. Built-in Auth email sender and disabled security-change notifications remain launch gaps; document Resend delivery is separate. Canonical redirects, recovery messages, confirmation fields and sign-out retry tested with mocked forms, not actual inbox/device completion.",
       "evidence": "Supabase saved dashboard configuration, security advisor warning cleared; docs/AUTH_ACCESS_REVIEW_2026-11-08.md; tests/auth-access and tests/admin-mfa",
       "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Streamlined first-business onboarding",
+      "detail": "New businesses receive Welcome \u2192 required business contacts for Email/Text/Both \u2192 tier-aware sending readiness \u2192 explicit saved completion. Verified account email can prefill business reply contact by choice; branding, AI profile and service preferences remain in Settings. New private onboarding state resumes after refresh and validates selected channels server-side; existing workspaces are not reenrolled. Saved contact details are separate from managed sender/reply activation. Rollback SQL verified actual new-business gate, channel persistence and completion without retaining a workspace. DOM and database regressions passed; real-phone visual/provider sending acceptance remains open.",
+      "evidence": "20261108203002_streamlined_business_onboarding.sql; tests/onboarding; active beta rollback SQL; docs/ONBOARDING_REVIEW_2026-11-08.md",
+      "verifiedAt": "2026-11-08"
     }
   ],
   "tasks": [

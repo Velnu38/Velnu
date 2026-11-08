@@ -31,6 +31,7 @@ export interface BusinessProfile {
 }
 
 export interface CurrentBusiness extends BusinessProfile {
+  onboarding_required?: boolean
   primary_owner?: boolean
   access_modules?: string[]
   role: BusinessRole
@@ -123,12 +124,18 @@ export async function getCurrentBusiness(): Promise<CurrentBusiness | null> {
   const row = membership as unknown as { businesses: BusinessProfile | BusinessProfile[] | null; role: BusinessRole; access_modules: string[] }
   const record = Array.isArray(row.businesses) ? row.businesses[0] : row.businesses
   if (!record) return null
-  return { ...record, role: row.role, access_modules: row.access_modules ?? [], primary_owner: row.role === 'owner' && record.created_by_user_id === authData.user.id }
+  const {data: onboarding, error: setupError} = await supabase.rpc('business_onboarding_status', {p_business: record.id})
+  if (setupError) throw setupError
+  return { ...record, onboarding_required: onboarding?.required === true, role: row.role, access_modules: row.access_modules ?? [], primary_owner: row.role === 'owner' && record.created_by_user_id === authData.user.id }
 }
 
-export async function createBusiness(draft: BusinessProfileDraft): Promise<CurrentBusiness> {
+export async function createBusiness(draft: BusinessProfileDraft, requestId?: string): Promise<CurrentBusiness> {
   const { data, error } = await supabase.from('businesses')
-    .insert(cleanProfile(draft)).select(fields).single()
+    .insert({...cleanProfile(draft), ...(requestId ? {id: requestId} : {})}).select(fields).single()
+  if (error && requestId && error.code === '23505') {
+    const existing = await getCurrentBusiness()
+    if (existing?.id === requestId && existing.primary_owner) return existing
+  }
   if (error) throw error
   return { ...(data as BusinessProfile), role: 'owner', primary_owner: true, access_modules: ['calendar','jobs','billing','finances'] }
 }

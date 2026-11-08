@@ -32,6 +32,7 @@ import './components/ask-fin.css';
 import './components/customer-picker.css';
 import './components/document-review.css';
 import './components/document-composer.css';
+import './components/onboarding.css';
 import './components/document-pdf.css';
 import './components/record-detail.css';
 import './components/upgrade-link.css';

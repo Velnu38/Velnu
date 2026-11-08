@@ -198,6 +198,6 @@ function WorkspaceApp() {
     onSignOut={() => void supabase.auth.signOut()}
   />
   if (loadedUserId !== userId) return <main className="loading-page"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><p>Opening your workspace…</p></main>
-  if (!business) return <BusinessOnboarding onCreated={setBusiness} />
+  if (!business || (business.onboarding_required && business.primary_owner)) return <BusinessOnboarding business={business ?? undefined} onCreated={setBusiness} />
   return <AppShell business={business} />
 }

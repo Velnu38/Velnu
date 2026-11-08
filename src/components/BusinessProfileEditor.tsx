@@ -188,7 +188,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
         </div>
       </>}
       {(step === 2 || companyOnly) && <>
-        <h2>Teach Fin about your business</h2>
+        <h2>Tell Fin about your business</h2>
         <p className="quiet">Tell Fin what your company does, the services you offer and how your team works. Update this saved profile whenever things change. When you ask Fin a question, relevant profile and account records are sent to OpenAI to answer it. Fin uses saved information rather than training a model on your business, and does not invent prices or make changes without review.</p>
         <label>What does your business do?
           <textarea value={draft.business_description} onChange={e => update('business_description', e.target.value)}
