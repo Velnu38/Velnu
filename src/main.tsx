@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import WorkspaceErrorBoundary from './components/WorkspaceErrorBoundary';
 import './styles.css';
+import './pages/business-card.css';
 import './modules.css';
 import './customer-detail.css';
 import './conversion.css';

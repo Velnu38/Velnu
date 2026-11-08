@@ -519,7 +519,7 @@ export default function LandingPage(){
 </b>
 <br />
 <b>{"Planned public pricing, USD per business. Business Pro annual: $399.50 upfront ($33.29/month equivalent)."}
-</b>{" This private beta does not activate subscriptions or charge these amounts. *Managed email, SMS and reminders require sender activation; SMS registration and consent requirements apply. Pro allowances are shared across the business. Direct E-Business Card emails count toward the Pro email allowance and require activation; direct card SMS is not available. Recipients confirm saving to contacts, and downloaded copies can be forwarded."}
+</b>{" This private beta does not activate subscriptions or charge these amounts. *Managed email, SMS and reminders require sender activation; SMS registration and consent requirements apply. Pro allowances are shared across the business. Direct E-Business Card emails count toward the Pro email allowance and require activation; card texts use the included SMS segments after sender activation. Recipients confirm saving to contacts, and downloaded copies can be forwarded."}
 </p>{"\n"}<h3 className="fp-tabletitle">{"A clear view of what changes."}
 </h3>
 <table className="fp-comparison">

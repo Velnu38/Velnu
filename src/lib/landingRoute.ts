@@ -4,7 +4,7 @@
 export function isLandingRoute(pathname: string, search: string, hash: string): boolean {
   const query = new URLSearchParams(search)
   const fragment = new URLSearchParams(hash.replace(/^#/, ''))
-  if (['approval', 'booking', 'document_share', 'invite', 'recovery', 'code', 'error'].some(key => query.has(key))) return false
+  if (['business_card', 'approval', 'booking', 'document_share', 'invite', 'recovery', 'code', 'error'].some(key => query.has(key))) return false
   if (['access_token', 'refresh_token', 'type', 'error', 'error_code'].some(key => fragment.has(key))) return false
   if (pathname === '/services') return true
   return ['/', '/index.html'].includes(pathname)

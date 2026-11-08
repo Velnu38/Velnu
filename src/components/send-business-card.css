@@ -1,0 +1,143 @@
+.home-create-options .card-quick-link {
+  display: flex;
+  text-align: left;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #dce5e0;
+  border-radius: 12px;
+  padding: 16px;
+  width: 100%;
+  color: #193d37;
+  font: inherit;
+  cursor: pointer;
+}
+.card-quick-link > span:nth-child(2) {
+  flex: 1;
+}
+.card-quick-link strong,
+.card-quick-link small {
+  display: block;
+}
+.card-quick-link small {
+  font-size: 12px;
+  color: #63746c;
+  margin-top: 4px;
+}
+.card-upgrade {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+.send-card-field {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0;
+  font-weight: 600;
+}
+.send-card-field input,
+.send-card-link input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid #bdcfc5;
+  border-radius: 9px;
+  font: inherit;
+}
+.send-card-summary {
+  background: #edf5ef;
+  border: 1px solid #d6e4d9;
+  padding: 16px;
+  border-radius: 13px;
+}
+.send-card-summary p {
+  margin: 7px 0;
+}
+.send-card-summary small {
+  overflow-wrap: anywhere;
+}
+.send-card-matches {
+  display: grid;
+  border: 1px solid #d6e4d9;
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 230px;
+  overflow-y: auto;
+}
+.send-card-matches button {
+  background: #fff;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #e2e9e5;
+  padding: 12px;
+  cursor: pointer;
+  color: #173c30;
+}
+.send-card-matches button:hover,
+.send-card-matches button:focus {
+  background: #edf5ef;
+}
+.send-card-matches small {
+  display: block;
+  color: #62756c;
+  margin-top: 4px;
+}
+.send-card-method {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.send-card-method button {
+  border: 1px solid #b9cbbf;
+  border-radius: 8px;
+  padding: 9px 20px;
+  background: #fff;
+  color: #173c30;
+  cursor: pointer;
+}
+.send-card-method button[aria-pressed="true"] {
+  background: #195246;
+  color: white;
+}
+.send-card-check {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.send-card-check input {
+  margin-top: 4px;
+}
+.send-card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.send-card-link {
+  border: 1px solid #dce5e0;
+  background: #f5f9f6;
+  border-radius: 12px;
+  padding: 14px;
+  margin: 16px 0;
+}
+.send-card-link label {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+.send-card-link .text-button {
+  margin-right: 14px;
+}
+.send-card-link a {
+  color: #195246;
+  text-decoration: underline;
+}
+@media (max-width: 500px) {
+  .send-card-actions > button {
+    width: 100%;
+  }
+}

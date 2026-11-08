@@ -100,3 +100,88 @@ export async function sendBusinessCard(
     );
   return data as { status: string; warning?: string };
 }
+export type CardLink = { url: string; expires_at: string; revision: string };
+export type CardOperation = {
+  id: string;
+  revision: string;
+  token: string | null;
+  recipient: string;
+  channel: "email" | "sms";
+  customer_id: string | null;
+  status: string;
+};
+export const publishBusinessCard = (
+  business: string,
+  revision: string,
+  token: string,
+) =>
+  rpc<CardLink>("publish_business_card", {
+    p_business: business,
+    p_revision: revision,
+    p_token: token,
+  });
+export const getCardPending = (business: string) =>
+  rpc<CardOperation | null>("get_business_card_pending", {
+    p_business: business,
+  });
+export const revokeCardLink = (business: string, token: string) =>
+  rpc<void>("revoke_business_card_link", {
+    p_business: business,
+    p_token: token,
+  });
+export function newCardToken() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)), (v) =>
+    v.toString(16).padStart(2, "0"),
+  ).join("");
+}
+export async function deliverBusinessCard(
+  business: string,
+  operation: CardOperation,
+  consent: boolean,
+) {
+  if (!operation.token && operation.channel === "email")
+    return sendBusinessCard(
+      business,
+      operation.recipient,
+      operation.revision,
+      operation.id,
+    );
+  const { data, error } = await supabase.functions.invoke(
+    "business-card-delivery",
+    {
+      body: {
+        business_id: business,
+        request_id: operation.id,
+        revision: operation.revision,
+        token: operation.token,
+        channel: operation.channel,
+        recipient: operation.recipient,
+        customer_id: operation.customer_id,
+        consent,
+      },
+    },
+  );
+  window.dispatchEvent(new Event("finviant-delivery-changed"));
+  if (error) {
+    const context = (error as { context?: unknown }).context;
+    const detail =
+      context instanceof Response
+        ? await context
+            .clone()
+            .json()
+            .catch(() => null)
+        : null;
+    throw Object.assign(
+      new Error(
+        detail?.error ||
+          "Delivery outcome is unconfirmed. Keep this send and check activity before another attempt.",
+      ),
+      { notStarted: detail?.not_started === true },
+    );
+  }
+  if (!["accepted", "delivered"].includes(data?.status))
+    throw new Error(
+      "This send is pending or needs review. Check messaging activity before starting another.",
+    );
+  return data as { status: string; warning?: string };
+}

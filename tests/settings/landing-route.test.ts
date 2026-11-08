@@ -13,6 +13,7 @@ test('app, customer, invitation, recovery and OAuth returns never become a landi
   for (const url of [
     '/auth?mode=signin', '/auth?mode=signup', '/plans', '/admin', '/legal', '/install',
     '/?view=dashboard', '/?view=settings&section=calendar&calendar=connected',
+    '/?business_card=demo', '/?business_card=', '/?business_card=private-token',
     '/?approval=private-token', '/?document_share=private-token', '/?booking=private-token',
     '/?invite=invitation', '/?recovery=1', '/?code=auth-code', '/?error=access_denied',
     '/#access_token=test-token', '/#refresh_token=test-token', '/#type=recovery',

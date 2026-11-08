@@ -1,3 +1,4 @@
+import BusinessCardPage from './pages/BusinessCardPage'
 import SharedDocumentPage from './pages/SharedDocumentPage'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -31,6 +32,8 @@ const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get(
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
 const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
 export default function App() {
+  const cardToken = new URLSearchParams(window.location.search).get('business_card')
+  if (cardToken !== null) return <BusinessCardPage token={cardToken}/>
   // A web visit is the public homepage, even when this browser has an account
   // session. The app remains at its existing explicit workspace/auth links.
   // Mounting only LandingPage also keeps slow/offline auth from blocking it.

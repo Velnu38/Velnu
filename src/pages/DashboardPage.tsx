@@ -1,3 +1,4 @@
+import SendBusinessCard, {BusinessCardQuickLink} from '../components/SendBusinessCard'
 import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import { canAccess, canOpenView, workspaceModules } from '../lib/workspaceAccess'
 import BillingHub from '../components/BillingHub'
@@ -35,6 +36,7 @@ const empty: DashboardSnapshot = {
 
 export default function DashboardPage({ business, onSetup, onNavigate }: { business: CurrentBusiness; onSetup?: () => void; onNavigate?: (view: DashboardDestination) => void }) {
   const [snapshot, setSnapshot] = useState(empty)
+  const [showCardSend,setShowCardSend] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [attentionCount, setAttentionCount] = useState(0)
   const [openAttention, setOpenAttention] = useState(0)
@@ -113,6 +115,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     {showCreate && <FormDialog label="Quick Links" onClose={() => setShowCreate(false)}>
       <div className="modal-head"><div><p className="eyebrow">{business.name}</p><h2>Quick Links</h2></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowCreate(false)}>×</button></div>
       <nav className="home-create-options" aria-label="Create work and quick links">
+        {canCreateBilling&&<BusinessCardQuickLink business={business} onOpen={()=>{setShowCreate(false);setShowCardSend(true)}}/>}
         {canCreateBilling && <><a href="/?view=invoices&new=1" aria-label="+ New invoice"><WorkspaceIcon kind="invoices"/><span><strong>Invoice</strong><small>Bill a customer for your work</small></span><span aria-hidden="true">›</span></a><a href="/?view=estimates&new=1" aria-label="+ New estimate"><WorkspaceIcon kind="estimates"/><span><strong>Estimate</strong><small>Prepare a quote for a customer</small></span><span aria-hidden="true">›</span></a></>}
         {canCreateJob && <a href="/?view=work&new=1" aria-label="+ New job"><WorkspaceIcon kind="work"/><span><strong>Job</strong><small>Plan and manage customer work</small></span><span aria-hidden="true">›</span></a>}
         {canCreateEntry && <a href="/?view=reminders&new=1" aria-label="+ New reminder"><WorkspaceIcon kind="reminders"/><span><strong>Reminder</strong><small>Keep track of a follow-up</small></span><span aria-hidden="true">›</span></a>}
@@ -121,6 +124,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
       </nav>
     </FormDialog>}
 
+    {showCardSend&&<SendBusinessCard key={business.id} business={business} onClose={()=>setShowCardSend(false)}/>}
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
     {!canAccess(business,'billing')&&canAccess(business,'calendar')&&<section className="dashboard-tile home-attention-tile" aria-label="Needs Attention"><div className="work-card-heading"><div><p className="eyebrow">Your next steps</p><h2 className="dashboard-tile-title">Needs Attention</h2></div></div><AttentionReminders business={business} reminders={snapshot.dueReminders}/></section>}
     {error && <p role="alert" className="form-message error-text">{error}</p>}

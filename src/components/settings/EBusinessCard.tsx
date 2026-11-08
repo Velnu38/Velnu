@@ -169,7 +169,7 @@ export default function EBusinessCard({
     </section>
   );
 }
-function CardEditor({
+export function CardEditor({
   business,
   initial,
   onClose,
@@ -508,9 +508,7 @@ function CardEditor({
           limited to approved recipients.
         </p>
         <p className="quiet">
-          Send to a customer who has asked for your contact details. Direct card
-          SMS is not available; download or share the file through a compatible
-          device app.
+          Send to a customer who has asked for your contact details. Card preview links can be sent by text from Quick Links after SMS activation. You can also download or share the file through a compatible device app.
         </p>
         <label>
           Recipient email
