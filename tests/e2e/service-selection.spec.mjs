@@ -20,7 +20,7 @@ test('legacy services URL shows private testing and directs users to signup with
   await expect(page.getByRole('heading', { name: 'Test Finviant Office before public beta.' })).toBeVisible()
   await expect(page.getByRole('radio')).toHaveCount(0)
   await expect(page.getByText(/No subscription or charges are active/)).toBeVisible()
-  await page.getByRole('link', { name: /Join private beta/i }).first().click()
+  await page.getByRole('link', { name: 'Get started', exact: true }).first().click()
   await expect(page).toHaveURL(/\/auth\?mode=signup/)
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
 })

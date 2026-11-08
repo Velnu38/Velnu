@@ -6,7 +6,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
  await page.setViewportSize({width,height:900})
  const state=await mock(page,{ai:true})
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
- await page.goto('/')
+ await page.goto('/?view=dashboard')
  await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
  const finance=page.getByRole('region',{name:'Financial Performance',exact:true}),calendar=page.getByRole('region',{name:'Work calendar',exact:true})
  await expect(finance).toBeVisible();await expect(calendar).toBeVisible()
@@ -42,7 +42,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
  await page.screenshot({path:`test-results/home-screen-${width}.png`,fullPage:true})
 })
 for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation chooser opens the existing ${kind} editor`,async({page})=>{
- await mock(page);await page.goto('/')
+ await mock(page);await page.goto('/?view=dashboard')
  const origin=await page.evaluate(()=>performance.timeOrigin)
  await page.getByRole('button',{name:'Quick Links',exact:true}).click()
  const chooser=page.getByRole('dialog',{name:'Quick Links',exact:true})
@@ -61,7 +61,7 @@ for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation ch
 for(const width of [320,390,1440])test(`Home Quick Links opens the existing Customers directory at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900})
  await mock(page)
- await page.goto('/')
+ await page.goto('/?view=dashboard')
  const trigger=page.getByRole('button',{name:'Quick Links',exact:true})
  await expect(trigger).toHaveText('Quick Links')
  await expect(trigger.locator('.home-create-label')).toHaveCount(0)
@@ -80,7 +80,7 @@ for(const width of [320,390,1440])test(`Home Quick Links opens the existing Cust
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(timeOrigin)
 })
 test('Home keeps calendar creation on the calendar and removes it from Quick Links',async({page})=>{
- await mock(page);await page.goto('/')
+ await mock(page);await page.goto('/?view=dashboard')
  const trigger=page.getByRole('button',{name:'Quick Links',exact:true})
  await trigger.click();await page.keyboard.press('Escape');await expect(trigger).toBeFocused()
  await trigger.click();const chooser=page.getByRole('dialog',{name:'Quick Links',exact:true});await expect(chooser.getByRole('button',{name:'+ New calendar entry',exact:true})).toHaveCount(0);await expect(chooser.getByRole('link',{name:'Team Management',exact:true})).toHaveAttribute('href','/?view=settings&section=team');await chooser.getByRole('button',{name:'Close',exact:true}).click();await page.getByRole('button',{name:'Add to calendar',exact:true}).click()
@@ -89,7 +89,7 @@ test('Home keeps calendar creation on the calendar and removes it from Quick Lin
 for(const role of ['technician','viewer'])test(`Home preserves ${role} module and creation restrictions`,async({page})=>{
  await page.setViewportSize({width:390,height:900});const state=await mock(page,{owner:false})
  await page.route('**/rest/v1/business_members?**',route=>route.fulfill({contentType:'application/json',json:{business_id:B,role,access_modules:['calendar','jobs'],businesses:business}}))
- await page.goto('/')
+ await page.goto('/?view=dashboard')
  await expect(page.getByRole('region',{name:'Work calendar',exact:true})).toBeVisible()
  await expect(page.getByRole('region',{name:'Financial Performance',exact:true})).toHaveCount(0)
  const dock=page.getByRole('navigation',{name:'Workspace navigation'})

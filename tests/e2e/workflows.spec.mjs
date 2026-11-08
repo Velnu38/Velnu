@@ -117,7 +117,7 @@ async function mockWorkspace(page, seed = {}) {
 
 test('owner creates a branded invoice atomically and it remains a draft until manually sent', async ({ page }) => {
   const state = await mockWorkspace(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Invoices')
   await createWork(page, 'invoice')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
@@ -142,7 +142,7 @@ test('owner creates a branded invoice atomically and it remains a draft until ma
 test('estimate requires explicit offline acceptance before conversion to invoice', async ({ page }) => {
   const state = await mockWorkspace(page)
   page.on('dialog', async dialog => { await dialog.accept() })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Estimates')
   await createWork(page, 'estimate')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
@@ -172,7 +172,7 @@ test('payments exclude draft invoices and use retry-safe server recording', asyn
   const sent = { id: invoiceId, invoice_number: 'INV-SENT', status: 'sent', total: 150, balance_due: 150, amount_paid: 0, customers: customer }
   const state = await mockWorkspace(page, { invoices: [draft, sent] })
   page.on('dialog', async dialog => { await dialog.accept() })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.getByRole('button', { name: 'Payments', exact: true }).click()
   await page.getByRole('button', { name: '+ Record payment' }).click()
   await expect(page.getByLabel('Invoice', { exact: true }).locator('option', { hasText: /INV-SENT/ })).toHaveCount(1)
@@ -191,7 +191,7 @@ test('payments exclude draft invoices and use retry-safe server recording', asyn
 test('mobile More menu exposes invoices and editable company settings', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockWorkspace(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.getByRole('button', { name: 'More' }).click()
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Company Profile/ }).click()
   await expect(page.getByRole('heading', { name: 'Company Profile', exact: true })).toBeVisible()
@@ -213,7 +213,7 @@ test('issued invoice preserves original company letterhead after profile changes
     },
   }
   await mockWorkspace(page, { invoices: [issued] })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-HISTORIC/ }).click()
   await expect(page.locator('.invoice-document .letterhead-company')).toHaveText('Original Plumbing Co')
@@ -235,7 +235,7 @@ test('issued estimate preview shows original issuer and saved footer, not curren
     },
   }
   await mockWorkspace(page, { estimates: [issued] })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Estimates')
   await page.getByRole('button', { name: 'Preview / Print' }).click()
   const document = page.locator('.estimate-preview-document')
@@ -248,7 +248,7 @@ test('issued estimate preview shows original issuer and saved footer, not curren
 
 test('technician keeps field navigation but cannot edit invoices, estimates or payments', async ({ page }) => {
   await mockWorkspace(page, { role: 'technician' })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Jobs')
   await expect(page.getByRole('button', { name: '+ New job' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Home', exact: true }).click()
@@ -275,7 +275,7 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   const issuedInvoice = { id: invoiceId, invoice_number: 'INV-CONTEXT', status: 'sent', issue_date: '2026-10-26', customer_id: customerId, job_id: order.job_id, subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100, customers: customer }
   const state = await mockWorkspace(page, { changeOrders: [order], invoices: [issuedInvoice], invoiceItems: [{ id: 'context-item', description: 'Original work', quantity: 1, unit_price: 100, line_total: 100, tax_rate: 0, sort_order: 0 }] })
   page.on('dialog', async dialog => { await dialog.accept() })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await expect(page.locator('.sidebar').getByRole('button', { name: 'Change Orders', exact: true })).toHaveCount(0)
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-CONTEXT/ }).click()
@@ -299,7 +299,7 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
       { id: '77777777-7777-4777-8777-777777777777', status: 'draft', total: 900, balance_due: 900 },
     ],
   })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await expect(page.locator('.billing-outstanding')).toContainText('$125.00')
   const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
   expect(aggregates).toHaveLength(1)
@@ -312,7 +312,7 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
 test('fractional invoice preview and saved draft retain database per-line rounding', async ({ page }) => {
   const invoiceItems = ['First fractional service', 'Second fractional service'].map((description, i) => ({ id: 'fractional-' + i, description, quantity: 1.5, unit_price: 0.01, line_total: 0.02, tax_rate: 0, sort_order: i }))
   const state = await mockWorkspace(page, { documentTotals: { subtotal: 0.04, tax_amount: 0 }, invoiceItems })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Invoices')
   await createWork(page, 'invoice')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()

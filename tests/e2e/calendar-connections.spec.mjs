@@ -25,7 +25,7 @@ for (const width of [390, 1440]) test(`Calendar Connections opens from More and 
     }
     return route.fulfill({ json: { events: [], issues: [], connections: 0 } })
   })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.locator(width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Calendar Connections/ }).click()
   const settings = page.getByRole('region', { name: 'Calendar integrations' })

@@ -10,7 +10,7 @@ for(const width of [390,1440])test(`Fin has one typed submit, clear voice contro
   if(fail){fail=false;return route.fulfill({status:503,headers:cors,json:{error:'Temporary failure'}})}
   return route.fulfill({status:200,headers:cors,json:{answer:body.text.startsWith('What about')?'Painting is also a saved service.':'Your saved service is landscaping.',sources:[{key:'profile',label:'Saved company profile'}],as_of:'2026-11-04T12:00:00Z',limits:['Current business records only.']}})
  })
- await page.goto('/');const launcher=page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true});await expect(launcher.locator('.fin-mark')).toHaveAttribute('src','/finviant-mark-on-dark.svg');await expect(page.locator('.fin-brand:visible .fin-wordmark')).toContainText('inviant');await expect(launcher).toHaveCSS('background-color','rgb(16, 44, 75)');await expect(launcher.getByText('Ask Fin',{exact:true})).toBeVisible();await expect(page.locator('.fin-brand:visible')).toContainText('AI Office Assistant')
+ await page.goto('/?view=dashboard');const launcher=page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true});await expect(launcher.locator('.fin-mark')).toHaveAttribute('src','/finviant-mark-on-dark.svg');await expect(page.locator('.fin-brand:visible .fin-wordmark')).toContainText('inviant');await expect(launcher).toHaveCSS('background-color','rgb(16, 44, 75)');await expect(launcher.getByText('Ask Fin',{exact:true})).toBeVisible();await expect(page.locator('.fin-brand:visible')).toContainText('AI Office Assistant')
  const box=await launcher.boundingBox();expect(box.width).toBeGreaterThanOrEqual(48);expect(box.height).toBeGreaterThanOrEqual(48)
  await page.screenshot({path:`test-results/fin-brand-${width}.png`,fullPage:true});await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click()
  const panel=page.getByRole('dialog',{name:'Fin — your office assistant'}),input=panel.getByRole('textbox',{name:'Describe your invoice or request'}),submit=panel.getByRole('button',{name:'Ask Fin',exact:true})
@@ -31,7 +31,7 @@ test('changing membership role clears the earlier business-question conversation
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
   return route.fulfill({status:200,headers:cors,json:{answer:'Owner-only saved business answer.',sources:[],limits:[],as_of:'2026-11-04T12:00:00Z'}})
  })
- await page.goto('/');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill('What services do I offer?');await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click();await expect(page.getByText('Owner-only saved business answer.',{exact:true})).toBeVisible()
+ await page.goto('/?view=dashboard');await page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true}).click();await page.getByRole('textbox',{name:'Describe your invoice or request'}).fill('What services do I offer?');await page.getByRole('dialog',{name:'Fin — your office assistant'}).getByRole('button',{name:'Ask Fin',exact:true}).click();await expect(page.getByText('Owner-only saved business answer.',{exact:true})).toBeVisible()
  await page.route('**/rest/v1/business_members?*',route=>route.fulfill({status:200,headers:cors,json:{business_id:B,role:'office',access_modules:['calendar','jobs','billing','finances'],businesses:business}}))
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
  await expect(page.locator('.role-pill')).toHaveText('office',{timeout:15000})
@@ -40,7 +40,7 @@ test('changing membership role clears the earlier business-question conversation
 })
 
 test('mobile More does not expose an unavailable assistant',async({page})=>{
- await page.setViewportSize({width:390,height:844});await mock(page,{ai:false});await page.goto('/')
+ await page.setViewportSize({width:390,height:844});await mock(page,{ai:false});await page.goto('/?view=dashboard')
  const dock=page.getByRole('navigation',{name:'Workspace navigation'})
  await dock.getByRole('button',{name:'More',exact:true}).click()
  await expect(page.getByRole('dialog',{name:'More navigation'}).getByRole('button',{name:'Ask Fin',exact:true})).toHaveCount(0)

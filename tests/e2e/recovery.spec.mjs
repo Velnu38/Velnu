@@ -32,7 +32,7 @@ async function setup(page,options={}){
   if(path.endsWith('/rpc/set_job_status_atomic'))return json({message:'Unable to update linked appointment',code:'23514'},409)
   return json([])
  })
- await page.goto('/')
+ await page.goto('/?view=dashboard')
  return s
 }
 async function setupFin(page,options={}){

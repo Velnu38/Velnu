@@ -14,6 +14,7 @@ import AppShell from './components/AppShell'
 import AccountAgreement from './components/AccountAgreement'
 import CustomerApprovalPage from './pages/CustomerApprovalPage'
 import LandingPage from './pages/LandingPage'
+import { isLandingRoute } from './lib/landingRoute'
 import TeamInvitationPage from './pages/TeamInvitationPage'
 import InstallPage from './pages/InstallPage'
 import LegalPage from './pages/LegalPage'
@@ -30,6 +31,14 @@ const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get(
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
 const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : 'signin'
 export default function App() {
+  // A web visit is the public homepage, even when this browser has an account
+  // session. The app remains at its existing explicit workspace/auth links.
+  // Mounting only LandingPage also keeps slow/offline auth from blocking it.
+  if (isLandingRoute(window.location.pathname, window.location.search, window.location.hash)) return <LandingPage />
+  return <WorkspaceApp />
+}
+
+function WorkspaceApp() {
   const publicPath = window.location.pathname
   const approvalToken = initialQuery.get('approval')
   const bookingToken = initialQuery.get('booking')
@@ -164,7 +173,7 @@ export default function App() {
   if (recovery) return <PasswordRecovery session={session} invalidLink={invalidAuthLink} onDone={finishRecovery} />
   if (initialInvite) return <TeamInvitationPage token={initialInvite} session={session} />
   if (!session) {
-    if (publicPath === '/auth' || publicPath === '/admin' || publicPath === '/plans' || invalidAuthLink) {
+    if (publicPath === '/auth' || publicPath === '/admin' || publicPath === '/plans' || initialQuery.has('view') || invalidAuthLink) {
       return <AuthScreen initialMode={initialAuthMode} initialMessage={authError || (invalidAuthLink ? 'This account link is invalid or expired. Sign in or request a new password-reset link.' : '')} />
     }
     return <LandingPage />

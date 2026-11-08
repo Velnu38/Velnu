@@ -8,7 +8,7 @@ const more = page => page.getByRole('dialog', {name: 'More navigation'})
 for (const width of [320, 390, 1440]) test(`More consolidates setup and preserves related workspaces at ${width}px`, async ({page}) => {
   await page.setViewportSize({width, height: 900})
   const state = await mock(page, {ai: true})
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   const origin = await page.evaluate(() => performance.timeOrigin)
   await moreButton(page).click()
   for (const label of [...setupLinks, 'Help & Support', 'Subscription']) await expect(more(page).getByRole('link', {name: new RegExp('^' + label.replaceAll('&', '\\&'))})).toBeVisible()
@@ -52,7 +52,7 @@ test('More navigation protects unsaved company edits', async ({page}) => {
 test('restricted member cannot reach owner setup through More or a saved link', async ({page}) => {
   await mock(page, {owner: false, ai: true})
   await page.route('**/rest/v1/business_members?**', route => route.fulfill({json: {business_id: B, role: 'viewer', access_modules: ['calendar'], businesses: business}}))
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await moreButton(page).click()
   await expect(more(page).getByRole('link', {name: /^Calendar Connections/})).toBeVisible()
   for (const label of setupLinks.filter(label => label !== 'Calendar Connections')) await expect(more(page).getByRole('link', {name: new RegExp('^' + label)})).toHaveCount(0)

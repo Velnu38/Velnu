@@ -39,7 +39,7 @@ export default function TeamInvitationPage({
       const id = await acceptInvitation(token);
       localStorage.setItem("finviant-active-business:" + session.user.id, id);
       sessionStorage.removeItem("finviant-team-invitation");
-      window.location.assign("/");
+      window.location.assign("/?view=dashboard");
     } catch (e) {
       setError(
         (e as Error).message ||

@@ -27,7 +27,7 @@ test('public homepage presents private testing without selling subscriptions and
   await expect(page.getByText(/No subscription or charges are active/)).toBeVisible()
   await expect(page.getByRole('heading', { name: /Another set of hands/ })).toBeVisible()
   await expect(page.locator('.marketing-ai-status')).toContainText('In testing.')
-  await page.getByRole('link', { name: /Join private beta/i }).first().click()
+  await page.getByRole('link', { name: 'Get started', exact: true }).first().click()
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
 })
 
@@ -46,7 +46,7 @@ test('public privacy and terms pages can be read without logging in', async ({ p
 test('mobile landing page has accessible signup and no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
-  await expect(page.getByRole('link', { name: /Join private beta/i }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Get started', exact: true }).first()).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
 })
 
@@ -87,7 +87,7 @@ test('authenticated user is blocked from workspace until AI, terms and e-record 
     }
     return json([])
   })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await expect(page.getByRole('heading', { name: 'Welcome to Finviant Office testing.' })).toBeVisible()
   await page.getByRole('button', { name: 'Continue to private testing' }).click()
   await expect(page.getByRole('heading', { name: 'Review your User Agreement, AI Disclosure & Privacy Notice' })).toBeVisible()
@@ -129,7 +129,7 @@ test('existing accepted account proceeds without accepting a second time', async
     if (path.endsWith('/business_members')) return json(null)
     return json([])
   })
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await expect(page.getByRole('heading', { name: 'Set up your business' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Review your User Agreement, AI Disclosure & Privacy Notice' })).toHaveCount(0)
   expect(agreementsRead).toBeGreaterThanOrEqual(1)

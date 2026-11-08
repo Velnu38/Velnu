@@ -58,7 +58,7 @@ async function mockBusinessData(page) {
 
 test('service location opens a valid Google Maps view and driving directions without revealing access notes', async ({ page }) => {
   await mockBusinessData(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.locator('.sidebar').getByRole('button', { name: 'Customers', exact: true }).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()
   await expect(page.getByRole('region',{name:'Customer contact'}).getByRole('heading', { name: 'Address',exact:true })).toBeVisible()
@@ -82,7 +82,7 @@ test('service location opens a valid Google Maps view and driving directions wit
 
 test('owner assigns a matching customer property when creating a job', async ({ page }) => {
   const requests = await mockBusinessData(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.getByRole('button', { name: 'Create new', exact: true }).click()
   await page.getByRole('link', { name: '+ New job', exact: true }).click()
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
@@ -101,7 +101,7 @@ test('owner assigns a matching customer property when creating a job', async ({ 
 
 test('schedule shows driving directions from its associated job location', async ({ page }) => {
   await mockBusinessData(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Schedule')
   const url = await page.getByRole('link', { name: /Get driving directions to 123 Example Street/ }).getAttribute('href')
   expect(new URL(url).searchParams.get('destination')).toContain('123 Example Street')
@@ -111,7 +111,7 @@ test('schedule shows driving directions from its associated job location', async
 test('mobile Customers contains service locations and route links without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockBusinessData(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.locator('.mobile-nav').getByRole('button', { name: 'More', exact: true }).click()
   await page.locator('.mobile-more-grid').getByRole('button', { name: 'Customers', exact: true }).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()

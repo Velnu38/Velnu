@@ -82,7 +82,7 @@ test('Needs Attention opens an exact change order and restores the approval queu
     json:attentionPage(route.request().postDataJSON(),{changeOrders:[change]}),
   }))
   await page.route('**/rest/v1/change_orders?**',route=>route.fulfill({json:[change],headers}))
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.getByRole('button',{name:'Jump to Needs Attention',exact:true}).click()
   const filter = page.getByRole('button',{name:'Awaiting Customer Approval 1',exact:true})
   await filter.click()
@@ -108,7 +108,7 @@ test('completed jobs link to the prepared invoice immediately',async({page})=>{
 test('booking an existing job from the calendar retains the displayed day',async({page})=>{
   await mock(page,{ai:true})
   await savedJob(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   const calendar = page.getByRole('region',{name:'Work calendar'})
   await calendar.getByRole('button',{name:'Next week',exact:true}).click()
   const day = DateTime.now().setZone('America/New_York').plus({days:7}).toISODate()
@@ -211,7 +211,7 @@ test('Finish invoices opens the billing step for the exact approved change order
   }))
   await page.route('**/rest/v1/change_orders?**', route => route.fulfill({ json:[change], headers }))
   await page.route('**/rest/v1/rpc/get_change_order_billing', route => route.fulfill({ json:{ action:'create_invoice', total:105, change_total:25 } }))
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.getByRole('button', { name:'Finish invoices 1' }).click()
   const row = page.getByRole('link', { name:/open change order CO-QA/i })
   await expect(row).toContainText('Ready to bill')

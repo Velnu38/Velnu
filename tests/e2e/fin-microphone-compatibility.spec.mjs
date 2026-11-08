@@ -51,7 +51,7 @@ async function setup(page,options={}){
    createMediaStreamSource(){throw Error('Audio analyser unavailable')};close(){throw Error('Audio context could not close')}
   }
  },options)
- await page.goto('/');return requests
+ await page.goto('/?view=dashboard');return requests
 }
 
 test('native phone encoder is tried first and microphone constraints stay simple',async({page})=>{

@@ -194,7 +194,7 @@
  .marketing-nav{min-height:70px}
  .marketing-brand{font-size:22px}
  .marketing-logo{width:33px;height:33px;flex-basis:33px}
- .marketing-signin{display:none}.marketing-nav-actions .marketing-btn{font-size:11px;padding:0 12px;min-height:39px}
+ .marketing-nav-actions{gap:12px}.marketing-nav-actions .marketing-signin{display:inline-flex;align-items:center;min-height:44px;font-size:12px}.marketing-nav-actions .marketing-btn{font-size:11px;padding:0 12px;min-height:44px}
  .marketing-hero{padding:43px 0 52px}
  .marketing-beta{font-size:10px}
  .marketing-hero h1{font-size:clamp(46px,12vw,62px)}

@@ -55,7 +55,7 @@ async function mockFinance(page, opts={}) {
 
 test('paid invoices and manual expenses appear in Finviant Office workbook, not as double-counted QuickBooks income', async ({page}) => {
   await mockFinance(page,{configured:false})
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('heading',{name:'Know what you earned. Know what you spent.'})).toBeVisible()
   await expect(page.getByText('Payment received · INV-101')).toBeVisible()
@@ -73,7 +73,7 @@ test('paid invoices and manual expenses appear in Finviant Office workbook, not 
 test('workbook totals and CSV include entries beyond the first API page', async ({page}) => {
   const rows = Array.from({length:1001}, (_, i) => ({...manual, id: String(i).padStart(6,'0'), amount: 1, description: 'QA expense ' + i}))
   const state = await mockFinance(page,{manualRows:rows})
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await page.getByLabel('Period').selectOption('all')
   await expect(page.locator('.bookkeeping-overview article').nth(1).locator('strong')).toHaveText('$1,001.00')
@@ -94,7 +94,7 @@ test('workbook totals and CSV include entries beyond the first API page', async 
 
 test('bookkeeping owner can enter expense without changing payment transactions',async ({page})=>{
   const state=await mockFinance(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await page.getByRole('button',{name:'+ Add Entry',exact:true}).click()
   await page.getByRole('button',{name:'Add Expense',exact:true}).click()
@@ -114,7 +114,7 @@ test('bookkeeping owner can enter expense without changing payment transactions'
 
 test('QuickBooks connection requires explicit extra-cost acknowledgment and shows sandbox state',async ({page})=>{
   await mockFinance(page,{configured:true,connected:false})
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await page.getByRole('button',{name:'QuickBooks Online',exact:true}).click()
   const connect=page.getByRole('button',{name:'Connect QuickBooks Online'})
@@ -128,7 +128,7 @@ test('QuickBooks connection requires explicit extra-cost acknowledgment and show
 test('mobile navigation reaches workbook and separates source tabs',async ({page})=>{
   await page.setViewportSize({width:390,height:844})
   await mockFinance(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('button',{name:'Finviant Office workbook'})).toBeVisible()
   await expect(page.getByRole('button',{name:'QuickBooks Online'})).toBeVisible()
@@ -136,7 +136,7 @@ test('mobile navigation reaches workbook and separates source tabs',async ({page
 
 test('a failed workbook read shows unavailable totals and can recover without reporting a zero balance', async ({page}) => {
   const state = await mockFinance(page, {failManualRead:true})
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('heading',{name:'Workbook could not be loaded'})).toBeVisible({timeout:15000})
   await expect(page.locator('.bookkeeping-overview strong')).toHaveText(['Unavailable','Unavailable','Unavailable'])
@@ -155,7 +155,7 @@ test('a failed workbook read shows unavailable totals and can recover without re
 
 test('a failed reload after a write prevents exporting the previous workbook snapshot', async ({page}) => {
   const state = await mockFinance(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByText('Replacement parts',{exact:true})).toBeVisible()
   state.failManualRead = true
@@ -177,7 +177,7 @@ test('a failed reload after a write prevents exporting the previous workbook sna
 test('workbook text stays inert in HTML and formula prefixes are escaped in CSV', async ({page}) => {
   const markup = '<img src=x onerror="window.qaInjected=true">'
   await mockFinance(page,{manualRows:[{...manual,description:markup},{...manual,id:'88888888-8888-4888-8888-888888888888',description:'=1+1'}]})
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByText(markup,{exact:true})).toBeVisible()
   expect(await page.evaluate(() => window.qaInjected)).toBeUndefined()
@@ -193,7 +193,7 @@ test('workbook text stays inert in HTML and formula prefixes are escaped in CSV'
 test('a failed workspace module preserves navigation and offers recovery', async ({page}) => {
   await mockFinance(page)
   await page.route(/\/(?:src\/pages\/BookkeepingPage\.tsx|assets\/BookkeepingPage-[^/]+\.js)(?:\?.*)?$/, route => route.abort('failed'))
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
   await expect(page.getByRole('heading',{name:'This page could not be opened'})).toBeVisible()
   await expect(page.getByRole('button',{name:'Reload workspace'})).toBeEnabled()

@@ -1,17 +1,18 @@
 import { useState } from 'react'
 
 const offerCards = [
-  { eyebrow: '01 · Start simple', title: 'Look professional from the first estimate.', copy: 'Set up your company details, colors and logo once. Carry your identity into invoices and estimates.', kind: 'Available in private beta', icon: '◫' },
+  { eyebrow: '01 · Start simple', title: 'Look professional from the first estimate.', copy: 'Create branded estimates, invoices and change orders. Preview, download and share a matching PDF on every plan.', kind: 'PDFs on every tier', icon: '◫' },
   { eyebrow: '02 · Keep work organized', title: 'Customers, jobs and schedules together.', copy: 'Keep the people, work and follow-up connected so information does not get lost between calls.', kind: 'Available in private beta', icon: '◇' },
   { eyebrow: '03 · AI OFFICE ASSISTANT', title: 'Speak it. Review it. Save a draft.', copy: 'AI assistant: transcribe voice, prepare invoice and estimate drafts, identify missing details, and let you approve every action.', kind: 'AI assistant · In private testing', icon: '◎' },
-  { eyebrow: '04 · Keep financial records clear', title: 'Know what’s paid. Know what’s spent.', copy: 'Your Bookkeeping workbook pulls in recorded invoice payments and lets you track expenses. An optional QuickBooks Online import is being tested.', kind: 'Workbook in beta · Intuit setup pending', icon: '↗' },
-  { eyebrow: '05 · Put the customer first', title: 'Professional estimate review and approval.', copy: 'Let customers examine scope, totals and terms before explicitly accepting a quote.', kind: 'Customer delivery coming soon', icon: '✓' },
-  { eyebrow: '06 · AI OFFICE ASSISTANT', title: 'An assistant that knows your business.', copy: 'Planned AI tools can use your services, territory, team roles and existing records to help find jobs, summarize unpaid invoices, and prepare follow-ups.', kind: 'AI assistant · In private testing', icon: '✳' },
+  { eyebrow: '04 · Keep financial records clear', title: 'Know what’s paid. Know what’s spent.', copy: 'Review recorded income, invoice balances and expenses together. Open the underlying records when you need the details.', kind: 'Financial Performance', icon: '↗' },
+  { eyebrow: '05 · Put the customer first', title: 'A clearer next step for your customers.', copy: 'Business Pro adds Finviant email delivery, customer approvals and appointment selection, with updates reflected in your workspace.', kind: 'Business Pro · Private beta', icon: '✓' },
+  { eyebrow: '06 · Organize your crew', title: 'Manage workers without extra logins.', copy: 'Keep worker hours, time off and job assignments in Team Management. Individual includes 5 active workers; Business Pro includes 25. Account access is separate.', kind: 'Internal workers & availability', icon: '✳' },
 ]
 const questions = [
   { q: 'What does the Finviant Office AI assistant do?', a: 'The AI assistant is planned to turn speech into reviewed invoice and estimate drafts, help find customers and jobs, summarize outstanding invoices, and use your business profile for context. It does not automatically send invoices or make financial decisions.' },
   { q: 'Will Finviant Office send an invoice without me approving it?', a: 'No. The workflow is designed around owner review. Voice and AI can prepare drafts, but customer-facing actions require your confirmation.' },
-  { q: 'Is Finviant Office ready for my entire business?', a: 'Finviant Office is a private beta. Some features and integrations, including live customer email delivery, are still being tested. Keep independent copies of important records.' },
+  { q: 'How do documents reach my customers?', a: 'Every tier can create and download matching PDFs. Free and Individual use your device’s sharing or email app; some devices require attaching the downloaded PDF manually. Business Pro sends through Finviant, including the PDF attachment. Private-beta recipient restrictions still apply.' },
+  { q: 'Is Finviant Office ready for my entire business?', a: 'Finviant Office is a private beta for approved testers. Features and integrations are still being verified, and access remains limited. Keep independent copies of important records.' },
 ]
 
 export default function LandingPage() {
@@ -21,7 +22,7 @@ export default function LandingPage() {
       <div className="marketing-container marketing-nav">
         <a className="marketing-brand" href="/" aria-label="Finviant Office home"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a>
         <nav aria-label="Main navigation" className="marketing-main-nav"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="#how-it-works">How it works</a></nav>
-        <div className="marketing-nav-actions"><a className="marketing-signin" href="/auth?mode=signin">Sign in</a><a className="marketing-btn marketing-btn-dark marketing-btn-small" href="/auth?mode=signup">Join private beta <span aria-hidden="true">↗</span></a></div>
+        <div className="marketing-nav-actions"><a className="marketing-signin" href="/auth?mode=signin">Sign in</a><a className="marketing-btn marketing-btn-dark marketing-btn-small" href="/auth?mode=signup">Get started <span aria-hidden="true">↗</span></a></div>
       </div>
     </header>
     <main>
@@ -32,7 +33,7 @@ export default function LandingPage() {
             <h1>Your work. <em>Less paperwork.</em></h1>
             <p className="marketing-hero-lead">Meet Finviant Office, the business workspace that helps you turn everyday work into professional estimates and invoices—without a complicated back office.</p>
             <div className="marketing-hero-actions"><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Get started with Finviant Office <span>↗</span></a><a href="/auth?mode=signin" className="marketing-watch">Sign in to your test workspace <span aria-hidden="true">↗</span></a></div>
-            <p className="marketing-hero-fine">No download required. Use Finviant Office on your phone or computer, or <a href="/install">add it to your Home Screen</a>. No pricing commitment during the private beta.</p>
+            <p className="marketing-hero-fine">Private beta for approved testers. Use Finviant Office on your phone or computer, or <a href="/install">add it to your Home Screen</a>. No subscription charges during private testing.</p>
             <div className="marketing-hero-statline"><span><strong>One place</strong> for customers and jobs</span><span><strong>Your brand</strong> on every document</span><span><strong>Your review</strong> before anything goes out</span></div>
           </div>
           <div className="marketing-scene" role="img" aria-label="Illustrative Finviant Office interface showing a spoken request, an invoice draft, and company branding">
@@ -96,6 +97,6 @@ export default function LandingPage() {
       <section className="marketing-faq"><div className="marketing-container marketing-faq-grid"><div><p className="marketing-section-kicker">GOOD QUESTIONS</p><h2>Before you jump in.</h2><p>Clear expectations matter. Here is what to know about Finviant Office’s private preview.</p></div><div>{questions.map((item,i)=><div key={item.q} className="marketing-faq-item"><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}><span>{item.q}</span><b>{openFaq===i?'−':'+'}</b></button>{openFaq===i&&<p>{item.a}</p>}</div>)}</div></div></section>
       <section className="marketing-last"><div className="marketing-container marketing-last-card"><div><p className="marketing-section-kicker">YOUR OFFICE, WITHOUT THE OVERHEAD</p><h2>Make more time for the work that matters.</h2><p>Build professional documents, stay organized, and discover a simpler workflow with Finviant Office.</p></div><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Join the private beta <span>↗</span></a></div></section>
     </main>
-    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Finviant Office. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
+    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Finviant Office. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="/?view=dashboard">Open workspace</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
   </div>
 }

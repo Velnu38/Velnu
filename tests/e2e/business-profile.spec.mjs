@@ -46,7 +46,7 @@ async function mockBusiness(page, existing = false, paid = existing) {
 test('new owner can enter company branding and business context during onboarding', async ({ page }) => {
   await signedIn(page)
   const writes = await mockBusiness(page)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await expect(page.getByRole('heading', { name: 'Set up your business' })).toBeVisible()
   await page.getByLabel('Company name', { exact: true }).fill('Test Electric')
   await page.getByLabel('Business phone').fill('757-555-0100')
@@ -86,7 +86,7 @@ test('new owner can enter company branding and business context during onboardin
 test('existing owner edits company details and context, then document branding in their settings sections', async ({ page }) => {
   await signedIn(page)
   const writes = await mockBusiness(page, true)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Company Profile/ }).click()
   await page.getByLabel('Business phone').fill('757-555-0199')
@@ -111,7 +111,7 @@ test('existing owner edits company details and context, then document branding i
 test('free owner has manual branding but no hosted logo uploads or paid AI assistant', async ({ page }) => {
   await signedIn(page)
   await mockBusiness(page, true, false)
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await expect(page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true})).toHaveCount(0)
   await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Invoice & Estimate Setup/ }).click()
@@ -124,7 +124,7 @@ test('free owner has manual branding but no hosted logo uploads or paid AI assis
 test('activated Basic tier can upload company logo when backend grants storage quota', async ({ page }) => {
   await signedIn(page)
   const writes = await mockBusiness(page, true, 'basic')
-  await page.goto('/')
+  await page.goto('/?view=dashboard')
   await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Invoice & Estimate Setup/ }).click()
   await page.getByLabel('Company logo (PNG, JPG or WebP, up to 2 MB)').setInputFiles({

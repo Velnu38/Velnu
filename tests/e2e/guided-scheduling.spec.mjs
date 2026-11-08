@@ -70,7 +70,7 @@ async function mock(page,{signedIn=true,conflict=false,plan='pro',job=null}={}){
 const scheduleWork=page=>page.getByRole('group',{name:'Needs Attention categories'}).getByRole('button',{name:/^Schedule work/})
 const scheduleQueue=page=>page.getByRole('region',{name:'Needs scheduling',exact:true})
 for(const width of [1440,390])test(`guided booking proposes crew availability and needs explicit owner approval at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/')
+ await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=dashboard')
  await scheduleWork(page).click()
  const next=scheduleQueue(page);await expect(next).toContainText('Test Customer')
  expect(state.calls.filter(c=>/approve_scheduling_offer|work-scheduling/.test(c.path))).toHaveLength(0)
@@ -95,7 +95,7 @@ for(const width of [1440,390])test(`guided booking proposes crew availability an
  await expect(page.getByRole('dialog').getByRole('button',{name:'Send booking link',exact:true})).toHaveAttribute('aria-pressed','true')
 })
 test('phone agreement books once and sends no customer message',async({page})=>{
- const state=await mock(page);await page.goto('/');await scheduleWork(page).click()
+ const state=await mock(page);await page.goto('/?view=dashboard');await scheduleWork(page).click()
  await scheduleQueue(page).getByRole('button',{name:'Schedule job',exact:true}).click()
  await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
  const dialog=page.getByRole('dialog')
@@ -118,7 +118,7 @@ test('phone agreement books once and sends no customer message',async({page})=>{
 })
 
 test('an older next-step response cannot restore a booking resolved by a newer refresh',async({page})=>{
- const state=await mock(page);await page.goto('/')
+ const state=await mock(page);await page.goto('/?view=dashboard')
  await scheduleWork(page).click()
  await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
  await expect.poll(()=>state.pendingWorkflow).toBe(0)
@@ -135,7 +135,7 @@ test('an older next-step response cannot restore a booking resolved by a newer r
 })
 
 for(const width of [1440,390])test(`dashboard tiles share surfaces and typography at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});await mock(page);await page.goto('/')
+ await page.setViewportSize({width,height:900});await mock(page);await page.goto('/?view=dashboard')
  await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
  await expect(page.locator('.home-overview .dashboard-tile')).toHaveCount(3)
  const appearance=await page.locator('.dashboard-tile').evaluateAll(tiles=>tiles.map(tile=>{
@@ -178,7 +178,7 @@ test('a typed customer stays in the estimate draft without losing line-item work
 
 for (const plan of ['free', 'basic']) test(`${plan} opens manual booking with the owner selected and one contextual upgrade link`, async ({page}) => {
  const state=await mock(page,{plan})
- await page.goto('/')
+ await page.goto('/?view=dashboard')
  await scheduleWork(page).click()
  await scheduleQueue(page).getByRole('button',{name:'Schedule job',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Find a time that works'})

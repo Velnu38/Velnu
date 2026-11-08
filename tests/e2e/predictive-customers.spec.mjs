@@ -19,7 +19,7 @@ test('job customer requires a selection, supports keyboard and clears stale link
 })
 test('Fin suggests duplicate names with contact details and opens the invoice editor with the chosen record',async({page})=>{
  const state=await mock(page,{ai:true});state.customers.push(duplicate)
- await page.goto('/');await openFinTyping(page)
+ await page.goto('/?view=dashboard');await openFinTyping(page)
  const request=page.getByRole('textbox',{name:'Describe your invoice or request'})
  await request.fill('Create an invoice for Test Customer for mowing $100')
  const suggestions=page.getByRole('region',{name:'Suggested customers for Fin'})
