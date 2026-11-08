@@ -66,6 +66,12 @@
       "detail": "Admin MFA enrollment now offers a manual time-based authenticator setup key with QR fallback. DOM regression covers enrollment, failed-code retry and key removal after verification. Physical-phone enrollment remains to be confirmed; administrator MFA enforcement is unchanged.",
       "evidence": "src/pages/PlatformAdminPage.tsx and tests/admin-mfa/dom.mjs",
       "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Authentication redirect correction",
+      "detail": "Corrected active beta Supabase Site URL from obsolete stage1 Vercel preview address (with invalid wildcard) to https://finviant.com and added domain-scoped https://finviant.com/** redirect allowlist. Dashboard confirmed saved settings. Tester must request a new password reset; existing email links retain their old destination. Complete phone recovery and first-workspace creation remain unverified.",
+      "evidence": "Supabase Auth URL Configuration saved state on xvybcmyoblfgzokaifsx; 2026-11-08",
+      "verifiedAt": "2026-11-08"
     }
   ],
   "tasks": [
