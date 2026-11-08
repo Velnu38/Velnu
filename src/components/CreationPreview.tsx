@@ -44,7 +44,7 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
   const heading = useRef<HTMLHeadingElement>(null)
   const businessId = paper.business.id
   const { setup, error: setupError, refresh } = useDeliverySetup(businessId)
-  const personal = setup?.plan !== 'pro' || usePersonal
+  const personal = !setup || setup.plan === 'free' || usePersonal
   const locked = busy || sending
   const email = paper.customer?.email?.trim() || ''
   const phone = paper.customer?.phone?.trim() || ''
@@ -71,7 +71,7 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
     try {
       if (action === 'email') {
         const fresh = await refresh()
-        if (fresh.plan === 'pro' && !usePersonal) {
+        if (fresh.plan !== 'free' && !usePersonal) {
           if (!fresh.managed_email_ready || !emailDeliveryEnabled) throw new Error('Finviant email sending needs activation. Review Email & Text Setup.')
           if (!pdf?.revisionId) throw new Error('Wait for the finished PDF before sending.')
           await onEmail(pdf.revisionId)
@@ -142,21 +142,21 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
         <a href={handoff.href}>Reopen draft in your app</a>
       </div> : <>
         <div className="creation-delivery-actions">
-          {setup && !personal && businessId
+          {setup?.plan === 'pro' && !personal && businessId
             ? <ManagedSmsDelivery businessId={businessId} kind={paper.kind} phone={phone} ready={setup.managed_sms_ready} disabled={locked || !pdf} saveDocument={saveForDelivery} onBusyChange={setSending} onSent={onSave} />
             : <div><button type="button" className="primary-button" disabled={locked || !pdf || !setup?.personal_sms_ready || !phoneValid} onClick={() => void prepare('sms')}>Send Text</button>
               <small>{setup?.personal_sms_ready && phoneValid ? 'Opens your texting app' : phoneValid ? 'Text setup required' : ''}</small></div>}
           <div><button type="button" className="primary-button" disabled={locked || !pdf || !emailValid || !setup || !(personal ? setup.personal_email_ready : setup.managed_email_ready && emailDeliveryEnabled)}
-            onClick={() => void prepare('email')}>{setup?.plan === 'pro' && usePersonal ? 'Open email app' : 'Send Email'}</button>
+            onClick={() => void prepare('email')}>{setup && setup.plan !== 'free' && usePersonal ? 'Open email app' : 'Send Email'}</button>
             {setup && emailValid && (personal ? <small>{setup.personal_email_ready?'Opens your email app':'Email setup required'}</small> : !setup.managed_email_ready && <small>Sender activation required</small>)}</div>
           <div><button type="button" className="secondary-button" disabled={locked} onClick={onSave}>{saved ? 'Open saved draft' : 'Save Draft'}</button></div>
         </div>
-        {setup?.plan === 'pro' && !personal && privateBetaEmailEnabled && <p className="quiet">Private beta email sends only to approved test addresses.</p>}
+        {setup && setup.plan !== 'free' && !personal && privateBetaEmailEnabled && <p className="quiet">Private beta email sends only to approved test addresses.</p>}
         <div className="creation-review-links">
           {!emailValid && (onEditContact || onDraftContact) && <button type="button" className="text-button" disabled={locked} onClick={() => editContact('email')}>Add email</button>}
           {!phoneValid && (onEditContact || onDraftContact) && <button type="button" className="text-button" disabled={locked} onClick={() => editContact('phone')}>Add phone</button>}
           {canUpgrade && <button type="button" className="text-button" disabled={locked} onClick={() => void prepare('setup')}>Email &amp; Text Setup</button>}
-          {setup?.plan === 'pro' && <button type="button" className="text-button" disabled={locked} onClick={() => setUsePersonal(value => !value)}>{usePersonal ? 'Use Finviant sending' : 'Use my email or text app'}</button>}
+          {setup && setup.plan !== 'free' && <button type="button" className="text-button" disabled={locked} onClick={() => setUsePersonal(value => !value)}>{usePersonal ? 'Use Finviant sending' : 'Use my email or text app'}</button>}
           {personal && setup && <button type="button" className="text-button" disabled={locked || !pdf} onClick={() => void prepare('copy')}>Copy customer link</button>}
         </div>
       </>}

@@ -105,12 +105,12 @@ test('activated calendar AI opens the existing assistant with the selected date 
  await expect(page.locator('.assistant-panel')).toBeVisible();await expect(page.locator('.assistant-panel textarea')).toHaveValue(/Create a event titled Mow the lawn on \d{4}-\d{2}-\d{2}T09:00 until .*America\/New_York/)
 })
 for(const width of [1440,390])test(`owner reviews phone contact cards before importing at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=customers');await page.getByRole('button',{name:'Import contacts',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Import phone contacts'});const card=(name,email)=>'BEGIN:VCARD\nVERSION:3.0\nFN:'+name+'\nEMAIL:'+email+'\nEND:VCARD\n'
- await dialog.getByLabel('Contacts file (.vcf)',{exact:true}).setInputFiles({name:'owner-contacts.vcf',mimeType:'text/vcard',buffer:Buffer.from(card('Business Customer','business@example.test')+card('Personal Contact','personal@example.test'))})
+ await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=customers');await page.getByRole('button',{name:'Import customers',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Import customers'});const card=(name,email)=>'BEGIN:VCARD\nVERSION:3.0\nFN:'+name+'\nEMAIL:'+email+'\nEND:VCARD\n'
+ await dialog.getByLabel('Contacts or customer file (.vcf or .csv)',{exact:true}).setInputFiles({name:'owner-contacts.vcf',mimeType:'text/vcard',buffer:Buffer.from(card('Business Customer','business@example.test')+card('Personal Contact','personal@example.test'))})
  await dialog.getByRole('checkbox',{name:/Personal Contact/}).uncheck();expect(state.imported).toHaveLength(0);await dialog.getByRole('button',{name:'Import selected contacts',exact:true}).click();await expect(dialog.getByRole('status').filter({hasText:'Import complete'})).toBeVisible();expect(state.imported).toHaveLength(1);expect(state.imported[0].email).toBe('business@example.test')
  expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
 })
-test('non-owner cannot see bulk phone contact import',async({page})=>{await mock(page,{owner:false});await page.goto('/?view=customers');await expect(page.getByRole('button',{name:'Import contacts',exact:true})).toHaveCount(0)})
+test('non-owner cannot see bulk phone contact import',async({page})=>{await mock(page,{owner:false});await page.goto('/?view=customers');await expect(page.getByRole('button',{name:'Import customers',exact:true})).toHaveCount(0)})
 
 for(const width of [1440,390])test(`selected-day agenda shows every job, local reminders, and connected events at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1050});await mock(page)

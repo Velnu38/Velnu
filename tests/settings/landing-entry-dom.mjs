@@ -30,14 +30,24 @@ try {
   for (const url of ['/', '/?startup_retry=1#features', '/services']) {
     for (const remembered of [false, true]) {
       await open(url, remembered)
-      assert.match(document.querySelector('h1').textContent, /Your work\. Less paperwork/)
+      assert.match(document.querySelector('h1').textContent, /Your business\.Connected fromstart to finish/)
       assert.equal(authReads, 0, 'public landing must not wait for session resolution')
       assert.deepEqual(rpcCalls, [], 'public landing never queries private account access')
       assert.equal(document.querySelector('.marketing-signin').getAttribute('href'), '/auth?mode=signin')
-      assert.equal(document.querySelector('.marketing-nav-actions .marketing-btn').getAttribute('href'), '/auth?mode=signup')
+      assert.equal(document.querySelector('.fp-entry .fp-action').getAttribute('href'), '/auth?mode=signup')
       assert.ok([...document.querySelectorAll('a')].some(a => a.textContent === 'Open workspace' && a.getAttribute('href') === '/?view=dashboard'))
     }
   }
+  await open('/')
+  await act(async()=>document.querySelector('[data-stage="5"]').click())
+  assert.match(document.getElementById('fp-stagecopy').textContent,/owner records/)
+  assert.equal(document.getElementById('fp-play').getAttribute('aria-pressed'),'false')
+  await act(async()=>document.querySelector('[data-outcome="1"]').click())
+  assert.match(document.getElementById('fp-outcome-title').textContent,/whole office/)
+  await act(async()=>document.querySelector('[data-worker="Sam"]').click())
+  assert.equal(document.getElementById('fp-crew-summary').textContent,'Assigned: Jordan + Sam')
+  assert.ok(document.querySelector('input[disabled]').disabled)
+  assert.equal(authReads,0);assert.deepEqual(rpcCalls,[])
   // Even an indefinitely pending session cannot hide the public homepage.
   supabase.auth.getSession = () => { authReads++; return new Promise(() => {}) }
   await open('/')

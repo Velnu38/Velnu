@@ -1,3 +1,4 @@
+import {downloadCsv} from '../lib/customerCsv'
 import PlanRestriction from '../components/PlanRestriction'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {useBusinessRefresh} from '../lib/useBusinessRefresh'
@@ -84,7 +85,8 @@ export default function CustomersPage({ business }: { business: CurrentBusiness 
     <div className="page-stack"><WorkspaceBack />
       <div className="page-heading split-heading">
         <div><p className="eyebrow">Customers</p><h1>Everyone you work for, in one place.</h1></div>
-        {isPrimaryOwner(business)&&<button type="button" className="secondary-button compact" disabled={customerLimit} onClick={()=>setShowImport(true)}>Import contacts</button>}
+        {isPrimaryOwner(business)&&<button type="button" className="text-button" disabled={!customers.length} onClick={()=>downloadCsv('finviant-customers.csv',['First name','Last name','Company','Email','Phone'],customers.map(c=>[c.first_name,c.last_name,c.company,c.email,c.phone]))}>Export customers</button>}
+        {isPrimaryOwner(business)&&<button type="button" className="secondary-button compact" disabled={customerLimit} onClick={()=>setShowImport(true)}>Import customers</button>}
         {canWrite(business.role) && <button className="primary-button compact" disabled={customerLimit} onClick={() => setShowForm(true)}>+ New customer</button>}
       </div>
       <p className="quiet">Last name A–Z. Contacts without a last name follow by name or company. Numbered records appear last.</p>

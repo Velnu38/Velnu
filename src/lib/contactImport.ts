@@ -1,4 +1,4 @@
-export type ImportContact={id:string;first_name:string;last_name:string|null;email:string|null;phone:string|null}
+export type ImportContact={id:string;first_name:string;last_name:string|null;company?:string|null;email:string|null;phone:string|null}
 export const contactFileLimit=8*1024*1024
 function parts(value:string){const out:string[]=[];let token='',escape=false;for(const ch of value){if(escape){token+='\\'+ch;escape=false}else if(ch==='\\')escape=true;else if(ch===';'){out.push(token);token=''}else token+=ch}out.push(token);return out.map(unescape)}
 function unescape(value:string){return value.replace(/\\[nN]/g,' ').replace(/\\([,;\\])/g,'$1').trim()}

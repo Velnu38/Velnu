@@ -83,7 +83,7 @@ try{
 
   // A phone returning from another tab must refresh a cross-device tier change.
   reset();plan='basic';await mount(DocumentDelivery,savedProps('focus-refresh'),'focus-refresh')
-  assert.match(document.body.textContent,/Personal email downloads the finished PDF/)
+  assert.match(document.body.textContent,/Individual includes 250 manually initiated email/)
   const beforeFocus=setupReads;plan='pro'
   await act(async()=>window.dispatchEvent(new Event('focus')));await tick()
   assert.ok(setupReads>beforeFocus,'Focus refreshes authoritative sending setup')
@@ -149,14 +149,16 @@ try{
   await click('Open email app')
   assert.equal(personalCalls(),1);assert.equal(nativeNavigations,1);assert.equal(managedCalls(),0)
 
-  for(const tier of ['free','basic']){
+  for(const tier of ['free']){
     reset();plan=tier
     await mount(CreationPreview,previewProps('personal-'+tier),'personal-'+tier)
     await click('Send Email')
     assert.equal(personalCalls(),1,`${tier} keeps personal-app sending`)
     assert.equal(nativeNavigations,1);assert.equal(managedPreviewSends,0)
   }
-  console.log('PASS: mobile Pro focus/visibility refresh, current-tier creation route, failed-refresh blocking, pending invoice/reminder draft safety, managed reminder default, explicit personal alternative, Free/Individual personal sending')
+  reset();plan='basic';await mount(CreationPreview,previewProps('individual-managed'),'individual-managed');await click('Send Email');assert.equal(managedPreviewSends,1);assert.equal(personalCalls(),0);assert.equal(nativeNavigations,0)
+  reset();plan='basic';await mount(DocumentDelivery,savedProps('individual-saved'),'individual-saved');await click('Send Email');assert.equal(managedCalls(),1);assert.equal(personalCalls(),0)
+  console.log('PASS: mobile Pro focus/visibility refresh, current-tier creation route, failed-refresh blocking, pending invoice/reminder draft safety, managed reminder default, explicit personal alternative, Free personal sending and Individual managed email')
 }finally{
   await act(async()=>root.unmount())
   await supabase?.auth.stopAutoRefresh()

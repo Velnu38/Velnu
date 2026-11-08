@@ -7,7 +7,7 @@ test('the homepage opens without an authentication response', async ({ page }) =
     return route.abort()
   })
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your work. Less paperwork.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your business.Connected fromstart to finish.' })).toBeVisible()
   await expect(page.locator('.marketing-topbar').getByRole('link', { name: 'Sign in', exact: true })).toBeVisible()
   await expect(page.locator('.marketing-topbar').getByRole('link', { name: 'Get started', exact: true })).toHaveAttribute('href', '/auth?mode=signup')
   await expect(page.getByRole('link', { name: 'Open workspace', exact: true })).toHaveAttribute('href', '/?view=dashboard')
@@ -25,7 +25,7 @@ test('a remembered account still lands on the website before entering the app', 
   })
   await page.route('https://example.supabase.co/**', route => route.abort())
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your work. Less paperwork.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your business.Connected fromstart to finish.' })).toBeVisible()
   await expect(page.getByText('Checking private beta access…')).toHaveCount(0)
 })
 
@@ -35,7 +35,7 @@ test('Sign in opens the existing authentication screen and its home link returns
   await expect(page).toHaveURL(/\/auth\?mode=signin$/)
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Return to Finviant Office homepage', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Your work. Less paperwork.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your business.Connected fromstart to finish.' })).toBeVisible()
 })
 
 test('a signed-out workspace bookmark prompts sign-in while the homepage stays public', async ({ page }) => {

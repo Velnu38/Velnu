@@ -277,7 +277,7 @@ export default function ChangeOrdersPage({ business, context, initialOrder, onBa
           <label>Schedule impact (days)<input type="number" step="1" value={scheduleImpactDays} onChange={(e) => setScheduleImpactDays(e.target.value)} /></label>
           <label className="full">Schedule note<input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} placeholder="Adds one working day to completion." /></label></div></details>
         </div>
-        {(!revision||addedLines.length>0)&&<DocumentLineEditor lines={lines} onChange={setLines} newLine={blankLine}/>}
+        {(!revision||addedLines.length>0)&&<DocumentLineEditor businessId={business.id} lines={lines} onChange={setLines} newLine={blankLine}/>}
         {revision&&addedLines.length===0&&<button type="button" className="text-button" onClick={()=>setLines([{...blankLine(),description:'Additional work'}])}>Add new item</button>}
         {draftTotals ? <ChangeOrderTotals amounts={draftTotals}/> : <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong></div>}
         <p className="quiet">Save and review, then send for approval.</p>

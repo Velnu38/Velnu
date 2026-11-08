@@ -1,11 +1,13 @@
 # Finviant — recommended three-tier launch offering
 
+> Updated November 8, 2026 (UTC): Individual now includes 250 manually initiated managed email recipient deliveries/month after sender activation, plus 5 internal worker profiles. Pro includes 25 internal workers and 5 account users. Customer self-booking remains Pro-only. Current release limits and dated follow-ups are maintained in `ASSESSMENT_REPORT.md`.
+
 Prepared November 6, 2026. Recommended names: **Free**, **Individual**, **Business Pro**. Individual corresponds to Basic in existing code; Business Pro corresponds to Pro. Prices are USD per business. Business Pro also offers $399.50 upfront annually (two months free; $79.90 saved). These are recommendations, not active checkout prices or a claim that all tier restrictions and integrations are live. Existing private testers retain their authorized access.
 
 | Plan | Recommended price | Intended customer | Main value |
 |---|---:|---|---|
 | Free | $0/month | Occasional work or trying Finviant | Complete manual estimate-to-payment workflow for a small customer list |
-| Individual | $19.95/month | One busy owner/operator | More capacity, reporting and Fin assistance; send through personal apps |
+| Individual | $19.95/month | One busy owner/operator | More capacity, five internal workers, Fin assistance and 250 manual managed email recipients/month after activation |
 | Business Pro | $39.95/month | A team or owner who wants automated delivery | Five users, direct sending, customer reminders and larger shared allowances |
 
 The tables below describe recommended inclusion. **Activation** means provider configuration and live validation are required. **Future** means additional development/verification is needed and the feature must not be advertised as available at launch.
@@ -46,14 +48,14 @@ Payment links lead to the business's payment provider. **Mark Paid records money
 | Same invoice/estimate workflow and Send Email / Send Text controls | Included | Included | Included |
 | Personal email/text app sharing | Included; user finishes sending in app | Included; user finishes sending in app | Included as an alternative |
 | Finviant charge or message quota for personal-app handoffs | No Finviant message charge/cap; own provider limits apply | Same | Same |
-| Send directly from Finviant through Resend/Twilio | Not included | Not included | Included after activation |
-| Included managed customer emails | 0 | 0 | 2,000 recipient deliveries/month |
+| Send directly from Finviant through Resend/Twilio | Not included | Email only; manual sends after activation | Email and SMS after activation |
+| Included managed customer emails | 0 | 250 recipient deliveries/month; manual sends | 2,000 recipient deliveries/month |
 | Included managed customer texts | 0 | 0 | 200 US SMS segments/month |
-| Managed delivery status and failure handling | Not applicable to personal apps | Not applicable to personal apps | Included after activation |
+| Managed delivery status and failure handling | Not applicable to personal apps | Included for managed email after activation | Included after activation |
 | Automatic overdue invoice email reminders | No; manual sharing available | No; manual sharing available | Included after activation and owner enables rules |
 | Scheduled/background customer email dispatch | Not included | Not included | Included after activation |
 | Authentication/password-reset and essential service emails | Included separately | Included separately | Included separately |
-| Extra managed messages | Upgrade to Business | Upgrade to Business | Optional prepaid purchase only if offered; rates disclosed before purchase |
+| Extra managed messages | Paid plan required for managed email | Pro increases email capacity; no automatic purchase | Optional prepaid purchase is not active; rates must be disclosed before any future purchase |
 
 Use identical controls with concise route-specific help: “Opens your app to finish sending” or “Sends directly from Finviant.” Native-app sharing cannot silently send in the background, reliably prove delivery, or replace the user's final Send action. Recipients, resends and reminders count against managed allowances; texts count by billable segments, not conversation bubbles. Do not market these allowances as unlimited sending. SMS sender setup/registration, recipient consent, opt-outs and reply routing are separate activation requirements. Confirm actual fixed sender costs before promising an included dedicated number or setting a setup fee.
 
@@ -66,11 +68,12 @@ Use identical controls with concise route-specific help: “Opens your app to fi
 | Calendar day/week/month views and manual calendar entries | Included | Included | Included |
 | Internal reminders and Needs Attention | Included | Included | Included |
 | Approved estimate → scheduled job; completed job → draft invoice | Included within job allowance | Included | Included |
-| Working hours, time off, booking notice and travel buffers | Basic owner availability | Included for owner | Included for team |
-| Customer choice of offered appointment times / guided scheduling | Within job allowance; share offer manually | Included; share offer manually | Included; managed sharing after activation |
+| Working hours, time off, booking notice and travel buffers | Basic owner availability | Included for up to 5 internal workers | Included for up to 25 internal workers |
+| Customer choice of offered appointment times / guided scheduling | Not included; manual owner booking remains available | Not included; manual owner booking remains available | Included; managed sharing after activation |
 | Recurring invoice drafts and optional associated scheduling | Not included | Included; user sends each occurrence | Included; review each recurring draft before scheduling its email |
 | Google Calendar / Microsoft Outlook connections | Not included | After activation | After activation |
-| Worker assignment, invitations, roles and module permissions | Owner only | Owner only | Included; primary owner manages access |
+| Internal worker assignment | Owner only | 5 active profiles; no additional logins | 25 active profiles; no worker login/notification implied |
+| Account invitations, roles and module permissions | Owner only | Owner only | 5 account users including owner; primary owner manages access |
 | Fin: typed assistant, business questions and saved-record lookup | 20 introductory requests once | 150 requests/month | 600 requests/month shared |
 | Fin: reviewed invoice/estimate drafts and supported account changes | Uses same Fin allowance | Uses same Fin allowance | Uses same Fin allowance |
 | Speak to Fin / voice document creation | 10 introductory minutes once | 60 minutes/month | 180 minutes/month shared |

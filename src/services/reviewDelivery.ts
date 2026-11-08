@@ -28,6 +28,7 @@ export async function sendReviewedDocument(businessId:string,kind:DeliveryDocume
  requestId=saved||requestId||crypto.randomUUID();pending.set(key,requestId)
  try{sessionStorage.setItem(key,requestId)}catch{/* Only an opaque request ID, never recipient or document content. */}
  const {data,error}=await supabase.functions.invoke(kind==='invoice'?'send-invoice-email':'send-document-email',{body:{business_id:businessId,...(kind==='invoice'?{invoice_id:documentId}:{document_type:kind,document_id:documentId}),expected_recipient:recipient,request_id:requestId,...(expectedRevisionId?{expected_revision_id:expectedRevisionId}:{})}})
+ window.dispatchEvent(new Event('finviant-delivery-changed'))
  if(error){
   const response=(error as {context?:unknown}).context
   const detail=response instanceof Response?await response.clone().json().catch(()=>null):null

@@ -64,8 +64,8 @@ try{
 
   plan='basic';await mount('personal-email')
   assert.equal(button('Send Email').disabled,false)
-  assert.match(document.body.textContent,/Personal email downloads the finished PDF/)
-  assert.doesNotMatch(document.body.textContent,/Private beta email sends only/)
+  assert.match(document.body.textContent,/Individual includes 250 manually initiated email/)
+  assert.match(document.body.textContent,/Private beta email sends only/)
   assert.equal(calls.length,4)
 
   const {sendInvoiceReminder}=await server.ssrLoadModule('/src/services/invoiceReminders.ts')

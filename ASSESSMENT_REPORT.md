@@ -1,5 +1,79 @@
 # Finviant Comprehensive Assessment Report
 
+
+**Last updated: November 8, 2026 (UTC).** Every future change to this report must include a dated entry with completed work, evidence, unresolved limits and the next action. Preserve older entries as history. The current dated release entry supersedes conflicting historical status statements below.
+
+## November 8, 2026 — Business Pro value, landing page and connected workflow release
+
+### Release baseline and scope
+
+- Baseline: `ux/private-testing-20261029`, commit `6a5af984b3744ebf8242a92bea17cbe02f4f4b16`; Vercel deployment `dpl_BmpNaJnWPpkJaBWPyjFLkuk8XjQv` READY and serving finviant.com and www.finviant.com. The finviant.com branch binding is correct; the old October branch-binding warning below is historical.
+- The domain-bound release uses the existing private-beta/staging environment. This work does not switch backends, open public beta, activate paid subscriptions, broaden approved email recipients, or activate SMS/payment providers.
+- Before edits, 221 database/handler regression checks passed across tier rules, scheduling, canonical PDF handoffs, approval handling and customer payment logic. This is test evidence, not a claim of a new live-provider certification.
+
+### Implemented in this release
+
+- Replaced the landing page with the approved Business Pro design: connected estimate/approval/scheduling/work/invoice/payment-tracking story, six-stage animated example, four interactive benefit scenes, worker roster example, pricing comparison, setup limitations and functional sign-in/account/workspace/legal destinations. Reduced-motion settings, pause/replay and offscreen/background pausing are supported. Examples are illustrative; they never create records or send messages.
+- Kept Free $0, Individual $19.95/month, Business Pro $39.95/month and Pro $399.50/year as proposed public pricing. Private beta has no subscription charges.
+- Individual now has 250 manually initiated managed email recipient deliveries/month after verified sender activation. Free retains personal-app sending. Pro retains 2,000 monthly email recipients, 200 US SMS segments, scheduled email, owner-enabled overdue invoice reminders and customer booking. The server still checks permissions, plan, sender readiness, reviewed PDF/revision and beta-recipient approval. Individual cannot claim queued Pro automation after a downgrade. Retrying the same reservation does not consume another allowance.
+- Preserved five Individual internal worker profiles, 25 Pro profiles and five Pro account users including the owner. Worker profiles are internal assignment/availability records, not logins or worker notification accounts.
+- Added customer CSV import alongside vCard/device contacts: First name, Last name, Company, Email and Phone; review before save, 8 MB/file, up to 2,000 contacts/file, batches of 100, duplicate skipping and retry-safe persistence. Company is retained. Addresses, notes and historical documents are not imported through this file format.
+- Added owner customer CSV export and business-scoped saved service items. Saved descriptions, unit prices and tax rates can be reused in new/draft estimates, invoices and change orders. Quantity begins at one and remains reviewable. Removing a saved service never removes historical document lines. Service CSV export is available. Service permissions are enforced by database RLS and billing/write access, with explicit grants and numeric bounds.
+- Added a read-only setup/readiness summary, links to resolve configuration, progress meters and near/full-allowance warnings in Plans & Usage. Email usage refreshes after sends and when the app returns to the foreground. Storage remains a separate non-resetting allowance. No automatic overage purchase is enabled.
+- Added a connected Pro database journey covering customer booking, crew assignment, completion, exactly one draft invoice, retry safety, partial/full manual payments, dashboard balance and activity updates. Provider delivery is simulated in this journey; PDF/email provider contracts have separate tests.
+
+### Current limitations and whether they prevent full tier use
+
+| Item | Current position | Assessment / next action |
+|---|---|---|
+| Private beta access and approved recipients | Managed email is restricted to approved test recipients; ordinary customers cannot all receive beta email | **Blocks unrestricted business use.** Appropriate for private testing; not reasonable as a permanent paid-plan restriction. Complete public-release readiness and sender onboarding before charging for full use. |
+| Managed SMS | Sender registration, activation, replies and consent must be verified; the current private release does not enable general SMS | **Prevents full Pro messaging use.** Preserve the explicit personal-app alternative; complete activation before advertising SMS as generally available. |
+| Automatic invoice payment updates | Merchant connection and signed provider events must be verified; a payment-link click never marks an invoice paid | **Prevents a fully automatic payment journey.** Manual partial/full payment recording remains available. Finish controlled provider validation before enabling reconciliation. |
+| Google Calendar | Provider project/OAuth setup is unfinished | **Blocks the advertised Google connection**, not Finviant's internal calendar. Complete Google setup and end-to-end connection/refresh/conflict tests. |
+| Outlook Calendar | Existing server integration requires per-business authorization; operational status must be checked, not inferred from subscription | Verify the intended account, background sync and reconnect behavior before calling it universally ready. |
+| Extra automatic follow-ups | Scheduled email and owner-enabled overdue invoice emails are supported; automatic estimate/appointment follow-ups and automatic dispatch of every recurring draft are not included | Add reviewed scheduling rules and suppression after customer response/payment. Do not describe these missing automations as active. |
+| Dedicated customer site | Deferred by owner; no combined customer history portal | Keep on the to-do list. **Not required for the current end-to-end workflow:** professional document approval, booking and payment action pages can work independently. |
+| Paid billing and overage purchases | Proposed prices/allowances; no active subscription checkout or automatic paid entitlement activation | **Commercial launch blocker.** Validate checkout, subscription events, entitlements, cancellation and quota behavior before paid public release. |
+| Public reliability and support | Local/fixture checks do not establish load capacity, backup restoration, support response or physical-device voice performance | Complete staged operational checks; do not substitute marketing claims for measured results. |
+
+### Allowance assessment — November 8, 2026
+
+- **One-business scope:** The server currently permits one workspace per account. This is reasonable for the present single-business offer, but prevents managing multiple separate businesses under one login and must not be advertised otherwise.
+- **Reasonable:** Free's 10 active customers and five new bookings/month provide a limited entry tier. Individual's five worker profiles preserve useful job-management value. New managed email improves Individual without requiring a price cut.
+- **Needs usage monitoring:** Individual's 250 recipient deliveries are about eight/day averaged over a month. Pro's 2,000 email recipients are materially larger, but neither should be marketed as unlimited.
+- **Potentially restrictive for busy Pro businesses:** 200 US SMS segments can be consumed by 50 jobs receiving four single-segment texts each; long or nonstandard-character messages can consume more segments. This is an illustration, not a universal message cost. Provide transparent usage and evaluate optional prepaid capacity or a larger included allowance after actual usage/cost measurement.
+- **Do not imply 25 dispatch users:** 25 worker profiles plus five account users is suitable for owner/office planning, but not equivalent to 25 mobile employee accounts, payroll, GPS tracking or automatic worker notifications. Those are outside the current promised internal-roster scope.
+- **Shared AI capacity:** Pro’s 600 requests are about 20/day across the business, and 180 voice minutes are about six/day. Heavy assistant use may reach these limits; manual entry remains available and paid top-ups are not active. Do not describe Fin as unlimited.
+- **Bulk export boundary:** Customer and saved-service scans use the existing 50,000-record verification guard. Larger exports need a chunked/archive workflow (VALUE-09); this is a bulk retrieval boundary, not a monthly creation allowance.
+- **Cost/allowance validation:** Confirm AI, voice, email and SMS unit costs and support demand before expanding allowances. There is no evidence here that the service has zero incremental cost or that a target margin is guaranteed.
+- Do not reintroduce separate charges for core calendar, document or manual financial-record workflows as a prerequisite to finishing a Pro job.
+
+### Dated follow-up backlog — added November 8, 2026
+
+| ID | Work remaining | Reason / acceptance requirement |
+|---|---|---|
+| VALUE-01 | General customer email release | Verified business sender/reply handling, deliverability monitoring, public recipient policy and release approval; retain current beta restrictions meanwhile. |
+| VALUE-02 | Activate and verify Pro SMS | Approved sender registration and reply/STOP handling, consent, signed callbacks, accurate segment usage and test receipts. |
+| VALUE-03 | Verify merchant payments end to end | Controlled merchant setup, hosted checkout, signed events, partial/full payments and refund/reconciliation behavior; no false paid status. |
+| VALUE-04 | Finish Google Calendar setup | Correct OAuth application, allowed redirects/scopes, user connection and background sync. |
+| VALUE-05 | Broaden automation deliberately | Estimate/appointment reminders and recurring send rules, with owner control, retry safety and response/payment suppression. |
+| VALUE-06 | Dedicated customer site | Owner-deferred enhancement; retain separate document action pages for current workflow. |
+| VALUE-07 | Active paid subscriptions and optional capacity purchases | Verified billing/entitlements and explicit purchase confirmation; no silent overage charges. |
+| VALUE-08 | Evaluate higher SMS allowance / top-ups | Measure real usage and unit economics; decide before claiming the allowance covers high-volume teams. |
+| VALUE-10 | Authentication password protection | Enable and recheck existing leaked-password protection in Supabase Dashboard; current connector does not expose this Auth setting. See https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection. |
+| VALUE-09 | Expanded migration/export | Customer addresses, historical documents and a complete business archive are not covered by the new contact CSV and existing workbook/service exports. Define a versioned import/export format before implementing broader migration. |
+
+### Verification and release outcome
+
+- 228 tier/scheduling/payment/CSV regression checks passed with test concurrency limited to two. An earlier highly concurrent run had two test-process failures; the controlled rerun passed all checks. No failures were relabeled as successes.
+- 55 deployment/startup checks passed as part of a complete TypeScript/Vite build. The build check caught a newly split landing stylesheet; its import was moved to the existing eager entry stylesheet so the earlier blank-screen prevention remains intact.
+- Four CSV parser/export checks passed, including export/reimport of international phone numbers; three were also included in the 228-check regression run. Saved-service and Plans & Usage DOM checks passed for reuse, price/tax preservation, tenant-scoped save/archive, warning meters, provider status and refresh.
+- Landing/auth/beta-gate DOM checks passed, including saved and stalled authentication. Mobile routing checks passed for Pro, Individual managed email, Free personal sending, pending-draft handling and explicit personal alternatives.
+- The live registered-beta database migration `20261108155833_pro_value_workflow_release` was applied successfully; the source filename matches the recorded server migration version. The rollback-only smoke passed CSV company retention, catalog RLS, exact $105 totals, Individual's 250 allowance, canonical send claim, idempotent reservation and Pro automation exclusion. No email/provider dispatch occurred; all synthetic records and tier overrides were rolled back. The first smoke attempt hit the existing one-workspace-per-owner rule and was corrected to use a verified beta workspace inside the rollback transaction; an overly broad provider assertion was then narrowed to the synthetic request.
+- Post-migration health advisor: no findings. Security advisor: no ERROR findings and no finding on the new service catalog or helper. Existing warnings include leaked-password protection, extension placement and intentionally callable authenticated functions; these are not new provider certifications.
+- Browser preview verification was limited by a browser URL-policy rejection after local startup configuration was supplied. DOM, built-asset and native deployment checks are used here; a completed physical-device/live authenticated browser journey is not claimed.
+- Release identification: the Git commit containing this November 8 entry is the release candidate; the final domain deployment must match that commit. Final publication is verified through the hosting platform after source synchronization. No production/provider success is inferred from passing isolated tests.
+
 ## Invoice handoff and overdue-only attention — November 3, 2026
 
 Sent invoices qualify for Needs Attention only with a positive unpaid balance and a due date before the business calendar day. Invoice-first scheduling now carries customer/scope/site/crew into one linked job and calendar event through an atomic, authorized RPC. Uniform attention actions share color, typography and dimensions. See [the complete flow and minimum-input assessment](docs/LOW_FRICTION_DOCUMENT_WORKFLOW.md) for invoice-first, estimate-led, scheduling, completion and payment paths, plus the distinction between document attention and explicit reminders. Validation evidence and deployment are recorded in the change request and ongoing assessment.

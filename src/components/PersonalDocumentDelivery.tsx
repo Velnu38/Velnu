@@ -56,8 +56,8 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
     try {
       if (channel === 'email') {
         const fresh = await getDeliverySetup(businessId)
-        if (fresh.plan === 'pro' && !allowProPersonal) {
-          if (!onManagedEmailRequested) throw new Error('Business Pro sends email through Finviant. Return to Finviant sending and try again.')
+        if ((fresh.plan === 'pro' || fresh.plan === 'basic' && !reminder) && !allowProPersonal) {
+          if (!onManagedEmailRequested) throw new Error('Your paid plan sends email through Finviant. Return to Finviant sending and try again.')
           await onManagedEmailRequested(fresh)
           return
         }
@@ -136,7 +136,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
       <button type="button" className="text-button" disabled={locked} onClick={() => void confirm(false)}>I did not send it</button>
     </div> : <div className="document-delivery-grid">
       <div className="document-delivery-option"><span>{email ? 'To: ' + email : 'Add a customer email'}</span>
-        <button type="button" className="primary-button" disabled={locked || !emailReady} onClick={() => void prepare('email')}>{setup.plan === 'pro' ? 'Open email app' : 'Send Email'}</button>
+        <button type="button" className="primary-button" disabled={locked || !emailReady} onClick={() => void prepare('email')}>{setup.plan !== 'free' ? 'Open email app' : 'Send Email'}</button>
         {!setup.personal_email_ready && <small>Enable your personal email app in sending setup.</small>}</div>
       <div className="document-delivery-option"><span>{phone ? 'To: ' + phone : 'Add a customer mobile number'}</span>
         <button type="button" className="primary-button" disabled={locked || !smsReady} onClick={() => void prepare('sms')}>Send Text</button>

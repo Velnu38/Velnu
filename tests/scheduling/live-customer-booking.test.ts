@@ -409,3 +409,40 @@ test('document calendar placeholders and confirmed jobs enforce conflicts in bot
     assert.equal(await value(db, 'select count(*)::int value from public.jobs'), 1)
   } finally { await db.close() }
 })
+
+test('Pro connected job journey: customer booking, crew, completion, one invoice, partial/full payment and dashboard totals',async()=>{
+ const db=await setup()
+ try{
+  const bootstrap=await readFile('supabase/migrations/20261028173902_finviant_complete_application_bootstrap.sql','utf8')
+  const functionSql=(name:string)=>{const start=bootstrap.indexOf('CREATE OR REPLACE FUNCTION '+name+'(');assert.ok(start>=0);return bootstrap.slice(start,bootstrap.indexOf('$function$;',start)+12)}
+  await db.exec('reset role')
+  const paymentTable=bootstrap.match(/create table "public"\."payments" \(([\s\S]*?)\);/i)!
+  await db.exec('create table public.payments ('+paymentTable[1]+');alter table payments add primary key(id);grant select,insert,update on payments to authenticated;')
+  for(const name of ['public.record_manual_payment','private.commerce_paid_recalc','private.commerce_payment_guard','public.get_dashboard_invoice_totals'])await db.exec(functionSql(name))
+  await db.exec('create trigger payments_guard before insert or update or delete on payments for each row execute function private.commerce_payment_guard();create trigger payment_recalc after insert or update or delete on payments for each row execute function private.commerce_paid_recalc();create trigger payment_activity after insert or update on payments for each row execute function private.bump_business_activity();')
+  await owner(db)
+  const quote=await estimate(db),offered=await invite(db,quote,[ids.owner,ids.worker])
+  await anonymous(db);const offer=await view(db,offered.token);await confirm(db,offered.token,offer.slots[0].id)
+  await owner(db)
+  const job=await value(db,'select id value from jobs where source_estimate_id=$1',[quote]);assert.ok(job)
+  await db.exec('reset role;set role service_role');
+  const completed=await value(db,'select complete_job_workflow($1,$2) value',[job,ids.owner])
+  assert.equal(completed.invoice_ready,true);const invoice=completed.invoice_id;assert.ok(invoice)
+  const retry=await value(db,'select complete_job_workflow($1,$2,true) value',[job,ids.owner]);assert.equal(retry.invoice_id,invoice);await owner(db)
+  assert.equal(await value(db,'select count(*)::int value from invoices where job_id=$1',[job]),1)
+  assert.equal(Number(await value(db,'select total value from invoices where id=$1',[invoice])),105)
+  // Provider delivery is simulated here; actual PDF attachment and delivery are covered separately.
+  await db.query("update invoices set status='sent',sent_at=now() where id=$1",[invoice])
+  assert.equal(Number((await value(db,'select to_jsonb(t) value from get_dashboard_invoice_totals($1) t',[ids.business])).outstanding_balance),105)
+  const before=await activity(db),payment=randomUUID()
+  await value(db,"select record_manual_payment($1,$2,$3,40,'cash','Received') value",[ids.business,invoice,payment])
+  await value(db,"select record_manual_payment($1,$2,$3,40,'cash','Received') value",[ids.business,invoice,payment])
+  assert.equal(await value(db,'select count(*)::int value from payments'),1)
+  assert.equal(await value(db,'select status value from invoices where id=$1',[invoice]),'partial')
+  assert.equal(Number(await value(db,'select balance_due value from invoices where id=$1',[invoice])),65)
+  await value(db,"select record_manual_payment($1,$2,$3,65,'check','Received') value",[ids.business,invoice,randomUUID()])
+  assert.equal(await value(db,'select status value from invoices where id=$1',[invoice]),'paid')
+  assert.equal(Number((await value(db,'select to_jsonb(t) value from get_dashboard_invoice_totals($1) t',[ids.business])).outstanding_balance),0)
+  assert.ok(await activity(db)>before)
+ }finally{await db.close()}
+})

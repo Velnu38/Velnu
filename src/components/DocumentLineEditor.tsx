@@ -1,3 +1,4 @@
+import ServiceItemPicker from './ServiceItemPicker'
 import { useRef, useState } from 'react'
 
 export type DraftLine = { description: string; quantity: string; unit_price: string; tax_rate: string }
@@ -5,7 +6,8 @@ const fields = ['description', 'unit_price', 'quantity', 'tax_rate'] as const
 const captions = { description: 'Description', unit_price: 'Unit price', quantity: 'Qty', tax_rate: 'Tax %' }
 const labels = { description: 'description', unit_price: 'unit price', quantity: 'quantity', tax_rate: 'Tax rate (%)' }
 
-export default function DocumentLineEditor({ lines, onChange, newLine, taxOptions = false, taxDefault }: {
+export default function DocumentLineEditor({ lines, onChange, newLine, taxOptions = false, taxDefault, businessId }: {
+  businessId?: string
   lines: DraftLine[]
   onChange: (lines: DraftLine[]) => void
   newLine: () => DraftLine
@@ -35,6 +37,7 @@ export default function DocumentLineEditor({ lines, onChange, newLine, taxOption
 
   return <div className="line-items">
     <div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" disabled={lines.length >= 50} onClick={() => onChange([...lines, makeLine()])}>+ Add line</button></div>
+    {businessId&&<ServiceItemPicker businessId={businessId} lines={lines} onChange={onChange}/>}
     {lines.map((line, index) => <fieldset className={`line-item${taxOptions ? ' line-item-simple' : ''}`} key={index}>
       <legend>Line {index + 1}</legend>
       {fields.filter(key => !taxOptions || key !== 'tax_rate').map(key => <label key={key}>{captions[key]}{renderInput(line, index, key)}</label>)}

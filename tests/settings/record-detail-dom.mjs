@@ -113,7 +113,7 @@ try{
  assert.equal(sendCalls.length,2,'schedule intent never sends automatically')
  await mount(Dialog,{...props,open:true,initialIntent:'share'},'pro-copy')
  assert.ok(button('Send Email'));assert.equal(button('Open email app'),undefined,'Pro copy defaults to managed sending')
- plan='basic';await mount(Dialog,{...props,open:true},'personal-compact')
+ plan='free';await mount(Dialog,{...props,open:true},'personal-compact')
  assert.equal([...document.querySelectorAll('button')].filter(item=>item.textContent==='Download PDF').length,1,'compact personal delivery has one PDF download')
  assert.ok(button('Send Text'));assert.ok(button('Copy Link'));assert.ok(button('Prepare PDF to share'));plan='pro'
  const before=sendCalls.length
