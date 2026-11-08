@@ -10,7 +10,7 @@ const statuses=['open','in_progress','waiting_on_customer','resolved','closed']
 const label=(v:string)=>v.replaceAll('_',' ')
 export default function PlatformAdminPage(){
  const [access,setAccess]=useState<{operator:boolean;mfa_required:boolean}|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false)
- const [factor,setFactor]=useState(''),[qr,setQr]=useState(''),[code,setCode]=useState('')
+ const [factor,setFactor]=useState(''),[qr,setQr]=useState(''),[setupKey,setSetupKey]=useState(''),[code,setCode]=useState('')
  const [view,setView]=useState<'overview'|'accounts'|'cases'|'audit'>('overview'),[overview,setOverview]=useState<AdminOverview|null>(null),[rows,setRows]=useState<Row[]>([]),[total,setTotal]=useState(0),[page,setPage]=useState(0),[search,setSearch]=useState(''),[query,setQuery]=useState(''),[filter,setFilter]=useState('all')
  const [cleanVersion,setCleanVersion]=useState(0)
  const [detail,setDetail]=useState<CaseDetail|null>(null),[body,setBody]=useState(''),[status,setStatus]=useState('open'),[priority,setPriority]=useState('normal'),[audience,setAudience]=useState('internal')
@@ -26,9 +26,9 @@ export default function PlatformAdminPage(){
   const listed=await supabase.auth.mfa.listFactors();if(listed.error)throw listed.error
   for(const f of listed.data.all.filter(f=>f.status==='unverified'&&f.friendly_name?.startsWith('Finviant administration'))){const r=await supabase.auth.mfa.unenroll({factorId:f.id});if(r.error)throw r.error}
   const r=await supabase.auth.mfa.enroll({factorType:'totp',friendlyName:'Finviant administration'});if(r.error)throw r.error
-  setFactor(r.data.id);const raw=r.data.totp.qr_code;setQr(raw.startsWith('data:')?raw:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(raw))
+  setSetupKey(r.data.totp.secret);setFactor(r.data.id);const raw=r.data.totp.qr_code;setQr(raw.startsWith('data:')?raw:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(raw))
  }catch(e){setError((e as Error).message)}finally{running.current=false;setBusy(false)}}
- async function verify(e:FormEvent){e.preventDefault();if(running.current)return;running.current=true;setBusy(true);setError('');try{const r=await supabase.auth.mfa.challengeAndVerify({factorId:factor,code:code.trim()});if(r.error)throw r.error;setQr('');setCode('');await checkAccess()}catch(e){setError((e as Error).message)}finally{running.current=false;setBusy(false)}}
+ async function verify(e:FormEvent){e.preventDefault();if(running.current)return;running.current=true;setBusy(true);setError('');try{const r=await supabase.auth.mfa.challengeAndVerify({factorId:factor,code:code.trim()});if(r.error)throw r.error;setQr('');setSetupKey('');setCode('');await checkAccess()}catch(e){setError((e as Error).message)}finally{running.current=false;setBusy(false)}}
  async function openCase(id:string){setError('');try{const r=await adminRequest<CaseDetail>('case',{id});setDetail(r);setBody('');setStatus(r.case.status);setPriority(r.case.priority);setAudience('internal');request.current=null}catch(e){setError((e as Error).message)}}
  async function saveCase(e:FormEvent){e.preventDefault();if(running.current||!detail)return;running.current=true;setBusy(true);setError('');try{
   const id=request.current||crypto.randomUUID();request.current=id
@@ -41,7 +41,7 @@ export default function PlatformAdminPage(){
  {!access&&!error&&<p role="status">Checking administrator access…</p>}
  {access?.mfa_required&&<section className="admin-panel"><h2>Verify administrator access</h2><p>Use an authenticator app to protect platform administration. Finviant business-owner permissions do not grant platform access.</p>
  {!factor&&<button className="primary-button" disabled={busy} onClick={()=>void enroll()}>Set up authenticator</button>}
- {qr&&<><img className="admin-mfa-qr" src={qr} alt="Scan this QR code with your authenticator app"/><p>Scan the code in your authenticator app, then enter its six-digit code. Completing enrollment signs out other sessions.</p></>}
+ {qr&&<><h3>Set up without scanning</h3><p>In your authenticator app, add an account using a setup key. Name it Finviant and choose Time based (TOTP).</p><label>Manual setup key<input readOnly value={setupKey} autoComplete="off" spellCheck={false} onFocus={event=>event.currentTarget.select()} /></label><p>Tap the key to select it, then copy and paste it into your authenticator app. Keep this key private. Return here and enter the six-digit code from the app to finish setup.</p><details><summary>Use a QR code instead</summary><img className="admin-mfa-qr" src={qr} alt="Scan this QR code with your authenticator app"/><p>Scan the code in your authenticator app, then enter its six-digit code. Completing enrollment signs out other sessions.</p></details></>}
  {factor&&<form onSubmit={verify}><label>Authenticator code<input autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" minLength={6} maxLength={6} required value={code} onChange={e=>setCode(e.target.value)}/></label><button className="primary-button" disabled={busy}>{busy?'Verifying…':'Verify and open dashboard'}</button></form>}
  </section>}
  {access&&!access.mfa_required&&<><nav className="admin-tabs" aria-label="Administration">{(['overview','accounts','cases','audit'] as const).map(v=><button key={v} className={view===v?'primary-button':'secondary-button'} aria-current={view===v?'page':undefined} onClick={()=>{setView(v);setPage(0);setRows([])}}>{v==='cases'?'Customer issues':label(v)}</button>)}</nav>

@@ -60,6 +60,12 @@
       "detail": "Latest feature evidence: 152 tier/handler/database checks, 55 startup/build checks and card DOM journeys passed in the preceding release. Current audit: npm production and full dependency audits each report 0 advisories. Fresh GitHub checks confirm Calendar integration checks failed at 5963cd5 and Pricing tier checks failed at 6e3f1a4; detailed triage and a complete green release remain CI-01. The old eight-hour campaign is historical and did not exercise hundreds of authenticated tenants concurrently.",
       "evidence": "Previous release receipts; fresh npm audit --omit=dev / npm audit; CI definitions and preserved historical logs; https://github.com/Velnu38/Velnu/actions/runs/42505556501 and https://github.com/Velnu38/Velnu/actions/runs/42505357331",
       "verifiedAt": "2026-11-08"
+    },
+    {
+      "title": "Administrator enrollment usability",
+      "detail": "Admin MFA enrollment now offers a manual time-based authenticator setup key with QR fallback. DOM regression covers enrollment, failed-code retry and key removal after verification. Physical-phone enrollment remains to be confirmed; administrator MFA enforcement is unchanged.",
+      "evidence": "src/pages/PlatformAdminPage.tsx and tests/admin-mfa/dom.mjs",
+      "verifiedAt": "2026-11-08"
     }
   ],
   "tasks": [
