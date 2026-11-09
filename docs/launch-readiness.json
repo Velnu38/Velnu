@@ -156,6 +156,12 @@
       "detail": "Replaced the filter-heavy Jobs landing with an operational Overview: business-day agenda, progress/scheduling/billing priorities, bounded live work-plan progress, recorded hours/cost versus cost budget for financially authorized users, crew assignments and pipeline drilldowns. List/Board remain available; timing/worker filters are collapsed, Board scrolls by stage on phones, completed-only accounts retain useful history, and first-run accounts receive real next steps rather than fabricated work. One summary RPC returns at most four authorized job summaries without full time/activity histories. No plan, sending, billing or paid-service changes.",
       "evidence": "docs/evidence/2026-11-09-jobs-overview-validation.json; source hashes and local build/DOM/database checks. Interactive signed-in phone/browser visual acceptance remains open.",
       "verifiedAt": "2026-11-09"
+    },
+    {
+      "title": "Fin product guidance (local, not released)",
+      "detail": "Source-maintained, role-filtered explanations cover all 19 Fin navigation areas and the 25-resource catalog. New Job Management task/material/labor/budget details remain screen handoffs, not new AI tools. Existing lookup, reviewed execution, authorization and provider budgets are unchanged. This is runtime knowledge/configuration, not fine-tuning. Local deterministic checks do not prove live-model accuracy or physical-device acceptance; deployment and representative live typed/voice evaluation remain pending.",
+      "evidence": "docs/evidence/2026-11-09-fin-product-knowledge.json; tests/settings/fin-product-knowledge.test.ts; docs/fin-workflow.md",
+      "verifiedAt": "2026-11-09"
     }
   ],
   "tasks": [

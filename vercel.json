@@ -295,5 +295,10 @@
     "api/calendar-worker.ts": {
       "maxDuration": 120
     }
+  },
+  "git": {
+    "deploymentEnabled": {
+      "review/fin-product-knowledge-20261109": false
+    }
   }
 }
