@@ -71,7 +71,7 @@ export default function SchedulePage({ business, embedded = false }: { business:
     const confirmation=appointment?.jobs?.[0]&&(status==='completed'||status==='canceled')?jobStatusConfirmation(status):null
     if(confirmation&&!window.confirm(confirmation))return
     changingStatus.current=true;setSavingAppointment(id);setError('')
-    try { const result=await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show');if(mounted.current)setNotice(result.job_id&&status==='completed'?jobStatusNotice('completed',{invoice_ready:result.invoice_ready===true,needs_pricing:result.needs_pricing===true,invoice_status:result.invoice_status}):'Appointment updated.');await refresh() }
+    try { const result=await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show');if(mounted.current)setNotice(result.visit_only?'Visit updated. The job remains open for further work and office completion.':result.job_id&&status==='completed'?jobStatusNotice('completed',{invoice_ready:result.invoice_ready===true,needs_pricing:result.needs_pricing===true,invoice_status:result.invoice_status}):'Appointment updated.');await refresh() }
     catch (err) { if (mounted.current) setError(readableError(err, 'Unable to update schedule')) }
     finally{changingStatus.current=false;if(mounted.current)setSavingAppointment(null)}
   }

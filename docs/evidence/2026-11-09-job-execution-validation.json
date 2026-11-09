@@ -1,0 +1,100 @@
+{
+  "date": "2026-11-09",
+  "verified_at": "2026-11-09T21:56:55.610373+00:00",
+  "baseline_commit": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "scope": "Phase 2 Job Management implementation; source complete, database migration and private beta release pending approval",
+  "branch": "feature/job-execution-20261109",
+  "checks": [
+    {
+      "command": "npm run test:job-execution",
+      "passed": 9,
+      "dom_journeys": 6,
+      "failed": 0,
+      "coverage": "Eight SQL-backed execution scenarios and the paginated Unicode PDF renderer. Actual linked-appointment lifecycle trigger included. Covers three-visit job, deposit, approved addition, time/expense costing, completion, one final invoice across retries, assigned-only RPC/table/file access, pause/revocation, optimistic visits/rates, calendar view and legacy same-time repair."
+    },
+    {
+      "command": "npm run test:job-management",
+      "database_cases": 7,
+      "dom_journeys": 5,
+      "failed": 0
+    },
+    {
+      "command": "node --import tsx --test --test-concurrency=1 tests/operations/*.test.ts",
+      "passed": 28,
+      "failed": 0,
+      "note": "Ran when the execution suite contained five cases; final execution suite separately passed all eight."
+    },
+    {
+      "command": "node --import tsx --test --test-concurrency=1 tests/scheduling/*.test.ts",
+      "passed": 72,
+      "failed": 0
+    },
+    {
+      "command": "npm run test:records",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "command": "node --import tsx --test --test-concurrency=1 tests/settings/*.test.ts",
+      "passed": 116,
+      "failed": 0,
+      "note": "Default parallel settings invocation failed whole files under memory pressure; all 116 passed at concurrency one."
+    },
+    {
+      "command": "npm run build",
+      "startup_checks": 56,
+      "failed": 0,
+      "includes": "Environment guard, TypeScript and Vite."
+    },
+    {
+      "command": "npm run assessment:sync && npm run assessment:test && npm run assessment:check",
+      "passed": 7,
+      "failed": 0
+    }
+  ],
+  "visual": {
+    "pdf": "Rendered and visually inspected the synthetic one-page completion report. Long text/checklist/Unicode/photo pagination passed the renderer check.",
+    "browser": "The shared browser initially could not reach the managed preview and subsequently rejected observation of its browser error page. No workaround was used. New UI journeys passed JSDOM; authenticated browser, physical iPhone/camera/file upload and provider acceptance are not certified."
+  },
+  "database": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "migrations": [
+      "20261109203235_assigned_field_workspace.sql",
+      "20261109203238_job_cost_review_completion_reports.sql",
+      "20261109203232_planned_job_visits.sql"
+    ],
+    "state": "unapplied",
+    "reason": "First native apply request expired; second was canceled. Read-only follow-up confirmed visit column, field RPC and completion-report RPC all absent. No alternate DDL route was used.",
+    "preflight": {
+      "jobs_with_multiple_active_visits": 0,
+      "mismatched_cached_schedules": 0,
+      "appointments_composite_key_added_in_source": true
+    },
+    "live_rollback_workflow": "Not performed for Phase 2 because migrations did not apply."
+  },
+  "cost": {
+    "new_paid_services": false,
+    "additional_account_seats": false,
+    "note": "Reuses current Supabase storage/upload quotas and existing PDF dependencies. Pro five total account seats and separate worker-profile limits retained. Hosting, database, storage and bandwidth remain subject to existing usage charges."
+  },
+  "limits": [
+    "Source/SQL/DOM/PDF checks are not live-provider, authenticated browser, physical-device or measured-load certification.",
+    "Completion acknowledgement is typed in person on the business device; remote signing, offline synchronization, GPS routing, inventory and ERP integrations are outside this phase.",
+    "Current beta branch/domain remain on their prior release until the three migrations can be applied and rollback-verified."
+  ],
+  "source_sha256": {
+    "supabase/migrations/20261109203235_assigned_field_workspace.sql": "bb1ca4d959e8412341e14f4aee15c8bb1a36cdc487a19edb414dd95b6231287f",
+    "supabase/migrations/20261109203238_job_cost_review_completion_reports.sql": "5367857aaab97ff3dbac9731bbc12980097070d34358f6a118930166e54b2680",
+    "supabase/migrations/20261109203232_planned_job_visits.sql": "2355476c54c51629f88863335b87d3fcacf147844364989ecf3e8bf3278013c0",
+    "shared/jobCompletionPdf.ts": "614d3816671bd8c24475a2fb2904a3c6deb17f5c524e25100301712940828aee",
+    "src/services/jobExecution.ts": "41ef1e37b6f5acdf21f8008aec118f895728a088e188342acdf69b3757ed3ca3",
+    "src/pages/FieldJobsPage.tsx": "2a009017867600139e154cf8bfaeb05b43d23d19ddeca5df90f40ca76a3d3525",
+    "src/components/JobVisits.tsx": "5862fd53c6631a2056a244f07992ba82bf5f7634d297bed6a08528efb5dd6227",
+    "src/components/JobCostReview.tsx": "7f8e503b4251bc9ec3e009390518acf7fc4bc61dd3a2f9bb4e4b4077727b7d3e",
+    "src/components/JobCompletionReports.tsx": "e976ac246d57ce29cca08bb8956879e89b0e4bbb3102d2efbea985ddc72f1b83",
+    "tests/operations/job-execution.test.ts": "d70ac5987fbb10adaedcbff7c111d4d9ca5748c6717abd74558a03b71a58dd5e",
+    "tests/operations/execution-fixture.ts": "66b90259402bde7e692df9d2b6204b3ab773cec6cb14ba0a849e237eed208d7e",
+    "tests/operations/job-execution-dom.mjs": "9c73ed0070bb9d75c7e1dd70b2b7c7d3f14de9e0692460eb9c4e6eb08da0ce26",
+    "tests/documents/jobCompletionPdf.test.ts": "d0a57a38a900b46a5b79847761d0ecf4d4a59d23ab7b60741dd41b9fdfd7a562"
+  }
+}

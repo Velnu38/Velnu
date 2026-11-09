@@ -10,6 +10,7 @@ export function isPrimaryOwner(business: CurrentBusiness) {
   return business.role === "owner" && business.primary_owner === true;
 }
 export function canAccess(business: CurrentBusiness, module: WorkspaceModule) {
+  if (business.field_restricted) return false;
   if (isPrimaryOwner(business)) return true;
   if (
     ["billing", "finances"].includes(module) &&
@@ -19,7 +20,10 @@ export function canAccess(business: CurrentBusiness, module: WorkspaceModule) {
   return (business.access_modules ?? []).includes(module);
 }
 export function canUseAssistant(business: CurrentBusiness) {
-  return ['owner','admin','office','technician','viewer'].includes(business.role);
+  return (
+    !business.field_restricted &&
+    ["owner", "admin", "office", "technician", "viewer"].includes(business.role)
+  );
 }
 export function canOpenView(business: CurrentBusiness, view: string) {
   const module = (

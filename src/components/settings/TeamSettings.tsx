@@ -1,3 +1,4 @@
+import FieldAccountControls from './FieldAccountControls'
 import {useUnsavedChanges} from '../../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from "react";
 import type { CurrentBusiness } from "../../lib/business";
@@ -54,8 +55,7 @@ function AccessFields({
         </label>
       ))}
       <small>
-        Customers and locations remain available for day-to-day work. A disabled
-        area is also blocked through direct links and data requests.
+        Field staff can be restricted to assigned jobs by linking their account below. Leave module access disabled for new field accounts until the worker link is set.
       </small>
     </fieldset>
   );
@@ -71,7 +71,7 @@ export default function TeamSettings({
     [busy, setBusy] = useState(false);
   const [email, setEmail] = useState(""),
     [role, setRole] = useState<TeamRole>("technician"),
-    [modules, setModules] = useState<WorkspaceModule[]>(defaults),
+    [modules, setModules] = useState<WorkspaceModule[]>([]),
     [inviteUrl, setInviteUrl] = useState(""),
     [editing, setEditing] = useState<TeamMember | null>(null);
   const guard=useUnsavedChanges(busy)
@@ -93,8 +93,7 @@ export default function TeamSettings({
   }, [business.id]);
   function changeRole(r: TeamRole) {
     setRole(r);
-    if (r !== "office")
-      setModules((m) => m.filter((x) => !["billing", "finances"].includes(x)));
+    setModules(r === "office" ? defaults : []);
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -300,6 +299,7 @@ export default function TeamSettings({
           </div>
         </section>
       )}
+      {team&&<FieldAccountControls business={business} members={team.members}/>}
       {!!team?.invitations.length && (
         <div className="settings-inset">
           <h3>Pending invitations</h3>

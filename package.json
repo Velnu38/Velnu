@@ -33,7 +33,8 @@
     "build:browser-fixtures": "node scripts/build-browser-fixtures.mjs",
     "test:operations": "node --import tsx --test tests/operations/*.test.ts && node scripts/render-operations-preview.mjs && node tests/operations/components-dom.mjs",
     "test:jobs-overview": "node scripts/render-operations-preview.mjs && node tests/operations/jobs-overview-dom.mjs",
-    "test:job-management": "node --import tsx --test --test-concurrency=1 tests/operations/job-management.test.ts tests/scheduling/management-approval.test.ts && node scripts/render-operations-preview.mjs && node tests/operations/job-management-dom.mjs"
+    "test:job-management": "node --import tsx --test --test-concurrency=1 tests/operations/job-management.test.ts tests/scheduling/management-approval.test.ts && node scripts/render-operations-preview.mjs && node tests/operations/job-management-dom.mjs",
+    "test:job-execution": "node --import tsx --test --test-concurrency=1 tests/operations/job-execution.test.ts tests/documents/jobCompletionPdf.test.ts && node scripts/render-operations-preview.mjs && node tests/operations/job-execution-dom.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "7.1.2",

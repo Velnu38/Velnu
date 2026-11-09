@@ -17,12 +17,7 @@ export type JobManagementData = Omit<JobWorkspace, "activity"> & {
   materials: JobMaterial[];
   templates: { id: string; name: string; count: number }[];
   activity: { id: number; event: string; created_at: string; actor?: string }[];
-  visits: {
-    id: string;
-    starts_at: string;
-    ends_at: string | null;
-    status: string;
-  }[];
+  visits: import('./jobExecution').JobVisit[];
   source_estimate?: { id: string; number: string | null; total: number } | null;
   documents?: {
     id: string;
