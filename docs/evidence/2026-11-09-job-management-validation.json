@@ -97,5 +97,27 @@
     "supabase/migrations/20261109184128_job_management_workspace.sql": "dde16c121df70f6baa6ca0e7a6b5b920735cbcac9858598d80a054ca5a65ff93",
     "supabase/migrations/20261109184432_approved_job_management_handoff.sql": "53040923c18309d139b15e96e831a7562ec721fa397e434f77e0cd587e94b067",
     "supabase/migrations/20261109200048_job_management_foreign_key_indexes.sql": "91be3f1ab990d751e3f74482571239e0e8b748fcb6ddf5880271e16f330d31de"
+  },
+  "release": {
+    "commit": "626c9ee15be64e13063286f46af4807f713c22f4",
+    "deployment": "dpl_GpVsvU76D38cC8mLCPqUeFG53Mcc",
+    "state": "READY",
+    "target": "private-beta preview",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "http_200": [
+      "/?view=work",
+      "/assets/JobsPage-aWZqGWQo.js",
+      "/assets/JobsPage-AoVZDdlA.css"
+    ],
+    "source_markers_verified": [
+      "Job Management",
+      "Materials",
+      "Complete job",
+      "prepare_approved_management_job"
+    ],
+    "hosted_environment_guard": "Environment isolation checked: preview"
   }
 }

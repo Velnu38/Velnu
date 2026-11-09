@@ -4,13 +4,13 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "96a121413a7e388e7581a9c0dbd6e903ca491ba2",
+  "auditedCommit": "626c9ee15be64e13063286f46af4807f713c22f4",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
       "title": "Live release",
-      "detail": "Jobs overview source 96a121413a7e388e7581a9c0dbd6e903ca491ba2 reached READY deployment dpl_2m2dsSyrB6t3ZFUP5gFHsaXTrYTw on finviant.com/www. The Jobs route and its updated JavaScript/CSS returned HTTP 200; the live application bundle contains the new overview, work-in-focus, crew and billing-priority sections. This confirms publication, not interactive phone/browser acceptance. Shared browser currently reaches sign-in; no authenticated session was available for visual review.",
-      "evidence": "Vercel domain/commit metadata, live HTTP/source checks and docs/evidence/2026-11-09-jobs-overview-validation.json",
+      "detail": "Job Management source 626c9ee15be64e13063286f46af4807f713c22f4 reached READY deployment dpl_GpVsvU76D38cC8mLCPqUeFG53Mcc on finviant.com/www. The Jobs route, application loader and new Jobs JavaScript/CSS returned HTTP 200. Loaded JavaScript includes Job Management, Materials, Complete job and the approved-job preparation RPC. Hosted isolation guard passed for preview; existing authentication/audience remains. This proves source delivery, not a signed-in physical-device/provider journey.",
+      "evidence": "Vercel deployment/alias metadata and protected HTTP asset fetches; docs/evidence/2026-11-09-job-management-validation.json",
       "verifiedAt": "2026-11-09"
     },
     {
