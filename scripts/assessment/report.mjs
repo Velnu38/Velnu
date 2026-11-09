@@ -26,6 +26,22 @@ export function validateRegistry(data) {
     !Array.isArray(data.sources)
   )
     throw Error("Invalid readiness registry");
+  if (data.proposals !== undefined) {
+    if (!Array.isArray(data.proposals)) throw Error("Invalid proposals");
+    const titles = new Set();
+    for (const p of data.proposals) {
+      if (
+        !p ||
+        !["title", "body"].every(
+          (k) => typeof p[k] === "string" && p[k].trim(),
+        ) ||
+        !date(p.updatedAt) ||
+        titles.has(p.title)
+      )
+        throw Error("Invalid or duplicate proposal");
+      titles.add(p.title);
+    }
+  }
   const ids = new Set();
   for (const t of data.tasks) {
     if (
@@ -90,7 +106,7 @@ export function renderReport(input) {
     "2. Make the current release gate green; harden Auth, tenant boundaries and burst/cost controls (CI-01, SEC-01–03).",
     "3. Install and test operational alerts, verify background jobs, tune query/connection pressure, then measure isolated multi-tenant load (OPS-02–03, PERF-01–02).",
     "4. Certify general email, subscription purchase, Pro SMS, merchant payments and external calendars before advertising/charging for those capabilities (EMAIL/BILL/SMS/PAY/CAL).",
-    "5. Finish real-device/provider acceptance, support/privacy operations and tier unit economics; stage rollout rather than opening registration to everyone at once.",
+    "5. Implement and verify the Finviant Pricing proposal, complete owner exports and the disclosed expiry/deletion lifecycle before activating public trials or the 90-day Free offer (PLAN-01, EXPORT-01, RET-01). Finish device/provider acceptance, support/privacy operations and tier unit economics; stage rollout rather than opening registration to everyone at once.",
   );
   add(
     "## Verified current observations",
@@ -104,6 +120,13 @@ export function renderReport(input) {
     ),
     `Audited code baseline: \`${d.auditedCommit}\`. Branch: \`${d.branch}\`. Findings are source/configuration observations, not a penetration-test or load-test certificate.`,
   );
+  for (const p of d.proposals || []) {
+    add(
+      `## ${p.title}`,
+      `**Proposal updated: ${p.updatedAt} (${d.timezone}). Implementation pending.**`,
+      p.body,
+    );
+  }
   add(
     "## Public-launch gates",
     table(

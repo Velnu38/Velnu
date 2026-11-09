@@ -76,6 +76,38 @@ test("report generation is deterministic, current output matches and public gate
   assert.equal(renderReport(registry).includes("CAMPAIGN_STATUS_START"), false);
   assert.equal(renderReport(registry).includes("CARD-01"), false);
 });
+test("saved pricing policy survives task completion and rejects invalid proposal metadata", () => {
+  const proposal = registry.proposals.find((p) => p.title === "Finviant Pricing");
+  assert.ok(proposal);
+  const completed = transitionTask(
+    registry,
+    "EMAIL-01",
+    "done",
+    "Controlled live provider and inbox receipt",
+    "2026-11-08",
+    commit,
+  );
+  const report = renderReport(completed);
+  assert.ok(report.includes("## Finviant Pricing\n"));
+  assert.ok(report.includes(proposal.body));
+  assert.ok(report.includes("Implementation pending."));
+  assert.ok(report.includes("| PLAN-01 |"));
+  assert.ok(report.includes("| RET-01 |"));
+  for (const proposals of [
+    {},
+    [null],
+    [{ ...proposal, updatedAt: "2026-02-31" }],
+    [{ ...proposal, body: " " }],
+    [proposal, proposal],
+  ])
+    assert.throws(
+      () => renderReport({ ...registry, proposals }),
+      /Invalid.*proposal/,
+    );
+  const legacy = structuredClone(registry);
+  delete legacy.proposals;
+  assert.doesNotThrow(() => renderReport(legacy));
+});
 test("public launch remains blocked if any public acceptance gate is unverified", () => {
   const d = structuredClone(registry);
   for (const t of d.tasks) {
