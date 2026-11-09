@@ -48,7 +48,13 @@
     "anon_execute": false,
     "service_role_execute": false,
     "new_tables": 0,
-    "new_security_advisor_warnings": 0
+    "new_security_advisor_warnings": 0,
+    "live_rollback_read": {
+      "summary_count": 2,
+      "valid_array": true,
+      "excludes_full_histories": true,
+      "note": "Authorized owner context read, transaction rolled back; output aggregates only. Not a multi-tenant/load certificate."
+    }
   },
   "limits": [
     "Shared browser reaches Finviant sign-in; no authenticated session was available for visual inspection. No login credentials, customer records, messages or payment actions were used.",
@@ -71,5 +77,25 @@
     "tests/e2e/operations-workspaces.spec.mjs": "b18e9e07c4e123a9a789a0bcb241e5963ba3ec835f3d4979daa65cdd477e4e08",
     "tests/e2e/critical-dashboard-schedule.spec.mjs": "96fd308e67b928f532b63fa60414ca1d1206d4acf7505abe42ebe900ecdfd3c5",
     "package.json": "ab2825f7f2c3996022113492cf0d9e30487a824f02067919d98aed65b0153465"
+  },
+  "release": {
+    "commit": "96a121413a7e388e7581a9c0dbd6e903ca491ba2",
+    "deployment": "dpl_2m2dsSyrB6t3ZFUP5gFHsaXTrYTw",
+    "state": "READY",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "http_200": [
+      "/?view=work",
+      "/assets/JobsPage-BHY3Pckp.css",
+      "/assets/JobsPage-Ce8FvQYF.js"
+    ],
+    "new_source_markers_verified": [
+      "Job management overview",
+      "Work in focus",
+      "Assignments today",
+      "Ready for billing"
+    ]
   }
 }

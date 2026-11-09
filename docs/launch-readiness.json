@@ -4,13 +4,13 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "8e22a952fe3e1a45455420e8bdeb474f0e6d0100",
+  "auditedCommit": "96a121413a7e388e7581a9c0dbd6e903ca491ba2",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
       "title": "Live release",
-      "detail": "Operations source cc34562d98fc7644b22ecec32ad3ccf24747b7bf reached READY deployment dpl_2QVyDa4U9mZmtZJGYrzcDnJJ1MdX on finviant.com/www. Unauthenticated homepage, entry JavaScript, application chunk, recovery script and CSS returned HTTP 200. The live check caught and corrected the missing /square-return rewrite; its final route returns application HTML with HTTP 200, private/no-store, no-referrer and noindex headers. A scoped regression protects the route without masking unknown assets. These HTTP/build receipts are not interactive browser, merchant or phone acceptance.",
-      "evidence": "Vercel deployment metadata, live HTTP reads, 56 startup/build checks and docs/evidence/2026-11-09-operations-validation.json",
+      "detail": "Jobs overview source 96a121413a7e388e7581a9c0dbd6e903ca491ba2 reached READY deployment dpl_2m2dsSyrB6t3ZFUP5gFHsaXTrYTw on finviant.com/www. The Jobs route and its updated JavaScript/CSS returned HTTP 200; the live application bundle contains the new overview, work-in-focus, crew and billing-priority sections. This confirms publication, not interactive phone/browser acceptance. Shared browser currently reaches sign-in; no authenticated session was available for visual review.",
+      "evidence": "Vercel domain/commit metadata, live HTTP/source checks and docs/evidence/2026-11-09-jobs-overview-validation.json",
       "verifiedAt": "2026-11-09"
     },
     {
