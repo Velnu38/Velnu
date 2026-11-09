@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "cc34562d98fc7644b22ecec32ad3ccf24747b7bf",
+  "auditedCommit": "8e22a952fe3e1a45455420e8bdeb474f0e6d0100",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -143,6 +143,12 @@
       "title": "Operations validation limits",
       "detail": "Database/service/DOM regression checks and the release build run locally. Customer-statement PDF was rendered for visual inspection. Real browser automation could not launch under this workspace’s Unix-socket restrictions; the official headless download failed, localhost preview was unreachable from the shared browser and file navigation was disallowed. No screenshot/device/live-payment or load certificate is claimed. Browser checks remain required before general launch.",
       "evidence": "Local validation receipts; no production customer messages or card charges",
+      "verifiedAt": "2026-11-09"
+    },
+    {
+      "title": "Jobs mobile overview correction",
+      "detail": "Replaced the filter-heavy Jobs landing with an operational Overview: business-day agenda, progress/scheduling/billing priorities, bounded live work-plan progress, recorded hours/cost versus cost budget for financially authorized users, crew assignments and pipeline drilldowns. List/Board remain available; timing/worker filters are collapsed, Board scrolls by stage on phones, completed-only accounts retain useful history, and first-run accounts receive real next steps rather than fabricated work. One summary RPC returns at most four authorized job summaries without full time/activity histories. No plan, sending, billing or paid-service changes.",
+      "evidence": "docs/evidence/2026-11-09-jobs-overview-validation.json; source hashes and local build/DOM/database checks. Interactive signed-in phone/browser visual acceptance remains open.",
       "verifiedAt": "2026-11-09"
     }
   ],

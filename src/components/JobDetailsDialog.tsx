@@ -25,12 +25,13 @@ type Props = {
   jobId: string
   initialPhotos?: boolean
   initialSchedule?: boolean
+  initialPlan?: boolean
   onClose: () => void
   onUpdated?: () => void
   onCreateReminder?: (job: ReminderJob) => void
 }
 
-export default function JobDetailsDialog({ business, jobId, initialPhotos = false, initialSchedule = false, onClose, onUpdated, onCreateReminder }: Props) {
+export default function JobDetailsDialog({ business, jobId, initialPhotos = false, initialSchedule = false, initialPlan = false, onClose, onUpdated, onCreateReminder }: Props) {
   const [job, setJob] = useState<Awaited<ReturnType<typeof getJob>> | null>(null)
   const plan = useTierUsage(business.id)?.plan
   const teamScheduling = plan === 'pro' || plan === 'basic'
@@ -38,8 +39,8 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
   const [notes, setNotes] = useState(''), [error, setError] = useState('')
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState('')
   const [dispatch, setDispatch] = useState<JobScheduleMode | null>(null), [notesVersion, setNotesVersion] = useState(0)
-  const [panel, setPanel] = useState<'details' | 'plan' | 'photos' | 'activity'>(initialPhotos ? 'photos' : 'details')
-  const [planOpened,setPlanOpened]=useState(false)
+  const [panel, setPanel] = useState<'details' | 'plan' | 'photos' | 'activity'>(initialPhotos ? 'photos' : initialPlan ? 'plan' : 'details')
+  const [planOpened,setPlanOpened]=useState(initialPlan)
   const [photosOpened, setPhotosOpened] = useState(initialPhotos)
   const tabsId = useId()
   const scheduleIntent = useRef(initialSchedule)

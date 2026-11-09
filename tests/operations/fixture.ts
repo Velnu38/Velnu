@@ -31,6 +31,7 @@ export async function operationsFixture(square=false){const db=await base();try{
  await db.exec(`create schema if not exists storage;create table if not exists storage.objects(name text,bucket_id text);create table if not exists public.record_photos(id uuid primary key default gen_random_uuid(),business_id uuid,expense_id uuid,storage_path text);`)
  await db.exec(await readFile('supabase/migrations/20261109171432_operations_recovery_polish.sql','utf8'))
  if(square)await db.exec(await readFile('supabase/migrations/20261109171931_operations_foreign_key_indexes.sql','utf8'))
+ await db.exec(await readFile('supabase/migrations/20261109181418_job_plan_summaries.sql','utf8'))
  return db
  }catch(e){await db.close();throw e}}
 export async function value(db:any,sql:string,args:unknown[]=[]){return(await db.query(sql,args)).rows[0].value}

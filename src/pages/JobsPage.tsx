@@ -1,3 +1,4 @@
+import JobsOverview, {type JobsOverviewFilter} from '../components/JobsOverview'
 import '../components/operations.css'
 import RefreshButton from '../components/RefreshButton'
 import PlanRestriction from '../components/PlanRestriction'
@@ -30,16 +31,19 @@ import CustomerPicker from '../components/CustomerPicker'
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
 type Job = ReminderJob & JobWorkflow & { status: string; scheduled_start: string | null; scheduled_end?: string | null; assigned_user_ids?: string[]; customers: Customer | Customer[] | null; properties?: Property[] | null }
-type JobQuickFilter = 'today' | 'active' | 'unscheduled' | null
+type JobQuickFilter = Exclude<JobsOverviewFilter,'all'|'history'> | null
 
 export default function JobsPage({ business, embedded = false, onCreateReminder }: { business: CurrentBusiness; embedded?: boolean; onCreateReminder?: (job: ReminderJob) => void }) {
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const timezone = business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
   const Heading = embedded ? 'h2' : 'h1'
-  const [layout,setLayout]=useState<'list'|'board'>('list')
-  const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean;initialSchedule?:boolean}|null>(null)
+  const [layout,setLayout]=useState<'overview'|'list'|'board'>('overview')
+  const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean;initialSchedule?:boolean;initialPlan?:boolean}|null>(null)
   const [group, setGroup] = useState<JobGroup | 'all'>('all')
   const [quickFilter, setQuickFilter] = useState<JobQuickFilter>(customerScope ? null : 'active')
+  const [overviewRevision,setOverviewRevision]=useState(0)
+  const [clock,setClock]=useState(Date.now())
+  useEffect(()=>{const timer=window.setInterval(()=>setClock(Date.now()),60000);return()=>window.clearInterval(timer)},[])
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -91,6 +95,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       setGroup('all'); setQuickFilter(null); requestedJob.current = null
     }
     setJobs(jobRows as Job[])
+    setOverviewRevision(v=>v+1)
     setCustomers(customerRows as Customer[])
     setError('')
     } finally { if (mounted.current && request === requestId.current) setLoading(false) }
@@ -154,16 +159,28 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
 
   const filteredJobs = jobs.filter(job => !teamScheduling || workerFilter === 'all' || job.assigned_user_ids?.includes(workerFilter))
   const grouped: Record<JobGroup | 'all', Job[]> = { all: [], current: [], upcoming: [], history: [] }
-  const now = new Date()
+  const now = new Date(clock)
   for (const job of filteredJobs) { grouped[jobGroup({...job,scheduled_start:hasActiveJobAppointment(job)?job.active_appointment!.starts_at:null}, now, timezone)].push(job); grouped.all.push(job) }
-  const todayDate = DateTime.now().setZone(timezone).toISODate()
+  const todayDate = DateTime.fromJSDate(now,{zone:timezone}).toISODate()
   const todayJobs = filteredJobs.filter(job => hasActiveJobAppointment(job) && DateTime.fromISO(job.active_appointment!.starts_at).setZone(timezone).toISODate() === todayDate && !['completed','canceled'].includes(job.status))
   const activeJobs = filteredJobs.filter(job => ['lead','scheduled','in_progress'].includes(job.status))
     .sort((a,b) => Number(jobNeedsStatusUpdate(b,now,timezone)) - Number(jobNeedsStatusUpdate(a,now,timezone)))
   const unscheduledJobs = filteredJobs.filter(job => ['lead','scheduled'].includes(job.status) && !hasActiveJobAppointment(job))
+  const inProgressJobs=filteredJobs.filter(j=>j.status==='in_progress')
+  const billingJobs=canAccess(business,'billing')?filteredJobs.filter(j=>j.status==='completed'&&(!j.invoice||['draft','void'].includes(j.invoice.status))):[]
+  const attentionJobs=activeJobs.filter(j=>jobNeedsStatusUpdate(j,now,timezone))
+  const unassignedJobs=activeJobs.filter(j=>!j.assigned_user_ids?.length)
+  const scheduledJobs=activeJobs.filter(j=>j.status!=='in_progress'&&hasActiveJobAppointment(j))
+  const completedJobs=filteredJobs.filter(j=>j.status==='completed')
   const selectedJobs = quickFilter === 'today' ? todayJobs
     : quickFilter === 'active' ? activeJobs
       : quickFilter === 'unscheduled' ? unscheduledJobs
+      : quickFilter === 'in_progress' ? inProgressJobs
+      : quickFilter === 'billing' ? billingJobs
+      : quickFilter === 'attention' ? attentionJobs
+      : quickFilter === 'unassigned' ? unassignedJobs
+      : quickFilter === 'scheduled' ? scheduledJobs
+      : quickFilter === 'completed' ? completedJobs
         : grouped[group]
   const recordList = useRecordList(selectedJobs, row => [row.title, row.status, jobStatusLabels[row.status as JobStatus], ...(Array.isArray(row.customers) ? row.customers : row.customers ? [row.customers] : []).map(c => [c.first_name,c.last_name,c.company].join(' '))].join(' '))
 
@@ -175,20 +192,20 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       </div>
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
       <CustomerRecordScope customerId={customerScope} customers={customers} view="work"/>
-      <section className="module-summary-grid job-summary-grid" aria-label="Job summary">
-        <button type="button" className="module-summary-card" aria-pressed={quickFilter === 'today'} onClick={() => { setQuickFilter('today'); setGroup('all'); recordList.setPage(0) }}><span>Today</span><strong>{todayJobs.length}</strong><small>scheduled jobs</small></button>
-        <button type="button" className="module-summary-card" aria-pressed={quickFilter === 'active'} onClick={() => { setQuickFilter('active'); setGroup('all'); recordList.setPage(0) }}><span>Active</span><strong>{activeJobs.length}</strong><small>current and upcoming work</small></button>
-        <button type="button" className="module-summary-card module-summary-card-approval" aria-pressed={quickFilter === 'unscheduled'} onClick={() => { setQuickFilter('unscheduled'); setGroup('all'); recordList.setPage(0) }}><span>Needs scheduling</span><strong>{unscheduledJobs.length}</strong><small>jobs without an appointment</small></button>
-      </section>
-      <nav className="work-filters module-job-filters" aria-label="Job timing">{(['all', 'upcoming', 'history'] as const).map(item => <button type="button" key={item} aria-pressed={quickFilter === null && group === item} onClick={() => { setQuickFilter(null); setGroup(item); recordList.setPage(0) }}>{item === 'all' ? 'All' : item === 'upcoming' ? 'Upcoming' : 'History'}{!loading && !error && <span>{grouped[item].length}</span>}</button>)}</nav>
-      {teamScheduling&&team.length>0&&<label className="worker-select">Assigned team member<select value={workerFilter} onChange={e=>{setWorkerFilter(e.target.value);recordList.setPage(0)}}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.is_you?'My jobs · ':''}{w.label}</option>)}</select></label>}
+      <nav className="jobs-hub-navigation" aria-label="Job workspace views"><div className="view-switch" role="group" aria-label="Job view">{(['overview','list','board'] as const).map(view=><button type="button" key={view} aria-pressed={layout===view} onClick={()=>setLayout(view)}>{view==='overview'?'Overview':view==='list'?'List':'Board'}</button>)}</div><span>Plan · Assign · Track · Invoice</span></nav>
       {notice&&<p role="status" className="guided-success">{notice} {invoiceAction&&canAccess(business,"billing")&&<a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
-      <p className="work-group-description">{quickFilter === 'today' ? 'Scheduled work for the business day in your timezone.' : quickFilter === 'active' ? 'All unfinished work. Appointments needing a status update appear first.' : quickFilter === 'unscheduled' ? 'Jobs that need an active appointment before work can begin.' : group === 'all' ? 'All jobs, including completed and canceled work.' : group === 'upcoming' ? 'Jobs scheduled for tomorrow or later that have not started.' : 'Completed and canceled jobs stay here for reference.'}</p>
-      {!loading && !error && <RecordListControls label="jobs" list={recordList} showPagination={false} />}
-      <div className="jobs-view-toolbar"><span className="quiet">One place for work, crew, checklists and costs</span><div className="view-switch" role="group" aria-label="Job view"><button type="button" aria-pressed={layout==='list'} onClick={()=>setLayout('list')}>List</button><button type="button" aria-pressed={layout==='board'} onClick={()=>setLayout('board')}>Board</button></div></div>
+      {layout==='overview'&&(loading?<p role="status">Loading job dashboard…</p>:error?<p>Select Refresh to load the job dashboard.</p>:<JobsOverview business={business} jobs={jobs} team={team} now={now} revision={overviewRevision} canCreate={canWrite(business.role)&&canAccess(business,'jobs')} onCreate={openNewJob} onOpen={(id,initialPlan)=>setDetailsJob({id,initialPlan})} onFilter={filter=>{setLayout('list');setWorkerFilter('all');recordList.setSearch('');recordList.setPage(0);if(filter==='all'||filter==='history'){setQuickFilter(null);setGroup(filter)}else{setQuickFilter(filter);setGroup('all')}}}/>)}
+      {layout!=='overview'&&<>
+      <details className="jobs-filter-panel"><summary>Filter jobs · {quickFilter?({today:'Today',active:'Active work',unscheduled:'Needs scheduling',in_progress:'In progress',billing:'Ready for billing',attention:'Past appointments',unassigned:'Unassigned',scheduled:'Scheduled',completed:'Completed'}[quickFilter]):group==='all'?'All jobs':group==='history'?'History':'Upcoming'}</summary>
+      <nav className="work-filters module-job-filters" aria-label="Job timing">{([{id:'today',label:'Today',count:todayJobs.length},{id:'active',label:'Active',count:activeJobs.length},{id:'unscheduled',label:'Needs scheduling',count:unscheduledJobs.length},{id:'all',label:'All',count:grouped.all.length},{id:'upcoming',label:'Upcoming',count:grouped.upcoming.length},{id:'history',label:'History',count:grouped.history.length}] as const).map(item=><button type="button" key={item.id} aria-pressed={quickFilter===item.id||quickFilter===null&&group===item.id} onClick={()=>{if(item.id==='all'||item.id==='upcoming'||item.id==='history'){setQuickFilter(null);setGroup(item.id)}else{setQuickFilter(item.id);setGroup('all')}recordList.setPage(0)}}>{item.label}<span>{loading?'—':item.count}</span></button>)}</nav>
+      {teamScheduling&&team.length>0&&<label className="worker-select">Assigned team member<select value={workerFilter} onChange={e=>{setWorkerFilter(e.target.value);recordList.setPage(0)}}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.is_you?'My jobs · ':''}{w.label}</option>)}</select></label>}
+      <p className="work-group-description">Use timing and worker filters together. Completed and canceled jobs remain in History.</p></details>
+      {!loading&&!error&&<RecordListControls label="jobs" list={recordList} showPagination={false}/>}
+      </>}
       {layout==='board'&&!loading&&!error&&<section className="job-board" aria-label="Job progress board">{[{id:'lead',label:'Needs scheduling'},{id:'scheduled',label:'Scheduled'},{id:'in_progress',label:'In progress'},{id:'finished',label:'Finished'}].filter(stage=>stage.id!=='finished'||selectedJobs.some(j=>['completed','canceled'].includes(j.status))).map(stage=>{const column=recordList.visible.filter(j=>stage.id===(['completed','canceled'].includes(j.status)?'finished':j.status==='in_progress'?'in_progress':hasActiveJobAppointment(j)?'scheduled':'lead'));return <section key={stage.id} className="job-board-column"><h3>{stage.label}<span>{column.length}</span></h3>{column.map(j=>{const c=Array.isArray(j.customers)?j.customers[0]:j.customers;const crew=team.filter(w=>j.assigned_user_ids?.includes(w.id));return <article className="job-board-card" key={j.id}><strong>{j.title}</strong><span>{c?[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company:'Customer'}</span>{hasActiveJobAppointment(j)&&<small>{DateTime.fromISO(j.active_appointment!.starts_at).setZone(timezone).toFormat('MMM d · h:mm a')}</small>}<small>{crew.length?crew.map(w=>w.label).join(', '):'Crew not assigned'}</small>{['completed','canceled'].includes(j.status)&&<small>{jobStatusLabels[j.status as JobStatus]}</small>}<button type="button" className="secondary-button compact" onClick={()=>setDetailsJob({id:j.id})}>Open job</button></article>})}{!column.length&&<p className="quiet">No jobs on this page.</p>}</section>})}</section>}
-      <section hidden={layout==='board'&&!loading&&!error} className="module-record-list jobs-record-list" aria-label={`${quickFilter || group} jobs`} aria-busy={loading}>
-        {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : selectedJobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{quickFilter === 'today' ? 'No jobs scheduled today' : quickFilter === 'active' ? 'No active jobs' : quickFilter === 'unscheduled' ? 'Nothing needs scheduling' : group === 'all' ? 'No jobs yet' : group === 'history' ? 'No past jobs' : `No ${group} jobs`}</h3><p>{quickFilter === 'today' ? 'Appointments scheduled for today will appear here.' : quickFilter === 'active' ? 'Current and upcoming jobs will appear here.' : quickFilter === 'unscheduled' ? 'Jobs without an appointment will appear here.' : group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Choose Create job to add a job, or check Upcoming.'}</p></div> : recordList.visible.map((job) => {
+      {layout==='board'&&loading&&<p role="status">Loading job board…</p>}
+      {layout==='list'&&<section className="module-record-list jobs-record-list" aria-label={`${quickFilter || group} jobs`} aria-busy={loading}>
+        {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : selectedJobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{quickFilter === 'today' ? 'No jobs scheduled today' : quickFilter === 'active' ? 'No active jobs' : quickFilter === 'unscheduled' ? 'Nothing needs scheduling' : group === 'all' ? 'No jobs yet' : group === 'history' ? 'No past jobs' : quickFilter ? 'No jobs in this view' : `No ${group} jobs`}</h3><p>{quickFilter === 'today' ? 'Appointments scheduled for today will appear here.' : quickFilter === 'active' ? 'Current and upcoming jobs will appear here.' : quickFilter === 'unscheduled' ? 'Jobs without an appointment will appear here.' : group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Choose another filter, return to Overview, or create a job.'}</p></div> : recordList.visible.map((job) => {
           const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers
           const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
           const crew = team.filter(worker => job.assigned_user_ids?.includes(worker.id)).map(worker => worker.label)
@@ -208,9 +225,9 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
             </div>
           </article>
         })}
-      </section>
-      {!loading && !error && <RecordListPagination label="jobs" list={recordList} className="jobs-bottom-pagination" />}
-      {detailsJob&&<JobDetailsDialog key={detailsJob.id} business={business} jobId={detailsJob.id} initialPhotos={detailsJob.initialPhotos} initialSchedule={detailsJob.initialSchedule} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
+      </section>}
+      {layout!=='overview' && !loading && !error && <RecordListPagination label="jobs" list={recordList} className="jobs-bottom-pagination" />}
+      {detailsJob&&<JobDetailsDialog key={detailsJob.id} business={business} jobId={detailsJob.id} initialPhotos={detailsJob.initialPhotos} initialSchedule={detailsJob.initialSchedule} initialPlan={detailsJob.initialPlan} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
       {dispatch&&<DispatchJobDialog business={business} job={dispatch} needsAppointmentRepair={!hasActiveJobAppointment(dispatch)} onClose={()=>setDispatch(null)} onSaved={()=>{setInvoiceAction(null);setNotice('Appointment saved. Confirm the time with your customer.');void refresh().catch(()=>setError('The schedule was saved, but the list could not refresh. Select Refresh to load the updated jobs.'))}}/>}
       {showForm && <FormDialog label={jobFormLabel} busy={busy} onClose={closeJobForm}>
         <div className="modal-head"><div><p className="eyebrow">New job</p><h2>{jobFormLabel}</h2></div><button className="icon-button" onClick={closeJobForm} aria-label="Close" type="button">×</button></div>

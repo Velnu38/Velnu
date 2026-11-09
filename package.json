@@ -31,7 +31,8 @@
     "assessment:complete": "node scripts/assessment/report.mjs --complete",
     "assessment:reopen": "node scripts/assessment/report.mjs --reopen",
     "build:browser-fixtures": "node scripts/build-browser-fixtures.mjs",
-    "test:operations": "node --import tsx --test tests/operations/*.test.ts && node scripts/render-operations-preview.mjs && node tests/operations/components-dom.mjs"
+    "test:operations": "node --import tsx --test tests/operations/*.test.ts && node scripts/render-operations-preview.mjs && node tests/operations/components-dom.mjs",
+    "test:jobs-overview": "node scripts/render-operations-preview.mjs && node tests/operations/jobs-overview-dom.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "7.1.2",

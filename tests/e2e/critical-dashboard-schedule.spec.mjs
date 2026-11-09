@@ -849,6 +849,9 @@ test('dashboard layout uses the business name, puts financials and calendar abov
   await expect(page.getByRole('heading', { name: 'Keep every job moving.' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Jobs and schedule views' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '+ New job', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Overview', exact: true })).toHaveAttribute('aria-pressed','true')
+  await page.getByRole('button', { name: 'List', exact: true }).click()
+  await page.getByText('Filter jobs · Active work', { exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Job timing' })).toContainText('History')
 })
 
