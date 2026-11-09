@@ -196,8 +196,9 @@
     "tests/deployment/html-cache.test.mjs": "1b10d43139bd7591bd613ed4ef7faadba1ecad1ae1689cba8adfbfc540ace9e1"
   },
   "release": {
-    "implementation_commit": "ea80be7097e5faa5fa108bada3b9303e3f858f83",
-    "deployment": "dpl_HzMnrBuLbLn26ph22hT1GDU65rhm",
+    "foundation_commit": "ea80be7097e5faa5fa108bada3b9303e3f858f83",
+    "implementation_commit": "cc34562d98fc7644b22ecec32ad3ccf24747b7bf",
+    "deployment": "dpl_2QVyDa4U9mZmtZJGYrzcDnJJ1MdX",
     "state": "READY",
     "domain_aliases": [
       "finviant.com",
@@ -206,9 +207,20 @@
     "http_200": [
       "/",
       "/assets/index-B01Fhi-N.js",
+      "/assets/App-CquQUS7a.js",
       "/startup-recovery.js",
-      "/assets/index-DrBpT0Ei.css"
+      "/assets/index-DrBpT0Ei.css",
+      "/square-return"
     ],
-    "callback_route_correction": "Live /square-return 404 caught; narrowly scoped Vercel rewrite and fresh-document headers added. Startup/build regressions pass 56. Follow-up live verification pending."
+    "callback_route_correction": "Caught a live /square-return 404; added a narrowly scoped Vercel rewrite and fresh-document headers. Corrected release returned HTTP 200 application HTML, private/no-store, no-referrer and noindex. Build/startup regressions pass 56. Unknown missing assets retain 404 semantics.",
+    "not_proven": [
+      "Interactive browser UI acceptance",
+      "Real Square app, merchant, card, refund or device acceptance"
+    ]
+  },
+  "provider_reference": {
+    "api_version": "2026-09-16",
+    "verified_date": "2026-11-09",
+    "url": "https://developer.squareup.com/docs/changelog/connect-logs/2026-09-16"
   }
 }

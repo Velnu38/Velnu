@@ -4,13 +4,13 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "ea80be7097e5faa5fa108bada3b9303e3f858f83",
+  "auditedCommit": "cc34562d98fc7644b22ecec32ad3ccf24747b7bf",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
       "title": "Live release",
-      "detail": "Operations implementation ea80be7097e5faa5fa108bada3b9303e3f858f83 reached READY deployment dpl_HzMnrBuLbLn26ph22hT1GDU65rhm on finviant.com/www. Unauthenticated homepage, entry JavaScript, recovery script and CSS returned HTTP 200. The live check caught a missing /square-return rewrite (404); this follow-up adds the narrowly scoped app rewrite, no-store response headers and a regression. Live callback-path verification follows its deployment. This is not live merchant/device acceptance.",
-      "evidence": "Vercel deployment metadata, HTTP reads and docs/evidence/2026-11-09-operations-validation.json",
+      "detail": "Operations source cc34562d98fc7644b22ecec32ad3ccf24747b7bf reached READY deployment dpl_2QVyDa4U9mZmtZJGYrzcDnJJ1MdX on finviant.com/www. Unauthenticated homepage, entry JavaScript, application chunk, recovery script and CSS returned HTTP 200. The live check caught and corrected the missing /square-return rewrite; its final route returns application HTML with HTTP 200, private/no-store, no-referrer and noindex headers. A scoped regression protects the route without masking unknown assets. These HTTP/build receipts are not interactive browser, merchant or phone acceptance.",
+      "evidence": "Vercel deployment metadata, live HTTP reads, 56 startup/build checks and docs/evidence/2026-11-09-operations-validation.json",
       "verifiedAt": "2026-11-09"
     },
     {
