@@ -20,3 +20,9 @@ Browser execution is blocked in this environment before page launch: Chromium ex
 ```
 FINVIANT_TEST_BROWSER_PATH=/usr/bin/chromium npx playwright test tests/e2e/document-creation-preview.spec.mjs tests/e2e/document-review-delivery.spec.mjs
 ```
+
+## Hosted verification follow-up
+
+The authorized design was published in PR #70 (`f72887a`). Its isolated Vercel preview reached READY and its HTML, application loader and settings assets returned HTTP 200 with the new footer help/default. The first hosted document run passed all 19 PDF tests but exposed obsolete browser fixtures: they expected the former unsaved HTML preview, omitted the canonical PDF response/revision and assumed delivery controls were always open. The shared settings mock also omitted `get_delivery_automation.rule`, causing an unrelated settings error boundary.
+
+Browser fixtures were updated to match the existing application, without changing application behavior: actual parseable synthetic PDF transport, revision-bound sending, explicit Send dialogs, saved-draft Back/edit persistence, 390px/1280px containment, exact download bytes, retry gating and late-response isolation. Hosted browser results must be checked on the resulting commit before release. Broader legacy onboarding/pricing browser scenarios are separate from PDF rendering and are not represented as passing.
