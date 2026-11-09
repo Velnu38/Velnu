@@ -6,7 +6,7 @@
 
 ## Launch decision
 
-**NOT READY for unrestricted public launch** — 19 public-launch gates remain; 7 additional paid/Pro/advertised-feature items remain. 4 optional/deferred enhancements are kept separate.
+**NOT READY for unrestricted public launch** — 19 public-launch gates remain; 7 additional paid/Pro/advertised-feature items remain. 7 optional/deferred enhancements are kept separate.
 
 Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.
 
@@ -143,6 +143,97 @@ Bounded retention reduces abandoned storage growth; it does not eliminate fixed 
 
 Policy references: [FTC retention and secure disposal](https://www.ftc.gov/business-guidance/resources/protecting-personal-information-guide-business), [IRS recordkeeping periods](https://www.irs.gov/businesses/small-businesses-self-employed/how-long-should-i-keep-records), and [Supabase database backup and Storage limitations](https://supabase.com/docs/guides/platform/backups).
 
+See [Finviant Business Solutions](#finviant-business-solutions) for separately assessed new products, optional job operations, downloads, payroll decisions and white-label/open-source candidates. These options do not change the base plans or activate any new charge.
+
+## Finviant Business Solutions
+
+**Proposal updated: 2026-11-08 (America/New_York). Implementation pending.**
+
+Finviant.com can support a Finviant Office umbrella of business software, practical downloads and free introductory tools. Keep the existing Office application as the flagship. Additional products should serve a specific buyer or a substantial new workflow, use shared components where appropriate and have their own measured costs. This assessment includes the owner's request to reuse Finviant's build, evaluate payroll/expanded jobs/recurring billing and assess white-label or open-source job-management options. All names and prices below are working proposals; no additional app, storefront, provider account, license purchase or subscription has been activated.
+
+### Independent recommendation and commercial positioning
+
+Prioritize advanced job operations and useful downloads. A narrowly scoped field-report app is a plausible second subscription product after demand is demonstrated. Full payroll is a poor near-term expansion for this small operation: provider agreements, payroll errors, payment timing and customer support add substantial responsibilities. Payroll preparation/export is a more manageable adjacent capability. Basic recurring invoices are common enough that they should strengthen the existing plans; they are a weak standalone paid upgrade.
+
+These are positioning hypotheses, not proven market gaps. Bookipi advertises AI tools, a scheduler and recurring invoices. Invoice2go offers appointment scheduling; Jobber advertises job costing, progress billing and recurring work. Wave already sells US payroll at $40/month plus $6 per active employee or contractor paid; Gusto's Simple retail plan is $49/month plus $6 per person. Those retail prices are competitor benchmarks, not wholesale quotes available to Finviant. Value must come from the particular workflow, ease of use and total price a customer can justify.
+
+Basic onboarding and self-service customer-list import should be included within plan limits when available. A standard $79 import fee is withdrawn from these recommendations. Substantial manual cleanup or historical migration can be individually quoted after inspecting scope, without making ordinary setup a paid obstacle. Preserve the complete standard estimate-to-payment Business workflow when pricing new optional capabilities.
+
+### Reusable parts of the existing build
+
+| Existing source / capability | Potential reuse | Work still required |
+| --- | --- | --- |
+| React screens, onboarding and business-aware navigation | Common branded experience for another product | Extract shared components; keep existing sign-in, recovery and public document/callback URLs stable; test mobile usability |
+| Customer and address services; jobs and internal worker roster | Contacts, locations, assignments and availability in a Jobs or Reports app | Product-specific data model and authorization; a worker profile is not an employee payroll record or an authorized login |
+| Document PDF service and server artifact pipeline | Branded field reports, work orders, checklists and completion packs | New templates, revision rules and scoped endpoints; current invoice/estimate PDF code is not a generic report engine |
+| Photos/receipt capture, financial validation and performance reporting | Job cost records, proof-of-work reports and planning tools | New cost/time allocation logic, rounding tests, file limits and reliable exports; do not treat OCR or financial calculations as already certified for a new purpose |
+| Tier usage, signed-event and subscription-management patterns | Product access and metered optional services | Complete verified checkout first; add per-product entitlements and reconciliation rather than granting access from a browser selection |
+
+Source observations: `src/services/documentPdf.ts`, `src/services/customers.ts`, `src/services/workers.ts`, `src/services/tiers.ts`, `src/services/receiptCapture.ts`, `src/lib/financialValidation.ts`, `src/components/FinancialPerformance.tsx`, `supabase/functions/document-pdf/` and subscription/signed-event handlers. Recurring-draft behavior and limitations are described in `src/components/settings/WorkspaceReadiness.tsx`. These establish potential reuse, not production readiness, exact development savings or a certified payroll/billing engine. Existing launch gates remain open.
+
+### Expanded services and product choices
+
+| Option | Buyer and proposed scope | Price to test, not a live price | Assessment |
+| --- | --- | --- | --- |
+| Advanced Operations inside Office | Existing Business users: estimated versus actual job costs, owner-approved time entries, multi-visit jobs, milestones/progress billing and recurring service plans | One optional $9.99/month business-wide pack | Highest-priority subscription expansion if beta users demonstrate willingness to pay. Maintain current Business features and standard limits; no automatic extra Fin/SMS/storage allowance |
+| Finviant Jobs as a separate product | Businesses that need operational job control and use another invoicing system | Test $19-$29/month after defining limits and costs | Reuse the same Jobs module. Validate this instead of building a separate fork; model lost Business upgrades and provide a clear bundle/upgrade path |
+| Business Downloads | Service-business owners who want a useful tool without another subscription: job pricing/margin workbook, cash-flow planner and trade-specific work/checklist pack | Start with one complete $19 kit; test a genuinely larger $29-$39 bundle | First low-maintenance experiment. Sell useful formulas, instructions and trade-specific examples, not a generic blank invoice template. Customer keeps their downloaded copy |
+| Finviant Field Reports | Owner-operators or small teams producing photo-backed visit, inspection or work-completion reports for clients/property managers | Test $9.99/month with bounded storage/delivery | Stronger first separate-app candidate than a generic scheduler. Reuse photos, contacts, PDF and acknowledgment patterns, then validate the niche against general form tools |
+| Property maintenance log | Small property owners: asset/service history, maintenance work orders, vendor appointments, photos and costs | Price only after a focused pilot | Later candidate. Avail already offers free maintenance and income/expense tracking; generic landlord software is not an established gap. Keep any initial scope distinct from rent collection, tenant screening or legal leasing |
+| Standalone scheduler or E-Business Card app | A narrow subset of the existing Business benefits | No launch price recommended | Lower priority: free scheduling alternatives exist and selling the same capability cheaply can weaken Business upgrades |
+
+A sensible future website navigation is Products, Downloads and Free Tools, with Office prominently featured. New product paths/subdomains are proposed only; no new URL is live from this assessment. Keep one brand and a small catalog. A download can introduce customers to Office, but purchase of a file must not silently create a recurring subscription. Initial release should contain one additional offer, with demand measured before adding more.
+
+### Payroll, job management and recurring billing decisions
+
+| Capability | Recommendation | What would justify extra revenue |
+| --- | --- | --- |
+| Full payroll: direct deposits, withholding, tax filings and pay statements | Defer. Later consider a qualified payroll partner or referral arrangement | Written wholesale/revenue-share terms and enough customer demand to cover integration and support. Gusto Embedded confirms usage-based pricing and that partners handle basic inbound support; do not assume all support transfers to the provider |
+| Time and payroll preparation | Include in the Advanced Operations pilot | Approved time by job/worker, internal labor cost allocation and CSV export for an external payroll provider. Do not market it as tax-compliant payroll, make classification decisions or collect bank/SSN data for this limited scope |
+| Expanded job management | Prioritize a small operational upgrade | Actual versus budgeted labor/materials, overrun alerts, repeat visits, milestones and progress invoicing. Reuse existing assignments, photos and change orders as foundations; new value is their operational depth |
+| Recurring invoice drafts and straightforward setup | Retain as an existing designed Individual/Business benefit | Reliable guided setup and reusable templates support conversion/retention; the current release requires draft review and has no certified automatic dispatch of every recurring invoice |
+| Automated recurring billing | Validate as part of recurring-service operations | Visit schedules, renewal dates, draft/send rules, authorized autopay, failed-payment handling and reconciliation. Ordinary recurring actions use rules, not a new Fin request on every cycle |
+
+Distinguish Finviant's subscription billing from each customer's merchant billing. Client autopay requires the merchant's verified connection, explicit customer authorization, safe payment-method handling and correct retry/refund reconciliation. Keep the no-dedicated-customer-site direction: secure invoice/approval/booking links can support the customer actions. Test month-end dates, leap years, time zones, skipped/cancelled visits, changed prices, duplicate events, partial payments and tier expiry before advertising automation. Existing Business approvals, scheduling, managed delivery and basic reminders retain their promised scope.
+
+### Open-source and white-label options for job management
+
+ChatGPT connectors are tools for operating an external service; they do not by themselves grant rights to embed or resell that service in Finviant. The relevant choices here are frontend components, self-hosted software and commercial reseller/OEM contracts.
+
+| Candidate / current primary source | Job-management fit | Cost and licensing observed | Recommendation for Finviant |
+| --- | --- | --- | --- |
+| SVAR React Kanban and Gantt open-source cores | Job/task stage boards and project timelines/dependencies in the existing React app | MIT core, $0 software license fee, including commercial use. Paid PRO editions add features; free core does not include all advanced resource planning, auto-scheduling or exports | Best first technical evaluation. Style as Finviant while preserving required notices; Finviant must still build persistence, permissions, scheduling rules and financial logic. These are components, not a finished job system |
+| ERPNext / Frappe projects | Complete project, task, timesheet, budget/profitability and issue system | Self-hosted ERPNext is GPL-3.0 with no software license subscription; hosting, upgrades and administration remain costs. Brand/trademark policy and copyleft conditions require review for the selected packaging | A separate managed product is more plausible than installing another ERP inside Office. Larger deployment/support burden; not the first choice for a small job upgrade |
+| Kimai core and plugins | Time tracking and project labor/cost records for payroll preparation | Core is AGPL-3.0. Commercial plugins have separate terms; the official plugin license requires an extended agreement for defined SaaS use and restricts reuse across installations | Conditional later candidate. Review exact core/modification obligations and plugin SaaS rights; do not assume an ordinary plugin purchase permits white-label multi-customer service |
+| SuiteDash via SU1TE | Fully branded separate CRM/projects/tasks/files/scheduling platform | $14/$34/$69 per client account/month plus the partner's own Pinnacle account, currently $99/month; usage/add-ons extra. AUTOP1LOT automated checkout/onboarding is separately advertised at $1,499/year | Genuine white-label route but a different business/platform, not a native Finviant Jobs plugin. Does not meet a no-fixed-cost, pay-only-after-your-customer-pays model; weak fit for the current $28/50% target |
+| Agiled reseller | Separate branded business suite with CRM, projects, scheduling and invoicing | Published $4,000 entry fee plus membership from $299/month and company licenses from $23.20/month at that membership level. Other memberships/discounts exist; company fees remain separate | Reject for the proposed low-cost launch model under the published terms. Could be reconsidered only if a materially different written OEM quote supports the economics |
+
+Primary pages checked 2026-11-08. Free/open-source license cost does not eliminate integration, security, hosting, maintenance or support costs. A configurable board does not enforce business status transitions: dragging a card must use authorized server actions and cannot silently mark a payment received or bypass customer approval. Keep non-drag alternatives and the existing low-friction/mobile action design.
+
+No commercially hosted candidate above was verified to charge only after a Finviant subscriber pays, without any fixed fees. A per-company vendor generally charges for the provisioned account under its contract, whether the owner has paid Finviant or not. In a future paid-provider flow, provision a customer only after verified payment when contractually supported; confirm trial, suspension, archive, export, cancellation and minimum fees in writing. A free beta must not silently create chargeable vendor accounts. The MIT components avoid recurring license fees entirely rather than deferring them until subscription activation.
+
+### Margins, costs and validation
+
+The saved Office pricing proposal remains $14.99 Individual / $28 Business, with 25/100 monthly requests to Fin. Candidate products and optional packs do not change those prices now. Run deterministic calculations, recurring rules and template rendering without unnecessary AI calls; reserve Fin for an explicitly requested task. Model storage, exports and message recipients/segments across all products, not just nominal license price.
+
+For a $9.99 Advanced Operations pack, an illustrative $2.50 incremental monthly operating cost leaves $7.49 contribution per purchaser before development/acquisition/taxes and unallocated support. At 25 purchasers this is $249.75 added monthly revenue and $187.25 contribution. A $3,000 development investment would need about 16 months to recover at that constant adoption and cost, before further maintenance/acquisition costs. These are assumptions for a decision, not measured demand or profit.
+
+For a $19 download paid with a US domestic card at Stripe's published 2.9% + $0.30, processing is about $0.85, leaving $18.15 before all other costs. A 50% fully loaded margin requires total costs at or below $9.50, leaving about $8.65 after processing for marketing, refunds, support, delivery, allocated development and overhead. A $9.99/month standalone app similarly needs all monthly allocated costs at or below approximately $5 for a 50% margin. Other payment methods, international cards, taxes and third-party storefront services can change the model. Low delivery cost alone does not establish net profit.
+
+SuiteDash's $14 lowest client license alone consumes half of a $28 selling price. Allocating its $99 partner account over 100 clients makes that $14.99 before processing, support or usage. Consequently the published reseller route cannot meet 50% at $28 under that allocation even before other costs. Evaluate it only for a separately priced and validated managed-service offer. Gusto retail prices must never be substituted for an embedded wholesale cost quote or a promised payroll margin.
+
+Measure conversion, actual paid take-up, cancellations, support minutes, errors, storage/egress, delivered messages and realized per-account contribution for one product at a time. Charge for clearly new operational depth or optional services, retain complete base-plan workflows and test whether bundles increase total profit after accounting for lost Office upgrades. Keep the owner's minimum 50% margin requirement; do not describe incremental contribution as guaranteed net profit.
+
+### Shared architecture and release sequence
+
+1. Finish the existing Office launch/security/billing/export/retention gates. Validate the top two proposed offers with 5-10 target-business interviews and actual purchase/pilot intent. Select one defined customer workflow and budget before product development.
+2. Test one complete download or the Advanced Operations pilot. Downloads need useful examples, formula tests, supported formats, version/license/update terms and reliable purchase-to-delivery. Basic contact import remains included; individually quote exceptional manual work only when it creates clear value.
+3. Extract only the shared components required by the selected product. Reuse code through maintained modules rather than copying the entire Office application. Keep product-specific migrations, financial rules and queues isolated; review licenses before any redistribution. New software is not certified merely because an existing source file was reused.
+4. If the Jobs or Reports offer has genuine paying demand, expose a separate entry point under the Finviant Office umbrella with common identity where appropriate, explicit per-product entitlements and a clear bundle/upgrade path. An unrelated download or active mini-app must not indefinitely retain expired Office records. Shared identities/contacts require scoped exports/deletion so active products and tenants are protected.
+5. Consider payroll partnership, larger managed suites or another niche only after support capacity and written provider economics are established. Confirm API/embedding/resale rights, SSO, signed events, data portability, region/backup/retention limits and incident ownership. No provider application, outreach, purchase, production credential change or new product publication is authorized by recording this assessment.
+
+References: [Bookipi pricing](https://bookipi.com/pricing/), [Jobber capabilities](https://www.getjobber.com/pricing/), [Wave payroll](https://www.waveapps.com/payroll), [Gusto retail benchmark](https://gusto.com/product/pricing), [Gusto Embedded partner responsibilities](https://embedded.gusto.com/partners), [Jotform pricing](https://www.jotform.com/pricing/), [Avail maintenance alternative](https://www.avail.com/pricing), [Calendly free alternative](https://calendly.com/pricing/), [Stripe standard processing](https://stripe.com/pricing), [SVAR licensing](https://svar.dev/licenses/), [SVAR license agreements](https://svar.dev/licenses/license-agreements/), [ERPNext project source](https://github.com/frappe/erpnext), [ERPNext license/trademark policy](https://erpnext.com/license-trademark), [Kimai core](https://www.kimai.org/en/), [Kimai commercial plugin terms](https://www.kimai.org/en/terms-plugins.html), [SU1TE wholesale pricing](https://su1te.com/wholesale-pricing/), [SU1TE FAQ](https://su1te.com/faq/) and [Agiled reseller terms](https://agiled.app/reseller-program).
+
 ## Public-launch gates
 
 | ID | Priority / status | Work and owner | Acceptance needed to close |
@@ -189,6 +280,9 @@ These can be staged separately only if unavailable features and prices are prese
 | PORTAL-01 | deferred | Dedicated customer site. Keep the requested future item; it is not required for independent document, booking, payment or E-Business Card pages. | Implement only after a future owner-approved portal scope; current standalone action pages remain supported. |
 | TAP-01 | deferred | Native Tap to Pay and expanded field-worker tools. Manual/external payments and internal worker profiles are distinct from native card acceptance, payroll/GPS or worker login/notifications. | Obtain a separate approved scope, provider/device feasibility, pricing and security validation before development; do not imply these are included now. |
 | EXPORT-02 | open | Expand historical migration and archive import. Complete owner export is required separately under EXPORT-01; historical imports and restoration remain additional migration tools. | Implement versioned historical document/address/file/financial-reference import and permitted role mappings, with chunking beyond 50,000 records, dry-run validation, duplicates and restore tests. Never import credentials or revive purged tenant data without a new authorized workspace. |
+| GROW-01 | open | Validate one additional Finviant business-solutions offer. Reuse and low software license fees do not prove customer demand, differentiation or the required margin. | Review Finviant Business Solutions; interview 5-10 target businesses, test genuine purchase/pilot intent for one clearly scoped download, Advanced Operations pack or separate Jobs/Reports app, and measure likely Office cannibalization. Define included versus optional capabilities, support scope, pricing, acquisition/development allocation, full-use quotas and at least 50% fully loaded margin assumptions. Keep basic onboarding/contact import included and preserve the complete promised Business workflow. Select one pilot and do not market unbuilt offerings as available. |
+| GROW-02 | open | Qualify reusable job-management components and commercial licenses. SVAR MIT components look promising; complete ERP/time systems and reseller platforms bring additional licensing, support and fixed costs. | Evaluate the specific pinned SVAR Kanban/Gantt MIT editions against the selected workflow in isolated staging, preserving notices, accessible mobile controls and authorized server status changes. Document free/PRO boundaries and actual integration/storage/performance costs. Review GPL/AGPL and any commercial plugin obligations before adapting ERPNext/Kimai. For a hosted white-label vendor obtain explicit resale/embedding/API/SSO, tenant isolation, support/export/backup/retention, minimum/usage/suspension and charge-trigger terms; reject unmodeled fixed/per-client fees that break the margin target. No paid license, vendor tenant or production installation merely from this assessment. |
+| GROW-03 | open | Certify the selected product or download before sale. An additional Finviant-branded offer needs its own functional, access, billing and support evidence despite sharing source. | After GROW-01 selection, extract only needed maintained modules; test per-product access/quotas and cross-tenant isolation, signed checkout-to-provision/delivery, duplicate events/refunds/cancellation, paid-provider cost triggers and itemized bundle terms. Verify downloads/formulas/formats/licenses and protected delivery if selected, or job costs/time/recurrence/milestones/merchant authorization and failure handling for a selected app. Preserve Office URLs, administrator/beta access and existing functions; test scoped archive/export/deletion across products. Publish the actual supported scope and monitoring/support ownership before enabling sales. Payroll remains deferred until separate written economics, responsibilities and approval. |
 
 ## Recommended monitoring and configuration
 
@@ -259,3 +353,17 @@ The entire previous assessment was reviewed and replaced at the owner’s reques
 - [FTC personal-information retention and secure disposal](https://www.ftc.gov/business-guidance/resources/protecting-personal-information-guide-business)
 
 - [IRS business recordkeeping periods](https://www.irs.gov/businesses/small-businesses-self-employed/how-long-should-i-keep-records)
+
+- [SVAR MIT cores and commercial PRO boundaries](https://svar.dev/licenses/)
+
+- [ERPNext projects and source](https://github.com/frappe/erpnext)
+
+- [Kimai commercial-plugin SaaS terms](https://www.kimai.org/en/terms-plugins.html)
+
+- [SU1TE wholesale costs](https://su1te.com/wholesale-pricing/)
+
+- [Agiled reseller fixed and company costs](https://agiled.app/reseller-program)
+
+- [Gusto Embedded partner pricing/support responsibilities](https://embedded.gusto.com/partners)
+
+- [Wave US payroll benchmark](https://www.waveapps.com/payroll)
