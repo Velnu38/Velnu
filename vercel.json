@@ -44,6 +44,10 @@
     {
       "source": "/admin",
       "destination": "/index.html"
+    },
+    {
+      "source": "/square-return",
+      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -248,6 +252,23 @@
     },
     {
       "source": "/startup-recovery.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/square-return",
       "headers": [
         {
           "key": "Cache-Control",

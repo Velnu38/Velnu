@@ -28,13 +28,18 @@
     },
     {
       "command": "npm run build",
-      "startup_checks_passed": 55,
+      "startup_checks_passed": 56,
       "failed": 0,
       "includes": "Deployment guards, TypeScript, production Vite build and startup/CSS checks"
     },
     {
       "command": "Customer statement PDF render and visual review",
       "result": "Synthetic empty/multipage/large-value checks and Poppler page render reviewed"
+    },
+    {
+      "command": "npm run assessment:sync; npm run assessment:test; npm run assessment:check",
+      "passed": 7,
+      "failed": 0
     }
   ],
   "database": {
@@ -186,6 +191,24 @@
     "tests/operations/square-handlers.test.ts": "c0660a709172a86f3866a61c1ad7016ef77f58f88672fb3b2d694adce69754d3",
     "tests/operations/statement-pdf.test.ts": "cfe9fa09bfa84362943fd6c636543acc008ee2b0d169242cac2e620c9f504a37",
     "tests/settings/invoice-detail-actions-dom.mjs": "cf362a065c167ed94a45688c8596773678562a4ca5174670064d4597d5b633bb",
-    "vite.config.ts": "fa01f106ef327aed4be311b1b382a2be45af53692880b3e7a9c819fea3237c10"
+    "vite.config.ts": "fa01f106ef327aed4be311b1b382a2be45af53692880b3e7a9c819fea3237c10",
+    "vercel.json": "08011dc8cb9e3ca301f3b8a34bdb7226a8d6cafd71ba64c4ef7d4dbc3763c67f",
+    "tests/deployment/html-cache.test.mjs": "1b10d43139bd7591bd613ed4ef7faadba1ecad1ae1689cba8adfbfc540ace9e1"
+  },
+  "release": {
+    "implementation_commit": "ea80be7097e5faa5fa108bada3b9303e3f858f83",
+    "deployment": "dpl_HzMnrBuLbLn26ph22hT1GDU65rhm",
+    "state": "READY",
+    "domain_aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "http_200": [
+      "/",
+      "/assets/index-B01Fhi-N.js",
+      "/startup-recovery.js",
+      "/assets/index-DrBpT0Ei.css"
+    ],
+    "callback_route_correction": "Live /square-return 404 caught; narrowly scoped Vercel rewrite and fresh-document headers added. Startup/build regressions pass 56. Follow-up live verification pending."
   }
 }
