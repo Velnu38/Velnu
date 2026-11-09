@@ -411,9 +411,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     </FormDialog>}
 
 
-    {previewTarget && <FormDialog label="Estimate preview" wide busy={busy} onClose={closePreview}><section className="estimate-preview-modal">
+    {previewTarget && !showEdit && <FormDialog label="Estimate preview" wide busy={busy} onClose={closePreview}><section className="estimate-preview-modal">
         <RecordDetailHeader eyebrow="Estimate" title={previewTarget.estimate_number||'Saved estimate'} status={<span className="status-chip">{previewState?.displayStatus}</span>} subtitle={<>{customerName(previewTarget.customers?.[0])} · {estimateMoney.format(Number(previewTarget.total))}</>}><button className="icon-button" onClick={closePreview} disabled={busy} aria-label="Close preview" type="button">×</button></RecordDetailHeader>
-        {showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
         {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={previewTarget.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)setPreviewTarget(next)})}}/>}
         <RecordActionBar primary={primaryControl(previewTarget)} secondary={canManage&&previewTarget.status==='draft'?<button type="button" className="secondary-button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>:undefined} disabled={busy} more={<>
           {canManage&&<CopyDocumentButton businessId={business.id} kind="estimate" id={previewTarget.id} disabled={busy}/>}
@@ -449,6 +448,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         {canManage&&deliveryMode&&<DocumentDeliveryDialog open onClose={()=>setDeliveryMode(null)} readOnly={deliveryMode==='copy'} prepareCopy={prepareCopy} title={deliveryMode==='copy'?'Share estimate copy':previewTarget.status==='sent'?'Follow up on estimate':'Send estimate'} initialIntent={deliveryMode==='copy'?'share':'send'} onBusyChange={setBusy} businessId={business.id} kind="estimate" documentId={previewTarget.id} refreshKey={previewTarget.updated_at||''} email={previewTarget.customers?.[0]?.email} phone={previewTarget.customers?.[0]?.phone} disabled={busy} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
       </section>
     </FormDialog>}
+        {previewTarget&&showEdit&&<DraftDocumentEditor businessId={business.id} kind="estimate" id={previewTarget.id} onClose={()=>setShowEdit(false)} onSaved={()=>{void refresh().then(rows=>{const next=rows.find(r=>r.id===previewTarget.id);if(next)void openPreview(next)})}}/>}
     {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onReplace={async()=>{const link=await createApprovalLink(business.id,'estimate',approvalLink.documentId,{rotate:true});setApprovalLink({...approvalLink,url:link.url,expiresAt:link.expires_at})}} onClose={() => setApprovalLink(null)} />}
   </div>
 }
