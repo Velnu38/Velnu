@@ -667,12 +667,16 @@ Deno.test("Supabase session network stall is aborted and fails before provider",
     }[key]),
     databaseTimeoutMs: 10,
     fetcher: (_resource, init) =>
-      new Promise((_resolve, reject) =>
+      new Promise((_resolve, reject) => {
+        // The mocked socket needs a referenced handle: Node's AbortSignal.timeout
+        // alone does not keep the test process alive. Also bound a broken abort.
+        const stalledSocket = setTimeout(() => reject(new Error("Session request did not abort")), 1000);
         init?.signal?.addEventListener("abort", () => {
+          clearTimeout(stalledSocket);
           aborted = true;
           reject(new Error("timeout"));
-        })
-      ),
+        }, { once: true });
+      }),
     createClient: (_url, _key, options) => ({
       auth: {
         getUser: async () => {

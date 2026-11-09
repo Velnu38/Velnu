@@ -95,8 +95,9 @@ for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls imm
 })
 test('creating a change order opens its review and delivery controls automatically',async({page})=>{
  const {state}=await setup(page);await page.goto('/?view=invoices&document='+E)
- await page.getByRole('button',{name:'More',exact:true}).click()
- await page.getByRole('button',{name:'New change order',exact:true}).click()
+ const actions=page.getByRole('region',{name:'Record actions',exact:true})
+ await actions.locator('summary').filter({hasText:'More'}).click()
+ await actions.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'New change order',exact:true}).click()
  const form=page.getByRole('dialog',{name:'Create change order'});await form.getByLabel('Line 1 description').fill('Two fixtures');await form.getByLabel('Line 1 unit price').fill('50')
  await form.getByRole('button',{name:'Save and review',exact:true}).click()
  const review=page.getByRole('dialog',{name:'Review change order'});await expect(review).toBeVisible();await expect(review.getByRole('button',{name:'Send Email'})).toBeEnabled();await expect(review.getByRole('button',{name:'Download PDF',exact:true})).toBeVisible();expect(state.changes).toHaveLength(1);expect(state.changes[0].p_input.items[0]).toMatchObject({description:'Two fixtures',unit_price:50});expect(state.calls.filter(call=>call.path.endsWith('/document-pdf')&&call.method==='POST').at(-1).body).toEqual({business_id:B,document_kind:'change_order',document_id:P})

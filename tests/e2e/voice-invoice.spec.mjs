@@ -63,7 +63,7 @@ test('Safari no-speech error shows a keyboard microphone fallback instead of a s
   await page.route('https://example.supabase.co/**', route => {
     const path = new URL(route.request().url()).pathname
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
-    const body = path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } } : []
+    const body = path.endsWith('/rpc/get_private_beta_access') ? { allowed: true } : path.endsWith('/user_plan_preferences') ? { user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' } : path.endsWith('/user_agreement_acceptances') ? { id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' } : path.endsWith('/user') ? user : path.endsWith('/rpc/get_plan_usage') ? { plan: 'pro', ai_limit: 50, voice_limit: 50 } : path.endsWith('/business_members') ? { business_id: businessId, role: 'owner', businesses: { id: businessId, created_by_user_id: user.id, name: 'Finviant Office Test Services' } } : []
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body: JSON.stringify(body) })
   })
   await page.addInitScript(() => {
@@ -100,6 +100,7 @@ test('cloud recording uses server transcription and opens draft review, without 
       body: JSON.stringify(body),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if (path.endsWith('/rpc/get_private_beta_access')) return json({ allowed: true })
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
@@ -155,6 +156,7 @@ test('microphone permission is requested directly inside the tap after a delayed
     const request = route.request(), path = new URL(request.url()).pathname
     const json = (body, status=200) => route.fulfill({ status, contentType:'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' }, body:JSON.stringify(body) })
     if (request.method() === 'OPTIONS') return route.fulfill({ status:200, headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'}, body:'' })
+    if(path.endsWith('/rpc/get_private_beta_access'))return json({allowed:true})
     if(path.endsWith('/user'))return json(user)
     if(path.endsWith('/user_plan_preferences'))return json({selected_tier:'free'})
     if(path.endsWith('/user_agreement_acceptances'))return json({id:'88888888-8888-4888-8888-888888888888',agreement_version:'2026-10-27-v3'})
@@ -208,6 +210,7 @@ test('browser dictation starts in the tap gesture after unavailable cloud prefli
     const request=route.request(), path=new URL(request.url()).pathname
     const json=body=>route.fulfill({status:200,contentType:'application/json',headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(body) ? `0-${Math.max(0,body.length-1)}/${body.length}` : '0-0/1' },body:JSON.stringify(body)})
     if(request.method()==='OPTIONS')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:''})
+    if(path.endsWith('/rpc/get_private_beta_access'))return json({allowed:true})
     if(path.endsWith('/user'))return json(user)
     if(path.endsWith('/user_plan_preferences'))return json({selected_tier:'free'})
     if(path.endsWith('/user_agreement_acceptances'))return json({id:'88888888-8888-4888-8888-888888888888',agreement_version:'2026-10-27-v3'})
