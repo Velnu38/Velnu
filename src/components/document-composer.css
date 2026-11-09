@@ -25,3 +25,24 @@
   .creation-review-links { gap: 4px 9px; }
 }
 @media print { .creation-review-bar { display: none !important; } }
+
+/* Quiet, branded stationery shared by invoice and estimate drafts. */
+.document-paper{border-radius:4px;box-shadow:0 12px 36px #102c4b0a;display:flex;flex-direction:column;min-height:680px}
+.document-paper .company-letterhead{border-top-width:4px;padding-top:24px}
+.document-paper .letterhead-company{letter-spacing:-.025em}
+.paper-details{background:#f5f7fa;border-radius:4px;border-left:3px solid var(--document-accent,#2563eb)}
+.paper-details small,.paper-table th,.paper-message>strong{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.paper-table thead{background:#102c4b;color:white}
+.paper-table th{padding:12px}
+.paper-table td{padding:16px 12px}
+.paper-table tbody tr:nth-child(odd){background:#f7f9fb}
+.paper-table td:last-child{font-weight:700}
+.paper-message{color:#536174;font-size:12px;line-height:1.65}
+.paper-message>strong{color:#102c4b}
+.paper-totals{min-width:240px;font-size:12px}
+.paper-totals .paper-grand-total{background:#102c4b;color:#fff;border:0;border-left:3px solid var(--document-accent,#2563eb);padding:14px 12px;margin-top:8px;font-size:14px}
+.document-paper>.document-footer{margin-top:auto;padding-top:18px;padding-bottom:2px}
+.document-paper>.paper-bottom{margin-bottom:40px}
+.document-paper>p.document-footer{border:0;margin-top:8px;padding-top:0;font-size:10px}
+@media(max-width:600px){.document-paper{min-height:0}.paper-totals{min-width:0}.paper-table th,.paper-table td{padding:10px 6px}.paper-details{padding:14px}.document-paper>.paper-bottom{margin-bottom:28px}}
+@media print{.document-paper{box-shadow:none;min-height:0}.paper-table thead,.paper-grand-total,.paper-details{print-color-adjust:exact;-webkit-print-color-adjust:exact}.paper-totals,.document-footer{break-inside:avoid}}

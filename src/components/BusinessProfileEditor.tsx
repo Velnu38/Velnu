@@ -1,3 +1,4 @@
+import { documentFooter } from '../../shared/documentAppearance'
 import {isPrimaryOwner} from '../lib/workspaceAccess'
 import PlanRestriction from './PlanRestriction'
 import type {VelnuTier} from '../lib/pricing'
@@ -178,7 +179,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
             <input type="color" value={draft.document_accent} onChange={e => update('document_accent', e.target.value)} disabled={busy} />
           </label>
           <label className="full">Optional footer on invoices and estimates
-            <textarea value={draft.document_footer} onChange={e => update('document_footer', e.target.value)} placeholder="Thank you for choosing our company." maxLength={500} rows={2} disabled={busy} />
+            <textarea value={draft.document_footer} onChange={e => update('document_footer', e.target.value)} placeholder="Thank You!" maxLength={500} rows={2} disabled={busy} />
           </label>
         </div>
         <div className="profile-preview" style={{ borderTopColor: draft.document_accent }}>
@@ -188,7 +189,7 @@ export default function BusinessProfileEditor({ business, onSaved, companyOnly =
           <span>{[draft.phone, draft.email].filter(Boolean).join(' · ') || 'Business phone and email (optional)'}</span>
           {logoUrl && <img className="profile-current-logo" src={logoUrl} alt="Company logo preview" />}
           {logo && <small>Selected logo will be saved with your company profile.</small>}
-          {draft.document_footer && <small>{draft.document_footer}</small>}
+          <small className="document-footer">{documentFooter(draft.document_footer)}</small>
         </div>
       </>}
       {(step === 2 || companyOnly) && <>

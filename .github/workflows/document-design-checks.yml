@@ -1,0 +1,31 @@
+name: Document design checks
+on:
+  push:
+    branches: [ux/document-design-20261109]
+  pull_request:
+    branches: [ux/private-testing-20261029]
+    paths: ['shared/document*.ts', 'src/components/DocumentPaper.tsx', 'src/components/document-composer.css', 'tests/documents/**', 'tests/e2e/document-creation-preview.spec.mjs', '.github/workflows/document-design-checks.yml']
+permissions:
+  contents: read
+jobs:
+  documents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: node --import tsx --test tests/documents/*.test.ts
+      - name: Draft, saved review and delivery browser checks
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+        run: npx playwright test tests/e2e/document-creation-preview.spec.mjs tests/e2e/document-review-delivery.spec.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: document-design-browser-results
+          path: test-results/
+          retention-days: 3

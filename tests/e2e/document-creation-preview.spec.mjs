@@ -17,6 +17,16 @@ for(const kind of ['invoice','estimate'])test(`${kind}: preview does not save; b
  await form.getByRole('button',{name:'Preview',exact:true}).click()
  await expect(form.locator('.document-paper')).toContainText('Lawn maintenance')
  await expect(form.locator('.document-paper')).toContainText('$250.00')
+ await expect(form.locator('footer.document-footer')).toHaveText('Thank You!')
+ await expect(form.locator('footer.document-footer')).toHaveCSS('text-align','center')
+ for (const width of [390,1280]) {
+  await page.setViewportSize({width,height:1000})
+  const bounds=await form.locator('.document-paper').boundingBox()
+  expect(bounds.x).toBeGreaterThanOrEqual(0)
+  expect(bounds.x+bounds.width).toBeLessThanOrEqual(width+1)
+  await expect(form.locator('footer.document-footer')).toBeVisible()
+ }
+
  await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled()
  expect(state.documents).toHaveLength(0)
  await form.getByRole('button',{name:'← Back to edit',exact:true}).click()

@@ -1,0 +1,22 @@
+# Invoice and estimate stationery refresh
+
+Implemented against base `6cacfe7` in isolated branch `ux/document-design-20261109`. No deployment or provider messages were performed.
+
+- Shared canonical PDF template v2 uses a subtly brand-tinted reference/date panel, clear navy line-item headers and high-contrast financial totals with the company's accent.
+- Blank invoice/estimate footer text displays `Thank You!`, centered near the bottom of the final page, above page references. Custom footer wording replaces the fallback and wraps/paginates safely. No saved settings or historical records are rewritten.
+- Draft HTML and settings previews share the same fallback. Draft stationery has clearer hierarchy, alternating item rows, tabular figures, responsive totals and print styling. Settings explain that blank text uses the default.
+- Saved PDFs remain immutable: existing artifacts are served unchanged for review, download and email. The new template applies to newly generated artifacts. Change-order custom notes retain their previous behavior.
+
+## Verification
+
+- `node --import tsx --test tests/documents/*.test.ts`: 19 passed, covering exact footer bounding-box centering/bottom placement for invoice and estimate, blank variants, unchanged custom text, long multiline pagination, frozen snapshot determinism, logo embedding, financial totals, cached artifact integrity and mocked email attachment dispatch.
+- `npm run build`: passed, including TypeScript, Vite and 56 startup/deployment checks. Vite reports its existing large-chunk warning.
+- Invoice and estimate synthetic PDFs were rendered with Poppler and visually inspected at 1000px: heading, addresses, table, totals and footer are legible and separated on one page.
+- `npm run assessment:sync`, `npm run assessment:test` (7 passed), `npm run assessment:check`: passed. No public launch/provider/device gate marked complete.
+- Browser regression result recorded below after execution. Browser fixtures do not certify live customer sends, real phones or physical printers.
+
+Browser execution is blocked in this environment before page launch: Chromium exits with `process_singleton_posix.cc: socket() failed: Operation not permitted`. The normal run and one explicitly approved escalation both encountered the same restriction. The final fail-fast attempt reports one launch failure and 28 unrun tests, not a product assertion failure. The added 390px/1280px draft footer checks and existing review/save/delivery flows must be rerun in a browser-capable environment before release:
+
+```
+FINVIANT_TEST_BROWSER_PATH=/usr/bin/chromium npx playwright test tests/e2e/document-creation-preview.spec.mjs tests/e2e/document-review-delivery.spec.mjs
+```
