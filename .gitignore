@@ -17,3 +17,5 @@ supabase/.temp/
 /scripts/qa/seed-staging.sql
 
 .calendar-build/
+
+/tmp/operations-review/

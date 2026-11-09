@@ -14,6 +14,12 @@
       "verifiedAt": "2026-11-09"
     },
     {
+      "title": "Jobs and Job Management workspaces",
+      "detail": "Existing Jobs navigation now opens Jobs | Job Management. The directory retains List/Board/Overview, filters, pagination and full job details. Manage opens the same job in an operational workspace with persistent editable tasks/priorities/templates, materials, sequential visit history, crew/appointment commands, linked photos/expenses, all estimate/invoice change scopes, costing/budgets/labor and reviewed completion. New approvals create one unscheduled job; legacy unlinked approved work is explicitly prepared once. Live rollback tests verified storage, template retries, signals, unrelated-actor denial and one-job/no-appointment approval. New private tables deny direct anon/authenticated access; six public RPCs are invokers with anonymous execution revoked. Browser fixture is synthetic, not a live provider or physical-device certificate.",
+      "evidence": "docs/evidence/2026-11-09-job-management-validation.json; docs/JOB_MANAGEMENT_RELEASE_2026-11-09.md",
+      "verifiedAt": "2026-11-09"
+    },
+    {
       "title": "Private-beta population",
       "detail": "3 businesses and 3 Auth accounts observed. This is a controlled private beta, not proof of capacity for hundreds of businesses. Existing beta tier locks and administrator testing access remain unchanged.",
       "evidence": "Read-only aggregate SQL on xvybcmyoblfgzokaifsx; docs/evidence/2026-11-09-operations-validation.json",
@@ -523,7 +529,7 @@
       "status": "open",
       "title": "Extend and certify the Jobs workspaces",
       "owner": "Developer + owner",
-      "why": "List/Board views, assigned internal worker checklists, due dates, optimistic editing and audited activity are implemented on existing jobs/calendar flows. Multi-visit templates, server pagination/rollups, saved filters and physical-device acceptance remain follow-up scope; worker profiles do not grant account access or notifications.",
+      "why": "Jobs | Job Management, persistent tasks/priorities/templates, structured materials, sequential visits on one job, retained List/Board/Overview and source links, approval-to-single-job creation and an explicit unfinished-work completion override are implemented. Server paging of the complete job directory, saved filter presets, simultaneous future-visit planning and physical-device acceptance remain follow-up scope. Worker profiles do not grant account access or notifications.",
       "acceptance": "Use Finviant Job Management Widget to define parent jobs/visits/tasks, recurring-service boundaries, unchanged work states and billing transitions. Implement only after scope selection; preserve customer/site, estimate, invoice/deposit, crew, notes/photo, reminder and deep links. Reuse one calendar/authorized scheduling source; provide accessible mobile List/Board/Schedule views, one next action, saved filters and server pagination/rollups. Verify legacy migration, required-item overrides, concurrent scheduling, cancellation/skip/reopen, partial failures and idempotent estimate-to-job/visit creation. No automatic send/payment or added customer portal.",
       "evidence": []
     },
@@ -534,7 +540,7 @@
       "status": "open",
       "title": "Certify job costs, recurrence and progress-to-final billing",
       "owner": "Developer + finance reviewer",
-      "why": "Office-authorized manual time/rate snapshots, budgets, recorded costs, linked invoices and provisional gross contribution are implemented. Complete cost allocation/approval, multi-visit progress billing, service-series exceptions and certified accounting profit remain unbuilt or unverified; existing recurrence and owner invoice review are preserved.",
+      "why": "Office-authorized manual time/rate snapshots, budgets, recorded costs and provisional gross contribution are retained. Structured materials now track quantity, supplier, receipt/use state and estimated total cost; actual costs still post once through reviewed expenses. Complete cost allocation/approval, multi-visit progress billing, service-series exceptions and certified accounting profit remain unbuilt or unverified.",
       "acceptance": "After JOB-01 scope selection, add permission-controlled approved time/rate snapshots, budgets, material/direct-cost allocations, missing-cost indicators and separate actual/forecast margin. Reconcile taxes/credits/refunds/deposits/progress quantities to final invoicing and deduplicate receipts/labor. Extend existing recurrence with service-series exceptions and bounded generation without duplicate invoice/job creation; test DST/month-end, changed rates/crews, skips and cancellations. Preserve owner invoice review, signed-event payment verification, existing financial reports and no-Fin-charge deterministic rules. Certify scoped completion PDFs and failed-automation recovery; use actual provider receipts under existing gates where applicable.",
       "evidence": []
     },
@@ -635,6 +641,17 @@
       "owner": "Owner + developer",
       "why": "An AI label and source-level review guards do not establish saved time, willingness to pay or a competitive advantage.",
       "acceptance": "After AI-01 provider readiness, define three common scoped tasks and compare manual versus Fin completion with roughly 10-20 target owners under bounded authorized usage. Predefine quality/safety and a proposed 30% median task-time reduction target; measure actual time, major corrections, abandonment/repeat use, latency/provider cost, support and reviewed-to-executed accuracy. Verify no incorrect/unauthorized executed changes, source links, arithmetic/record selection and one completed user task per request with failed/retry safeguards. Publish observed limitations, simplify low-value scope and retain fully usable manual flows; do not imply unlimited assistant work from 25/100 proposed requests or change models/allowances merely from the assessment.",
+      "evidence": []
+    },
+    {
+      "id": "JOB-05",
+      "priority": "P1",
+      "gate": "public",
+      "status": "open",
+      "title": "Verify Job Management on physical devices and authenticated live workflows",
+      "owner": "Owner + developer",
+      "why": "The selected implementation passed synthetic desktop/390px browser inspection, DOM journeys, database regressions and live rollback storage/approval checks. No authenticated physical iPhone session or real provider sending/payment was exercised in this change.",
+      "acceptance": "In an authorized signed-in beta account, verify Jobs filters and history, Manage opening the exact job, approved-work single-job creation, task/template edits and retry recovery, mobile materials/photos/receipt capture, sequential visit finish and rebooking, crew conflicts, all linked change scopes, deposit/invoice balances and completion override/reopen. Verify owner versus restricted staff and physical iPhone touch/keyboard/layout. Exercise actual external providers only under their existing authorization and acceptance gates; retain private beta isolation and recorded evidence.",
       "evidence": []
     }
   ],

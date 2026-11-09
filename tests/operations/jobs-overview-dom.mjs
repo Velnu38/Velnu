@@ -11,7 +11,7 @@ async function scenario(name,verify){
  async function until(fn){for(let i=0;i<120;i++){if(fn())return;await wait(25)}throw Error(name+': expected result not reached: '+doc.body.textContent?.slice(-1000))}
  async function click(element){assert.ok(element,'click target exists');element.click();await wait(70)}
  const button=text=>[...doc.querySelectorAll('button')].find(b=>b.textContent.trim()===text||b.getAttribute('aria-label')===text)
- try{await until(()=>doc.querySelector('.jobs-pulse'));await verify({doc,until,click,button});assert.deepEqual(errors,[]);process.stdout.write('PASS jobs overview DOM: '+name+'\n')}finally{dom.window.close()}
+ try{await until(()=>button('Overview'));await click(button('Overview'));await until(()=>doc.querySelector('.jobs-pulse'));await verify({doc,until,click,button});assert.deepEqual(errors,[]);process.stdout.write('PASS jobs overview DOM: '+name+'\n')}finally{dom.window.close()}
 }
 await scenario('mixed',async({doc,until,click,button})=>{
  assert.equal(button('Overview').getAttribute('aria-pressed'),'true')

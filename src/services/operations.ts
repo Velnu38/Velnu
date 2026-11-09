@@ -1,6 +1,6 @@
 import {supabase} from '../lib/supabase'
 import {announceCalendarChange} from '../lib/workEvents'
-export type JobTask={id:string;title:string;completed:boolean;due_on:string|null;worker_id:string|null;version:number}
+export type JobTask={id:string;title:string;completed:boolean;due_on:string|null;worker_id:string|null;version:number;priority?:'low'|'normal'|'high'}
 export type JobTime={id:string;worked_on:string;worker_id:string|null;minutes:number;hourly_cost:number;note:string}
 export type JobBudget={revenue:number;cost:number;hours:number;version:number}
 export type JobWorkspace={tasks:JobTask[];activity:{id:number;event:string;created_at:string}[];financial_access:boolean;budget?:JobBudget|null;time?:JobTime[];recorded_expenses?:number;invoiced?:number;collected?:number;invoices?:{id:string;number:string|null;status:string;total:number;balance_due:number}[]}

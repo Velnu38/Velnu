@@ -1,3 +1,5 @@
+import {getJob} from '../../services/jobs'
+import {hasActiveJobAppointment} from '../../lib/jobActions'
 import RefreshButton from '../RefreshButton'
 import PlanRestriction from '../PlanRestriction'
 import { useTierUsage } from '../../lib/useTierUsage'
@@ -13,14 +15,17 @@ import './scheduling.css'
 
 export default function ScheduleEstimateDialog({business,estimateId,initialMode='book',onClose,onSaved}:{business:CurrentBusiness;estimateId:string;initialMode?:'offer'|'book';onClose:()=>void;onSaved?:()=>void}) {
   const zone=business.timezone || 'America/New_York',operation=useRef(false)
+  const [linkedJobReady,setLinkedJobReady]=useState(false)
   const [context,setContext]=useState<SchedulingContext|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true)
   const [title,setTitle]=useState(''),[site,setSite]=useState(''),[selectedWorkers,setWorkers]=useState<string[]>([]),[duration,setDuration]=useState(120)
   const [from,setFrom]=useState(DateTime.now().setZone(zone).toISODate()!),[slots,setSlots]=useState<Slot[]>([]),[chosen,setChosen]=useState<string[]>([]),[finding,setFinding]=useState(false)
   const [selectedMode,setMode]=useState<'offer'|'book'>(initialMode),[note,setNote]=useState('Please choose the appointment that works best for you.'),[approved,setApproved]=useState(false)
   const [created,setCreated]=useState<{id:string;url:string;token:string;expires:string}|null>(null),[notice,setNotice]=useState(''),[refresh,setRefresh]=useState(0)
   const pending=useRef<{signature:string;id:string;token:string;send:string}|null>(null)
-  useEffect(()=>{let active=true;setLoading(true);void getSchedulingContext(business.id,estimateId).then(data=>{
-    if(!active)return;setContext(data);setTitle(data.estimate?.title || 'Service visit')
+  useEffect(()=>{let active=true;setLoading(true);void getSchedulingContext(business.id,estimateId).then(async data=>{
+    let ready=false
+    if(data.estimate?.job_id){const job=await getJob(business.id,data.estimate.job_id);ready=!['completed','canceled'].includes(job.status)&&!hasActiveJobAppointment(job)}
+    if(!active)return;setLinkedJobReady(ready);setContext(data);setTitle(data.estimate?.title || 'Service visit')
     setSite(data.estimate?.property_id || (data.properties?.length===1?data.properties[0].id:''))
     setWorkers(data.team.filter(w=>w.is_you).slice(0,1).map(w=>w.id));setDuration(data.preferences.duration_minutes)
   }).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[business.id,estimateId])
@@ -83,8 +88,8 @@ export default function ScheduleEstimateDialog({business,estimateId,initialMode=
   return <FormDialog label={created?'Your next step is ready':'Find a time that works'} cleanVersion={invitationVisible ? notice : ''} busy={busy} onClose={onClose} wide><header className="guided-dialog-head"><div><p className="eyebrow">Approved estimate · {context?.estimate?.number || 'Schedule next'}</p><h2 id="schedule-estimate-title">{created?'Your next step is ready':'Find a time that works'}</h2></div><button type="button" className="calendar-arrow" aria-label="Close scheduling" disabled={busy} onClick={close}>×</button></header>
     {loading?<p role="status">Loading the customer and scope…</p>:context && <>
       <div className="guided-summary"><strong>{context.estimate?.customer_name}</strong><span>{context.estimate?.customer_email || 'No customer email saved'}</span><details><summary>Approved scope</summary><p>{context.estimate?.scope}</p></details></div>
-      {context.estimate?.job_id && <p role="status">This estimate already has a job. Open Jobs to manage its schedule.</p>}
-      {!created && !context.estimate?.job_id && <>
+      {context.estimate?.job_id && !linkedJobReady && <p role="status">This estimate already has a job with a schedule or closed work. <a href={'/?view=work&workspace=management&job='+context.estimate.job_id}>Manage its schedule in Jobs.</a></p>}
+      {!created && (!context.estimate?.job_id || linkedJobReady) && <>
         {teamScheduling ? <div className="guided-mode" role="group" aria-label="Scheduling method"><button type="button" aria-pressed={mode==='book'} disabled={busy} onClick={()=>{if(mode!=='book'){setMode('book');setApproved(false);setChosen([])}}}>Book appointment</button><button type="button" aria-pressed={mode==='offer'} disabled={busy} onClick={()=>{if(mode!=='offer'){setMode('offer');setApproved(false);setChosen([])}}}>Send booking link</button></div> : plan && <PlanRestriction plan={plan} required="pro" feature="Customer self-booking" canUpgrade={isPrimaryOwner(business)}/>}
         <p className="quiet">{mode==='book'?'You choose the appointment time. Confirm it with your customer directly.':'You offer available times. The customer chooses one through a private link.'}</p>
         <div className="guided-form-grid">
