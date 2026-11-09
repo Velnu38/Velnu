@@ -1,3 +1,4 @@
+import CustomerSquareCheckout from '../components/CustomerSquareCheckout'
 import RefreshButton from '../components/RefreshButton'
 import { useEffect, useRef, useState } from 'react'
 import { getSharedDocument, type SharedDocument } from '../services/personalDelivery'
@@ -84,7 +85,8 @@ export default function SharedDocumentPage({ token }: { token: string }) {
         <p>Paid: {money(Number(doc.live_amount_paid ?? doc.amount_paid ?? 0))}</p><p><strong>Current balance: {money(balance)}</strong></p>
         {balance <= 0 && status === 'paid' ? <p>This invoice is paid. Keep the PDF for your records.</p> : <>
           {!payableDocument(doc)&&<p>{doc.action_reason||'This document copy is read only. Contact the business for the current invoice before paying.'}</p>}
-          {canPay&&payment?.available && <button type="button" className="primary-button" disabled={paying} onClick={() => void pay()}>{paying ? 'Opening secure payment…' : 'Pay invoice'}</button>}
+          {canPay&&payment?.available && <button type="button" className="primary-button" disabled={paying} onClick={() => void pay()}>{paying ? 'Opening secure payment…' : 'Pay invoice with Stripe'}</button>}
+          {doc.pro_actions_enabled&&statusVerified&&payableDocument(doc)&&<CustomerSquareCheckout token={token} blocked={!!payment&&['pending','review_required'].includes(payment.state)}/>}
           {payment && !payment.available && <p>{payment.message || 'Online invoice payment is not activated. Contact the business or use its payment instructions.'}</p>}
           {canPay&&doc.payment_instructions && <p>{doc.payment_instructions}</p>}
           {canPay&&safePaymentLinks(doc.payment_links).length > 0 && <><p>Other payment options are confirmed by the business after payment.</p><div className="personal-delivery-actions">{safePaymentLinks(doc.payment_links).map(link => <a key={link.provider} className="secondary-button" href={invoicePaymentUrl(link, balance, doc.number, doc.currency || 'USD')} rel="noopener noreferrer" target="_blank">Pay with {paymentProviders.find(provider => provider.id === link.provider)?.name || link.provider}</a>)}</div></>}

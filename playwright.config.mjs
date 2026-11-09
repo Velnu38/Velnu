@@ -11,11 +11,12 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4173', browserName: 'chromium',
     // CI may use its existing stable Chrome instead of downloading another browser.
     channel: process.env.FINVIANT_TEST_CHANNEL === 'chrome' ? 'chrome' : undefined,
+    launchOptions: process.env.FINVIANT_TEST_BROWSER_PATH ? { executablePath: process.env.FINVIANT_TEST_BROWSER_PATH } : {},
     screenshot: 'only-on-failure', trace: 'retain-on-failure', serviceWorkers: 'block',
   },
   webServer: {
     // Exercise the built app so Vite dependency discovery cannot reload active forms.
-    command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173',
+    command: 'npm run build && npm run build:browser-fixtures && npm run preview -- --host 127.0.0.1 --port 4173',
     timeout: 120000,
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,

@@ -1,15 +1,10 @@
 import type { PaymentLink } from "../services/settings";
 export const paymentProviders = [
-  { id: "venmo", name: "Venmo", example: "https://venmo.com/your-business" },
-  { id: "paypal", name: "PayPal", example: "https://paypal.me/your-business" },
-  { id: "stripe", name: "Stripe", example: "https://buy.stripe.com/your-link" },
-  {
-    id: "cashapp",
-    name: "Cash App",
-    example: "https://cash.app/$YourBusiness",
-  },
+  {id:'stripe',name:'Stripe',example:'https://buy.stripe.com/your-link'},
+  {id:'square',name:'Square',example:'https://square.link/u/your-link'},
 ] as const;
 const hosts: Record<string, string[]> = {
+  square: ["square.link", "invoice.squareup.com"],
   venmo: ["venmo.com", "www.venmo.com", "account.venmo.com"],
   paypal: ["paypal.me", "paypal.com", "www.paypal.com"],
   stripe: ["buy.stripe.com", "invoice.stripe.com", "checkout.stripe.com"],

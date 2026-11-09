@@ -1,3 +1,6 @@
+import RefreshButton from '../components/RefreshButton'
+import BillExpenseDialog from '../components/BillExpenseDialog'
+import FinancialPerformance from '../components/FinancialPerformance'
 import ReceiptLink from '../components/ReceiptLink'
 import PlanRestriction from '../components/PlanRestriction'
 import {canAccess,isPrimaryOwner} from '../lib/workspaceAccess'
@@ -46,6 +49,8 @@ function exportCsv(rows: WorkbookLine[], source: WorkbookSource) {
 }
 
 export default function BookkeepingPage({ business }: { business: CurrentBusiness }) {
+  const [overviewVersion,setOverviewVersion]=useState(0)
+  const [billExpense,setBillExpense]=useState<{id:string;description:string}|null>(null)
   const tier=useTierUsage(business.id),restricted=!tier||tier.plan==='free'
   const canSee = permitted.includes(business.role)
   const canManageQuickBooks = managers.includes(business.role)
@@ -174,9 +179,11 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
     <div className="page-heading split-heading">
       <div><p className="eyebrow">Bookkeeping · Money in and out</p><h1>Know what you earned. Know what you spent.</h1>
         <p className="quiet">Payments on Finviant Office invoices appear automatically. Add other expenses or income manually, or optionally connect QuickBooks Online.</p></div>
-      <div className="related-page-actions">{canAccess(business,'billing')&&<a className="secondary-button compact" href="/?view=payments">Payment history</a>}
+      <div className="related-page-actions"><RefreshButton busy={busy} onClick={()=>{setOverviewVersion(v=>v+1);void refresh()}}/>{canAccess(business,'billing')&&<a className="secondary-button compact" href="/?view=payments">Payment history</a>}
         <button className="primary-button compact" onClick={() => { setNewEntry(true); setSource('velnu') }}>+ Add Entry</button></div>
     </div>
+    <FinancialPerformance business={business} refreshVersion={overviewVersion} hideEntryAction/>
+    <h2>Income &amp; expense workbook</h2>
     <section className="bookkeeping-tabs" role="group" aria-label="Workbook source">
       <button type="button" className={source === 'velnu' ? 'active' : ''} aria-pressed={source === 'velnu'} onClick={() => setSource('velnu')}>Finviant Office workbook</button>
       <button type="button" className={source === 'quickbooks' ? 'active' : ''} aria-pressed={source === 'quickbooks'} onClick={() => setSource('quickbooks')}>QuickBooks Online</button>
@@ -235,9 +242,10 @@ export default function BookkeepingPage({ business }: { business: CurrentBusines
           <td>{row.entry_date}</td><td><strong>{row.description}</strong><small>{row.category}</small></td>
           <td><span className={'bookkeeping-kind ' + row.direction}>{row.direction === 'income' ? 'Income' : 'Expense'}</span></td>
           <td><small>{row.source_label}</small>{row.receiptPath&&<ReceiptLink path={row.receiptPath}/>}</td><td className={'amount ' + row.direction}>{row.direction === 'expense' ? '−' : '+'}{money(row.amount, row.currency)}</td>
-          <td>{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
+          <td>{canAccess(business,'billing')&&row.removable&&row.direction==='expense'&&row.currency==='USD'&&row.source_view!=='invoices'&&<button type="button" className="text-button" disabled={busy} onClick={()=>setBillExpense({id:row.id,description:row.description})}>Bill customer</button>}{row.removable && <button type="button" className="text-button" disabled={busy} onClick={() => void deleteEntry(row)}>Delete</button>}</td>
         </tr>)}</tbody></table></div>}
     </section>
+    {billExpense&&<BillExpenseDialog business={business} expenseId={billExpense.id} description={billExpense.description} onClose={()=>setBillExpense(null)}/>}
     {newEntry && <FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction,payment)=>{setNewEntry(false);setNotice(`${payment?'Payment recorded':direction==='income'?'Income saved':'Expense saved'}. Transaction date: ${date}. Choose All time if it is outside the displayed period.`);void refresh()}}/>}
   </div>
 }

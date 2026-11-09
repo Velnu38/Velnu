@@ -7,11 +7,8 @@ export default defineConfig({
   server: { allowedHosts: ['terminal.local'] },
   build: {
     rollupOptions: {
-      // The isolated invoice regression page is included only in local browser-test builds.
-      // Hosted deployments must never publish test fixtures.
-      input: !process.env.VERCEL && process.env.FINVIANT_BROWSER_TEST === 'true'
-        ? { app: 'index.html', invoiceFixture: 'tests/invoice.html' }
-        : undefined,
+      // Local browser fixtures are built separately after startup validation;
+      // hosted builds always contain just the application entry point.
       output: {
         // Stable vendor caches; analytics remains a consent-gated dynamic import.
         manualChunks(id) {

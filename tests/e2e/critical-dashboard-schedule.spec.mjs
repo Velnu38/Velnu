@@ -81,6 +81,7 @@ async function mockWorkspace(page, options = {}) {
       status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET, POST, PATCH, DELETE' }, body: '',
     })
     if (path.endsWith('/auth/v1/user')) return reply(user)
+    if (path.endsWith('/rpc/get_private_beta_access')) return reply({allowed:true})
     if (path.endsWith('/rpc/get_membership_entry')) return reply(BID)
     if (path.endsWith('/rpc/get_schedule_team')) return reply(state.role==='viewer'?[]:[{id:UID,label:'QA Owner',role:state.role,is_you:true}])
     if (path.endsWith('/rpc/get_dashboard_attention_page')) {

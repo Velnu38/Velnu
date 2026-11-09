@@ -1,3 +1,4 @@
+import SquareReturnPage from './pages/SquareReturnPage'
 import BusinessCardPage from './pages/BusinessCardPage'
 import SharedDocumentPage from './pages/SharedDocumentPage'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -32,6 +33,7 @@ const initialRecovery = initialQuery.get('recovery') === '1' || initialHash.get(
 const invalidAuthLink = initialHash.has('error') || initialQuery.has('error')
 const initialAuthMode = initialQuery.get('mode') === 'signup' ? 'signup' : initialQuery.get('mode') === 'reset' ? 'reset' : 'signin'
 export default function App() {
+  if(window.location.pathname==='/square-return')return <SquareReturnPage/>
   const cardToken = new URLSearchParams(window.location.search).get('business_card')
   if (cardToken !== null) return <BusinessCardPage token={cardToken}/>
   // A web visit is the public homepage, even when this browser has an account

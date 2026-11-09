@@ -1,3 +1,4 @@
+import {downloadCustomerStatement} from '../services/customerStatement'
 import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
@@ -28,7 +29,7 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
   const [detail,setDetail]=useState<Detail|null>(null)
   const [loading,setLoading]=useState(true)
   const [showAddress,setShowAddress]=useState(false),[editingAddress,setEditingAddress]=useState<CustomerLocation|undefined>(),[showEdit,setShowEdit]=useState(false)
-  const [error,setError]=useState('')
+  const [error,setError]=useState(''),[statementBusy,setStatementBusy]=useState(false)
 
   const request=useRef(0)
   const billing=canAccess(business,'billing'),jobs=canAccess(business,'jobs')
@@ -50,6 +51,7 @@ export default function CustomerDetail({ business, customerId, onBack }: { busin
       <div className="avatar large">{displayName(customer).charAt(0).toUpperCase()}</div>
       <div className="customer-hero-main"><p className="eyebrow">Customer</p><h1>{displayName(customer)}</h1><div className="customer-contact">{customer.company&&displayName(customer)!==customer.company&&<span>{customer.company}</span>}{phone&&/^\+?\d{7,15}$/.test(phone)?<a href={'tel:'+phone}>{customer.phone}</a>:customer.phone&&<span>{customer.phone}</span>}{email&&/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email)?<a href={'mailto:'+encodeURIComponent(email).replace('%40','@')}>{email}</a>:email&&<span>{email}</span>}</div></div>
       {billing&&<div className="customer-balance"><span>Outstanding</span><strong>${outstanding.toFixed(2)}</strong></div>}
+      {billing&&canManageFinances(business.role)&&<button type="button" className="text-button" disabled={statementBusy} onClick={()=>{setStatementBusy(true);setError('');void downloadCustomerStatement(business.id,customerId).catch(e=>setError((e as Error).message)).finally(()=>setStatementBusy(false))}}>{statementBusy?'Preparing statement…':'Download account statement'}</button>}
       {canWrite(business.role)&&<div className="customer-contact-actions"><button type="button" className="secondary-button compact" onClick={()=>setShowEdit(true)}>Edit customer</button></div>}
     <div className="customer-contact-address" role="group" aria-label="Address">
       <div className="detail-card-head"><div><h2>Address</h2><p className="quiet">Service locations, maps and directions for this contact.</p></div>{canWrite(business.role)&&<button type="button" className="secondary-button compact" onClick={()=>{setEditingAddress(undefined);setShowAddress(true)}}>+ Add address</button>}</div>

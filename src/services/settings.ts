@@ -24,7 +24,7 @@ export type TeamState = {
   invitations: Invitation[];
 };
 export type PaymentLink = {
-  provider: "venmo" | "paypal" | "stripe" | "cashapp";
+  provider: "venmo" | "paypal" | "stripe" | "cashapp" | "square";
   url: string;
 };
 export type PaymentServiceSetup = PaymentLink & {include_by_default:boolean};
@@ -121,7 +121,7 @@ export async function getDocumentSettings(
     .eq("business_id", businessId)
     .maybeSingle();
   if (error) throw error;
-  return data ? { ...emptyDocumentSettings, ...data } : emptyDocumentSettings;
+  return data ? { ...emptyDocumentSettings, ...data, payment_links:(data.payment_links||[]).filter((x:PaymentLink)=>["stripe","square"].includes(x.provider)),payment_service_setups:data.payment_service_setups?.filter((x:PaymentServiceSetup)=>["stripe","square"].includes(x.provider))??null } : emptyDocumentSettings;
 }
 export async function saveDocumentSettings(
   businessId: string,

@@ -1,4 +1,5 @@
 import { useBusinessRefresh } from '../lib/useBusinessRefresh'
+import FinancialInsights from './FinancialInsights'
 import ReceiptLink from './ReceiptLink'
 import {useTierUsage} from '../lib/useTierUsage'
 import { useEffect, useId, useMemo, useState } from 'react'
@@ -45,7 +46,7 @@ function FinancialTrend({ buckets, selected, onSelect }: { buckets: FinancialBuc
   </div>
 }
 
-export default function FinancialPerformance({ business, onOpenWorkbook, refreshVersion = 0, compact = false }: { business: CurrentBusiness; onOpenWorkbook?: () => void; refreshVersion?: number; compact?: boolean }) {
+export default function FinancialPerformance({ business, onOpenWorkbook, refreshVersion = 0, compact = false, hideEntryAction = false }: { business: CurrentBusiness; onOpenWorkbook?: () => void; refreshVersion?: number; compact?: boolean; hideEntryAction?: boolean }) {
   const [newEntry,setNewEntry]=useState(false),[notice,setNotice]=useState('')
   const tier=useTierUsage(business.id),restricted=!tier||tier.plan==='free'
   const zone = business.timezone || 'America/New_York'
@@ -81,10 +82,12 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   function expand(kind: Detail) { setDetail(value => value === kind ? null : kind); resetFilters() }
   function selectBucket(key: string) { setSelected(value => value === key ? null : key); setDetail('all'); resetFilters() }
   return <section className={`financial-performance interactive-performance dashboard-tile${compact ? ' performance-compact' : ''}`} aria-labelledby="financial-performance-title">
-    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2 className="dashboard-tile-title" id="financial-performance-title">Financial Performance</h2>{canAccess(business,"finances")&&<button type="button" className="calendar-add" onClick={()=>setNewEntry(true)}>{compact?'Add transaction':'+ Add Entry'}</button>}</div><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" disabled={restricted} aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
+    <div className="performance-heading"><div><p className="eyebrow">Business insights</p><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2 className="dashboard-tile-title" id="financial-performance-title">Financial Performance</h2>{!hideEntryAction&&canAccess(business,"finances")&&<button type="button" className="calendar-add" onClick={()=>setNewEntry(true)}>{compact?'Add transaction':'+ Add Entry'}</button>}</div><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" disabled={restricted} aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
     {restricted&&<p className="quiet">Free includes the last 30 days. <a href="/?view=settings&section=plans">Individual includes full financial history.</a> Your original records remain available for viewing and export.</p>}
     {notice&&<p role="status" className="form-message">{notice}</p>}
     {newEntry&&<FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction,payment)=>{setNewEntry(false);setSelected(null);resetFilters();setNotice(`${payment?'Payment recorded':direction==='income'?'Income saved':'Expense saved'}.${date<range.from||date>=range.to?' This transaction is outside the selected period. View all income & expenses to find it.':' Totals are refreshing.'}`);setVersion(v=>v+1)}}/>}
+    <FinancialInsights business={business} refreshVersion={refreshVersion+version} compact={compact} rows={ready?scopeRows:[]}/>
+    <div className="insight-section-heading"><div><h3>Cash activity</h3><p className="quiet">Recorded income and expenses · {scopeLabel}</p></div></div>
     {error ? <div className="performance-unavailable" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setVersion(value => value + 1)}>Retry financial data</button></div> : !ready ? <div className="performance-loading" role="status">Loading financial transactions…</div> : !compact ? <FinancialTrend buckets={buckets} selected={bucket?.key || null} onSelect={selectBucket}/> : null}
     <div className="performance-scope"><span>{!ready ? loading ? 'Loading financial data…' : 'Financial data unavailable' : bucket ? `Viewing ${scopeLabel}` : `Period total · ${scopeRows.length} transactions`}</span>{bucket && <button className="text-button" onClick={() => { setSelected(null); resetFilters() }}>Show entire period</button>}</div>
     <div className="performance-metrics">

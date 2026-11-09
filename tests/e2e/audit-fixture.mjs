@@ -19,6 +19,8 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   const reply=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-expose-headers':'content-range','content-range':Array.isArray(value)?`0-${Math.max(0,value.length-1)}/${value.length}`:'0-0/0'},body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,DELETE'},body:''})
   if(path.endsWith('/auth/v1/user'))return reply(user)
+  if(path.endsWith('/rpc/get_private_beta_access'))return reply({allowed:true})
+  if(path.endsWith('/rpc/get_financial_overview'))return reply({currency_supported:true,as_of:DateTime.now().toISODate(),receivables:{invoices:0,outstanding:0,overdue:0,overdue_count:0},aging:[],customers:[],oldest:[]})
   if(path.endsWith('/rpc/get_membership_entry'))return reply(B)
   if(path.endsWith('/user_plan_preferences'))return reply({selected_tier:'pro'})
   if(path.endsWith('/user_agreement_acceptances'))return reply({id:E,agreement_version:'2026-10-26-v2'})

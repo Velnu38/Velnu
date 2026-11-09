@@ -1,3 +1,4 @@
+import SquareConnection from './SquareConnection'
 import './settings.css'
 import {useUnsavedChanges} from '../../lib/unsavedChanges'
 import { useEffect, useState, type FormEvent } from "react";
@@ -47,16 +48,16 @@ export default function PaymentSettings({ business, onSaved, submitLabel="Save p
   }
   if (!loaded) return error ? <p role="alert">{error} <button className="text-button" onClick={() => window.location.reload()}>Reload settings</button></p> : <p role="status">Loading payment options…</p>;
   return (
-    <form className="settings-panel" onSubmit={submit} onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}>
+    <form className="settings-panel" onSubmit={submit} onInputCapture={e=>{if(!(e.target as Element).closest('[data-payment-independent]'))guard.markDirty()}} onChangeCapture={e=>{if(!(e.target as Element).closest('[data-payment-independent]'))guard.markDirty()}}>
       <p className="quiet">Choose how customers can pay your business. Only the primary Finviant account owner can manage these payment options.</p>
       <section className="settings-inset">
-        <h3>Customer Payment Methods</h3>
+        <h3>Stripe &amp; Square payment links</h3>
         <p className="quiet">
           Use links from your own business payment accounts. Buttons appear on
           invoices only. Payments and provider fees are handled directly between
           you and the provider, outside Finviant.
         </p>
-        {paymentProviders.map(p=>{const setup=setups.find(s=>s.provider===p.id);return <div className="payment-provider-setting" key={p.id}><h4>{p.name}</h4><label>Business payment link<input type="url" maxLength={1000} value={setup?.url||''} placeholder={p.example} onChange={e=>{if(!e.target.value){const next=setups.filter(s=>s.provider!==p.id);setValue({...value,payment_service_setups:next,payment_links:next.filter(s=>s.include_by_default).map(({provider,url})=>({provider,url}))})}else setSetup(p.id,e.target.value.trim(),setup?.include_by_default||false)}}/></label><label className="settings-checkbox"><input type="checkbox" disabled={!setup?.url||!validPaymentLink(setup)} checked={setup?.include_by_default||false} onChange={e=>setSetup(p.id,setup?.url||'',e.target.checked)}/>Include on new invoices by default</label>{setup&&validPaymentLink(setup)&&<a className="secondary-button compact" href={setup.url} target="_blank" rel="noopener noreferrer">Test {p.name} link</a>}<p className="quiet">{p.id==='paypal'?'A base PayPal.Me link can carry the remaining amount. Customers may need to enter the invoice number.':p.id==='stripe'?'Use a reusable customer-entered-amount Payment Link for varying invoice balances. Finviant adds an invoice reference to buy.stripe.com links; it cannot change a fixed checkout price.':'Use your business profile payment link. Customers may need to enter the amount and invoice number.'}</p></div>})}
+        {paymentProviders.map(p=>{const setup=setups.find(s=>s.provider===p.id);return <div className="payment-provider-setting" key={p.id}><h4>{p.name}</h4><label>Business payment link<input type="url" maxLength={1000} value={setup?.url||''} placeholder={p.example} onChange={e=>{if(!e.target.value){const next=setups.filter(s=>s.provider!==p.id);setValue({...value,payment_service_setups:next,payment_links:next.filter(s=>s.include_by_default).map(({provider,url})=>({provider,url}))})}else setSetup(p.id,e.target.value.trim(),setup?.include_by_default||false)}}/></label><label className="settings-checkbox"><input type="checkbox" disabled={!setup?.url||!validPaymentLink(setup)} checked={setup?.include_by_default||false} onChange={e=>setSetup(p.id,setup?.url||'',e.target.checked)}/>Include on new invoices by default</label>{setup&&validPaymentLink(setup)&&<a className="secondary-button compact" href={setup.url} target="_blank" rel="noopener noreferrer">Test {p.name} link</a>}<p className="quiet">{p.id==='stripe'?'Use a reusable customer-entered-amount Payment Link for varying invoice balances. Finviant adds an invoice reference to buy.stripe.com links; it cannot change a fixed checkout price.':'Use your business profile payment link. Customers may need to enter the amount and invoice number.'}</p></div>})}
         <label>
           Payment instructions
           <textarea
@@ -100,11 +101,10 @@ export default function PaymentSettings({ business, onSaved, submitLabel="Save p
           guarantee of recovering exact fees.
         </p>
         <p className="quiet">
-          PayPal prohibits a surcharge for accepting PayPal. Card surcharges
-          have separate provider and legal requirements, so Finviant does not
-          add them automatically.
+          This uniform pricing tool changes base prices for every payment method. Use the separate credit-card fee preference below for provider-specific recovery; it remains off until eligibility is verified.
         </p>
       </section>
+      <SquareConnection business={business} onRedirect={()=>guard.markClean()}/>
       {error && <p className="form-message error-text" role="alert">{error}</p>}
       {notice && <p className="form-message" role="status">{notice}</p>}
       <button className="primary-button" disabled={busy}>{busy ? "Saving…" : submitLabel}</button>

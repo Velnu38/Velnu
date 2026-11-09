@@ -64,7 +64,7 @@ export async function listVelnuWorkbook(businessId: string, period?: WorkbookRan
     }),
     collectWorkbookPages((from, to) => {
       let query = supabase.from('bookkeeping_entries')
-        .select('id,entry_date,direction,amount,currency,category,description,notes,job_id,estimate_id,invoice_id,jobs!bookkeeping_job_tenant_fk(title),estimates!bookkeeping_estimate_tenant_fk(estimate_number),invoices!bookkeeping_invoice_tenant_fk(invoice_number),record_photos!record_photos_expense_fk(storage_path)', { count: 'exact' })
+        .select('id,entry_date,direction,amount,currency,category,description,notes,source_kind,job_id,estimate_id,invoice_id,jobs!bookkeeping_job_tenant_fk(title),estimates!bookkeeping_estimate_tenant_fk(estimate_number),invoices!bookkeeping_invoice_tenant_fk(invoice_number),record_photos!record_photos_expense_fk(storage_path)', { count: 'exact' })
         .eq('business_id', businessId)
       if (period) query = query.gte('entry_date', period.from).lt('entry_date', period.to)
       return query.order('id', { ascending: true }).range(from, to)
@@ -99,13 +99,13 @@ export async function listVelnuWorkbook(businessId: string, period?: WorkbookRan
     amount: dollars(row.amount),
     currency: (row.currency as string) || 'USD',
     source: 'manual' as const,
-    source_label: row.job_id ? 'Job expense' : row.estimate_id ? 'Estimate expense' : row.invoice_id ? 'Invoice expense' : 'Manual entry',
+    source_label: row.source_kind==='square_processing'?'Square processing fee':row.job_id ? 'Job expense' : row.estimate_id ? 'Estimate expense' : row.invoice_id ? 'Invoice expense' : 'Manual entry',
     source_id: (row.job_id || row.estimate_id || row.invoice_id || null) as string | null,
     source_view: row.job_id ? 'work' as const : row.estimate_id ? 'estimates' as const : row.invoice_id ? 'invoices' as const : undefined,
     source_reference: asList(row.jobs)[0]?.title || asList(row.estimates)[0]?.estimate_number || asList(row.invoices)[0]?.invoice_number || '',
     notes: row.notes as string | null,
     receiptPath: asList(row.record_photos)[0]?.storage_path || null,
-    removable: true,
+    removable: !row.source_kind,
   }))
   return [...received, ...extra].sort((a, b) => b.entry_date.localeCompare(a.entry_date))
 }
@@ -198,7 +198,7 @@ export async function removeManualEntry(businessId: string, id: string, receiptP
   }
   const { error } = await supabase.from('bookkeeping_entries')
     .delete().eq('business_id', businessId).eq('id', id)
-  if (error) throw error
+  if (error) throw error.code==='23503'?new Error('This expense is linked to an invoice. Void the billing invoice before deleting the expense.'):error
 }
 
 type QBResponse<T> = { data: T; error: null } | { data: null; error: Error }

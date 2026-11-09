@@ -1,3 +1,5 @@
+import CopyDocumentButton from './CopyDocumentButton'
+import SquareInvoicePayment from './SquareInvoicePayment'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import {readableError} from '../lib/errors'
@@ -39,6 +41,7 @@ const money=(value:number)=>new Intl.NumberFormat('en-US',{style:'currency',curr
 function customerName(customer?:Customer|null){return customer?[customer.first_name,customer.last_name].filter(Boolean).join(' ')||customer.company||'Customer':'Customer'}
 
 export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=false}:{business:CurrentBusiness;invoiceId:string;onBack:()=>void;initialEdit?:boolean}){
+  const [showSquare,setShowSquare]=useState(false)
   const plan=useTierUsage(business.id)?.plan
   const canManage=canManageFinances(business.role)&&canAccess(business,'billing')
   const canSeeWork=canAccess(business,'jobs'),canCalendar=canAccess(business,'calendar')
@@ -104,7 +107,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
   const hasAppointment=canCalendar?!!appointment:!!job?.scheduled_start
   const activeJob=job&&!['completed','canceled'].includes(job.status)
   const canChange=!invoice.deposit_estimate_id&&canManage&&detail.changeOrderContext.canChange&&offersDocumentChangeOrders('invoice',invoice.status,detail.changeOrderContext.workStatus)
-  const hasMore=canManage&&invoice.status!=='void'
+  const hasMore=canManage
   const grossReceived=detail.payments.filter(payment=>['succeeded','partially_refunded','refunded'].includes(payment.status)).reduce((sum,payment)=>sum+Number(payment.amount),0)
   const netReceived=detail.paymentOperations.state==='unavailable'?null:grossReceived-detail.paymentOperations.refunds.reduce((sum,refund)=>sum+Number(refund.amount),0)
   const context={documentId:invoice.id,documentNumber:invoice.invoice_number||'Invoice',customerId:invoice.customer_id,jobId:invoice.job_id,estimateId:invoice.estimate_id,documentType:'invoice' as const}
@@ -119,6 +122,8 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
     {canManage&&<DocumentDeliveryRecovery businessId={business.id} kind="invoice" documentId={invoice.id} refreshKey={invoice.updated_at||''} onOpen={()=>setDelivery('retry')} onRecoveryChange={setRecovery}/>}
     {canManage&&detail.paymentOperations.state!=='clear'&&<aside role="status" className="form-message"><p>{detail.paymentOperations.message||(detail.paymentOperations.state==='pending'?'An online payment is processing. Wait for confirmation before recording or requesting another payment.':detail.paymentOperations.state==='review_required'?'An online payment needs reconciliation. Review the payment before requesting or recording more funds.':'Payment processing status is unavailable. Refresh before recording another payment.')}</p>{detail.paymentOperations.state==='unavailable'&&<button type="button" className="text-button" disabled={loading} onClick={()=>void refresh()}>Retry payment status</button>}</aside>}
     <RecordActionBar primary={action(policy.primary,true)} secondary={action(policy.secondary,false)} disabled={busy} more={hasMore?<>
+      <CopyDocumentButton businessId={business.id} kind="invoice" id={invoice.id} disabled={busy}/>
+      {plan==='pro'&&!recovery&&!['draft','paid','void'].includes(invoice.status)&&<button type="button" onClick={()=>setShowSquare(true)}>Take payment with Square</button>}
       {policy.canSendCopy&&!recovery&&<button type="button" onClick={()=>setDelivery('share')}>Send invoice copy</button>}
       {canManage&&invoice.status==='draft'&&policy.primary!=='send'&&!recovery&&<button type="button" onClick={()=>setDelivery('send')}>Send invoice</button>}
       {canManage&&plan==='pro'&&!['paid','void'].includes(invoice.status)&&!recovery&&detail.paymentOperations.state==='clear'&&<button type="button" onClick={()=>setDelivery('schedule')}>Schedule email delivery</button>}
@@ -130,6 +135,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
       {canChange&&<button type="button" onClick={()=>setShowChangeOrders('new')}>New change order</button>}
       {policy.canVoid&&!recovery&&<button type="button" className="danger-action" onClick={()=>void voidInvoice()}>Void invoice</button>}
     </>:undefined}/>
+    {showSquare&&<SquareInvoicePayment business={business} invoiceId={invoice.id} onClose={()=>{setShowSquare(false);void refresh()}}/>}
     {receipt&&<p role="status" className="form-message success-text">{receipt}</p>}{jobNotice&&<p role="status" className="form-message">{jobNotice}</p>}{error&&<p role="alert" className="form-message error-text">{error}</p>}
     {invoice.job_id&&canSeeWork&&<p className="quiet">{job?.status==='completed'?'Linked work completed.':job?.status==='canceled'?'Linked job canceled.':hasAppointment?<>{canCalendar?'Appointment: ':'Work scheduled: '}<DocumentTime value={appointment?.starts_at||job?.scheduled_start} timezone={business.timezone}/>{job?.status==='in_progress'?' · Work in progress.':''}</>:detail.work.available?'Linked job has no active appointment.':'Linked job status could not be verified.'} <a href={jobHref!}>Open linked job</a></p>}
     {plan==='free'&&<UpgradeLink plan="free" required="basic" canUpgrade={isPrimaryOwner(business)}>View Individual upgrade to remove Finviant branding</UpgradeLink>}

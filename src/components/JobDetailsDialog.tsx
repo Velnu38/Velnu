@@ -1,3 +1,4 @@
+import JobWorkPlan from './JobWorkPlan'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { DateTime } from 'luxon'
 import { canWrite, type CurrentBusiness } from '../lib/business'
@@ -37,7 +38,8 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
   const [notes, setNotes] = useState(''), [error, setError] = useState('')
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState('')
   const [dispatch, setDispatch] = useState<JobScheduleMode | null>(null), [notesVersion, setNotesVersion] = useState(0)
-  const [panel, setPanel] = useState<'details' | 'photos' | 'activity'>(initialPhotos ? 'photos' : 'details')
+  const [panel, setPanel] = useState<'details' | 'plan' | 'photos' | 'activity'>(initialPhotos ? 'photos' : 'details')
+  const [planOpened,setPlanOpened]=useState(false)
   const [photosOpened, setPhotosOpened] = useState(initialPhotos)
   const tabsId = useId()
   const scheduleIntent = useRef(initialSchedule)
@@ -170,8 +172,9 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
 
   const crew = team?.filter(worker => job?.assigned_user_ids?.includes(worker.id)).map(worker => worker.label) || []
   const scheduled = (value: string) => DateTime.fromISO(value).setZone(zone).toFormat('MMM d, yyyy · h:mm a')
-  function selectPanel(next: 'details' | 'photos' | 'activity') {
+  function selectPanel(next: 'details' | 'plan' | 'photos' | 'activity') {
     setPanel(next)
+    if (next === 'plan') setPlanOpened(true)
     if (next === 'photos') setPhotosOpened(true)
   }
   const dirty = !!job && notes !== (job.description || '')
@@ -211,8 +214,9 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
           {canReopen && <button type="button" disabled={busy} onClick={() => void reopen()}>Reopen job</button>}
         </> : undefined} />
         {notice && <p role="status">{notice} {invoiceAction && canInvoice && !linkedInvoice && <a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
-        <RecordTabs label="Job sections" tabs={[{id:tab('details'),label:'Details'},{id:tab('photos'),label:'Photos & expenses'},{id:tab('activity'),label:'Activity'}]}
-          active={tab(panel)} onChange={id => selectPanel(id === tab('photos') ? 'photos' : id === tab('activity') ? 'activity' : 'details')} />
+        <RecordTabs label="Job sections" tabs={[{id:tab('details'),label:'Details'},{id:tab('plan'),label:'Work plan'},{id:tab('photos'),label:'Photos & expenses'},{id:tab('activity'),label:'Activity'}]}
+          active={tab(panel)} onChange={id => selectPanel(id === tab('plan') ? 'plan' : id === tab('photos') ? 'photos' : id === tab('activity') ? 'activity' : 'details')} />
+        {planOpened&&<div hidden={panel!=='plan'} role="tabpanel" id={tab('plan')+'-panel'} aria-labelledby={tab('plan')+'-tab'}><JobWorkPlan business={business} jobId={job.id} team={team} canEdit={canEdit} closed={closed}/></div>}
         <div role="tabpanel" id={tab('details')+'-panel'} aria-labelledby={tab('details')+'-tab'} hidden={panel!=='details'}>
         <dl className="job-details-summary">
           <div><dt>Status</dt><dd>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_', ' ')}</dd></div>
@@ -235,7 +239,7 @@ export default function JobDetailsDialog({ business, jobId, initialPhotos = fals
         <div role="tabpanel" id={tab('photos')+'-panel'} aria-labelledby={tab('photos')+'-tab'} hidden={panel!=='photos'}>
           {photosOpened && <RecordResources key={business.id+':'+jobId} business={business} target={{ kind: 'job', id: jobId }} active={panel==='photos'} />}
         </div>
-        <div role="tabpanel" id={tab('activity')+'-panel'} aria-labelledby={tab('activity')+'-tab'} hidden={panel!=='activity'}>
+        <div role="tabpanel" id={tab('activity')+'-panel'} aria-labelledby={tab('activity')+'-tab'} hidden={panel!=='activity'}>{panel==='activity'&&<JobWorkPlan business={business} jobId={job.id} team={team} canEdit={canEdit} closed={closed} activityOnly/>}
           <h3>Activity</h3><dl className="job-details-summary">
             {job.created_at && <div><dt>Job created</dt><dd>{scheduled(job.created_at)}</dd></div>}
             {job.completed_at && <div><dt>Work completed</dt><dd>{scheduled(job.completed_at)}</dd></div>}

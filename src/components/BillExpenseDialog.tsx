@@ -1,0 +1,12 @@
+import {useEffect,useRef,useState,type FormEvent} from 'react'
+import {supabase} from '../lib/supabase'
+import {listCustomers} from '../services/customers'
+import type {CurrentBusiness} from '../lib/business'
+import FormDialog from './FormDialog'
+import CustomerPicker from './CustomerPicker'
+export default function BillExpenseDialog({business,expenseId,description,onClose}:{business:CurrentBusiness;expenseId:string;description:string;onClose:()=>void}){
+ const [customers,setCustomers]=useState<Awaited<ReturnType<typeof listCustomers>>>([]),[customer,setCustomer]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[loaded,setLoaded]=useState(false),request=useRef(crypto.randomUUID())
+ useEffect(()=>{let active=true;listCustomers(business.id).then(rows=>{if(active){setCustomers(rows);setLoaded(true)}}).catch(()=>{if(active)setError('Customers could not load. Close and retry before preparing the invoice.')});return()=>{active=false}},[business.id])
+ async function submit(e:FormEvent){e.preventDefault();if(busy||!customer)return;setBusy(true);setError('');try{const{data,error}=await supabase.rpc('bill_expense_to_draft',{p_business:business.id,p_expense:expenseId,p_customer:customer,p_request:request.current});if(error)throw error;if(!data?.id)throw Error('The invoice draft could not be confirmed.');setBusy(false);onClose();window.setTimeout(()=>location.assign('/?view=invoices&document='+data.id+(data.status==='draft'?'&edit=1':'')),0)}catch(e){setError((e as Error).message);setBusy(false)}}
+ return <FormDialog label="Bill a recorded expense" busy={busy} onClose={onClose}><div className="modal-head"><h2>Bill a recorded expense</h2><button type="button" className="icon-button" aria-label="Close" onClick={onClose}>×</button></div><p>{description}</p><p className="quiet">Prepare an invoice draft using the recorded expense amount. Your original cost stays in Financial Performance. Review tax, reimbursement terms and charges before sending. An expense can create only one linked invoice draft.</p><form onSubmit={submit}><CustomerPicker customers={customers} value={customer} required disabled={busy||!loaded} onChange={setCustomer}/><p className="quiet">If this expense is linked to a job or estimate, choose that record’s customer.</p>{error&&<p role="alert">{error}</p>}<button className="primary-button" disabled={busy||!loaded||!customer}>{busy?'Preparing draft…':'Prepare invoice draft'}</button></form></FormDialog>
+}
