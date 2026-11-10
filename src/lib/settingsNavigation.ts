@@ -2,7 +2,7 @@ import type { VelnuTier } from './pricing'
 import type { CurrentBusiness } from './business'
 import { canAccess, isPrimaryOwner } from './workspaceAccess'
 
-export type SettingsSection = 'customer_reminders' | 'storage' | 'plans' | 'delivery' | 'company' | 'team' | 'documents' | 'calendar' | 'scheduling' | 'subscription' | 'testing' | 'support' | 'sms'
+export type SettingsSection = 'archive' | 'customer_reminders' | 'storage' | 'plans' | 'delivery' | 'company' | 'team' | 'documents' | 'calendar' | 'scheduling' | 'subscription' | 'testing' | 'support' | 'sms'
 export const integrationTestingAvailable = import.meta.env?.VITE_SUPABASE_URL === 'https://xvybcmyoblfgzokaifsx.supabase.co' || import.meta.env?.VITE_PRIVATE_INTEGRATION_TESTING === 'true'
 
 export const settingsOptions: { id: SettingsSection; title: string; description: string; group: 'business' | 'setup' | 'account'; icon: string }[] = [
@@ -13,6 +13,7 @@ export const settingsOptions: { id: SettingsSection; title: string; description:
   { id: 'sms', title: 'Text Messaging Setup', description: 'Verify your owner mobile number before sending SMS.', group: 'setup', icon: 'sms' },
   { id: 'calendar', title: 'Calendar Connections', description: 'Google Calendar and Microsoft Outlook.', group: 'setup', icon: 'schedule' },
   { id: 'scheduling', title: 'Working Hours & Team Availability', description: 'Working hours, booking notice, travel time, and time off.', group: 'setup', icon: 'availability' },
+  { id: 'archive', title: 'Business Archive', description: 'Download complete business records and stored files.', group: 'account', icon: 'company' },
   { id: 'storage', title: 'Storage', description: 'View shared business storage and upload limits.', group: 'account', icon: 'company' },
   { id: 'plans', title: 'Plans & Usage', description: 'Compare Free, Individual and Business Pro; test each tier.', group: 'account', icon: 'payments' },
   { id: 'customer_reminders', title: 'Customer Reminders', description: 'Business-wide invoice and appointment reminder defaults. Internal follow-ups are separate.', group: 'setup', icon: 'reminders' },

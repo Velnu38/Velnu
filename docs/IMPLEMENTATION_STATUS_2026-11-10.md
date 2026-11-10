@@ -42,6 +42,8 @@ PR72 adds full migration replay and a combined release check. PR73's missing-sui
 | 27 | Historical import | Optional, unselected | Select a source/mapping only if still needed; versioned dry-run/duplicate/rollback design |
 | 28 | Deferred products | Ranked feasibility/license/cost review recommends validating one original download concept; no new product built | Owner scope selection, demand interviews and measured economics; separate build approval |
 
+Latest additional deployment: PR81 recurring owner controls and receipt-refresh stabilization passed all final checks and deployed as 18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af at dpl_Htcp9Cot1hUNcRRqxPNQ9jq57Wur on both beta domains. PR82 adds bounded server Jobs paging and is awaiting its final browser gate. The complete owner archive is implemented in the following candidate; its real-session/storage and browser acceptance are pending. These are separate from approval-dependent provider, physical-device and commercial gates.
+
 ## Deployment sequence and rollback
 
 1. Require the complete PR72 and PR74 checks to pass on their final source. Investigate failures without deleting assertions or treating a retry as a fix.

@@ -1,3 +1,4 @@
+import OwnerArchive from '../components/settings/OwnerArchive'
 import AppointmentReminderDefaults from '../components/settings/AppointmentReminderDefaults'
 import DeliveryAutomation from '../components/settings/DeliveryAutomation'
 import EBusinessCard from '../components/settings/EBusinessCard'
@@ -40,6 +41,7 @@ export default function SettingsPage({ business, onSaved }: {
 
   function content(id: SettingsSection) {
     if (id === "customer_reminders") return <><DeliveryAutomation key={business.id} businessId={business.id}/><AppointmentReminderDefaults key={business.id} businessId={business.id}/></>;
+    if (id === "archive") return <OwnerArchive key={business.id} business={business}/>;
     if (id === "plans") return <PlansAndUsage businessId={business.id}/>;
     if (id === "delivery") return <DeliverySetup businessId={business.id}/>;
     if (id === "storage") return <StorageUsage key={business.id} businessId={business.id} detailed canUpgrade={isPrimaryOwner(business)}/>;

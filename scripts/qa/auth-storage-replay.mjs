@@ -1,3 +1,4 @@
+import {verifyOwnerArchiveReplay} from './owner-archive-replay.mjs'
 import assert from 'node:assert/strict'
 import {createHash,randomBytes,randomUUID} from 'node:crypto'
 
@@ -18,9 +19,9 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
  assert.deepEqual(before,{users:0,businesses:0,files:0})
  const actors=[],businessA=randomUUID(),businessB=randomUUID(),customer=randomUUID(),request=randomUUID()
  let photoPath,phase='password-sessions'
- async function api(path,token=status.ANON_KEY,{method='GET',body,headers={}}={}){
+ async function api(path,token=status.ANON_KEY,{method='GET',body,raw,headers={}}={}){
   assert.ok(path.startsWith('/')&&!path.startsWith('//'))
-  const response=await fetch(origin+path,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:status.ANON_KEY,Authorization:'Bearer '+token,...(body!==undefined?{'Content-Type':'application/json'}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)})
+  const response=await fetch(origin+path,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:status.ANON_KEY,Authorization:'Bearer '+token,...(body!==undefined?{'Content-Type':'application/json'}:{}),...headers},body:raw??(body===undefined?undefined:JSON.stringify(body))})
   return response
  }
  async function json(path,token,options){
@@ -189,6 +190,8 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.equal((await reserveAi('ai',aiRequests[0])).status,409)
   const actualUsage=(await db.query("select feature,used from private.tier_usage where business_id=$1 and feature in('ai','voice') order by feature",[businessA])).rows
   assert.deepEqual(actualUsage.map(r=>({feature:r.feature,used:Number(r.used)})),[{feature:'ai',used:10},{feature:'voice',used:24}])
+  phase='owner-archive'
+  const ownerArchive=await verifyOwnerArchiveReplay({db,api,json,owner,outsider,office,business:businessA,service:status.SERVICE_ROLE_KEY,sourceBytes:png})
   phase='access-revocation'
   await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner.id])
   await db.query("update public.business_members set access_modules=array['jobs'] where business_id=$1 and user_id=$2",[businessA,office.id])
@@ -196,7 +199,7 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.ok(!(await api(object,office.token)).ok,'Revoked billing access must not read invoice files with the existing session')
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
-  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,recovery}
+  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,ownerArchive,recovery}
  }catch(error){
   console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)

@@ -1,3 +1,4 @@
+import {cleanupOwnerArchives} from '../_shared/archiveCleanup.ts'
 import {createClient} from 'npm:@supabase/supabase-js@2.57.4'
 import {dispatchQueuedEmail} from '../_shared/emailDispatch.ts'
 import {emailDeliveryMode} from '../_shared/emailRelease.ts'
@@ -11,9 +12,11 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=='POST')return reply(405,{error:'Method not allowed'})
  const token=(req.headers.get('authorization')||'').replace(/^Bearer /,'');if(!/^[a-f0-9]{64}$/.test(token))return reply(401,{error:'Not authorized'})
  const auth=await db.rpc('authorize_tier_worker',{p_token:token});if(auth.error||auth.data!==true)return reply(401,{error:'Not authorized'})
+ let archiveCleanup=0,archiveCleanupFailed=false
+ try{archiveCleanup=await cleanupOwnerArchives(db)}catch{archiveCleanupFailed=true}
  const mode=emailDeliveryMode(),account=env('TWILIO_ACCOUNT_SID'),smsToken=env('TWILIO_AUTH_TOKEN')
  const smsEnabled=!!resolveAppEnvironment(env('SUPABASE_URL'),env('FINVIANT_APP_BASE_URL'))&&env('FINVIANT_CUSTOMER_SMS_ENABLED')==='true'&&/^AC[0-9a-f]{32}$/i.test(account)&&!!smsToken
- if(mode==='disabled'&&!smsEnabled)return reply(200,{paused:true,reason:'Sender activation pending',sent:0})
+ if(mode==='disabled'&&!smsEnabled)return reply(archiveCleanupFailed?503:200,{paused:true,reason:'Sender activation pending',sent:0,archiveCleanup,archiveCleanupFailed})
  let accepted=0,unconfirmed=0,prepared=0,documentQueueFailed=false
  if(mode!=='disabled'){
   try{
@@ -40,5 +43,5 @@ Deno.serve(async(req:Request)=>{
    }catch{appointmentUnconfirmed++}
   }
  }catch{return reply(503,{error:'Appointment reminder queue unavailable',prepared,accepted,unconfirmed,appointmentAccepted,appointmentUnconfirmed})}
- return reply(documentQueueFailed?503:200,{prepared,accepted,unconfirmed,appointmentAccepted,appointmentUnconfirmed,documentQueueFailed})
+ return reply(documentQueueFailed||archiveCleanupFailed?503:200,{prepared,accepted,unconfirmed,appointmentAccepted,appointmentUnconfirmed,documentQueueFailed,archiveCleanup,archiveCleanupFailed})
 })
