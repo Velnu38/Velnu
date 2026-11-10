@@ -44,6 +44,24 @@ test('in-flight read callbacks coalesce another change without concurrent reads 
   resolve();await tick();await f.flush();assert.equal(refreshed,2)
   stop()
 })
+test('a save notification during editor cleanup refreshes immediately when editing ends without a poll',async()=>{
+  const f=fixture();let refreshed=0
+  const stop=f.coordinator.subscribe(business,()=>{refreshed++})
+  f.edit(true);f.window.dispatchEvent(new Event('finviant-work-changed'));await f.flush()
+  assert.equal(refreshed,0,'never overwrite a busy or dirty editor')
+  f.edit(false);f.window.dispatchEvent(new Event('finviant-editing-idle'));await f.flush()
+  assert.equal(refreshed,1,'retain the saved change rather than waiting for the 30-second poll')
+  f.window.dispatchEvent(new Event('finviant-editing-idle'));await f.flush();assert.equal(refreshed,1)
+  stop()
+})
+test('a new editor between a scheduled refresh and its microtask also retains the update',async()=>{
+  const f=fixture();let refreshed=0
+  const stop=f.coordinator.subscribe(business,()=>{refreshed++})
+  f.notify.get(business)!();const flushing=f.flush();f.edit(true);await flushing
+  assert.equal(refreshed,0)
+  f.edit(false);f.window.dispatchEvent(new Event('finviant-editing-idle'));await f.flush()
+  assert.equal(refreshed,1);stop()
+})
 test('removed views and events for another business never run a stale refresh',async()=>{
   const f=fixture();let refreshed=0
   const stop=f.coordinator.subscribe(business,()=>{refreshed++})

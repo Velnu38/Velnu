@@ -2,6 +2,7 @@ import {useEffect,useRef} from 'react'
 
 const editors=new Map<symbol,{dirty:boolean;busy:boolean;scope?:string}>()
 export function hasUnsavedChanges(){return [...editors.values()].some(e=>e.dirty||e.busy)}
+function announceEditingIdle(){if(typeof window!=='undefined'&&!hasUnsavedChanges())window.dispatchEvent(new Event('finviant-editing-idle'))}
 export function confirmNavigation(excludeScope?: string) {
  const active = [...editors.values()].filter(editor => !excludeScope || editor.scope !== excludeScope)
  if(active.some(e=>e.busy)){window.alert('Please wait for the current save to finish.');return false}
@@ -11,6 +12,7 @@ export function useUnsavedChanges(busy=false, scope?: string) {
  const key=useRef(Symbol('editor')),dirty=useRef(false)
  const state=useRef({dirty:false,busy,scope})
  state.current.busy=busy
- useEffect(()=>{editors.set(key.current,state.current);const unload=(e:BeforeUnloadEvent)=>{if(state.current.dirty||state.current.busy){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',unload);return()=>{editors.delete(key.current);window.removeEventListener('beforeunload',unload)}},[])
- return {markDirty:()=>{dirty.current=true;state.current.dirty=true},markClean:()=>{dirty.current=false;state.current.dirty=false},canClose:(extraDirty=false)=>!busy&&(!(dirty.current||extraDirty)||window.confirm('Discard unsaved changes? Choose Cancel to keep editing.'))}
+ useEffect(()=>{editors.set(key.current,state.current);const unload=(e:BeforeUnloadEvent)=>{if(state.current.dirty||state.current.busy){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',unload);return()=>{editors.delete(key.current);window.removeEventListener('beforeunload',unload);announceEditingIdle()}},[])
+ useEffect(()=>{if(!busy)announceEditingIdle()},[busy])
+ return {markDirty:()=>{dirty.current=true;state.current.dirty=true},markClean:()=>{dirty.current=false;state.current.dirty=false;announceEditingIdle()},canClose:(extraDirty=false)=>!busy&&(!(dirty.current||extraDirty)||window.confirm('Discard unsaved changes? Choose Cancel to keep editing.'))}
 }
