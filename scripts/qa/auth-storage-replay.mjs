@@ -11,11 +11,13 @@ export function localApiOrigin(value){
 // Never returns/logs identities, passwords, JWTs, signed URLs or object contents.
 export async function verifyAuthStorageReplay(db,status){
  const origin=localApiOrigin(status.API_URL)
+ assert.equal(db.connectionParameters.host,'127.0.0.1')
+ assert.equal(Number(db.connectionParameters.port),54322)
  assert.ok(status.ANON_KEY&&status.SERVICE_ROLE_KEY,'Disposable API keys are required')
  const before=(await db.query('select (select count(*) from auth.users)::int users,(select count(*) from public.businesses)::int businesses,(select count(*) from storage.objects)::int files')).rows[0]
  assert.deepEqual(before,{users:0,businesses:0,files:0})
  const actors=[],businessA=randomUUID(),businessB=randomUUID(),customer=randomUUID(),request=randomUUID()
- let photoPath
+ let photoPath,phase='password-sessions'
  async function api(path,token=status.ANON_KEY,{method='GET',body,headers={}}={}){
   assert.ok(path.startsWith('/')&&!path.startsWith('//'))
   const response=await fetch(origin+path,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:status.ANON_KEY,Authorization:'Bearer '+token,...(body!==undefined?{'Content-Type':'application/json'}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)})
@@ -39,6 +41,7 @@ export async function verifyAuthStorageReplay(db,status){
  const digest=value=>createHash('sha256').update(value).digest('hex')
  try{
   const owner=await actor('owner'),outsider=await actor('other'),office=await actor('office')
+  phase='tenant-fixtures'
   await db.query('begin')
   for(const user of actors)await db.query("insert into public.user_agreement_acceptances(user_id,agreement_version,terms_accepted,ai_disclosure_acknowledged,electronic_records_consent) values($1,'2026-11-06-v5',true,true,true)",[user.id])
   for(const [business,user] of [[businessA,owner],[businessB,outsider]]){
@@ -57,6 +60,7 @@ export async function verifyAuthStorageReplay(db,status){
    if(i===39)throw Error('Disposable API schema did not reload')
    await new Promise(resolve=>setTimeout(resolve,250))
   }
+  phase='authorized-rest'
   const rows=await json('/rest/v1/customers',owner.token,{method:'POST',headers:{Prefer:'return=representation'},body:{id:customer,business_id:businessA,first_name:'Synthetic',last_name:'Customer'}})
   assert.equal(rows[0].id,customer)
   const payload={target_business_id:businessA,document_kind:'invoice',request_id:request,payload:{customer_id:customer,items:[{description:'Synthetic work',quantity:2,unit_price:50,tax_rate:5}]}}
@@ -66,6 +70,7 @@ export async function verifyAuthStorageReplay(db,status){
   assert.deepEqual(await json('/rest/v1/invoices?select=id&business_id=eq.'+businessA,outsider.token),[])
   const forged=await api('/rest/v1/rpc/create_document',outsider.token,{method:'POST',body:{...payload,request_id:randomUUID()}});assert.equal(forged.status,403)
   assert.equal((await json('/rest/v1/invoices?select=id&business_id=eq.'+businessA,office.token)).length,1)
+  phase='private-storage'
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jGdEAAAAASUVORK5CYII=','base64')
   const photo=await json('/rest/v1/record_photos',owner.token,{method:'POST',headers:{Prefer:'return=representation'},body:{business_id:businessA,invoice_id:invoice.id,file_name:'synthetic.png',byte_size:png.length,media_type:'image/png'}})
   photoPath=photo[0].storage_path
@@ -76,6 +81,7 @@ export async function verifyAuthStorageReplay(db,status){
   const downloaded=await api(object,owner.token);assert.ok(downloaded.ok);assert.equal(digest(Buffer.from(await downloaded.arrayBuffer())),digest(png))
   for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api(object,token)).ok,'Unrelated or anonymous identity must not read private bytes')
   const otherSign=await api('/storage/v1/object/sign/finviant-record-photos/'+photoPath,outsider.token,{method:'POST',body:{expiresIn:60}});assert.ok(!otherSign.ok)
+  phase='access-revocation'
   await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner.id])
   await db.query("update public.business_members set access_modules=array['jobs'] where business_id=$1 and user_id=$2",[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/invoices?select=id&business_id=eq.'+businessA,office.token),[])
@@ -83,12 +89,16 @@ export async function verifyAuthStorageReplay(db,status){
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
   return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true}
+ }catch(error){
+  console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^[0-9A-Z]{5}$/.test(error.code??'')?error.code:'unknown'}))
+  throw Error('Genuine Auth/Storage replay failed at '+phase)
  }finally{
   await db.query('rollback')
+  // End the fixture's owner impersonation before owned-container maintenance.
+  // Keep the real application ownership-transfer guard fully enabled.
+  await db.query("select set_config('request.jwt.claim.sub','',false),set_config('request.jwt.claims','{}',false)")
   if(photoPath){const removed=await api('/storage/v1/object/finviant-record-photos',status.SERVICE_ROLE_KEY,{method:'DELETE',body:{prefixes:[photoPath]}});if(!removed.ok)throw Error('Disposable Storage cleanup failed')}
   for(const business of [businessA,businessB]){
-   const owner=(await db.query('select created_by_user_id from public.businesses where id=$1',[business])).rows[0]?.created_by_user_id
-   if(owner)await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner])
    for(const table of ['record_photos','invoice_items','invoices','appointments','jobs','customers'])await db.query('delete from public.'+table+' where business_id=$1',[business])
    await db.query('delete from public.businesses where id=$1',[business])
   }
