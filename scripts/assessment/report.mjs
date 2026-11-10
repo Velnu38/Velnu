@@ -36,6 +36,7 @@ export function validateRegistry(data) {
           (k) => typeof p[k] === "string" && p[k].trim(),
         ) ||
         !date(p.updatedAt) ||
+        (p.statusNote !== undefined && (typeof p.statusNote !== 'string' || !p.statusNote.trim())) ||
         titles.has(p.title)
       )
         throw Error("Invalid or duplicate proposal");
@@ -123,7 +124,7 @@ export function renderReport(input) {
   for (const p of d.proposals || []) {
     add(
       `## ${p.title}`,
-      `**Proposal updated: ${p.updatedAt} (${d.timezone}). Implementation pending.**`,
+      `**Proposal updated: ${p.updatedAt} (${d.timezone}). ${p.statusNote || 'Implementation pending.'}**`,
       p.body,
     );
   }

@@ -3,7 +3,7 @@ import fontkit from '@pdf-lib/fontkit'
 import { documentFooter } from './documentAppearance.ts'
 import { documentPdfFonts } from './fonts/dejavuSans.ts'
 
-export const DOCUMENT_PDF_TEMPLATE_VERSION = 'finviant-document-2'
+export const DOCUMENT_PDF_TEMPLATE_VERSION = 'finviant-document-3'
 export type DocumentPdfAmount = number | string
 export type DocumentPdfParty = {
   name?: string | null; first_name?: string | null; last_name?: string | null
@@ -273,7 +273,7 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
     const itemRate = revisionSubtotal != null ? revisionSubtotal : item.unit_price
     const itemTotal = revisionSubtotal != null ? revisionSubtotal : item.line_total
     const description = wrap(text(item.description), 280, 9.5)
-    if (amount(item.tax_rate) !== 0) description.push(`Tax ${amount(item.tax_rate)}%`)
+    if (amount(snapshot.tax_amount) !== 0 && amount(item.tax_rate) !== 0) description.push(`Tax ${amount(item.tax_rate)}%`)
     let consumed = 0
     while (consumed < description.length) {
       if (y - 34 < BOTTOM) { newPage(true); tableHeader() }
@@ -303,7 +303,8 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
     const paid = amount(amounts.deposit_paid) + amount(amounts.other_paid)
     if (paid > 0) { const remaining = amount(amounts.revised_total) - paid; totals.push({ label: remaining < 0 ? 'Credit or refund to review' : 'Remaining if approved', value: money(Math.abs(remaining)) }) }
   } else {
-    totals.push({ label: 'Subtotal', value: money(snapshot.subtotal) }, { label: 'Tax', value: money(snapshot.tax_amount) })
+    totals.push({ label: 'Subtotal', value: money(snapshot.subtotal) })
+    if (amount(snapshot.tax_amount) !== 0) totals.push({ label: 'Tax', value: money(snapshot.tax_amount) })
     if (snapshot.kind === 'invoice' && amount(snapshot.deposit_credit) > 0) totals.push({ label: 'Deposit credited', value: `-${money(snapshot.deposit_credit)}` })
     if (snapshot.kind === 'invoice') {
       totals.push({ label: 'Invoice total', value: money(snapshot.total) })

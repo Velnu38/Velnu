@@ -1,3 +1,4 @@
+import {productGuidance} from './productKnowledge.ts'
 import {instructions,lookupSchema,replySchema,uiCatalog,uuid,validateLookup,validateReply,recordHref,type Lookup,type RecordSet} from './protocol.ts'
 import {responseText} from '../fin-assistant/core.ts'
 export type Session={profile:Record<string,unknown>;capabilities?:unknown;begin:(thread:string,request:string,text:string)=>Promise<{history:unknown[];cached:any}>;lookup:(query:Lookup)=>Promise<RecordSet>;finish:(thread:string,request:string,reply:unknown)=>Promise<any>;reserve:()=>Promise<void>}
@@ -24,7 +25,7 @@ export function workflowHandler(deps:Dependencies){return async(req:Request)=>{
    if(JSON.stringify(input).length>300000)throw Error('These records are too large to review together. Narrow the request to one customer, document or date range.')
    const remaining=deadline-Date.now();if(remaining<5000)throw Error('Fin needs a narrower request to finish reliably. Your words are preserved.')
    await session.reserve()
-   const output=await deps.complete(input,round<4&&searches<8?[lookupTool]:[],instructions,replySchema,Math.min(45000,remaining))
+   const output=await deps.complete(input,round<4&&searches<8?[lookupTool]:[],instructions+productGuidance(session.capabilities),replySchema,Math.min(45000,remaining))
    const calls=(output?.output||[]).filter((i:any)=>i.type==='function_call')
    if(calls.length){
     if(round===4||calls.length+searches>8)return send(422,{error:'This request needs a narrower record search. Specify the customer, date range or record number.'})

@@ -39,6 +39,22 @@ test('identical frozen revisions produce identical bytes and do not mutate the s
   assert.equal(pdf.getModificationDate()?.toISOString(), '2026-11-08T12:00:00.000Z')
 })
 
+for (const kind of ['invoice', 'estimate'] as const) {
+  test(`${kind} omits zero tax from line details and totals without changing its frozen amounts`, async () => {
+    const snapshot = documentPdfFixture(kind)
+    snapshot.tax_amount = 0
+    snapshot.total = kind === 'invoice' ? 275 : 375
+    snapshot.balance_due = 225
+    // A saved nonzero rate can round to no tax or remain in a historic snapshot.
+    const original = JSON.stringify(snapshot)
+    const content = await extracted(await generateDocumentPdf(snapshot))
+    assert.doesNotMatch(content, /\bTax\b/)
+    assert.match(content, kind === 'invoice' ? /\$275\.00/ : /\$375\.00/)
+    if (kind === 'invoice') assert.match(content, /\$225\.00/)
+    assert.equal(JSON.stringify(snapshot), original)
+  })
+}
+
 test('estimates retain their validity and customer terms without invoice payment instructions', async () => {
   const snapshot = documentPdfFixture('estimate')
   snapshot.total = 405
