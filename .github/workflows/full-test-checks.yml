@@ -123,6 +123,9 @@ jobs:
   iphone-webkit:
     name: iPhone WebKit (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    # Match package.json exactly; browsers and Linux dependencies are preinstalled.
+    # Avoid repeated apt downloads from the intermittently stalled Azure mirror.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -136,7 +139,6 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --ignore-scripts
-      - run: npx playwright install --with-deps webkit
       # Existing simulated Safari coverage; this does not certify physical devices.
       - run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --config=playwright.mobile.config.mjs --fully-parallel --workers=2 --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

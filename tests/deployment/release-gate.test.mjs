@@ -11,6 +11,12 @@ const run = results => spawnSync(process.execPath, ['--input-type=module', '-e',
 })
 const successes = () => Object.fromEntries(suites.map(name => [name, { result: 'success' }]))
 
+test('the preinstalled WebKit image matches the locked Playwright version', () => {
+  const version = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).devDependencies['@playwright/test']
+  const imageVersion = /container: mcr\.microsoft\.com\/playwright:v([0-9.]+)-noble/.exec(source)?.[1]
+  assert.equal(imageVersion, version, 'Browser image and test package must use identical revisions')
+})
+
 test('release gate accepts all declared suites only after success', () => {
   assert.ok(suites.includes('migrations') && suites.includes('desktop-and-scheduling'))
   assert.equal(run(successes()).status, 0)

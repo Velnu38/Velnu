@@ -70,3 +70,9 @@ remains open under CI-01/REL-01.
 The replay review branch disables Vercel automatic deployment and is also
 rejected by the hosted-build guard. The test does not promote domains, apply
 hosted SQL, activate a provider or change pricing.
+
+WebKit jobs use the official prebuilt Playwright 1.63.0 Noble image, matching the
+locked test package. This retains all four Safari shards while avoiding repeated
+Ubuntu mirror downloads. The version-match check fails on an incompatible image
+or package upgrade. Run 42811129759 demonstrated the gate blocking two installer
+timeouts before any Safari test ran; other completed test results were retained.
