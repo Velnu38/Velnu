@@ -187,7 +187,7 @@ for (const plan of ['free', 'basic']) test(`${plan} opens manual booking with th
  await scheduleQueue(page).getByRole('button',{name:'Schedule job',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Find a time that works'})
  await expect(dialog.getByText('Customer self-booking is unavailable on the '+(plan==='free'?'Free':'Individual')+' plan.')).toBeVisible()
- await expect(dialog.getByRole('link',{name:'View Business Pro upgrade'})).toHaveAttribute('href','/?view=settings&section=plans&tier=pro')
+ await expect(dialog.getByRole('link',{name:'Explore Business Pro',exact:true})).toHaveAttribute('href','/?view=settings&section=plans&tier=pro')
  await expect(dialog.getByRole('group',{name:'Scheduling method'})).toHaveCount(0)
  if(plan==='free')await expect(dialog.getByRole('group',{name:'Crew for this appointment'})).toHaveCount(0)
  else await expect(dialog.getByRole('group',{name:'Crew for this appointment'}).getByRole('checkbox',{name:'Owner (you)',exact:true})).toBeChecked()

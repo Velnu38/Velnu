@@ -142,9 +142,9 @@ async function recordMore(scope){
  if(!await summary.evaluate(el=>el.parentElement.open))await summary.click()
 }
 async function downloadedArtifact(page,state,kind,id){
- const region=page.getByRole('region',{name:kind==='invoice'?'Invoice PDF':'Estimate PDF',exact:true})
+ const region=page.getByRole('region',{name:kind==='invoice'?'Issued invoice PDF':'Estimate PDF',exact:true})
  const button=region.getByRole('button',{name:'Download PDF',exact:true})
- await expect(button).toBeEnabled();await expect(region.locator('iframe')).toHaveAttribute('src',/^blob:/)
+ await expect(button).toBeEnabled();await region.getByRole('button',{name:'View PDF',exact:true}).click();await expect(region.locator('iframe')).toHaveAttribute('src',/^blob:/)
  const pending=page.waitForEvent('download');await button.click();const file=await pending
  const artifact=state.artifacts.get(kind+':'+id);expect(artifact).toBeTruthy()
  expect(await readFile(await file.path())).toEqual(artifact.bytes)
@@ -218,7 +218,6 @@ test('payments exclude draft invoices and use retry-safe server recording', asyn
   const sent = { id: invoiceId, invoice_number: 'INV-SENT', status: 'sent', total: 150, balance_due: 150, amount_paid: 0, customers: customer }
   const state = await mockWorkspace(page, { invoices: [draft, sent] })
   page.on('dialog', async dialog => { await dialog.accept() })
-  await page.goto('/?view=dashboard')
   await page.goto('/?view=payments')
   await page.getByRole('button', { name: '+ Record payment' }).click()
   await expect(page.getByLabel('Invoice', { exact: true }).locator('option', { hasText: /INV-SENT/ })).toHaveCount(1)
@@ -328,6 +327,7 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
   await page.getByRole('button', { name: 'Open change order CO-TEST', exact: true }).click()
+  await page.getByRole('dialog',{name:'Review change order'}).locator('summary').filter({hasText:'More actions'}).click()
   await page.getByRole('button', { name: 'Void', exact: true }).click()
   await page.getByRole('button', { name: 'Close review' }).click()
   await expect(page.getByRole('region', { name: 'Linked change orders' }).locator('.status-chip')).toHaveText('Void')
