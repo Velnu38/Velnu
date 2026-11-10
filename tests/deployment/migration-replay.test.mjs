@@ -5,6 +5,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { localDatabaseUrl, migrationManifest, requireEmptyPlatform, safeDatabaseError } from '../../scripts/qa/replay-migrations.mjs'
 import { localApiOrigin } from '../../scripts/qa/auth-storage-replay.mjs'
+import { ownedReplayContainer } from '../../scripts/qa/synthetic-restore.mjs'
+
+test('destructive synthetic recovery refuses non-owned container identifiers',()=>{
+ assert.equal(ownedReplayContainer('finviant-replay-a0b1c2d3'),'supabase_db_finviant-replay-a0b1c2d3')
+ for(const id of ['xvybcmyoblfgzokaifsx','ocmlvzkackufwpwnnsdb','postgres','finviant-replay','finviant-replay-a0b1c2d3;echo','finviant-replay-123456789','--all'])assert.throws(()=>ownedReplayContainer(id))
+})
 
 test('genuine session and object replay refuses every non-owned API target',()=>{
  assert.equal(localApiOrigin('http://127.0.0.1:54321'),'http://127.0.0.1:54321')

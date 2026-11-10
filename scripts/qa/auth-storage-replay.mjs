@@ -9,7 +9,7 @@ export function localApiOrigin(value){
 
 // Only receives keys produced by the newly started disposable Supabase CLI.
 // Never returns/logs identities, passwords, JWTs, signed URLs or object contents.
-export async function verifyAuthStorageReplay(db,status){
+export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixture){
  const origin=localApiOrigin(status.API_URL)
  assert.equal(db.connectionParameters.host,'127.0.0.1')
  assert.equal(Number(db.connectionParameters.port),54322)
@@ -33,8 +33,11 @@ export async function verifyAuthStorageReplay(db,status){
   const created=await json('/auth/v1/admin/users',status.SERVICE_ROLE_KEY,{method:'POST',body:{email,password,email_confirm:true}})
   const id=created.id??created.user?.id;assert.match(id,/^[a-f0-9-]{36}$/)
   const entry={id,token:null};actors.push(entry)
-  const session=await json('/auth/v1/token?grant_type=password',status.ANON_KEY,{method:'POST',body:{email,password}})
-  assert.equal(session.user.id,id);assert.ok(session.access_token);entry.token=session.access_token
+  entry.login=async()=>{
+   const session=await json('/auth/v1/token?grant_type=password',status.ANON_KEY,{method:'POST',body:{email,password}})
+   assert.equal(session.user.id,id);assert.ok(session.access_token);entry.token=session.access_token
+  }
+  await entry.login()
   const confirmed=await json('/auth/v1/user',entry.token);assert.equal(confirmed.id,id)
   return entry
  }
@@ -78,7 +81,7 @@ export async function verifyAuthStorageReplay(db,status){
   assert.ok(photoPath.startsWith(businessA+'/'))
   const object='/storage/v1/object/finviant-record-photos/'+photoPath
   phase='blocked-direct-upload'
-  const uploadFile=token=>fetch(origin+object,{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:status.ANON_KEY,Authorization:'Bearer '+token,'Content-Type':'image/png'},body:png})
+  const uploadFile=(token,bytes=png)=>fetch(origin+object,{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:status.ANON_KEY,Authorization:'Bearer '+token,'Content-Type':'image/png'},body:bytes})
   assert.ok(!(await uploadFile(owner.token)).ok,'Direct uploads must not bypass the server quota path')
   phase='quota-reservation'
   const reservation={p_actor:owner.id,p_bucket:'finviant-record-photos',p_path:photoPath,p_bytes:png.length}
@@ -88,9 +91,41 @@ export async function verifyAuthStorageReplay(db,status){
   const upload=await uploadFile(status.SERVICE_ROLE_KEY);assert.ok(upload.ok,'Quota-reserved server upload must succeed')
   const finish=await api('/rest/v1/rpc/finish_attachment',status.SERVICE_ROLE_KEY,{method:'POST',body:{p_bucket:'finviant-record-photos',p_path:photoPath}});assert.equal(finish.status,204)
   phase='private-storage-download'
-  const downloaded=await api(object,owner.token);assert.ok(downloaded.ok);assert.equal(digest(Buffer.from(await downloaded.arrayBuffer())),digest(png))
+  const downloaded=await api(object,owner.token);assert.ok(downloaded.ok)
+  const backedUpFile=Buffer.from(await downloaded.arrayBuffer());assert.equal(digest(backedUpFile),digest(png))
   for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api(object,token)).ok,'Unrelated or anonymous identity must not read private bytes')
   const otherSign=await api('/storage/v1/object/sign/finviant-record-photos/'+photoPath,outsider.token,{method:'POST',body:{expiresIn:60}});assert.ok(!otherSign.ok)
+  phase='synthetic-recovery-fixtures'
+  // Include a real receivable/payment, estimate-derived job and roster records.
+  await json('/rest/v1/invoices?id=eq.'+invoice.id,owner.token,{method:'PATCH',headers:{Prefer:'return=representation'},body:{status:'sent'}})
+  const payment={target_business_id:businessA,invoice_id:invoice.id,request_id:randomUUID(),payment_amount:30,payment_method:'cash',payment_note:'Synthetic restore fixture'}
+  await json('/rest/v1/rpc/record_manual_payment',owner.token,{method:'POST',body:payment})
+  await json('/rest/v1/rpc/record_manual_payment',owner.token,{method:'POST',body:payment})
+  const estimate=await json('/rest/v1/rpc/create_document',owner.token,{method:'POST',body:{...payload,document_kind:'estimate',request_id:randomUUID()}})
+  await json('/rest/v1/estimates?id=eq.'+estimate.id,owner.token,{method:'PATCH',headers:{Prefer:'return=representation'},body:{status:'accepted'}})
+  const worker=randomUUID()
+  const workerResponse=await api('/rest/v1/rpc/save_worker_profile',owner.token,{method:'POST',body:{p_business:businessA,p_id:worker,p_input:{name:'Synthetic restore worker',active:true},p_expected:null}})
+  assert.ok(workerResponse.ok)
+  const jobs=await json('/rest/v1/jobs?select=id&source_estimate_id=eq.'+estimate.id,owner.token);assert.equal(jobs.length,1)
+  await json('/rest/v1/rpc/manage_job_workspace',owner.token,{method:'POST',body:{p_business:businessA,p_job:jobs[0].id,p_action:'add_task',p_payload:{id:randomUUID(),title:'Synthetic restoration checklist',worker_id:worker}}})
+  await json('/rest/v1/rpc/manage_job_workspace',owner.token,{method:'POST',body:{p_business:businessA,p_job:jobs[0].id,p_action:'add_time',p_payload:{request_id:randomUUID(),worked_on:'2026-11-10',minutes:60,hourly_cost:25,worker_id:worker,note:'Synthetic reviewed recovery fixture'}}})
+  let recovery
+  if(restoreDrill){
+   phase='synthetic-restore'
+   recovery=await restoreDrill({expectedUsers:actors.map(a=>a.id),expectedBusinesses:[businessA,businessB],
+    removeFile:async()=>{const r=await api('/storage/v1/object/finviant-record-photos',status.SERVICE_ROLE_KEY,{method:'DELETE',body:{prefixes:[photoPath]}});assert.ok(r.ok);assert.ok(!(await api(object,owner.token)).ok)},
+    restoreFile:async()=>{for(const actor of actors)await actor.login();assert.ok((await uploadFile(status.SERVICE_ROLE_KEY,backedUpFile)).ok)},
+    verifyFile:async()=>{
+     const r=await api(object,owner.token);assert.ok(r.ok);assert.equal(digest(Buffer.from(await r.arrayBuffer())),digest(png))
+     for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api(object,token)).ok)
+     const balance=await json('/rest/v1/invoices?select=total,amount_paid,balance_due&id=eq.'+invoice.id,owner.token)
+     assert.deepEqual(balance.map(r=>[Number(r.total),Number(r.amount_paid),Number(r.balance_due)]),[[105,30,75]])
+     assert.equal((await json('/rest/v1/payments?select=id&invoice_id=eq.'+invoice.id,owner.token)).length,1)
+     assert.deepEqual(await json('/rest/v1/invoices?select=id&business_id=eq.'+businessA,outsider.token),[])
+     assert.equal((await json('/rest/v1/jobs?select=id&business_id=eq.'+businessA,owner.token)).length,1)
+    }
+   })
+  }
   phase='distributed-provider-burst'
   // Twenty independent PostgREST transactions, actual shared DB state, no OCR call.
   const receiptRequests=Array.from({length:20},()=>randomUUID())
@@ -126,7 +161,7 @@ export async function verifyAuthStorageReplay(db,status){
   assert.ok(!(await api(object,office.token)).ok,'Revoked billing access must not read invoice files with the existing session')
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
-  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true}
+  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recovery}
  }catch(error){
   console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)
@@ -136,11 +171,15 @@ export async function verifyAuthStorageReplay(db,status){
   // Keep the real application ownership-transfer guard fully enabled.
   await db.query("select set_config('request.jwt.claim.sub','',false),set_config('request.jwt.claims','{}',false)")
   if(photoPath){const removed=await api('/storage/v1/object/finviant-record-photos',status.SERVICE_ROLE_KEY,{method:'DELETE',body:{prefixes:[photoPath]}});if(!removed.ok)throw Error('Disposable Storage cleanup failed')}
+  if(cleanupFixture){
+   await cleanupFixture({expectedUsers:actors.map(a=>a.id),expectedBusinesses:[businessA,businessB]})
+  }else{
   for(const business of [businessA,businessB]){
-   for(const table of ['record_photos','invoice_items','invoices','appointments','jobs','customers'])await db.query('delete from public.'+table+' where business_id=$1',[business])
+   for(const table of ['record_photos','payments','invoice_items','invoices','appointments','estimate_items','estimates','jobs','customers'])await db.query('delete from public.'+table+' where business_id=$1',[business])
    await db.query('delete from public.businesses where id=$1',[business])
   }
   await db.query('delete from private.provider_burst_buckets') // Only the owned empty-start disposable platform.
   for(const actor of actors){const removed=await api('/auth/v1/admin/users/'+actor.id,status.SERVICE_ROLE_KEY,{method:'DELETE'});if(!removed.ok)throw Error('Disposable Auth cleanup failed')}
+  }
  }
 }
