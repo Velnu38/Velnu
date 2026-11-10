@@ -126,6 +126,35 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
     }
    })
   }
+  phase='recurring-owner-date'
+  const firstDate=(await db.query("select ((now() at time zone 'America/New_York')::date+30)::text as first_date")).rows[0].first_date
+  const planRequest=randomUUID(),repeatOptions={title:'Synthetic monthly service',cadence:'monthly',first_date:firstDate,end_date:'',due_days:7,schedule_visit:false,visit_time:'09:00',duration_minutes:60,workers:[]}
+  const repeatBody={p_invoice:invoice.id,p_request:planRequest,p_options:repeatOptions}
+  phase='recurring-owner-create'
+  const createdPlan=await json('/rest/v1/rpc/create_recurring_invoice',owner.token,{method:'POST',body:repeatBody})
+  assert.equal(createdPlan.id,planRequest);assert.equal(createdPlan.status,'active')
+  assert.equal((await json('/rest/v1/rpc/create_recurring_invoice',owner.token,{method:'POST',body:repeatBody})).id,planRequest)
+  phase='recurring-owner-page'
+  const pageBody={p_business:businessA,p_status:'current',p_before:null,p_before_id:null}
+  const recurringPage=()=>json('/rest/v1/rpc/get_recurring_invoice_page',owner.token,{method:'POST',body:pageBody})
+  assert.equal((await recurringPage()).items.length,1)
+  for(const actor of [outsider,office])assert.equal((await api('/rest/v1/rpc/get_recurring_invoice_page',actor.token,{method:'POST',body:pageBody})).status,403)
+  for(const status of ['paused','active']){
+   assert.equal((await api('/rest/v1/rpc/set_recurring_invoice_status',owner.token,{method:'POST',body:{p_plan:planRequest,p_status:status}})).status,204)
+   assert.equal((await recurringPage()).items[0].status,status)
+  }
+  phase='recurring-deposit-exclusion'
+  const deposit=await json('/rest/v1/rpc/create_estimate_deposit',owner.token,{method:'POST',body:{p_estimate:estimate.id,p_amount:10,p_due:firstDate}})
+  const depositRepeat=await api('/rest/v1/rpc/create_recurring_invoice',owner.token,{method:'POST',body:{...repeatBody,p_invoice:deposit,p_request:randomUUID()}})
+  assert.equal(depositRepeat.status,400);assert.equal((await depositRepeat.json()).code,'23514')
+  phase='recurring-keyset-fixtures'
+  // Equal timestamps exercise the compound keyset cursor, not offset slicing.
+  await db.query("insert into private.recurring_invoice_plans select (jsonb_populate_record(null::private.recurring_invoice_plans,to_jsonb(p)||jsonb_build_object('id',gen_random_uuid(),'status','paused','created_at','2026-11-01T00:00:00Z'::timestamptz))).* from private.recurring_invoice_plans p cross join generate_series(1,26) n where p.id=$1",[planRequest])
+  const firstPage=await recurringPage();assert.equal(firstPage.items.length,25);assert.equal(firstPage.has_more,true);assert.equal(firstPage.counts.paused,26)
+  const cursor=firstPage.items.at(-1)
+  const secondPage=await json('/rest/v1/rpc/get_recurring_invoice_page',owner.token,{method:'POST',body:{...pageBody,p_before:cursor.created_at,p_before_id:cursor.id}})
+  assert.equal(secondPage.items.length,2);assert.equal(secondPage.has_more,false)
+  assert.equal(new Set([...firstPage.items,...secondPage.items].map(p=>p.id)).size,27)
   phase='distributed-provider-burst'
   // Twenty independent PostgREST transactions, actual shared DB state, no OCR call.
   const receiptRequests=Array.from({length:20},()=>randomUUID())
@@ -161,7 +190,7 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.ok(!(await api(object,office.token)).ok,'Revoked billing access must not read invoice files with the existing session')
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
-  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recovery}
+  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,recovery}
  }catch(error){
   console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)

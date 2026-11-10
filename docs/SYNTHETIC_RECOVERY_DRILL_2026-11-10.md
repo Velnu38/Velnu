@@ -1,6 +1,6 @@
 # Synthetic recovery drill
 
-Status: implemented for mandatory isolated CI; execution evidence is pending. OPS-01 stays open.
+Status: the mandatory isolated drill passed at commit `3da1f6373fd6a4f4b82e4ab042c6d50e822166be`, run `42860154986`, migration job `129984177428`. All 45 synthetic rows across 127 inventoried tables matched, actual private file bytes matched, and access checks passed after a genuine password re-login. Backup took 162 ms and data restore 936 ms in this tiny quiescent fixture; these are not production recovery targets. OPS-01 stays open. See `docs/evidence/2026-11-10-synthetic-restore.json`.
 
 The migration runner creates a uniquely named local Supabase project with an empty database, no hosted credentials, an empty Vault, no enabled sender, and cron execution disabled. The Auth/Storage check creates three genuine password identities across two synthetic businesses, an invoice for $105, one retry-safe $30 cash receipt, an accepted estimate and its job, a roster worker, task, time entry and a private PNG file.
 

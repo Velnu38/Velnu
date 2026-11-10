@@ -308,7 +308,8 @@
       "review/document-conveniences-20261110": false,
       "review/auth-storage-acceptance-20261110": false,
       "review/provider-burst-20261110": false,
-      "review/recovery-operations-20261110": false
+      "review/recovery-operations-20261110": false,
+      "review/recurring-owner-controls-20261110": false
     }
   }
 }

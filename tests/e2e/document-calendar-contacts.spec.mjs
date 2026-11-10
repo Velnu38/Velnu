@@ -14,8 +14,8 @@ const business={id:B,name:'Scheduling QA',created_by_user_id:U,timezone:zone,pro
 const customer={id:C,first_name:'Test',last_name:'Customer',company:null,email:'customer@example.test'}
 const team=[{id:U,label:'Owner',role:'owner',is_you:true},{id:J,label:'Field worker',role:'technician',is_you:false}]
 const slots=Array.from({length:3},(_,n)=>({id:`77777777-7777-4777-8777-${String(n+1).padStart(12,'0')}`,starts_at:DateTime.now().setZone(zone).plus({days:14+n}).set({hour:9,minute:0,second:0,millisecond:0}).toISO(),ends_at:DateTime.now().setZone(zone).plus({days:14+n}).set({hour:11,minute:0,second:0,millisecond:0}).toISO()}))
-async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=false,owner=true}={}){
- const state={calls:[],booked:false,approved:false,customers:[customer],completed:false,documents:[],entries:[],changes:[],imported:[]}
+async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=false,owner=true,recurring=false}={}){
+ const state={calls:[],booked:false,approved:false,customers:[customer],completed:false,documents:[],entries:[],changes:[],imported:[],recurringPlans:[]}
  if(signedIn){const head=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),body=Buffer.from(JSON.stringify({sub:U,aud:'authenticated',role:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');await page.addInitScript(session=>localStorage.setItem('sb-example-auth-token',JSON.stringify(session)),{access_token:`${head}.${body}.test`,refresh_token:'test',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user})}
  await page.route('https://example.supabase.co/**',async route=>{
   const req=route.request(),url=new URL(req.url()),path=url.pathname,method=req.method();let body;try{body=req.postDataJSON()}catch{}
@@ -42,7 +42,13 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/appointments')){if(method==='POST'){const entry={...body,updated_at:new Date().toISOString()};state.entries.push(entry);return reply(entry,201)}return reply([])}
   if(path.endsWith('/calendar_work'))return reply(state.entries.map(e=>({source_key:'appointment:'+e.id,title:e.title,starts_at:e.starts_at,ends_at:e.ends_at,status:'scheduled',document_kind:'work',document_id:e.id,job_id:null,assigned_user_ids:[U]})))
   if(path.endsWith('/functions/v1/transcribe-voice'))return reply({configured:false})
-  if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:ai?'pro':'free',ai_limit:ai?100:0,ai_used:0,voice_limit:ai?100:0})
+  if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:ai?'pro':recurring?'basic':'free',ai_limit:ai?100:0,ai_used:0,voice_limit:ai?100:0})
+  if(path.endsWith('/rpc/create_recurring_invoice')){
+   if(!state.recurringPlans.some(p=>p.id===body.p_request))state.recurringPlans.push({id:body.p_request,source_invoice_id:body.p_invoice,...body.p_options,status:'active',next_date:body.p_options.first_date,timezone:zone,created_at:new Date().toISOString(),occurrences:[]})
+   return reply({id:body.p_request,status:'active'})
+  }
+  if(path.endsWith('/rpc/get_recurring_invoice_page'))return reply({items:state.recurringPlans,has_more:false,counts:{active:state.recurringPlans.filter(p=>p.status==='active').length,paused:state.recurringPlans.filter(p=>p.status==='paused').length,ended:0}})
+  if(path.endsWith('/rpc/set_recurring_invoice_status')){state.recurringPlans.find(p=>p.id===body.p_plan).status=body.p_status;return reply(null)}
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
   if(path.endsWith('/rpc/get_dashboard_attention_page'))return reply(attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[]}}))
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return reply({open_invoices:0,outstanding_balance:0})
@@ -244,4 +250,36 @@ test('a customer sees and approves the same revised total shown in the change or
  expect(decisions).toHaveLength(1)
  await verifyIssuedCopy()
  expect(state.calls.some(call=>call.path.includes('/auth/v1/'))).toBe(false)
+})
+
+
+for(const width of [1440,390])test(`owner recurring invoice setup and pause remain review-first at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});const state=await mock(page,{recurring:true});await page.goto('/?view=invoices&document='+E)
+ await page.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
+ await page.getByRole('button',{name:'Repeat invoice',exact:true}).click()
+ const dialog=page.getByRole('dialog',{name:'Repeat invoice',exact:true})
+ await expect(dialog).toBeVisible();await expect(dialog.getByText('Nothing is sent to the customer or charged automatically.',{exact:false})).toBeVisible()
+ await expect(dialog.getByRole('checkbox')).toHaveCount(0)
+ await dialog.getByLabel('Schedule name',{exact:true}).fill('Monthly service')
+ await dialog.getByRole('button',{name:'Create recurring schedule',exact:true}).click()
+ await expect(dialog.getByRole('status')).toContainText('Schedule created')
+ await expect.poll(()=>state.recurringPlans.length).toBe(1)
+ await dialog.getByRole('button',{name:'Close',exact:true}).click()
+ await page.getByRole('button',{name:'← Invoices',exact:true}).click()
+ await page.getByRole('button',{name:'Recurring invoices',exact:true}).click()
+ const schedules=page.getByRole('dialog',{name:'Recurring invoices',exact:true})
+ await expect(schedules.getByRole('heading',{name:'Monthly service'})).toBeVisible()
+ page.once('dialog',d=>d.dismiss());await schedules.getByRole('button',{name:'Pause schedule'}).click();expect(state.recurringPlans[0].status).toBe('active')
+ page.once('dialog',d=>d.accept());await schedules.getByRole('button',{name:'Pause schedule'}).click();await expect(schedules.getByRole('button',{name:'Resume schedule'})).toBeVisible()
+ page.once('dialog',d=>d.accept());await schedules.getByRole('button',{name:'Resume schedule'}).click();await expect(schedules.getByRole('button',{name:'Pause schedule'})).toBeVisible()
+ expect(state.calls.filter(c=>/create_recurring_invoice$/.test(c.path))).toHaveLength(1)
+ expect(state.calls.some(c=>/send-document|send-invoice|charge|reserve_ai/.test(c.path))).toBe(false)
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+})
+for(const width of [1440,390])test(`office users have no recurring owner controls at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:900});const state=await mock(page,{recurring:true,owner:false});await page.goto('/?view=invoices&recurring=1')
+ await expect(page.getByRole('heading',{name:'Know what’s owed and get paid faster.'})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Recurring invoices',exact:true})).toHaveCount(0)
+ await expect(page.getByRole('dialog',{name:'Recurring invoices',exact:true})).toHaveCount(0)
+ expect(state.calls.some(c=>/get_recurring_invoice_page/.test(c.path))).toBe(false)
 })
