@@ -1,0 +1,11 @@
+# Bounded Job Management queue
+
+The Jobs / Job Management split is preserved. Management no longer downloads every job, hydrates every workflow or requests all attention signals before presenting ten cards. One authorized RPC returns ten combined job/legacy-approved-work entries, visible-job signals, complete scope totals and a clamped page. Customer scope and literal, case-insensitive job/customer/address search apply on the server. Filters retain their existing meanings, including in-progress work with no active visit in Ready to schedule. Billing details, approved financial records and billing attention are withheld from jobs-only users.
+
+The parent Jobs screen no longer scans jobs in Management mode. The selected job still resolves directly by ID, including deep links and jobs outside the current page. Refreshes preserve the workspace and unsaved material/task forms. A failed queue request shows recovery, clears obsolete cards/counts and retains search input. Navigation confirmation and all existing management actions remain in place.
+
+The additive migration does not change stored records or existing RPCs. The rollback is the previous frontend; leaving this unused read function is safe. Do not remove it while this frontend is deployed.
+
+Validation includes a 50,002-job SQL fixture with bounded payloads, page clamping and literal `%` search; legacy accepted work and incomplete task/material attention; staff financial redaction, revoked module, anonymous and foreign membership denial; genuine local Auth/PostgREST calls in complete migration replay; phone/desktop browser checks for paging, search, recovery, complete counts and absence of Jobs REST scans; and existing management/execution DOM journeys. New regression coverage verifies an open material draft survives Refresh.
+
+At preparation time, local SQL and management DOM tests passed. CI and hosted rollout are separate gates. The isolated 300-workspace campaign is tracked under PR85; it measures the earlier directory/overview paths, not this newly added management RPC. It cannot certify hosted production capacity, queue lag or physical devices. The customer selector still loads its separate customer dataset and remains a further scaling item.

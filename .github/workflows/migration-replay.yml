@@ -24,3 +24,9 @@ jobs:
       # Public Ubuntu runner, fresh local Docker volumes, no hosted secrets or sends.
       # Output is sanitized by the runner; do not upload raw CLI logs/status artifacts.
       - run: node scripts/qa/replay-migrations.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolated-reminder-queue-results
+          path: tmp/queue-results/result.json
+          if-no-files-found: error
+          retention-days: 7

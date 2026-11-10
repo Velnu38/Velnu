@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af",
+  "auditedCommit": "b19f89f278eeed0bf09b32123cfaed83c47db565",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -15,8 +15,8 @@
     },
     {
       "title": "Current audited release baseline",
-      "detail": "Current branch HEAD 18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af is READY at dpl_Htcp9Cot1hUNcRRqxPNQ9jq57Wur with finviant.com/www aliases. The preceding merge 85abc5466db21ae8c0faeda5de8ac8bc790da5e4 passed all 21 full-validation jobs in run 42862992414. Current full-validation run 42869888587 remains unfinished; READY and alias assignment do not certify same-commit CI, provider or device acceptance. Beta has 139 migration ledger entries through 20261110175517 (recurring_owner_controls), three businesses and three Auth accounts. No migration or release was performed by this audit.",
-      "evidence": "2026-11-10 read-only GitHub branch/Actions, Vercel deployment/alias and Supabase aggregate receipts; https://github.com/Velnu38/Velnu/commit/18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af; https://github.com/Velnu38/Velnu/actions/runs/42862992414; https://github.com/Velnu38/Velnu/actions/runs/42869888587",
+      "detail": "Current private-beta merge b19f89f278eeed0bf09b32123cfaed83c47db565 is READY at dpl_ABypKt34wEfTbirtodshytiNnz5Y on finviant.com and www.finviant.com. PR83 archive and PR84 Jobs Overview passed every final PR workflow, including complete validation runs 42875112089 and 42876650472. Hosted migration grants, matching archive/worker sources and unauthorized access were checked. This release does not certify hosted load, provider sending, merchant payments, physical devices or public cutover.",
+      "evidence": "docs/evidence/2026-11-10-archive-overview-rollout.json",
       "verifiedAt": "2026-11-10"
     },
     {
@@ -320,15 +320,51 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Complete owner archive candidate",
-      "detail": "Explicit 84-collection snapshot, all stored business files, bounded ZIP parts and integrity manifests, retry leases, seven-day owner-only download expiry and archive-only cleanup are implemented for review. Local build, independent ZIP reader and 50,001-row SQL tests passed. Genuine-session/private-Storage replay and full browser CI are required before deployment; export acceptance remains open. No source-record retention purge or Fin usage is introduced.",
-      "evidence": "docs/OWNER_ARCHIVE_2026-11-10.md; tests/records/owner-archive.test.ts; tests/storage/owner-archive.test.ts; scripts/qa/owner-archive-replay.mjs",
+      "title": "Owner archive private-beta rollout",
+      "detail": "PR83 passed all six final workflows, including full browser, Deno, 50,001-record SQL and genuine local Auth/private-Storage tests. Applied owner_record_archives, deployed matching owner-archive v1 and tier-delivery-worker v16, and verified unauthenticated HTTP 401, database grants/private bucket, READY d45424a and both beta aliases. Current-user archive creation and physical-device acceptance remain separate; no live account purge or Fin usage is enabled.",
+      "evidence": "docs/evidence/2026-11-10-archive-overview-rollout.json; PR83 complete check 42875112089",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Bounded Jobs Overview candidate",
-      "detail": "Jobs Overview now requests one server summary with full filter totals, four agenda cards, four focus cards and complete per-worker daily counts. Server results retain tenant/customer/worker scope and hide billing amounts/counts without billing access. SQL coverage compares directory and overview totals beyond 50,000 jobs; browser/DOM checks retain actions and failure recovery. This removes the overview client-wide job/workflow scan; Job Management and the customer picker still need separate bounded-loading work. Hosted capacity and concurrent-load acceptance remain open.",
-      "evidence": "supabase/migrations/20261110182728_jobs_overview_summary.sql; tests/records/job-directory.test.ts; tests/e2e/operations-workspaces.spec.mjs; scripts/qa/auth-storage-replay.mjs",
+      "title": "Bounded Jobs Overview rollout",
+      "detail": "PR84 passed all six final workflows including its full browser and genuine-session schema replay. Server summary returns full totals, four focus/agenda cards and complete crew counts with scope and billing restrictions. Applied jobs_overview_summary and verified READY b19f89f at dpl_ABypKt34wEfTbirtodshytiNnz5Y on both beta aliases. Job Management and customer-picker scaling remain separate work; hosted capacity acceptance remains open.",
+      "evidence": "docs/evidence/2026-11-10-archive-overview-rollout.json; PR84 complete check 42876650472",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Isolated capacity harness prepared",
+      "detail": "A separate disposable CI platform creates 300 genuine password sessions and workspaces, 6,000 customers, 12,000 jobs, 6,000 invoice histories with 1,500 payments, and 300 actual private PNG files. The bounded workload exercises 10/50/100 clients, a controlled owned PostgREST restart, retry identity, tenant denials, session refresh and a 60-minute soak. Limits are 50 requests/second, 250,000 requests, 15-second request timeout and 1,500ms p95 target. Local safety/statistics/PNG checks pass; the actual campaign is pending. It neither targets beta nor certifies hosted/provider/browser capacity.",
+      "evidence": "docs/ISOLATED_CAPACITY_2026-11-10.md; scripts/qa/local-capacity.mjs; .github/workflows/capacity-soak.yml",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Bounded Job Management queue prepared",
+      "detail": "A separate review candidate replaces the full Jobs and legacy-approved-work fetch with get_job_management_page: ten jobs or accepted estimates, full scope counts, literal job/customer/address search, and signals only for visible jobs. Selected workspaces and unsaved forms survive queue refreshes. Database tests cover 50,002 jobs, final-page clamping, real legacy rows, due tasks/materials, customer scope and staff/anonymous/foreign/revoked access; existing management and execution journeys remain covered. Full CI, genuine Auth replay, hosted migration and deployment remain pending. Customer-picker scaling and hosted load/queue capacity remain separate open work.",
+      "evidence": "docs/JOB_MANAGEMENT_PAGING_2026-11-10.md; tests/operations/management-page.test.ts; tests/e2e/operations-workspaces.spec.mjs",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Job draft customer search prepared",
+      "detail": "A separate review candidate removes the full customer-list fetch from Jobs entry and refresh. Job forms use eight server-selected matches plus one selected active contact, retaining customer RLS, Jobs permissions, accent/phone/literal search, inline new customers and draft state. Local 50,000-contact access/search tests, build and operations DOM checks pass. Full CI and private-beta migration/deployment remain pending. This is not whole-app directory or hosted latency acceptance.",
+      "evidence": "docs/JOB_CUSTOMER_SEARCH_2026-11-10.md; tests/records/job-customer-search.test.ts; tests/e2e/job-customer-search.spec.mjs",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Current hot-path advisor review",
+      "detail": "The November 10 19:57 UTC beta review found 50 unindexed FK notices, 66 unused indexes, four multiple-permissive-policy notices and Auth connection allocation fixed at ten. No identity InitPlan or health findings remain; security returned no ERROR findings. Reviewed the five missing-FK notices on Jobs, invoices and appointments against actual index definitions; existing partial/unique coverage and missing broader coverage are documented without blindly adding/removing indexes. Aggregate serverless/transaction-pooler/TLS configuration and representative plan/capacity acceptance remain open.",
+      "evidence": "docs/PERFORMANCE_ADVISOR_REVIEW_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Isolated reminder queue catch-up prepared",
+      "detail": "A review candidate adds 300 synthetic workspace reminders with four overlapping PostgreSQL service-role dispatcher loops to the disposable full-schema replay. It checks bounded preparation/list batches, single dispatch and allowance reservation, simulated accepted receipts, one uncertain outcome retained for reconciliation, backlog drainage and complete fixture cleanup. No provider requests or hosted workers run. Real execution metrics and CI are pending; hosted worker cadence and full PERF-02 acceptance remain open.",
+      "evidence": "docs/QUEUE_CATCHUP_2026-11-10.md; scripts/qa/queue-catchup.mjs; tests/deployment/queue-catchup.test.mjs",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Reminder queue baseline measured; repeated scan fix prepared",
+      "detail": "The isolated PostgreSQL replay drained 300 reminders with four overlapping SQL dispatchers in 17,483 ms: 299 simulated accepted, one uncertain retained, 300 usage reservations, 900 duplicate claims skipped, no duplicate dispatch and complete cleanup. Preparation took 37,208 ms across six insert batches and an idempotence recheck. A new additive migration uses the existing unique occurrence index to skip all durably queued states before recipient/consent snapshots, preserving claim-time checks and the 50-row insert batch. Post-change timing and full release verification are pending; no real delivery or hosted capacity is certified.",
+      "evidence": "docs/evidence/2026-11-10-queue-baseline.json; docs/REMINDER_SCAN_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     }
   ],
@@ -450,7 +486,7 @@
       "status": "open",
       "title": "Tune RLS, queries and connection budgets",
       "owner": "Developer",
-      "why": "Fresh beta review confirms 23 RLS identity-evaluation warnings and 49 unindexed FKs. The separate identity-initplan candidate preserves policy semantics and passes local authorization/plan checks; it is not deployed yet. Representative hosted query plans, valuable FK/order indexes, connection budgets and measured capacity remain open. The 23-policy identity InitPlan migration is applied to beta; no remaining auth_rls_initplan advisory group was returned. This is not measured hosted load capacity.",
+      "why": "The 23-policy identity InitPlan migration is deployed; no remaining auth_rls_initplan advisor group was returned on November 10 at 19:57 UTC. The current inventory has 50 unindexed foreign keys and 66 unused indexes; five hot-path FK notices were reviewed against existing coverage without blind index removal. Jobs directory/Overview pagination is deployed; Management and job-customer search are separate review candidates. Representative hosted plans, aggregate connection budgets and measured capacity remain open.",
       "acceptance": "Review plans on representative tenant sizes; fix applicable auth initplan patterns and high-value FK/filter/order indexes, then rerun tenant authorization tests. Verify transaction pooler/TLS/dedicated calendar role, aggregate serverless pool limits (calendar pool max=3 per instance), Auth reserve, timeouts and pagination. Measure before/after; do not blindly drop 39 unused indexes.",
       "evidence": []
     },

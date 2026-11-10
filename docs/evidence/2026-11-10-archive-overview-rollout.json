@@ -1,0 +1,126 @@
+{
+  "checkedAt": "2026-11-10",
+  "repository": "Velnu38/Velnu",
+  "releases": [
+    {
+      "pullRequest": 83,
+      "head": "af392498bb6556195309ce85c74c6f64d9453d93",
+      "merge": "d45424a7198ca3dcb76b062eb65ee65b27647b4e",
+      "workflows": [
+        {
+          "id": 42875112288,
+          "conclusion": "success"
+        },
+        {
+          "id": 42875112858,
+          "conclusion": "success"
+        },
+        {
+          "id": 42875112036,
+          "conclusion": "success"
+        },
+        {
+          "id": 42875112043,
+          "conclusion": "success"
+        },
+        {
+          "id": 42875111975,
+          "conclusion": "success"
+        },
+        {
+          "id": 42875112089,
+          "conclusion": "success"
+        }
+      ],
+      "database": {
+        "project": "xvybcmyoblfgzokaifsx",
+        "migration": "owner_record_archives",
+        "version": "20261110192805",
+        "privateTables": 3,
+        "clientDirectRead": false,
+        "anonymousRPC": false,
+        "serviceFinalizationOnly": true,
+        "privateBucketLimitBytes": 24000000
+      },
+      "edge": [
+        {
+          "name": "owner-archive",
+          "version": 1,
+          "verifyJWT": true,
+          "filesMatch": true,
+          "unauthorizedStatus": 401
+        },
+        {
+          "name": "tier-delivery-worker",
+          "version": 16,
+          "verifyJWT": false,
+          "workerTokenRequired": true,
+          "filesMatch": true,
+          "unauthorizedStatus": 401
+        }
+      ],
+      "hosting": {
+        "deployment": "dpl_BmRM7NMsbNnmW5NBrqDY7PDqhU5f",
+        "state": "READY",
+        "bothDomainsVerified": true,
+        "entry": "/assets/index-DelhYMzt.js"
+      }
+    },
+    {
+      "pullRequest": 84,
+      "head": "00d045cb78e4a02de1384f9261566ac0b8c2d6c7",
+      "merge": "b19f89f278eeed0bf09b32123cfaed83c47db565",
+      "workflows": [
+        {
+          "id": 42876650723,
+          "conclusion": "success"
+        },
+        {
+          "id": 42876650325,
+          "conclusion": "success"
+        },
+        {
+          "id": 42876650622,
+          "conclusion": "success"
+        },
+        {
+          "id": 42876650447,
+          "conclusion": "success"
+        },
+        {
+          "id": 42876650472,
+          "conclusion": "success"
+        },
+        {
+          "id": 42876650300,
+          "conclusion": "success"
+        }
+      ],
+      "database": {
+        "project": "xvybcmyoblfgzokaifsx",
+        "migration": "jobs_overview_summary",
+        "version": "20261110193121",
+        "anonymousExecute": false,
+        "authenticatedExecute": true,
+        "serviceExecute": false
+      },
+      "hosting": {
+        "deployment": "dpl_ABypKt34wEfTbirtodshytiNnz5Y",
+        "state": "READY",
+        "bothDomainsVerified": true,
+        "entry": "/assets/index-B4tlddBv.js"
+      }
+    }
+  ],
+  "aliases": [
+    "finviant.com",
+    "www.finviant.com"
+  ],
+  "environment": "preview/private-beta",
+  "securityAdvisorErrors": 0,
+  "limits": [
+    "Hosted owner export with actual user records and physical-device acceptance remain separate.",
+    "Jobs Overview is bounded; Job Management and customer-picker scaling remain open.",
+    "No live account purge, provider sends, charges, price changes or public cutover."
+  ]
+}

@@ -119,6 +119,14 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.deepEqual(jobOverview.counts,directory.counts);assert.equal(jobOverview.focus.length,1);assert.equal(jobOverview.focus[0].id,jobs[0].id);assert.equal(jobOverview.agenda.length,0)
   for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api('/rest/v1/rpc/get_jobs_overview',token,{method:'POST',body:overviewArgs})).ok)
   assert.equal((await json('/rest/v1/rpc/get_jobs_overview',owner.token,{method:'POST',body:{...overviewArgs,p_customer:randomUUID()}})).counts.all,0)
+  const customerSearch=await json('/rest/v1/rpc/search_job_customers',owner.token,{method:'POST',body:{p_business:businessA,p_query:'',p_selected:customer}});
+  assert.equal(customerSearch.selected.id,customer);assert.ok(customerSearch.items.length<=8);assert.ok(customerSearch.items.every(c=>!('notes' in c)));
+  for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api('/rest/v1/rpc/search_job_customers',token,{method:'POST',body:{p_business:businessA,p_query:''}})).ok);
+  const managementArgs={p_business:businessA,p_filter:'all',p_search:'',p_page:0};
+  const management=await json('/rest/v1/rpc/get_job_management_page',owner.token,{method:'POST',body:managementArgs});
+  assert.equal(management.total,1);assert.equal(management.counts.active,1);assert.equal(management.entries[0].data.id,jobs[0].id);assert.equal(management.signals.length,1);assert.equal(management.page_size,10);
+  for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api('/rest/v1/rpc/get_job_management_page',token,{method:'POST',body:managementArgs})).ok);
+  assert.equal((await json('/rest/v1/rpc/get_job_management_page',owner.token,{method:'POST',body:{...managementArgs,p_customer:randomUUID()}})).total,0);
   await json('/rest/v1/rpc/manage_job_workspace',owner.token,{method:'POST',body:{p_business:businessA,p_job:jobs[0].id,p_action:'add_task',p_payload:{id:randomUUID(),title:'Synthetic restoration checklist',worker_id:worker}}})
   await json('/rest/v1/rpc/manage_job_workspace',owner.token,{method:'POST',body:{p_business:businessA,p_job:jobs[0].id,p_action:'add_time',p_payload:{request_id:randomUUID(),worked_on:'2026-11-10',minutes:60,hourly_cost:25,worker_id:worker,note:'Synthetic reviewed recovery fixture'}}})
   let recovery

@@ -3,56 +3,22 @@ import { DateTime } from "luxon";
 import type { CurrentBusiness } from "../lib/business";
 import { canAccess } from "../lib/workspaceAccess";
 import { confirmNavigation } from "../lib/unsavedChanges";
-import { formatServiceAddress, type ServiceAddress } from "../lib/googleMaps";
 import {
   hasActiveJobAppointment,
-  jobNeedsStatusUpdate,
   jobStatusLabels,
   type JobStatus,
 } from "../lib/jobActions";
-import type { JobWorkflow } from "../services/jobs";
 import type { Worker } from "../services/schedulingWorkflow";
 import {
-  getApprovedWork,
-  getJobManagementSignals,
+  getJobManagementPage,
   prepareApprovedWork,
   type ApprovedWork,
-  type JobSignals,
+  type ManagementJob,
+  type ManagementFilter as Filter,
+  type ManagementPage,
 } from "../services/jobManagement";
 import JobManagementWorkspace from "./JobManagementWorkspace";
 import "./job-management.css";
-export type ManagementJob = JobWorkflow & {
-  id: string;
-  title: string;
-  status: string;
-  customer_id: string | null;
-  source_estimate_id?: string | null;
-  scheduled_start: string | null;
-  scheduled_end?: string | null;
-  assigned_user_ids?: string[];
-  customers:
-    | {
-        first_name: string | null;
-        last_name: string | null;
-        company: string | null;
-      }[]
-    | {
-        first_name: string | null;
-        last_name: string | null;
-        company: string | null;
-      }
-    | null;
-  properties?: ServiceAddress[] | null;
-};
-type Filter =
-  | "active"
-  | "approved"
-  | "unscheduled"
-  | "in_progress"
-  | "attention"
-  | "billing"
-  | "history"
-  | "all";
 const customer = (job: ManagementJob) => {
   const c = Array.isArray(job.customers) ? job.customers[0] : job.customers;
   return c
@@ -65,7 +31,6 @@ const closed = (job: ManagementJob) =>
   ["completed", "canceled"].includes(job.status);
 export default function JobManagement({
   business,
-  jobs,
   team,
   revision,
   selectedJobId,
@@ -75,7 +40,6 @@ export default function JobManagement({
   initialComplete = false,
 }: {
   business: CurrentBusiness;
-  jobs: ManagementJob[];
   team: Worker[];
   revision: number;
   selectedJobId: string | null;
@@ -87,8 +51,8 @@ export default function JobManagement({
   const [filter, setFilter] = useState<Filter>("active"),
     [search, setSearch] = useState(""),
     [page, setPage] = useState(0),
-    [signals, setSignals] = useState<Record<string, JobSignals> | null>(null),
-    [approved, setApproved] = useState<ApprovedWork[]>([]),
+    [queryText, setQueryText] = useState(""),
+    [result, setResult] = useState<{key:string;page:ManagementPage}|null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(0),
@@ -101,105 +65,25 @@ export default function JobManagement({
   const canBill =
     canAccess(business, "billing") &&
     ["owner", "admin", "office"].includes(business.role);
-  const zone = business.timezone || "America/New_York",
-    now = new Date();
-  const jobKey = jobs
-    .map((j) => j.id)
-    .sort()
-    .join(",");
+  const zone = business.timezone || "America/New_York";
+  const effectiveFilter = filter === "billing" && !canBill ? "active" : filter;
+  const requestKey = JSON.stringify([business.id,business.role,business.access_modules,customerScope,effectiveFilter,queryText,page,revision,retry]);
+  useEffect(()=>{const timer=setTimeout(()=>{setQueryText(search.trim());setPage(0)},200);return()=>clearTimeout(timer)},[search]);
   useEffect(() => {
     let active = true;
     setError("");
-    setSignals(null);
-    Promise.all([
-      getJobManagementSignals(
-        business.id,
-        jobs.map((j) => j.id),
-      ),
-      canBill
-        ? getApprovedWork(business.id, customerScope)
-        : Promise.resolve([]),
-    ])
-      .then(([rows, work]) => {
-        if (active) {
-          setSignals(Object.fromEntries(rows.map((r) => [r.job_id, r])));
-          setApproved(work);
-        }
-      })
-      .catch((e) => {
-        if (active)
-          setError(
-            (e as Error).message || "The management queue could not load.",
-          );
-      });
-    return () => {
-      active = false;
-    };
-  }, [business.id, jobKey, revision, retry, canBill, customerScope]);
-  const active = jobs.filter((j) => !closed(j)),
-    unscheduled = active.filter((j) => !hasActiveJobAppointment(j)),
-    progress = active.filter((j) => j.status === "in_progress"),
-    billing = canBill
-      ? jobs.filter(
-          (j) =>
-            j.status === "completed" &&
-            (!j.invoice || ["draft", "void"].includes(j.invoice.status)),
-        )
-      : [];
-  const attention = (j: ManagementJob) =>
-    !closed(j) &&
-    (jobNeedsStatusUpdate(j, now, zone) ||
-      !j.assigned_user_ids?.length ||
-      (!!signals?.[j.id] &&
-        (signals[j.id].due_tasks > 0 ||
-          signals[j.id].materials_needed > 0 ||
-          signals[j.id].pending_changes > 0)));
-  const needsAttention = active.filter(attention);
-  const filtered = jobs
-    .filter(
-      (j) =>
-        filter === "all" ||
-        (filter === "history" && closed(j)) ||
-        (filter === "active" && !closed(j)) ||
-        (filter === "approved" && !closed(j) && !!j.source_estimate_id) ||
-        (filter === "unscheduled" &&
-          !closed(j) &&
-          !hasActiveJobAppointment(j)) ||
-        (filter === "in_progress" && j.status === "in_progress") ||
-        (filter === "billing" && billing.some((b) => b.id === j.id)) ||
-        (filter === "attention" && attention(j)),
-    )
-    .filter((j) =>
-      [
-        j.title,
-        customer(j),
-        j.id,
-        ...(j.properties || []).map((p) => formatServiceAddress(p)),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-  const approvedFiltered = [
-    "approved",
-    "active",
-    "all",
-    "unscheduled",
-  ].includes(filter)
-    ? approved.filter((a) =>
-        [a.title, a.customer, a.estimate_number]
-          .join(" ")
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-      )
-    : [];
-  const entries = [
-    ...approvedFiltered.map((a) => ({ kind: "approved" as const, data: a })),
-    ...filtered.map((j) => ({ kind: "job" as const, data: j })),
-  ];
-  const maxPage = Math.max(0, Math.ceil(entries.length / 10) - 1),
-    currentPage = Math.min(page, maxPage),
-    visible = entries.slice(currentPage * 10, currentPage * 10 + 10);
+    getJobManagementPage(business.id,{customer:customerScope,filter:effectiveFilter,search:queryText,page})
+      .then(data=>{if(active)setResult({key:requestKey,page:data})})
+      .catch(e=>{if(active)setError((e as Error).message||"The management queue could not load.")});
+    return()=>{active=false};
+  }, [requestKey]);
+  const data=result?.key===requestKey?result.page:null;
+  const loading=!data&&!error;
+  const signals=data?Object.fromEntries(data.signals.map(s=>[s.job_id,s])):null;
+  const visible=data?.entries||[];
+  const jobs=visible.filter(e=>e.kind==="job").map(e=>e.data);
+  const total=data?.total??0;
+  const maxPage=Math.max(0,Math.ceil(total/10)-1), currentPage=data?.page??0;
   function choose(id: string) {
     if (!confirmNavigation()) return;
     onSelect(id);
@@ -219,7 +103,7 @@ export default function JobManagement({
     try {
       const id = await prepareApprovedWork(businessId, item.id);
       if (scope.current === businessId) {
-        setApproved((rows) => rows.filter((a) => a.id !== item.id));
+        setRetry(v=>v+1);
         choose(id);
         onUpdated();
       }
@@ -275,31 +159,31 @@ export default function JobManagement({
         onToggle={(e) => setSummaryOpen(e.currentTarget.open)}
       >
         <summary>
-          Job overview <span>{active.length} active jobs</span>
+          Job overview <span>{data?.counts.active ?? "—"} active jobs</span>
         </summary>
         <div className="jm-metrics" aria-label="Job management filters">
           {[
             {
               id: "unscheduled" as const,
               label: "Ready to schedule",
-              count: unscheduled.length + approved.length,
+              count: data?.counts.unscheduled ?? null,
             },
             {
               id: "in_progress" as const,
               label: "In progress",
-              count: progress.length,
+              count: data?.counts.in_progress ?? null,
             },
             {
               id: "attention" as const,
               label: "Needs attention",
-              count: signals ? needsAttention.length : null,
+              count: data?.counts.attention ?? null,
             },
             ...(canBill
               ? [
                   {
                     id: "billing" as const,
                     label: "Ready to invoice",
-                    count: billing.length,
+                    count: data?.counts.billing ?? null,
                   },
                 ]
               : []),
@@ -339,6 +223,7 @@ export default function JobManagement({
             Find a job
             <input
               type="search"
+              maxLength={200}
               value={search}
               placeholder="Job, customer or address"
               onChange={(e) => {
@@ -350,7 +235,7 @@ export default function JobManagement({
           <label>
             Show
             <select
-              value={filter}
+              value={effectiveFilter}
               onChange={(e) => selectFilter(e.target.value as Filter)}
             >
               {Object.entries({
@@ -370,12 +255,10 @@ export default function JobManagement({
             </select>
           </label>
           <p className="quiet jm-queue-count">
-            {entries.length} {entries.length === 1 ? "job" : "jobs"}
-            {filter === "attention" && !signals
-              ? " · attention counts unavailable"
-              : ""}
+            {data ? `${total} ${total===1?"job":"jobs"}` : "Job counts unavailable"}
           </p>
-          <div className="jm-job-options">
+          {loading && <p role="status">Loading management queue…</p>}
+          <div className="jm-job-options" aria-busy={loading}>
             {visible.map((entry) =>
               entry.kind === "approved" ? (
                 <article
@@ -431,15 +314,15 @@ export default function JobManagement({
               ),
             )}
           </div>
-          {!entries.length && (
+          {data && !total && (
             <div className="jm-queue-empty">
               <strong>
-                {jobs.length || approved.length
+                {data.counts.all || data.counts.approved
                   ? "No matching jobs"
                   : "Your work starts here"}
               </strong>
               <p>
-                {jobs.length || approved.length
+                {data.counts.all || data.counts.approved
                   ? "Choose another filter or search."
                   : "Approved estimates appear here automatically. You can also create a job from the Jobs page."}
               </p>
@@ -451,7 +334,7 @@ export default function JobManagement({
                 type="button"
                 className="secondary-button compact"
                 disabled={currentPage === 0}
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                onClick={() => setPage(Math.max(0, currentPage - 1))}
               >
                 Previous
               </button>
@@ -462,7 +345,7 @@ export default function JobManagement({
                 type="button"
                 className="secondary-button compact"
                 disabled={currentPage === maxPage}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => setPage(currentPage + 1)}
               >
                 Next
               </button>

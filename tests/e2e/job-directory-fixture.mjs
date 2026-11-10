@@ -38,6 +38,7 @@ export function jobsOverviewSummary(jobs,params={},zone='America/New_York',now=D
 // Fixtures supply current in-memory rows directly. Avoid nested page.evaluate/fetch
 // inside an intercepted route: an unrelated refresh can outlive a finished test.
 export async function mockJobDirectory(page,readRows,zone='America/New_York'){
+ await page.route('https://example.supabase.co/rest/v1/rpc/get_job_management_page',route=>{const params=route.request().postDataJSON()||{};return route.fulfill({headers:{'access-control-allow-origin':'*'},json:managementPage(readRows(params),[],[],params,true,zone)})})
  await page.route('https://example.supabase.co/rest/v1/rpc/get_jobs_overview',route=>{
   const params=route.request().postDataJSON()||{}
   return route.fulfill({headers:{'access-control-allow-origin':'*'},json:jobsOverviewSummary(readRows(params),params,zone)})
@@ -47,4 +48,20 @@ export async function mockJobDirectory(page,readRows,zone='America/New_York'){
   const params=route.request().postDataJSON()
   return route.fulfill({headers:{'access-control-allow-origin':'*'},json:jobDirectoryPage(readRows(params),params,zone)})
  })
+}
+
+export function managementPage(jobs,approved=[],signals=[],params={},canBill=true,zone='America/New_York'){
+ const scoped=jobs.filter(j=>!params.p_customer||j.customer_id===params.p_customer),legacy=canBill?approved.filter(a=>!params.p_customer||a.customer_id===params.p_customer):[];
+ const today=DateTime.now().setZone(zone).startOf('day').toMillis();
+ const rows=scoped.map(j=>{
+  const a=j.active_appointment,start=Date.parse(j.scheduled_start),booked=!!a&&['scheduled','confirmed','in_progress'].includes(a.status)&&start===Date.parse(a.starts_at)&&(!j.scheduled_end||!a.ends_at||Date.parse(j.scheduled_end)===Date.parse(a.ends_at));
+  const sig=signals.find(s=>s.job_id===j.id),active=!['completed','canceled'].includes(j.status);
+  const flags={all:true,active,approved:active&&!!j.source_estimate_id,unscheduled:active&&!booked,in_progress:j.status==='in_progress',history:!active,billing:canBill&&j.status==='completed'&&(!j.invoice||j.invoice.status==='draft'),attention:active&&(!j.assigned_user_ids?.length||sig?.due_tasks>0||sig?.materials_needed>0||(canBill&&sig?.pending_changes>0)||['scheduled','in_progress'].includes(j.status)&&booked&&start<=Date.now()&&(j.scheduled_end?Date.parse(j.scheduled_end)<=Date.now():start<today))};
+  return {kind:'job',data:{...j,properties:j.properties||[],customers:Array.isArray(j.customers)?j.customers:j.customers?[j.customers]:[],invoice:canBill?j.invoice||null:null},flags};
+ });
+ const counts=Object.fromEntries(['all','active','unscheduled','in_progress','history','billing','attention'].map(k=>[k,rows.filter(r=>r.flags[k]).length]));counts.approved=legacy.length;counts.unscheduled+=legacy.length;
+ const filter=params.p_filter||'active',query=(params.p_search||'').trim().toLowerCase();
+ const entries=[...(['all','active','approved','unscheduled'].includes(filter)?legacy.map(data=>({kind:'approved',data})):[]),...rows.filter(r=>r.flags[filter])].filter(({data:j,kind})=>(kind==='approved'?[j.title,j.customer,j.estimate_number]:[j.title,j.id,...j.customers.map(c=>[c.first_name,c.last_name,c.company].join(' ')),...j.properties.map(p=>Object.values(p).join(' '))]).join(' ').toLowerCase().includes(query));
+ const page=Math.min(params.p_page||0,Math.max(0,Math.ceil(entries.length/10)-1)),visible=entries.slice(page*10,(page+1)*10).map(({kind,data})=>({kind,data}));
+ return {entries:visible,total:entries.length,page,page_size:10,counts,signals:visible.filter(e=>e.kind==='job').map(e=>signals.find(s=>s.job_id===e.data.id)||{job_id:e.data.id,tasks_total:0,tasks_completed:0,due_tasks:0,materials_needed:0,pending_changes:0}),checked_at:new Date().toISOString()};
 }

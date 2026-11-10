@@ -1,3 +1,5 @@
+import {customerSearchResponse} from './job-customer-fixture.mjs'
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import {createWork} from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
@@ -44,6 +46,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
    if(body.p_slot){if(conflict)return reply({code:'23P01',message:'That time was just booked. Please choose another option.'},409);state.booked=true}
    return reply({business_name:'Scheduling QA',business_phone:'555-0100',title:'Mow and trim',timezone:zone,note:'Please choose a time.',address:'1 Test Street',status:state.booked?'booked':'approved',expires_at:DateTime.now().plus({days:7}).toISO(),slots:state.booked?[]:slots,confirmed:state.booked?slots[0]:null})
   }
+  if(path.endsWith('/rpc/search_job_customers'))return reply(customerSearchResponse(state.customers,body))
   if(path.endsWith('/customers')){if(method==='POST'){state.customers.push(body);return reply(body,201)}return reply(state.customers)}
   if(path.endsWith('/estimates')){
    const rows=[{id:E,estimate_number:'EST-QA',customer_id:C,status:'accepted',issue_date:'2026-10-01',total:105,subtotal:100,tax_amount:5,customers:customer}]
@@ -57,6 +60,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   }
   return reply([])
  })
+ await mockJobDirectory(page,()=>[{id:J,title:'Garden maintenance',description:state.notes,status:'scheduled',customer_id:C,scheduled_start:slots[0].starts_at,scheduled_end:slots[0].ends_at,assigned_user_ids:[U],customers:customer,properties:[{id:P,address_line1:'1 Test Street',city:'Chesapeake',state:'VA',postal_code:'23322'}]}])
  return state
 }
 
@@ -100,8 +104,11 @@ test('job adds a customer inline while retaining entered work',async({page})=>{
  await dialog.getByLabel('Name',{exact:true}).fill('New garden customer')
  await dialog.getByRole('button',{name:'Add & select customer',exact:true}).click()
  await expect(dialog.getByLabel('Job title',{exact:true})).toHaveValue('Keep the service scope')
+ await expect.poll(()=>state.customers.length).toBe(2)
+ const created=state.customers[1];expect(created.id).toBeTruthy()
+ await expect.poll(()=>state.calls.some(c=>c.path.endsWith('/rpc/search_job_customers')&&c.body?.p_selected===created.id)).toBe(true)
  await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('New garden customer')
- expect(state.customers).toHaveLength(2)
+ await expect(dialog.getByRole('alert')).toHaveCount(0)
 })
 for(const width of [1440,390])test(`public and account-entry route audit at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page,{signedIn:false});const errors=[];page.on('pageerror',e=>errors.push(e.message))

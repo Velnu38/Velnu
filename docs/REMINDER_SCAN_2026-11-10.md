@@ -1,0 +1,7 @@
+# Avoid repeated reminder preparation scans
+
+The 300-workspace isolated reminder test measured 37.2 seconds to prepare the queue, versus 17.5 seconds to drain it with four overlapping SQL dispatchers. The preparation function revisited every earlier occurrence on each batch and rebuilt recipient/consent snapshots even though the unique occurrence record already prevented insertion. The safe aggregate baseline is in `docs/evidence/2026-11-10-queue-baseline.json`.
+
+The additive migration filters existing `(business_id, occurrence_id, starts_at)` records before building snapshots, using the existing unique index. Every queue status retains durable suppression, including failed, blocked and uncertain. A new appointment start remains a distinct occurrence. Current consent, recipient, tier and owner eligibility checks still run for new occurrences and again at claim time. The global preparation lock, 50-insert batch, ordering and service-only function permissions are unchanged. No indexes or stored records are removed.
+
+The complete reminder suite runs against the replacement function, with added six-status sibling/reschedule cases. Full PostgreSQL replay reruns the same 300-workspace queue workload to measure the change and checks real concurrent claims. Final CI, comparison timing and hosted rollout are pending. No cron or customer delivery is activated. Restore the previous function definition if rollback is required; the queue data format is unchanged.

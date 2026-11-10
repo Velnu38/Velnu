@@ -1,11 +1,12 @@
 import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import pg from 'pg'
 import { verifyReminderReplay } from './reminder-replay.mjs'
+import { verifyQueueCatchup } from './queue-catchup.mjs'
 import { verifyAuthStorageReplay } from './auth-storage-replay.mjs'
 import { verifySyntheticRestore, cleanupSyntheticFixture } from './synthetic-restore.mjs'
 
@@ -89,7 +90,7 @@ function cleanCliEnvironment() {
   return Object.fromEntries(names.filter(name => process.env[name]).map(name => [name, process.env[name]]))
 }
 
-export async function main() {
+export async function main({capacity=false}={}) {
   if (process.argv.length > 2) throw new Error('Replay accepts no database URL, project ref, or command-line arguments')
   const directory = mkdtempSync(join(tmpdir(), 'finviant-replay-'))
   const projectId = `finviant-replay-${randomUUID().slice(0, 8)}`
@@ -109,7 +110,9 @@ export async function main() {
     const config = readFileSync(configPath, 'utf8')
       .replace(/^project_id\s*=.*$/m, `project_id = "${projectId}"`)
       .replace(/major_version\s*=\s*\d+/, 'major_version = 17')
-    writeFileSync(configPath, config)
+    // All 300 synthetic clients share localhost; this is not an Auth throttle test.
+    const ownedConfig=capacity?config.replace(/^sign_in_sign_ups\s*=.*$/m,'sign_in_sign_ups = 10000').replace(/^token_refresh\s*=.*$/m,'token_refresh = 10000'):config
+    writeFileSync(configPath, ownedConfig)
     console.log(`Starting disposable Supabase with CLI ${CLI_VERSION}; no hosted credentials or source migrations at startup`)
     started = true
     cli(['start', '--exclude', 'realtime,imgproxy,studio,postgres-meta,edge-runtime,logflare,vector,supavisor'], 720_000)
@@ -144,8 +147,12 @@ export async function main() {
       (select count(*) from public.payments)::int as payments,
       (select count(*) from storage.objects)::int as files`)
     if (Object.values(cleanup).some(value => value !== 0)) throw new Error('Synthetic replay smoke did not roll back completely')
+    const queueCatchup=await verifyQueueCatchup(client,localDatabaseUrl(status.DB_URL),{projectId})
+    mkdirSync(join(root,'tmp/queue-results'),{recursive:true})
+    writeFileSync(join(root,'tmp/queue-results/result.json'),JSON.stringify({sourceCommit:process.env.GITHUB_SHA||null,...queueCatchup},null,2)+'\n')
+    const capacityResult=capacity?await (await import('./local-capacity.mjs')).verifyLocalCapacity(client,status,{projectId}):undefined
     console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION,
-      cronLaunchActiveJobs: false, reminderSmoke, authStorageSmoke,
+      cronLaunchActiveJobs: false, reminderSmoke, authStorageSmoke, queueCatchup, capacity:capacityResult,
       smoke: { file: 'tests/migrations/release-smoke.sql', sha256: createHash('sha256').update(smokeSql).digest('hex'), passed: true, rolledBackCounts: cleanup },
       migrations: result.applied.length, ...result }, null, 2))
   } finally {

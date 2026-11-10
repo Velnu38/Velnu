@@ -1,3 +1,4 @@
+import {customerSearchResponse} from './job-customer-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { openWorkArea, createWork } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
@@ -47,7 +48,8 @@ async function mockBusinessData(page) {
       if (filters.has('customer_id')) return json([property])
       return json([{ ...property, customers: customer }])
     }
-    if (path.endsWith('/customers')) return json(new URL(request.url()).searchParams.has('id') ? customer : [customer])
+    if (path.endsWith('/rpc/search_job_customers')) return json(customerSearchResponse([customer],body))
+  if (path.endsWith('/customers')) return json(new URL(request.url()).searchParams.has('id') ? customer : [customer])
     if (path.endsWith('/rpc/create_job_atomic') && method === 'POST') return json({ id: '77777777-7777-4777-8777-777777777777', ...body.payload, status: 'lead' }, 200)
     if (path.endsWith('/jobs')) return json([])
     if (path.endsWith('/appointments')) {

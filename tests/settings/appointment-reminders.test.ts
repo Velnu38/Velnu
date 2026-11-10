@@ -34,7 +34,7 @@ create function private.reserve_tier_usage(uuid,uuid,text,integer) returns boole
 insert into businesses values('${B}','Test business','America/New_York');insert into auth.users values('${U}',now(),now(),'+12125550199');
 insert into customers(id,business_id,email,phone) values('${C}','${B}','customer@example.test','2125550100');
 insert into private.managed_delivery_accounts values('${B}',true,true,'+12125550199','owner','owner@example.test');
-insert into appointments values('${A}','${B}','${C}',null,now()+interval '24 hours','confirmed',now()-interval '3 days');`);await db.exec(sql);return db}
+insert into appointments values('${A}','${B}','${C}',null,now()+interval '24 hours','confirmed',now()-interval '3 days');`);await db.exec(sql);await db.exec(await readFile('supabase/migrations/20261110202917_appointment_reminder_queue_scan.sql','utf8'));return db}
 async function value(db:PGlite,query:string){return (await db.query<{v:any}>(`select ${query} as v`)).rows[0].v}
 async function enable(db:PGlite,ch='email'){await value(db,`public.save_appointment_reminder_settings('${B}',true,48,'${ch}')`)}
 async function queue(db:PGlite){await value(db,'public.prepare_due_appointment_reminders()');return (await db.query<{id:string}>('select id from private.appointment_reminder_queue order by created_at,id')).rows[0]?.id}
@@ -134,3 +134,13 @@ test('optional local PostgreSQL: quota-wait race, concurrent claims and sibling 
 
 for(const status of ['in_progress','completed','no_show','canceled'])test(`same-occurrence ${status} sibling blocks preparation and queued claim`,async()=>{const db=await setup();try{await enable(db);await siblings(db);await db.query('update appointments set status=$1 where id=$2',[status,A2]);const state=await value(db,`public.get_appointment_reminder_override('${B}','${A}')`);assert.equal(state.occurrence_status_conflict,true);assert.equal(state.effective.enabled,false);assert.equal(await queue(db),undefined);await db.exec(`update appointments set status='confirmed' where id='${A2}'`);const id=await queue(db);assert.ok(id);await db.query('update appointments set status=$1 where id=$2',[status,A2]);assert.equal((await value(db,`public.claim_appointment_reminder('${id}')`)).status,'blocked');assert.equal((await db.query('select * from private.usage')).rows.length,0)}finally{await db.close()}})
 test('terminal earlier visit does not suppress a separate future start',async()=>{const db=await setup();try{await enable(db);await siblings(db);await db.exec(`update appointments set status='completed' where id='${A}';update appointments set starts_at=starts_at+interval '2 hours' where id='${A2}'`);const state=await value(db,`public.get_appointment_reminder_override('${B}','${A2}')`);assert.equal(state.occurrence_status_conflict,false);assert.ok(await queue(db));assert.equal((await db.query('select * from private.appointment_reminder_queue')).rows.length,1)}finally{await db.close()}})
+
+for(const status of ['queued','sending','accepted','failed','uncertain','blocked'])test(`preparation preserves ${status} suppression while allowing a rescheduled occurrence`,async()=>{const db=await setup();try{
+ await enable(db);await siblings(db);const id=await queue(db);await db.query('update private.appointment_reminder_queue set status=$1 where id=$2',[status,id]);
+ assert.equal(await value(db,'public.prepare_due_appointment_reminders()'),0);
+ await db.exec(`update appointments set starts_at=starts_at+interval '1 hour'`);
+ assert.equal(await value(db,'public.prepare_due_appointment_reminders()'),1);
+ assert.equal((await db.query('select * from private.appointment_reminder_queue')).rows.length,2);
+ assert.equal((await db.query<{status:string}>('select status from private.appointment_reminder_queue where id=$1',[id])).rows[0].status,status);
+ assert.equal(await value(db,'public.prepare_due_appointment_reminders()'),0);
+}finally{await db.close()}})

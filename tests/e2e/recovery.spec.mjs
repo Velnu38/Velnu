@@ -1,3 +1,4 @@
+import {customerSearchResponse} from './job-customer-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 import {workflow,start,save,review,step,cors} from './fin-workflow-fixture.mjs'
 import { createWork } from './navigation.mjs'
@@ -24,6 +25,7 @@ async function setup(page,options={}){
   if(path.endsWith('/business_members'))return json({role:'owner',business_id:B,businesses:{id:B,created_by_user_id:U,name:'Recovery Test',profile_completed_at:'2026-01-01T00:00:00Z'}})
   if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',ai_limit:50,voice_limit:50,logo_bytes_limit:131072})
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return json({open_invoices:0,outstanding_balance:0})
+  if (path.endsWith('/rpc/search_job_customers')) return json(customerSearchResponse([customer],body))
   if(path.endsWith('/customers'))return json([customer])
   if(path.endsWith('/jobs'))return json(new URL(r.url()).searchParams.has('id')?s.jobs.find(job=>job.id===new URL(r.url()).searchParams.get('id')?.replace('eq.','')):s.jobs)
   if(path.endsWith('/rpc/create_job_atomic')){
