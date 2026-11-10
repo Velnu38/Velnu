@@ -16,11 +16,12 @@ Deno.serve(workflowHandler({
   const {data:settings,error:settingsError}=await db.from('business_settings').select('default_tax_rate').eq('business_id',business).maybeSingle();if(settingsError)throw settingsError
   async function rpc(name:string,args:Record<string,unknown>){const {data,error}=await db.rpc(name,args);if(error)throw error;return data}
   const capabilities=await rpc('fin_account_capabilities',{p_business:business})
+  let firstAttemptReserved=false
   return {capabilities,profile:{...profile,default_tax_rate:settings?.default_tax_rate||0,role:member.role,access_modules:member.access_modules},
-   begin:(thread:string,request:string,text:string)=>rpc('fin_begin_turn',{p_business:business,p_thread:thread,p_request:request,p_text:text}),
+   begin:async(thread:string,request:string,text:string)=>{const result=await rpc('fin_begin_turn',{p_business:business,p_thread:thread,p_request:request,p_text:text});firstAttemptReserved=result?.provider_reserved===true;return result},
    lookup:(query:Lookup)=>rpc('fin_lookup_records',{p_business:business,p_query:query}),
    finish:(thread:string,request:string,reply:unknown)=>rpc('fin_finish_turn',{p_business:business,p_thread:thread,p_request:request,p_reply:reply}),
-   reserve:()=>rpc('reserve_ai_provider_attempt',{p_business_id:business,p_kind:'command'})}
+   reserve:async()=>{if(firstAttemptReserved){firstAttemptReserved=false;return}await rpc('reserve_ai_provider_attempt',{p_business_id:business,p_kind:'command'})}}
  },
  async complete(input,tools,instructions,schema,timeoutMs){return providerJson('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env('OPENAI_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-6-luna',reasoning:{effort:'low'},instructions,input,tools,parallel_tool_calls:false,store:false,max_output_tokens:6000,text:{format:{type:'json_schema',name:'fin_workflow',strict:true,schema}}})},{timeoutMs:timeoutMs||45000,maxBytes:1048576})}
 }))

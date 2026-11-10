@@ -91,6 +91,34 @@ export async function verifyAuthStorageReplay(db,status){
   const downloaded=await api(object,owner.token);assert.ok(downloaded.ok);assert.equal(digest(Buffer.from(await downloaded.arrayBuffer())),digest(png))
   for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api(object,token)).ok,'Unrelated or anonymous identity must not read private bytes')
   const otherSign=await api('/storage/v1/object/sign/finviant-record-photos/'+photoPath,outsider.token,{method:'POST',body:{expiresIn:60}});assert.ok(!otherSign.ok)
+  phase='distributed-provider-burst'
+  // Twenty independent PostgREST transactions, actual shared DB state, no OCR call.
+  const receiptRequests=Array.from({length:20},()=>randomUUID())
+  const reservations=await Promise.all(receiptRequests.map(p_request=>api('/rest/v1/rpc/reserve_receipt_scan',status.SERVICE_ROLE_KEY,{method:'POST',body:{p_business:businessA,p_request,p_actor:owner.id}})))
+  assert.equal(reservations.filter(r=>r.status===204).length,6)
+  assert.equal(reservations.filter(r=>r.status===429).length,14)
+  for(const response of reservations.filter(r=>r.status===429)){
+   assert.ok(Number(response.headers.get('retry-after'))>=1&&Number(response.headers.get('retry-after'))<=10)
+   assert.equal((await response.json()).code,'FINVIANT_BURST_LIMIT')
+  }
+  assert.equal(Number((await db.query('select count(*) from private.receipt_scan_requests where business_id=$1',[businessA])).rows[0].count),6)
+  const firstAccepted=reservations.findIndex(r=>r.status===204)
+  const duplicate=await api('/rest/v1/rpc/reserve_receipt_scan',status.SERVICE_ROLE_KEY,{method:'POST',body:{p_business:businessA,p_request:receiptRequests[firstAccepted],p_actor:owner.id}})
+  assert.equal(duplicate.status,409)
+  const foreignReservation=await api('/rest/v1/rpc/reserve_receipt_scan',status.SERVICE_ROLE_KEY,{method:'POST',body:{p_business:businessA,p_request:randomUUID(),p_actor:outsider.id}})
+  assert.equal(foreignReservation.status,403)
+  phase='atomic-fin-voice-allowances'
+  const aiRequests=Array.from({length:10},()=>randomUUID())
+  const reserveAi=(p_feature,p_request=randomUUID(),p_units=1)=>api('/rest/v1/rpc/reserve_ai_request',owner.token,{method:'POST',body:{p_business:businessA,p_request,p_feature,p_units}})
+  const ai=await Promise.all(aiRequests.map(request=>reserveAi('ai',request)))
+  assert.ok(ai.every(r=>r.status===200))
+  assert.equal((await reserveAi('ai')).status,400) // Existing business attempt ceiling.
+  for(let i=0;i<2;i++)assert.equal((await reserveAi('voice',randomUUID(),12)).status,200)
+  const throttledVoice=await reserveAi('voice',randomUUID(),12)
+  assert.equal(throttledVoice.status,429);assert.equal((await throttledVoice.json()).code,'FINVIANT_BURST_LIMIT')
+  assert.equal((await reserveAi('ai',aiRequests[0])).status,409)
+  const actualUsage=(await db.query("select feature,used from private.tier_usage where business_id=$1 and feature in('ai','voice') order by feature",[businessA])).rows
+  assert.deepEqual(actualUsage.map(r=>({feature:r.feature,used:Number(r.used)})),[{feature:'ai',used:10},{feature:'voice',used:24}])
   phase='access-revocation'
   await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner.id])
   await db.query("update public.business_members set access_modules=array['jobs'] where business_id=$1 and user_id=$2",[businessA,office.id])
@@ -98,7 +126,7 @@ export async function verifyAuthStorageReplay(db,status){
   assert.ok(!(await api(object,office.token)).ok,'Revoked billing access must not read invoice files with the existing session')
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
-  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true}
+  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true}
  }catch(error){
   console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)
@@ -112,6 +140,7 @@ export async function verifyAuthStorageReplay(db,status){
    for(const table of ['record_photos','invoice_items','invoices','appointments','jobs','customers'])await db.query('delete from public.'+table+' where business_id=$1',[business])
    await db.query('delete from public.businesses where id=$1',[business])
   }
+  await db.query('delete from private.provider_burst_buckets') // Only the owned empty-start disposable platform.
   for(const actor of actors){const removed=await api('/auth/v1/admin/users/'+actor.id,status.SERVICE_ROLE_KEY,{method:'DELETE'});if(!removed.ok)throw Error('Disposable Auth cleanup failed')}
  }
 }

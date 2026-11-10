@@ -306,7 +306,8 @@
       "review/rls-initplans-20261110": false,
       "review/worker-health-20261110": false,
       "review/document-conveniences-20261110": false,
-      "review/auth-storage-acceptance-20261110": false
+      "review/auth-storage-acceptance-20261110": false,
+      "review/provider-burst-20261110": false
     }
   }
 }

@@ -1,3 +1,5 @@
+import {readLimitedBytes} from '../_shared/signedEvents.ts'
+import {burstLimitResponse} from '../_shared/burstLimit.ts'
 import { receiptDraft } from './receipt.ts'
 
 type Dependencies = {
@@ -29,24 +31,11 @@ export function receiptScanHandler(deps: Dependencies) {
       const business = query.get('business') || '', request = query.get('request') || ''
       if (!uuid.test(business) || !uuid.test(request)) return reply(400, { error: 'Invalid receipt request.' })
       if (!deps.analyze) return reply(503, { error: 'Automatic receipt reading is awaiting setup. You can enter the details and save the photo.' })
-      const reader = req.body?.getReader()
-      if (req.headers.get('content-type') !== 'image/jpeg' || !reader) return reply(400, { error: 'Choose a receipt image.' })
-      const chunks: Uint8Array[] = []
-      let size = 0
-      try {
-        while (true) {
-          const next = await reader.read()
-          if (next.done) break
-          size += next.value.byteLength
-          if (size > limit) { await reader.cancel(); return reply(413, { error: 'Choose a receipt image smaller than 5 MB.' }) }
-          chunks.push(next.value)
-        }
-      } finally { reader.releaseLock() }
-      const bytes = new Uint8Array(size)
-      let offset = 0
-      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
+      if(req.headers.get('content-type')!=='image/jpeg'||!req.body)return reply(400,{error:'Choose a receipt image.'})
+      const bytes=await readLimitedBytes(req,limit)
       if (bytes[0] !== 255 || bytes[1] !== 216 || bytes[2] !== 255) return reply(400, { error: 'This receipt photo could not be opened.' })
       const { error } = await deps.reserve(business, request, actor)
+      const limited=burstLimitResponse(error,headers);if(limited)return limited
       if (error) {
         if (error.code === '42501') return reply(403, { error: error.message })
         if (error.code === '23505') return reply(409, { error: error.message })
@@ -56,6 +45,8 @@ export function receiptScanHandler(deps: Dependencies) {
       const scan = await deps.analyze(bytes)
       return reply(200, receiptDraft(scan))
     } catch (error) {
+      if(error instanceof Error&&error.message==='REQUEST_TOO_LARGE')return reply(413,{error:'Choose a receipt image smaller than 5 MB.'})
+      if(error instanceof Error&&error.message==='REQUEST_TIMEOUT')return reply(408,{error:'The receipt upload timed out. Try again or enter the expense manually.'})
       // The provider error body may contain receipt details. Log only the error type.
       console.warn('receipt scan failed', error instanceof Error ? error.name : 'Unknown')
       return reply(503, { error: 'Unable to read the receipt. You can enter the details and save the photo.' })

@@ -1,3 +1,5 @@
+import {readLimitedRequest} from '../_shared/signedEvents.ts'
+import {burstLimitResponse} from '../_shared/burstLimit.ts'
 import {productGuidance} from './productKnowledge.ts'
 import {instructions,lookupSchema,replySchema,uiCatalog,uuid,validateLookup,validateReply,recordHref,type Lookup,type RecordSet} from './protocol.ts'
 import {responseText} from '../fin-assistant/core.ts'
@@ -11,7 +13,7 @@ export function workflowHandler(deps:Dependencies){return async(req:Request)=>{
  const auth=req.headers.get('authorization')||'';if(!auth.startsWith('Bearer '))return send(401,{error:'Sign in to ask Fin.'})
  try{
   if(Number(req.headers.get('content-length')||0)>16000)return send(413,{error:'Keep the request under 6,001 characters.'})
-  const raw=await req.text();if(raw.length>16000)return send(413,{error:'Request too long.'})
+  const raw=await readLimitedRequest(req,16000);if(raw.length>16000)return send(413,{error:'Request too long.'})
   let body;try{body=JSON.parse(raw)}catch{return send(400,{error:'Invalid request.'})}
   if(!body||!uuid.test(body.business_id)||!uuid.test(body.thread_id)||!uuid.test(body.request_id)||typeof body.text!=='string'||body.text.trim().length<1||body.text.length>6000||Object.keys(body).some(k=>!['business_id','thread_id','request_id','text','page'].includes(k)))return send(400,{error:'A valid account, conversation and request are required.'})
   if(body.page&&(!Object.hasOwn(uiCatalog,body.page.view)||Object.keys(body.page).some(k=>!['view','record_id'].includes(k))||body.page.record_id!==null&&!uuid.test(body.page.record_id)))return send(400,{error:'Invalid page context.'})
@@ -52,6 +54,9 @@ export function workflowHandler(deps:Dependencies){return async(req:Request)=>{
   }
   return send(422,{error:'Please narrow this request.'})
  }catch(error){
+  if(error instanceof Error&&error.message==='REQUEST_TOO_LARGE')return send(413,{error:'Request too long.'})
+  if(error instanceof Error&&error.message==='REQUEST_TIMEOUT')return send(408,{error:'The request took too long to upload. Try again.'})
+  const limited=burstLimitResponse(error,headers);if(limited)return limited
   const code=(error as {code?:string})?.code
   if(code==='42501')return send(403,{error:'Your account or module access changed. No changes were saved.'})
   if(code==='40001'||code==='23505')return send(409,{error:'The conversation or a record changed. Ask Fin to prepare a fresh review.'})

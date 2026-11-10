@@ -25,17 +25,21 @@ export async function verifySignedEvent(provider: 'resend' | 'stripe', raw: stri
   return false
  } catch { return false }
 }
-export async function readLimitedRequest(req: Request, maxBytes = 262144): Promise<string> {
+export async function readLimitedBytes(req: Request, maxBytes = 262144, timeoutMs = 5000): Promise<Uint8Array> {
  if (Number(req.headers.get('content-length') || 0) > maxBytes) throw new Error('REQUEST_TOO_LARGE')
- if (!req.body) return ''
+ if (!req.body) return new Uint8Array()
  const reader = req.body.getReader(), chunks: Uint8Array[] = []; let timer: ReturnType<typeof setTimeout> | undefined, size = 0
  try {
   return await Promise.race([
    (async () => {
     for (;;) { const {done,value}=await reader.read(); if(done)break; size+=value.byteLength; if(size>maxBytes)throw new Error('REQUEST_TOO_LARGE'); chunks.push(value) }
     const all=new Uint8Array(size);let at=0;for(const chunk of chunks){all.set(chunk,at);at+=chunk.byteLength}
-    return new TextDecoder('utf-8',{fatal:true}).decode(all)
-   })(), new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('REQUEST_TIMEOUT')),5000)})
+    return all
+   })(), new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('REQUEST_TIMEOUT')),timeoutMs)})
   ])
  } finally { if(timer)clearTimeout(timer);void reader.cancel().catch(()=>{});chunks.length=0 }
+}
+
+export async function readLimitedRequest(req: Request,maxBytes=262144):Promise<string>{
+ return new TextDecoder('utf-8',{fatal:true}).decode(await readLimitedBytes(req,maxBytes))
 }

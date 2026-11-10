@@ -138,9 +138,10 @@ function fixture(options: Options = {}) {
               error: options.usageError ? { code: "unavailable" } : null,
             };
           }
-          if(name === "reserve_tier_request") {equal(payload.p_feature,"voice");equal(payload.p_units,12);return {data:true,error:null};}
-          equal(name, "reserve_ai_provider_attempt");
-          equal(payload, { p_business_id: BUSINESS, p_kind: "transcription" });
+          equal(name, "reserve_ai_request");
+          equal(payload.p_feature,"voice");equal(payload.p_units,12);assert(typeof payload.p_request==="string");
+          equal(payload.p_business,BUSINESS);
+          equal(Object.keys(payload).sort(),["p_business","p_feature","p_request","p_units"]);
           state.reservations++;
           if (options.budgetCode || slots-- <= 0) {
             return {
@@ -654,7 +655,7 @@ Deno.test("successful transcript is trimmed, attributed and returned with no-sto
   equal(f.state.saved[0].transcript, "Invoice Alex $120");
   equal(f.state.saved[0].duration_seconds, 12);
   assert(
-    f.state.calls.indexOf("reserve_ai_provider_attempt") <
+    f.state.calls.indexOf("reserve_ai_request") <
       f.state.calls.indexOf("storage"),
   );
 });
@@ -708,3 +709,5 @@ Deno.test("modern public/secret credential maps preserve server-only storage", a
 });
 
 Deno.test("client duration cannot understate recorded usage on any tier",async()=>{for(const plan of ['free','basic','pro']){const f=fixture({usage:{plan,voice_limit:10}});equal((await f.handler(upload({}, {duration:0}))).status,200);equal(f.state.saved[0].duration_seconds,12);}})
+
+Deno.test("shared burst rejection returns Retry-After before any transcription",async()=>{const f=fixture({budgetCode:"FINVIANT_BURST_LIMIT"});const response=await f.handler(upload());equal(response.status,429);equal(response.headers.get("retry-after"),"60");equal(f.state.provider,0);equal(f.state.saved.length,0);});
