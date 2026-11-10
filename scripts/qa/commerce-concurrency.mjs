@@ -52,7 +52,7 @@ export async function verifyCommerceConcurrency(db,connectionString,{projectId})
     finally{times.push(performance.now()-started)}
    })
    let waiting=0
-   for(let n=0;n<200;n++){waiting=(await db.query("select count(*)::int n from pg_stat_activity where pid=any($1::int[]) and wait_event_type='Lock'",[peers.map(c=>c.pid)])).rows[0].n;if(waiting===20)break;await sleep(10)}
+   for(let n=0;n<200;n++){waiting=(await db.query("select count(distinct pid)::int n from pg_locks where pid=any($1::int[]) and not granted",[peers.map(c=>c.pid)])).rows[0].n;if(waiting===20)break;await sleep(10)}
    assert.equal(waiting,20,'All competing calls must overlap at database locks');blocked+=waiting
    await db.query('commit')
    const results=await Promise.all(pending)
