@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import pg from 'pg'
 import { verifyReminderReplay } from './reminder-replay.mjs'
 import { verifyAuthStorageReplay } from './auth-storage-replay.mjs'
+import { verifySyntheticRestore } from './synthetic-restore.mjs'
 
 export const CLI_VERSION = '3.1.0'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -134,7 +135,7 @@ export async function main() {
       throw new Error('Fresh-schema financial/tenant smoke failed')
     }
     const reminderSmoke = await verifyReminderReplay(client, localDatabaseUrl(status.DB_URL))
-    const authStorageSmoke = await verifyAuthStorageReplay(client, status)
+    const authStorageSmoke = await verifyAuthStorageReplay(client, status, options => verifySyntheticRestore(client, { projectId, ...options }))
     const { rows: [cleanup] } = await client.query(`select
       (select count(*) from auth.users)::int as users,
       (select count(*) from public.businesses)::int as businesses,

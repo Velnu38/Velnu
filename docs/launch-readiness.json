@@ -270,6 +270,30 @@
       "detail": "Adds shared database account/business/global burst buckets to existing Fin/voice, receipt and attachment reservations, with bounded HTTP Retry-After and request-body bytes/time limits. First Fin/voice attempt and monthly allowance are reserved atomically so a pre-provider throttle cannot consume new usage. Existing monthly and per-business AI limits remain. Private counters and service-only aggregate health preserve access boundaries; hourly pruning covers limiter counters only. Local 92 focused and 72 recovery tests pass. Mandatory full replay adds real concurrent REST quota assertions; final CI and deployment remain pending. Public links/IP/signup/sends and dollar ceilings remain open under SEC-03.",
       "evidence": "docs/PROVIDER_BURST_LIMITS_2026-11-10.md; supabase/migrations/20261110165000_shared_provider_burst_limits.sql; tests/settings/provider-burst.test.ts; tests/settings/provider-burst-http.test.ts; scripts/qa/auth-storage-replay.mjs",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Auth/Storage acceptance and product guide deployed",
+      "detail": "PR78 final head 03a4da9c22ad8406f48227615d0678826883992e passed all triggered workflows, including full 21-job run 42855522132 and voice review 42855521779. Merged as e8696e1f368b7ed8d73fc52306566b45e65f3434; deployment dpl_4Nd8y54yVqPCeLU3cmMJMNr9CK5z is READY with that SHA and both finviant.com aliases. Fin v16 matches all eight prepared files with JWT verification preserved. No provider evaluation, hosted security certification or physical-device acceptance is claimed.",
+      "evidence": "docs/evidence/2026-11-10-auth-storage-rollout.json",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Synthetic data and private-object recovery drill prepared",
+      "detail": "Mandatory local replay now prepares a complete public/private data dump plus synthetic Auth users/identities, separately backs up actual private Storage bytes, removes only empty-start owned fixtures and restores counts, hashes, financial balances and access. Schema/configuration are retained. Local target refusal tests pass; actual restore execution is pending CI, and hosted backup availability, production RPO/RTO, complete environment recovery and paid backup choices remain open.",
+      "evidence": "docs/SYNTHETIC_RECOVERY_DRILL_2026-11-10.md; scripts/qa/synthetic-restore.mjs",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Support operations and cost baseline drafted",
+      "detail": "Owner-review support/privacy/incident/refund/export/retention procedures are drafted without activating policy, staffing, SLA or sends. Read-only November 10 16:43 UTC aggregate inventory records three businesses, eight AI units, 35 voice seconds, four email units and 1,062,646 private stored bytes. Provider bills, full-use margins, support labor and spend-alert delivery remain unverified.",
+      "evidence": "docs/SUPPORT_PRIVACY_OPERATIONS_DRAFT_2026-11-10.md; docs/COST_VALIDATION_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "One deferred offer assessed without implementation",
+      "detail": "Ranked an original service-job handover download pack ahead of an Office reporting add-on and a separate field-report app. Inspected pinned pdf-lib/fontkit MIT metadata and the retained DejaVu license; recorded notice/packaging obligations, unknown demand and cost model. No new product, vendor, price, checkout or customer outreach is activated. Owner selection and 5\u201310 business interviews remain open.",
+      "evidence": "docs/NEXT_OFFER_FEASIBILITY_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
@@ -357,7 +381,7 @@
       "status": "not_verified",
       "title": "Prove backup and recovery",
       "owner": "Owner + developer",
-      "why": "No current restore drill or storage recovery evidence establishes a safe recovery point.",
+      "why": "A bounded synthetic data/private-object restore drill is implemented for mandatory isolated CI; execution is pending. Schema/configuration are retained. Hosted backup inventory, encrypted credential recovery, full environment rollback and production RPO/RTO remain unverified. See docs/SYNTHETIC_RECOVERY_DRILL_2026-11-10.md.",
       "acceptance": "Confirm database backups/PITR as selected, separately back up private storage objects and configuration, restore an isolated full business and verify document/file hashes, permissions and financial totals. Measure recovery time/data loss against approved RTO/RPO; protect backup credentials and rehearse rollback.",
       "evidence": []
     },
@@ -500,7 +524,7 @@
       "status": "open",
       "title": "Set customer support, privacy and incident operations",
       "owner": "Owner + developer",
-      "why": "Hundreds of businesses need a staffed response path, data handling rules and operator safeguards.",
+      "why": "Hundreds of businesses need a staffed response path, data handling rules and operator safeguards. Owner-review procedures now exist in docs/SUPPORT_PRIVACY_OPERATIONS_DRAFT_2026-11-10.md; staffing, escalation delivery, policy approval and exercises remain open.",
       "acceptance": "Assign support/on-call ownership, severity/response targets, incident and breach escalation, least-privilege support access, customer data export/deletion/retention procedures, documented status/maintenance communication and reviewed customer/privacy terms. Confirm refund/cancellation procedures before charging. Establish a connected-chat troubleshooting workflow with read-only investigation by default, explicit owner authorization for consequential writes (data deletion, billing changes and major deployments), least-privilege/revocable provider access and auditable changes. Retain direct owner access to all providers, a named backup developer and an emergency runbook. Keep assessment evidence, incident history and handoff instructions current. Document that connected chat is not continuous monitoring or guaranteed emergency response; test escalation without an active chat.",
       "evidence": []
     },
@@ -511,7 +535,7 @@
       "status": "not_verified",
       "title": "Validate tier unit economics and shared capacity",
       "owner": "Owner + developer",
-      "why": "The proposed 25/100 monthly Fin requests and delivery/storage allowances must meet at least 50% paid-tier account operating margin under full use; actual provider and shared-capacity costs remain unverified.",
+      "why": "The proposed 25/100 monthly Fin requests and delivery/storage allowances must meet at least 50% paid-tier account operating margin under full use; actual provider and shared-capacity costs remain unverified. docs/COST_VALIDATION_2026-11-10.md records safe beta counters and exact modeling inputs; no provider invoice or full-use margin is inferred.",
       "acceptance": "Measure per-tenant AI/voice/OCR/email/SMS/storage/egress/support costs and p50/p95 usage against the Finviant Pricing proposal. Test bounded heavy Fin workloads, full included use, mixed paid/free/trial populations and low-volume versus standard SMS registration/campaign costs. Confirm at least 50% paid-tier account operating margin or revise disclosed pricing/allowances before sale; distinguish operating margin from net profit after acquisition/development/support labor/taxes. Alert at 80/100% capacity, preserve manual workflows and explicit upgrade links, and verify opt-in request purchases without automatic charges. Set no annual discount until measured margins support it.",
       "evidence": []
     },
@@ -612,7 +636,7 @@
       "status": "open",
       "title": "Validate one additional Finviant business-solutions offer",
       "owner": "Owner + developer",
-      "why": "Reuse and low software license fees do not prove customer demand, differentiation or the required margin.",
+      "why": "Reuse and low software license fees do not prove customer demand, differentiation or the required margin. docs/NEXT_OFFER_FEASIBILITY_2026-11-10.md ranks one original download concept and preserves all selection/interview gates.",
       "acceptance": "Review Finviant Business Solutions; interview 5-10 target businesses, test genuine purchase/pilot intent for one clearly scoped download, Advanced Operations pack or separate Jobs/Reports app, and measure likely Office cannibalization. Define included versus optional capabilities, support scope, pricing, acquisition/development allocation, full-use quotas and at least 50% fully loaded margin assumptions. Keep basic onboarding/contact import included and preserve the complete promised Business workflow. Select one pilot and do not market unbuilt offerings as available.",
       "evidence": []
     },

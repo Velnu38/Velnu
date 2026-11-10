@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-10",
+  "pullRequest": 78,
+  "testedHead": "03a4da9c22ad8406f48227615d0678826883992e",
+  "completeRun": 42855522132,
+  "jobsPassed": 21,
+  "voiceReviewRun": 42855521779,
+  "allTriggeredWorkflowsPassed": true,
+  "merge": "e8696e1f368b7ed8d73fc52306566b45e65f3434",
+  "deployment": "dpl_4Nd8y54yVqPCeLU3cmMJMNr9CK5z",
+  "ready": true,
+  "aliases": [
+    "finviant.com",
+    "www.finviant.com"
+  ],
+  "edge": {
+    "fin-workflow": {
+      "version": 16,
+      "verifyJwt": true,
+      "exactFiles": 8
+    }
+  },
+  "limits": [
+    "Genuine sessions and Storage are owned local CI fixtures, not hosted certification",
+    "No provider evaluation or real sends",
+    "No physical-device acceptance",
+    "Private beta remains"
+  ]
+}
