@@ -1,0 +1,34 @@
+name: Isolated 300-workspace capacity soak
+on:
+  pull_request:
+    branches: [ux/private-testing-20261029]
+    paths: ['scripts/qa/local-capacity.mjs', 'scripts/qa/capacity-runner.mjs', '.github/workflows/capacity-soak.yml']
+permissions:
+  contents: read
+concurrency:
+  group: isolated-capacity-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  capacity:
+    # Explicit one-off review branch; no hosted secrets or production URLs.
+    if: github.head_ref == 'review/capacity-soak-20261110'
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/deployment/local-capacity.test.mjs tests/deployment/migration-replay.test.mjs
+      - name: Genuine local Auth, private Storage, 10/50/100 users and sixty-minute soak
+        run: node scripts/qa/capacity-runner.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: success()
+        with:
+          name: isolated-capacity-safe-aggregates
+          path: tmp/capacity-results/result.json
+          retention-days: 7

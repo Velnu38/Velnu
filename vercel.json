@@ -312,7 +312,8 @@
       "review/recurring-owner-controls-20261110": false,
       "review/jobs-directory-20261110": false,
       "review/owner-archive-20261110": false,
-      "review/jobs-management-pagination-20261110": false
+      "review/jobs-management-pagination-20261110": false,
+      "review/capacity-soak-20261110": false
     }
   }
 }
