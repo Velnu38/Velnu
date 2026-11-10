@@ -228,6 +228,12 @@
       "detail": "Reconstructed customer invoice defaults (2 days overdue, repeat 7, maximum 3) and owner-enabled appointment defaults (48 elapsed hours, email or SMS), per-record overrides, separate customer/internal settings, purpose-specific SMS consent and durable occurrence suppression. Local synthetic checks pass; no migration, worker deployment, activation or provider send has occurred. Full-chain PostgreSQL concurrency and controlled provider/mobile acceptance remain unverified. PR69 multi-visit design was inspected but not merged.",
       "evidence": "docs/CUSTOMER_REMINDER_DEFAULTS_2026-11-09.md; docs/evidence/2026-11-09-customer-reminders-validation.json",
       "verifiedAt": "2026-11-09"
+    },
+    {
+      "title": "Request identity evaluation in access policies",
+      "detail": "Fresh beta advisor findings identified 23 RLS policies that re-evaluate the same request identity for every row. A separate review migration caches only auth.uid() as a statement InitPlan and preserves every tenant/module/parent/field predicate, policy role and permissive/restrictive mode. Three local Node 22/PGlite tests verify owner/office/unrelated/null identities, module revocation, write denial, agreement selection and migration scope. A 12,002-row synthetic Jobs query retained 6,001 authorized rows and evaluated the identity InitPlan once (101.950 ms before; 78.198 ms after in one local sample). This is a narrow fixture measurement, not hosted capacity, full security certification or a 300-workspace soak. Full replay and hosted deployment remain pending.",
+      "evidence": "supabase/migrations/20261110131000_rls_identity_initplans.sql; tests/settings/rls-initplans.test.ts; docs/RLS_IDENTITY_REVIEW_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
@@ -348,7 +354,7 @@
       "status": "open",
       "title": "Tune RLS, queries and connection budgets",
       "owner": "Developer",
-      "why": "Advisors flag 23 RLS evaluation warnings and 49 missing FK indexes on a tiny database.",
+      "why": "Fresh beta review confirms 23 RLS identity-evaluation warnings and 49 unindexed FKs. The separate identity-initplan candidate preserves policy semantics and passes local authorization/plan checks; it is not deployed yet. Representative hosted query plans, valuable FK/order indexes, connection budgets and measured capacity remain open.",
       "acceptance": "Review plans on representative tenant sizes; fix applicable auth initplan patterns and high-value FK/filter/order indexes, then rerun tenant authorization tests. Verify transaction pooler/TLS/dedicated calendar role, aggregate serverless pool limits (calendar pool max=3 per instance), Auth reserve, timeouts and pagination. Measure before/after; do not blindly drop 39 unused indexes.",
       "evidence": []
     },
