@@ -126,13 +126,15 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
     }
    })
   }
-  phase='recurring-owner-controls'
-  const firstDate=(await db.query("select ((now() at time zone 'America/New_York')::date+30)::text day")).rows[0].day
+  phase='recurring-owner-date'
+  const firstDate=(await db.query("select ((now() at time zone 'America/New_York')::date+30)::text as first_date")).rows[0].first_date
   const planRequest=randomUUID(),repeatOptions={title:'Synthetic monthly service',cadence:'monthly',first_date:firstDate,end_date:'',due_days:7,schedule_visit:false,visit_time:'09:00',duration_minutes:60,workers:[]}
   const repeatBody={p_invoice:invoice.id,p_request:planRequest,p_options:repeatOptions}
+  phase='recurring-owner-create'
   const createdPlan=await json('/rest/v1/rpc/create_recurring_invoice',owner.token,{method:'POST',body:repeatBody})
   assert.equal(createdPlan.id,planRequest);assert.equal(createdPlan.status,'active')
   assert.equal((await json('/rest/v1/rpc/create_recurring_invoice',owner.token,{method:'POST',body:repeatBody})).id,planRequest)
+  phase='recurring-owner-page'
   const pageBody={p_business:businessA,p_status:'current',p_before:null,p_before_id:null}
   const recurringPage=()=>json('/rest/v1/rpc/get_recurring_invoice_page',owner.token,{method:'POST',body:pageBody})
   assert.equal((await recurringPage()).items.length,1)
@@ -141,9 +143,11 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
    assert.equal((await api('/rest/v1/rpc/set_recurring_invoice_status',owner.token,{method:'POST',body:{p_plan:planRequest,p_status:status}})).status,204)
    assert.equal((await recurringPage()).items[0].status,status)
   }
+  phase='recurring-deposit-exclusion'
   const deposit=await json('/rest/v1/rpc/create_estimate_deposit',owner.token,{method:'POST',body:{p_estimate:estimate.id,p_amount:10,p_due:firstDate}})
   const depositRepeat=await api('/rest/v1/rpc/create_recurring_invoice',owner.token,{method:'POST',body:{...repeatBody,p_invoice:deposit,p_request:randomUUID()}})
   assert.equal(depositRepeat.status,400);assert.equal((await depositRepeat.json()).code,'23514')
+  phase='recurring-keyset-fixtures'
   // Equal timestamps exercise the compound keyset cursor, not offset slicing.
   await db.query("insert into private.recurring_invoice_plans select (jsonb_populate_record(null::private.recurring_invoice_plans,to_jsonb(p)||jsonb_build_object('id',gen_random_uuid(),'status','paused','created_at','2026-11-01T00:00:00Z'::timestamptz))).* from private.recurring_invoice_plans p cross join generate_series(1,26) n where p.id=$1",[planRequest])
   const firstPage=await recurringPage();assert.equal(firstPage.items.length,25);assert.equal(firstPage.has_more,true);assert.equal(firstPage.counts.paused,26)
