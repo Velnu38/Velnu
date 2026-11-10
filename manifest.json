@@ -1,0 +1,159 @@
+{
+  "prepared_at": "2026-11-10T01:37:07.453Z",
+  "purpose": "Pre-release beta Edge recovery archive; not an application branch",
+  "project_id": "xvybcmyoblfgzokaifsx",
+  "frontend_deployment": "dpl_2ZZ8fPGmhCg8af9K3b94NzUzSNkb",
+  "frontend_source": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "font": {
+    "archive_path": "shared/font-data.ts",
+    "source_commit": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+    "source_path": "shared/fonts/dejavuSans.ts",
+    "git_blob": "5fe7279f801faefafaaf71abffc801303d7f0fb0",
+    "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+  },
+  "functions": [
+    {
+      "name": "document-pdf",
+      "version": 1,
+      "verify_jwt": false,
+      "ezbr_sha256": "194c413360da57ca2ee96bce7c48eadcb7467e48f17aa43ecf253f44264a2022",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "send-document-email",
+      "version": 18,
+      "verify_jwt": true,
+      "ezbr_sha256": "1540f4652835f987d66371169eed7068ae9dc942ff0bdd6385d2ffb79f91a8c8",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "send-invoice-email",
+      "version": 17,
+      "verify_jwt": true,
+      "ezbr_sha256": "0127fa79d5c8344926fa5d9da0c48e06568adbf4e0c1a9c430d84b2f51fe1b69",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "send-invoice-reminder",
+      "version": 11,
+      "verify_jwt": true,
+      "ezbr_sha256": "e99e53d78232d9957fbda3af2302e83931f93001649af6ade5f3ddad0a1017f2",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "email-recovery-worker",
+      "version": 14,
+      "verify_jwt": false,
+      "ezbr_sha256": "ab849bd467b20f87abd1158f94372621cc4813155b703206c06643376e37eceb",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "tier-delivery-worker",
+      "version": 11,
+      "verify_jwt": false,
+      "ezbr_sha256": "d3d1d1b9b5e7842b54669c4ed80e7e130b0d4f7d5319b9f6c0b9bbb9feff9203",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "work-scheduling",
+      "version": 12,
+      "verify_jwt": false,
+      "ezbr_sha256": "e07c80b85fddf6eabf24e7a5304411c0d7a31648dfd233fd10f185cd09348839",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "business-card-delivery",
+      "version": 1,
+      "verify_jwt": true,
+      "ezbr_sha256": "73a1d6d5e3b3b42eddf9f64a504cf7155416f2582920acca525fe48930cb419b",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "send-business-card",
+      "version": 1,
+      "verify_jwt": true,
+      "ezbr_sha256": "f6ffc9fc6979b9c6f0ad38a1ea0fb8771a167c53c4f1330594b0aad42780ab92",
+      "entrypoint_path": "index.ts",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.ts",
+        "font-data.ts",
+        "deno.json"
+      ],
+      "uses_shared_font": true
+    },
+    {
+      "name": "fin-workflow",
+      "version": 13,
+      "verify_jwt": true,
+      "ezbr_sha256": "c90553d78be2b66984327feaf4be56e21324ed6636e55352b0cdc36bd776fc5a",
+      "entrypoint_path": "functions/fin-workflow/index.ts",
+      "files": [
+        "functions/fin-workflow/index.ts",
+        "functions/_shared/providerRequest.ts",
+        "functions/fin-workflow/handler.ts",
+        "functions/fin-workflow/protocol.ts",
+        "functions/fin-workflow/catalog.ts",
+        "functions/fin-workflow/accountFields.ts",
+        "functions/fin-assistant/core.ts"
+      ],
+      "uses_shared_font": false
+    }
+  ]
+}

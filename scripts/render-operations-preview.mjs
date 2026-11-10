@@ -1,6 +1,0 @@
-import {build} from 'esbuild'
-import {mkdir,writeFile} from 'node:fs/promises'
-if(process.env.VERCEL)throw Error('Operations QA preview must not be published.')
-const result=await build({entryPoints:['tests/operations/preview.tsx'],bundle:true,platform:'browser',format:'iife',write:false,outfile:'preview.js',minify:true,jsx:'automatic',loader:{'.svg':'dataurl','.png':'dataurl'},define:{'process.env.NODE_ENV':'"production"','import.meta.env':JSON.stringify({VITE_SUPABASE_URL:'https://example.supabase.co',VITE_SUPABASE_PUBLISHABLE_KEY:'trial-test-key',VITE_ENABLE_CUSTOMER_ACTIONS:'true',VITE_ENABLE_PRIVATE_BETA_EMAIL:'true',DEV:false})},logLevel:'silent'})
-const js=result.outputFiles.find(f=>f.path.endsWith('.js')).text.replaceAll('</script','<\\/script'),css=result.outputFiles.find(f=>f.path.endsWith('.css'))?.text||''
-await mkdir('tmp/operations-review',{recursive:true});await writeFile('tmp/operations-review/preview.html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Finviant operations QA</title><style>'+css+'</style></head><body><div id="root"></div><script>'+js+'</script></body></html>');console.log('Created local synthetic operations preview.')
