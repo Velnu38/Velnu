@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
-import { INTEGRATION_REVIEW_GIT_REF, PRIVATE_BETA_GIT_REF, STAGING_PROJECT_REF, validateDeploymentEnvironment } from '../../scripts/check-deployment.mjs'
+import { INTEGRATION_REVIEW_GIT_REF, MIGRATION_REVIEW_GIT_REF, PRIVATE_BETA_GIT_REF, STAGING_PROJECT_REF, validateDeploymentEnvironment } from '../../scripts/check-deployment.mjs'
 
 const productionRef = 'abcdefghijklmnopqrst'
 const staging = {
@@ -38,6 +38,8 @@ test('private beta email can be enabled on its registered staging preview branch
 
 const cases = [
   ['integration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: INTEGRATION_REVIEW_GIT_REF }],
+  ['next steps review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/next-steps-20261110' }],
+  ['migration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: MIGRATION_REVIEW_GIT_REF }],
   ['missing hosted target', { ...staging, VERCEL_ENV: undefined }],
   ['unknown hosted target', { ...staging, VERCEL_ENV: 'custom' }],
   ['missing environment label', { ...staging, FINVIANT_DEPLOYMENT_ENV: undefined }],
@@ -83,6 +85,8 @@ test('all deployed routes opt out of search indexing and cached archives', () =>
 test('integration review disables automatic deployment without changing the beta branch', () => {
   const config = JSON.parse(readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'))
   assert.equal(config.git.deploymentEnabled[INTEGRATION_REVIEW_GIT_REF], false)
+  assert.equal(config.git.deploymentEnabled[MIGRATION_REVIEW_GIT_REF], false)
+  assert.equal(config.git.deploymentEnabled['review/next-steps-20261110'], false)
   assert.notEqual(config.git.deploymentEnabled[PRIVATE_BETA_GIT_REF], false)
   assert.equal(validateDeploymentEnvironment({ VERCEL_GIT_COMMIT_REF: INTEGRATION_REVIEW_GIT_REF }).checked, false)
 })

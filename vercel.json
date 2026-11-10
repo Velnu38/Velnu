@@ -298,8 +298,10 @@
   },
   "git": {
     "deploymentEnabled": {
+      "review/release-replay-20261110": false,
       "review/finviant-integration-20261109": false,
-      "review/fin-product-knowledge-20261109": false
+      "review/fin-product-knowledge-20261109": false,
+      "review/next-steps-20261110": false
     }
   }
 }

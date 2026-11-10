@@ -37,9 +37,10 @@ const reminder = (n = 1) => ({
 
 async function mockWorkspace(page, options = {}) {
   const sessionTTL=options.sessionTTL || 3600
+  const sessionNow=options.now ?? Date.now()
   const sessionHeader = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
-  const sessionBody = Buffer.from(JSON.stringify({ sub: UID, aud: 'authenticated', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + sessionTTL })).toString('base64url')
-  const session = { access_token: sessionHeader + '.' + sessionBody + '.test', refresh_token: 'refresh', expires_at: Math.floor(Date.now() / 1000) + sessionTTL, expires_in: sessionTTL, token_type: 'bearer', user }
+  const sessionBody = Buffer.from(JSON.stringify({ sub: UID, aud: 'authenticated', role: 'authenticated', exp: Math.floor(sessionNow / 1000) + sessionTTL })).toString('base64url')
+  const session = { access_token: sessionHeader + '.' + sessionBody + '.test', refresh_token: 'refresh', expires_at: Math.floor(sessionNow / 1000) + sessionTTL, expires_in: sessionTTL, token_type: 'bearer', user }
   await page.addInitScript(s => localStorage.setItem('sb-example-auth-token', JSON.stringify(s)), session)
 
   const state = {
@@ -1215,8 +1216,10 @@ test('owner settings invitation acceptance bypasses company creation and separat
 
 
 for (const width of [1440,390]) test(`interactive dashboard week and month calendar selects work at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});await mockWorkspace(page)
- const day=DateTime.now().setZone('America/New_York').startOf('day')
+ // Anchor one month before leap day: elapsed navigation must not grow with wall-clock time.
+ const day=DateTime.fromISO('2028-01-15',{zone:'America/New_York'}).startOf('day')
+ await page.clock.setFixedTime(day.plus({hours:12}).toJSDate())
+ await page.setViewportSize({width,height:900});await mockWorkspace(page,{now:day.plus({hours:12}).toMillis()})
  const items=[0,1,2].map((offset)=>({source_key:`job:interactive-${offset}`,title:['Kitchen installation','Oak Street repair','HVAC maintenance'][offset],description:'',starts_at:day.plus({days:offset,hours:9}).toISO(),ends_at:day.plus({days:offset,hours:11}).toISO(),status:'scheduled',document_kind:'work',document_id:id(980+offset)}))
  const calls=[]
  await page.route('**/rest/v1/calendar_work?**',r=>{calls.push(r.request().url());return r.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'0-2/3'},body:JSON.stringify(items)})})

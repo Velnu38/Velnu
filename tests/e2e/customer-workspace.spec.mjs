@@ -151,7 +151,11 @@ for(const conflict of [false,true])test('delete contact confirms and preserves h
  await dialog.getByRole('button',{name:'Keep contact',exact:true}).click()
  expect(writes).toHaveLength(0)
  await dialog.getByRole('button',{name:'Delete Contact',exact:true}).click()
+ // A click can finish before the asynchronous PATCH reaches the route fixture.
+ // Wait for its actual response, retaining the exact write-count/version checks.
+ const archiveResponse=page.waitForResponse(response=>response.request().method()==='PATCH'&&new URL(response.url()).pathname.endsWith('/customers'))
  await dialog.getByRole('button',{name:'Confirm Delete Contact',exact:true}).click()
+ await archiveResponse
  expect(writes).toHaveLength(1)
  expect(writes[0]).toMatchObject({table:'customers',body:{archived:true},q:{id:'eq.'+C,business_id:'eq.'+B,updated_at:'eq.'+version}})
  expect(locations).toHaveLength(1)
@@ -162,4 +166,5 @@ for(const conflict of [false,true])test('delete contact confirms and preserves h
   await expect(page.locator('.customer-row strong')).not.toContainText(['Doe, Jane'])
   expect(state.customers.find(c=>c.id===C).email).toBe('jane@example.test')
  }
+ expect(writes).toHaveLength(1)
 })

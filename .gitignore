@@ -21,3 +21,5 @@ supabase/.temp/
 /tmp/operations-review/
 
 /tmp/pdfs/
+
+/tmp/release-replay/
