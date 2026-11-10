@@ -260,9 +260,15 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Genuine local Auth and Storage acceptance prepared",
-      "detail": "The disposable full-schema replay now prepares three genuine local password sessions, REST invoice retries and tenant denials, actual private PNG upload/download integrity, foreign signing denial and immediate module/membership revocation checks. Local URL guards pass; Docker is unavailable in this workspace, so actual end-to-end execution awaits mandatory GitHub replay. No hosted credentials, records or real delivery are used. This remains partial security acceptance and does not claim physical-device testing or a full backup restore.",
-      "evidence": "scripts/qa/auth-storage-replay.mjs; tests/deployment/migration-replay.test.mjs; docs/AUTH_STORAGE_ACCEPTANCE_2026-11-10.md",
+      "title": "Genuine local Auth and Storage replay passed",
+      "detail": "At commit 03a4da9c22ad8406f48227615d0678826883992e, mandatory CI job 129967585894 replayed all 86 migrations and passed three genuine local password sessions, REST invoice retry, cross-tenant read/write denials, direct-upload bypass denial, service-only quota reservation, actual private PNG hash verification, anonymous/foreign read and signing denials, and immediate module/membership revocation. Final users, businesses, payments and Storage object counts were zero. These are owned disposable Supabase sessions and actual Storage bytes; hosted tenant certification, independent review, backup restore and physical-device acceptance remain open.",
+      "evidence": "scripts/qa/auth-storage-replay.mjs; tests/deployment/migration-replay.test.mjs; docs/AUTH_STORAGE_ACCEPTANCE_2026-11-10.md; https://github.com/Velnu38/Velnu/actions/runs/42855522132/job/129967585894",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Shared provider burst protection prepared",
+      "detail": "Adds shared database account/business/global burst buckets to existing Fin/voice, receipt and attachment reservations, with bounded HTTP Retry-After and request-body bytes/time limits. First Fin/voice attempt and monthly allowance are reserved atomically so a pre-provider throttle cannot consume new usage. Existing monthly and per-business AI limits remain. Private counters and service-only aggregate health preserve access boundaries; hourly pruning covers limiter counters only. Local 92 focused and 72 recovery tests pass. Mandatory full replay adds real concurrent REST quota assertions; final CI and deployment remain pending. Public links/IP/signup/sends and dollar ceilings remain open under SEC-03.",
+      "evidence": "docs/PROVIDER_BURST_LIMITS_2026-11-10.md; supabase/migrations/20261110165000_shared_provider_burst_limits.sql; tests/settings/provider-burst.test.ts; tests/settings/provider-burst-http.test.ts; scripts/qa/auth-storage-replay.mjs",
       "verifiedAt": "2026-11-10"
     }
   ],

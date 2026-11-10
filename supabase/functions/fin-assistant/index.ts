@@ -15,7 +15,7 @@ Deno.serve(finHandler({
   return {
    role:member.role,
    async entitled(){const {data,error}=await db.rpc('get_plan_usage',{target_business_id:businessId});if(error)throw error;return Number(data?.ai_limit)>0},
-   async reserve(){const quota=await db.rpc('reserve_tier_request',{p_business:businessId,p_request:crypto.randomUUID(),p_feature:'ai',p_units:1});if(quota.error)throw quota.error;const {error}=await db.rpc('reserve_ai_provider_attempt',{p_business_id:businessId,p_kind:'command'});if(error)throw error},
+   async reserve(){const {error}=await db.rpc('reserve_ai_request',{p_business:businessId,p_request:crypto.randomUUID(),p_feature:'ai',p_units:1});if(error)throw error},
    async context(mode):Promise<FinContext>{
     const {data:profile,error}=await db.from('businesses').select('name,timezone,business_description,services_offered,service_area,team_size,team_roles').eq('id',businessId).single();if(error)throw error
     const context:FinContext={profile,as_of:new Date().toISOString(),timezone:profile.timezone||'America/New_York',sources:[{key:'profile',label:'Saved company profile'}],limits:[]}

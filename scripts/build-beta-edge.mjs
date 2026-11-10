@@ -24,6 +24,14 @@ for(const [name,verify_jwt] of renderers){
  await writeFile(join(out,name,'deno.json'),'{}\n')
  functions.push({name,verify_jwt,entrypoint_path:'index.js',import_map_path:'deno.json',files:['index.js','font-data.ts','deno.json']})
 }
+// Provider entrypoints have no embedded PDF font and retain their JWT checks.
+for(const name of ['ai-command','fin-assistant','transcribe-voice','receipt-scan','upload-attachment']){
+ await mkdir(join(out,name),{recursive:true})
+ const result=await build({entryPoints:[join(sourceRoot,'supabase/functions',name,'index.ts')],bundle:true,platform:'neutral',format:'esm',target:'es2022',write:false,logLevel:'silent',plugins:[{name:'provider-runtime-imports',setup(b){b.onResolve({filter:/^(?:npm:|jsr:|https?:\/\/)/},args=>({path:args.path,external:true}))}}]})
+ await writeFile(join(out,name,'index.js'),result.outputFiles[0].text)
+ await writeFile(join(out,name,'deno.json'),'{}\n')
+ functions.push({name,verify_jwt:name!=='receipt-scan',entrypoint_path:'index.js',import_map_path:'deno.json',files:['index.js','deno.json']})
+}
 const visited=new Set()
 async function copyModule(file){
  file=resolve(file)

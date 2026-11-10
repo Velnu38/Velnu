@@ -1,3 +1,5 @@
+import {readLimitedRequest} from '../_shared/signedEvents.ts'
+import {burstLimitResponse} from '../_shared/burstLimit.ts'
 import {draftSchema,answerSchema,draftInstructions,answerInstructions,validDraft,validateAnswer,responseText} from './core.ts'
 export type FinContext={profile:unknown;records?:unknown;sources:{key:string;label:string}[];limits:string[];as_of:string;timezone:string}
 export type FinSession={role:string;entitled:()=>Promise<boolean>;reserve:()=>Promise<void>;context:(mode:'draft'|'question')=>Promise<FinContext>}
@@ -11,7 +13,7 @@ export function finHandler(deps:FinDependencies){return async(req:Request)=>{
  if(!req.headers.get('authorization')?.startsWith('Bearer '))return send(401,{error:'Sign in to ask Fin.'})
  try{
   if(Number(req.headers.get('content-length')||0)>32000)return send(413,{error:'Keep your request under 6,001 characters.'})
-  const raw=await req.text();if(raw.length>32000)return send(413,{error:'Request too long.'})
+  const raw=await readLimitedRequest(req,32000);if(raw.length>32000)return send(413,{error:'Request too long.'})
   let body;try{body=JSON.parse(raw)}catch{return send(400,{error:'Invalid request'})}
   if(!body||!uuid.test(body.business_id)||!['draft','question'].includes(body.mode)||typeof body.text!=='string'||!body.text.trim())return send(400,{error:'A business, request and valid mode are required.'})
   if(body.text.length>6000)return send(413,{error:'Keep your request under 6,001 characters.'})
@@ -35,6 +37,9 @@ export function finHandler(deps:FinDependencies){return async(req:Request)=>{
   const sources=context.sources.filter(s=>parsed.source_keys.includes(s.key))
   return send(200,{answer:parsed.answer,sources,limits:context.limits,as_of:context.as_of})
  }catch(error){
+  if(error instanceof Error&&error.message==='REQUEST_TOO_LARGE')return send(413,{error:'Request too long.'})
+  if(error instanceof Error&&error.message==='REQUEST_TIMEOUT')return send(408,{error:'The request took too long to upload. Try again.'})
+  const limited=burstLimitResponse(error,headers);if(limited)return limited
   const code=(error as {code?:string})?.code
   if(code==='42501')return send(403,{error:'Your business access changed. Please refresh.'})
   if(code==='P0001')return send(429,{error:'Fin’s request allowance is reached. Please try later.'})

@@ -1,3 +1,4 @@
+import {burstLimitResponse} from '../_shared/burstLimit.ts'
 import {pcmDuration} from './pcm.ts';
 import {
   providerJson,
@@ -295,21 +296,17 @@ export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
       try { seconds=pcmDuration(new Uint8Array(await audio.arrayBuffer())); }
       catch(error){return respond(422,{error:(error as Error).message});}
       const voiceRequest = crypto.randomUUID();
-      const { error: quotaError } = await db.rpc("reserve_tier_request", {p_business:businessId,p_request:voiceRequest,p_feature:"voice",p_units:Math.ceil(seconds)});
-      if (quotaError) return respond(429, {error:"Voice allowance reached. Review Plans & Usage; typed Fin requests remain available."});
-
-      // Failed and uncertain provider attempts remain counted; row locking prevents overshoot.
       const { data: reservation, error: budgetError } = await db.rpc(
-        "reserve_ai_provider_attempt",
-        {
-          p_business_id: businessId,
-          p_kind: "transcription",
-        },
+        "reserve_ai_request",
+        {p_business:businessId,p_request:voiceRequest,p_feature:"voice",p_units:Math.ceil(seconds)},
       );
+      const limited=burstLimitResponse(budgetError,jsonHeaders);if(limited)return limited
       if (budgetError || reservation?.reserved !== true) {
         return respond(
           budgetError?.code === "42501"
             ? 403
+            : budgetError?.code === "23505"
+            ? 409
             : budgetError?.code === "P0001"
             ? 429
             : 503,

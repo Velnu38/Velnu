@@ -1,3 +1,5 @@
+import {readLimitedBytes} from '../_shared/signedEvents.ts'
+import {burstLimitResponse} from '../_shared/burstLimit.ts'
 type Result = { error: { message: string; code?: string } | null }
 type Dependencies = {
   origins: readonly string[]
@@ -23,25 +25,14 @@ export function attachmentHandler(deps: Dependencies) {
       const type = req.headers.get('content-type') || ''
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(type)) return reply(400, { error: 'Choose a JPG, PNG or WebP image.' })
       const limit = bucket === 'velnu-business-logos' ? 2_000_000 : 10_000_000
-      const reader = req.body?.getReader()
-      if (!reader) return reply(400, { error: 'Image is empty.' })
-      const chunks: Uint8Array[] = []; let size = 0
-      try {
-        while (true) {
-          const next = await reader.read(); if (next.done) break
-          size += next.value.byteLength
-          if (size > limit) { await reader.cancel(); return reply(413, { error: `Image exceeds the ${limit / 1_000_000} MB limit.` }) }
-          chunks.push(next.value)
-        }
-      } finally { reader.releaseLock() }
-      if (!size) return reply(400, { error: 'Image is empty.' })
-      const bytes = new Uint8Array(size); let offset = 0
-      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
+      const bytes=await readLimitedBytes(req,limit),size=bytes.byteLength
+      if(!size)return reply(400,{error:'Image is empty.'})
       const signature = type === 'image/jpeg' ? bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
         : type === 'image/png' ? [137,80,78,71,13,10,26,10].every((n,i) => bytes[i] === n)
         : new TextDecoder().decode(bytes.slice(0,4)) === 'RIFF' && new TextDecoder().decode(bytes.slice(8,12)) === 'WEBP'
       if (!signature) return reply(400, { error: 'Image format does not match its file type.' })
       const reservation = await deps.reserve(actor, bucket, path, size)
+      const limited=burstLimitResponse(reservation.error,headers);if(limited)return limited
       if (reservation.error) return reply(reservation.error.code === '42501' ? 403 : 409, { error: reservation.error.message })
       const result = await deps.upload(bucket, path, bytes, type)
       if (result.error) return reply(502, { error: 'Upload was not confirmed. Refresh your pictures. Storage remains reserved until this upload is reconciled; contact Help & Support if it stays pending.' })
@@ -49,6 +40,9 @@ export function attachmentHandler(deps: Dependencies) {
       // have committed. Reservations have no unsafe automatic timeout.
       await deps.finish(bucket, path).catch(() => {})
       return reply(200, { path })
-    } catch { return reply(503, { error: 'Upload could not be confirmed. Refresh before retrying.' }) }
+    } catch(error) {
+      if(error instanceof Error&&error.message==='REQUEST_TOO_LARGE')return reply(413,{error:'Image exceeds the upload size limit.'})
+      if(error instanceof Error&&error.message==='REQUEST_TIMEOUT')return reply(408,{error:'The image upload timed out. Try again.'})
+      return reply(503, { error: 'Upload could not be confirmed. Refresh before retrying.' }) }
   }
 }
