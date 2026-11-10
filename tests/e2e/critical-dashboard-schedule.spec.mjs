@@ -297,7 +297,8 @@ async function mockWorkspace(page, options = {}) {
 // Management scenarios model conditional writes and complete calendar-range reads.
 async function managedReminders(page, options = {}) {
   const zone='America/New_York'
-  const row={...reminder(9901),business_id:BID,due_at:DateTime.now().setZone(zone).startOf('day').plus({hours:8}).toUTC().toISO(),note:'Check supply order',...options.row}
+  // Keep the reminder due today even when the suite runs before business hours.
+  const row={...reminder(9901),business_id:BID,due_at:DateTime.now().setZone(zone).startOf('day').toUTC().toISO(),note:'Check supply order',...options.row}
   const state=await mockWorkspace(page,{...options,reminders:[row],businessProfile:{timezone:zone}})
   state.patchFailure=false;state.lostResponse=false;state.patchDelay=0
   await page.route('**/rest/v1/reminders?**',async route=>{

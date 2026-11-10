@@ -133,7 +133,8 @@
     "supabase/migrations/20261110002751_job_cost_review_completion_reports.sql": "5367857aaab97ff3dbac9731bbc12980097070d34358f6a118930166e54b2680",
     "supabase/migrations/20261110002741_assigned_field_workspace.sql": "bb1ca4d959e8412341e14f4aee15c8bb1a36cdc487a19edb414dd95b6231287f",
     "supabase/migrations/20261110003505_job_execution_access_hardening.sql": "19d4bec46637967d97a9336b8833c965e99389a7a362c93f3d696b732fcba56e",
-    "supabase/migrations/20261110002708_planned_job_visits.sql": "2355476c54c51629f88863335b87d3fcacf147844364989ecf3e8bf3278013c0"
+    "supabase/migrations/20261110002708_planned_job_visits.sql": "2355476c54c51629f88863335b87d3fcacf147844364989ecf3e8bf3278013c0",
+    "tests/e2e/critical-dashboard-schedule.spec.mjs": "7fbe52fb5a14f807e3705ff6250722d48f66a02a2ffde9542feb1c18825c6b78"
   },
   "preparation": {
     "original_head": "373fba610a6ef46770e2e06cebeff4e39643ea98",
@@ -151,5 +152,14 @@
     "base": "b2fe20ce0b9d36806b7e94231eed962322eb6f55",
     "pr": 69,
     "worker_model": "manager-operated roster; field frontend excluded"
+  },
+  "ci_followup": {
+    "initial_head": "3aac06bab1aa27327b4a20cf6c0ea300e546c3af",
+    "finding": "Desktop and simulated iPhone reminder management expected an 8 a.m. same-day reminder to be overdue before 8 a.m. The shared fixture now uses the business-day start so it remains due today at any hour; production attention semantics are unchanged.",
+    "initial_failing_jobs": [
+      129687769342,
+      129687765575
+    ],
+    "state": "rerun_pending"
   }
 }
