@@ -11,7 +11,7 @@ test('job customer requires a selection, supports keyboard and clears stale link
  expect(await input.evaluate(el=>el.checkValidity())).toBe(false)
  await input.fill('757555')
  await expect(page.getByRole('listbox',{name:'Matching saved customers'}).getByRole('option')).toHaveCount(1)
- await expect(page.getByRole('option')).toContainText('other@example.test')
+ await expect(page.getByRole('listbox',{name:'Matching saved customers'}).getByRole('option')).toContainText('other@example.test')
  await input.press('ArrowDown');await input.press('Enter')
  await expect(input).toHaveValue('Test Customer')
  await expect(page.locator('.customer-picker-selected')).toContainText('other@example.test')
