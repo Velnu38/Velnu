@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "1a83c98466e3a6a2a220fcd17858b012c7929d8e",
+  "auditedCommit": "1356853cad3173bc9df31d02ab5eb6b40aec88ff",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -15,8 +15,8 @@
     },
     {
       "title": "Current audited release baseline",
-      "detail": "Private-beta merge 1a83c98466e3a6a2a220fcd17858b012c7929d8e is READY at dpl_876WcvrLESwPFgs58YN3Wx85hEnv on both domains. The deployed tree exactly matches final PR89 candidate 7b6c655. All eight applicable release workflows passed, including all 21 complete-validation jobs, full browser and iPhone WebKit checks. Three hosted functions match source hashes and expected grants. The separate isolated 300-workspace campaign and reminder concurrency test passed; hosted/provider/device and public-launch gates remain open.",
-      "evidence": "docs/evidence/2026-11-10-performance-rollout.json",
+      "detail": "Private-beta merge 1356853cad3173bc9df31d02ab5eb6b40aec88ff is READY at dpl_2kFRbA5svEcp1jspZMfyUKPKQSvD on both domains. The deployed tree exactly matches final PR90 head 930ec8b. All 22 complete-validation jobs and assessment maintenance passed, including genuine PostgreSQL overlap tests, actual PDF/simulated Fin-OCR workloads, browser and iPhone WebKit suites. Existing runtime assets and private-beta indexing restrictions were verified over HTTP. This adds release checks and safe aggregate evidence; no hosted schema, provider configuration, live messages, charges or public activation changed. Hosted pool/TLS and live-provider/device gates remain open.",
+      "evidence": "docs/evidence/2026-11-10-concurrency-rollout.json",
       "verifiedAt": "2026-11-10"
     },
     {
@@ -368,15 +368,21 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Concurrent booking and payment acceptance prepared",
-      "detail": "A disposable full-schema PostgreSQL test uses twenty separate authenticated-role connections across twenty synthetic workspaces. Explicit database locks hold competing booking and manual payment requests until all twenty connections overlap, then verify one slot winner, rejection of excess payments, retry idempotency, exact invoice balances and complete cleanup. Actual CI execution is pending. No merchant provider, hosted workspace or live customer is touched; hosted capacity and customer payment callback acceptance remain separate.",
-      "evidence": "scripts/qa/commerce-concurrency.mjs; .github/workflows/migration-replay.yml",
+      "title": "Concurrent booking and payment acceptance passed",
+      "detail": "Final PR90 head 930ec8b passed genuine full-schema PostgreSQL replay with twenty separate connections across twenty synthetic workspaces. Eighty deliberately overlapping calls produced twenty booking winners and twenty conflicts, twenty accepted manual payments and twenty overpayment rejections. Forty shared-request retries produced only twenty further payments; exact $100 balances, one appointment per business and complete cleanup were verified. No merchant provider or hosted customer was touched. Customer confirmation, signed merchant callbacks and hosted concurrency remain separate.",
+      "evidence": "docs/evidence/2026-11-10-commerce-concurrency.json; docs/CONCURRENCY_ACCEPTANCE_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "PDF and simulated Fin/OCR concurrency prepared",
-      "detail": "A bounded workload uses the actual PDF renderer and Fin/OCR HTTP handlers for 300 unique synthetic business contexts at 10/50/100 logical clients. Local execution produced 300 parseable PDFs, 300 isolated Fin replies and 300 receipt drafts with zero unexpected failures or external network requests. Real authorization, quotas and provider latency are explicitly outside this in-process test. CI execution and immutable aggregate receipt are pending; hosted capacity acceptance stays open.",
-      "evidence": "scripts/qa/provider-workload.ts; .github/workflows/full-test-checks.yml",
+      "title": "PDF and simulated Fin/OCR concurrency passed",
+      "detail": "Final PR90 CI generated and parsed 300 actual PDFs and verified 300 Fin replies and 300 receipt drafts across distinct synthetic contexts at 10/50/100 logical clients. No unexpected failures or external requests occurred. Combined-case p95 was 1,085/3,185/6,139 ms, with peak RSS 933,949,440 bytes. Identity, quotas and provider delays are simulated; JPEG-shaped payloads test upload handling, not recognition. This is bounded correctness and resource evidence, not hosted latency or real provider capacity.",
+      "evidence": "docs/evidence/2026-11-10-provider-workload.json; docs/CONCURRENCY_ACCEPTANCE_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Hosted connection and controlled-delivery inventory",
+      "detail": "Read-only beta inventory found 60 database connections maximum, three superuser-reserved, eight observed clients, one calendar connection and no current lock waits. The calendar role has no aggregate limit; external transaction-pooler/TLS configuration remains unavailable through the connector. Resend reports finviant.com authentication verified and its delivery webhook enabled; public DMARC is monitoring-only. No email/SMS was sent. A concrete three-email/two-SMS test is prepared, awaiting exact controlled recipients and a spending limit required by Step 15.",
+      "evidence": "docs/evidence/2026-11-10-hosted-connection-inventory.json; docs/CONTROLLED_DELIVERY_ACCEPTANCE_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     }
   ],
@@ -509,7 +515,7 @@
       "status": "not_verified",
       "title": "Measure capacity with realistic isolated tenant load",
       "owner": "Developer / QA",
-      "why": "The isolated 300-genuine-workspace campaign passed 10/50/100 client-loop ramps, a controlled REST recovery and a 60-minute soak with realistic history and private files; a separate 300-workspace reminder concurrency test passed with simulated outcomes. The 50-request/second cap produced at most 12 simultaneous HTTP requests. This is not hosted capacity acceptance: concurrent booking/payment workflows, bounded PDF/AI/OCR/provider load, hosted pool/TLS budgets and actual worker cadence remain unverified.",
+      "why": "The 300-genuine-workspace isolated HTTP campaign passed ramps, REST recovery and a 60-minute soak. Separate tests passed 300-reminder queue concurrency, twenty-workspace simultaneous booking/manual-payment races, and actual PDF plus simulated Fin/OCR workloads across 300 contexts. The original HTTP campaign peaked at twelve simultaneous requests under its 50-request/second cap; the provider workload used simulated identity/quota/provider dependencies. Combined representative hosted load, customer confirmation and merchant callback concurrency, live Edge-worker/provider behavior and pool/TLS budgets remain unverified.",
       "acceptance": "Use isolated, provider-approved staging and synthetic distinct authenticated tenants; run smoke, 10/50/100-concurrent-user ramps across at least 300 workspaces, then a 60-minute soak and queue catch-up. Cover realistic invoices/jobs/history/photos, concurrent bookings/payments, PDF/AI/OCR work with bounded stub providers, and second-tenant isolation. Record p95/p99 latency, failures, saturation and cost; proceed toward 1,000 workspaces only after the first target passes.",
       "evidence": []
     },
@@ -520,7 +526,7 @@
       "status": "blocked_external",
       "title": "Release general transactional email",
       "owner": "Owner + developer",
-      "why": "Current active sender/delivered records are restricted beta evidence; arbitrary customers remain excluded.",
+      "why": "The connected Resend domain is verified, sending authentication records are verified, DMARC monitoring policy is present and the beta delivery webhook is enabled. These are configuration checks, not general delivery or inbox acceptance. Controlled invoice/estimate/card delivery tests are prepared; exact recipients and a budget are still required by Step 15. Current beta recipient restrictions remain in place.",
       "acceptance": "Validate production SPF/DKIM/DMARC and alignment, authorized reply routing for each business, signup emails, attachments, customer/card links, suppression/bounce/complaint handling, delivery events and quota exhaustion; verify controlled inbox receipt before deliberately changing beta recipient policy. Inbox placement cannot be guaranteed.",
       "evidence": []
     },

@@ -1,0 +1,55 @@
+{
+  "observedAt": "2026-11-10",
+  "testedHead": "930ec8b6d68ec0b0c0e39041a51b79ff4fd7caec",
+  "testedTree": "fd8448fa8c982c82527b2d2595013326f02dc07f",
+  "run": "https://github.com/Velnu38/Velnu/actions/runs/42904649546",
+  "job": 130139569689,
+  "artifact": 13803534175,
+  "artifactSha256": "fc8374a344153af2eaf577ee340f86c908f595595907c2868ff82c3eb6e229cb",
+  "result": {
+    "sourceCommit": "0ed7c29a3ded9e0b02fa24dead49dde4c36ff7d0",
+    "scope": "actual PDF rendering and Fin/OCR handler concurrency with simulated authorization, quota and provider dependencies",
+    "phases": [
+      {
+        "clients": 10,
+        "workspaces": 100,
+        "elapsedMs": 6738,
+        "p95Ms": 1085,
+        "p99Ms": 1087,
+        "unexpectedErrors": 0
+      },
+      {
+        "clients": 50,
+        "workspaces": 100,
+        "elapsedMs": 6226,
+        "p95Ms": 3185,
+        "p99Ms": 3186,
+        "unexpectedErrors": 0
+      },
+      {
+        "clients": 100,
+        "workspaces": 100,
+        "elapsedMs": 6142,
+        "p95Ms": 6139,
+        "p99Ms": 6140,
+        "unexpectedErrors": 0
+      }
+    ],
+    "workspaces": 300,
+    "pdfs": 300,
+    "pdfBytes": 8798175,
+    "simulatedAiCalls": 300,
+    "simulatedOcrCalls": 300,
+    "peakSimulatedProviderCalls": 200,
+    "peakRssBytes": 933949440,
+    "externalNetworkAttempts": 0,
+    "externalProviderCost": 0,
+    "totalMs": 19107,
+    "limitations": [
+      "In-process logical clients on one runner; no hosted network or Edge runtime measurement.",
+      "PDF templates use synthetic documents; JPEG-shaped payload exercises upload parsing, not real image recognition.",
+      "Authorization and quotas are simulated here; real RLS and quota races are separate PostgreSQL acceptance.",
+      "Simulated provider delay is ten milliseconds and does not predict live provider latency."
+    ]
+  }
+}

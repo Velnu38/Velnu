@@ -1,0 +1,13 @@
+# Controlled email and SMS acceptance
+
+Step 15 of the approved implementation attachment requires exact recipients/numbers and a testing budget before real sends. No messages were sent during this review, and general beta recipient restrictions remain unchanged.
+
+Read-only review on November 10 found the connected Resend domain `finviant.com` verified with sending enabled and open/click tracking disabled. DKIM, the sending SPF TXT/MX records and the provider CNAME were reported verified. The enabled webhook targets the beta `resend-events` function and subscribes to sent, delivered, bounced, complained, failed, suppressed and delayed events. Public DNS returned `v=DMARC1; p=none; adkim=r; aspf=r`: monitoring policy, not quarantine/reject enforcement. These are configuration observations, not proof of inbox placement, reply routing or signed callback acceptance for a new send.
+
+The concrete next delivery check uses synthetic documents and one owner-controlled email address and mobile number. The proposed ceiling is three email messages (invoice with canonical PDF, estimate with approval link, E-Business Card) and two SMS messages (E-Business Card and appointment reminder). No bulk campaign, automatic repeated reminder, real customer invoice, payment collection or public activation is included. Auth recovery email is a separate acceptance flow and is not silently triggered by this test.
+
+Before sending, obtain the exact email address, an opted-in E.164 mobile number and an approved maximum provider cost. Verify the configured SMS sender/registration and available account balance first; if these cannot be verified, keep SMS blocked while completing authorized email checks. Confirm recipients are allowed by the controlled beta policy and review actual payloads and links. Do not broaden general delivery access.
+
+For each authorized send, record the application request ID, provider acceptance/event IDs, final delivery state, attachment/link correctness and redacted aggregate result. The owner verifies actual inbox/phone receipt and reply behavior. A provider accepted/delivered event alone does not establish inbox placement or a usable phone experience. An uncertain result remains for reconciliation and is not automatically resent. Test invalid signatures, replay, suppression, quota exhaustion and provider errors with the existing isolated fixtures; do not send intentionally abusive or repeated messages to a real recipient.
+
+EMAIL-01 and SMS-01 remain open until their complete acceptance criteria have evidence. Domain ownership transfers, DNS policy changes and sender activation are separate changes; none were made here.

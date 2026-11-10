@@ -1,0 +1,26 @@
+{
+  "observedAt": "2026-11-10",
+  "scope": "Read-only private-beta configuration inventory; no hosted load or connection changes",
+  "project": "xvybcmyoblfgzokaifsx",
+  "database": {
+    "max_connections": 60,
+    "superuser_reserved_connections": 3,
+    "reserved_connections": "0",
+    "observed_client_connections": 8,
+    "observed_calendar_connections": 1,
+    "calendar_role_limit": -1,
+    "current_lock_waiters": 0
+  },
+  "calendarSource": {
+    "poolMaxPerProcess": 3,
+    "connectionTimeoutMs": 5000,
+    "statementTimeoutMs": 20000,
+    "lockTimeoutMs": 3000,
+    "sourceRequiresCertificateVerification": true
+  },
+  "limitations": [
+    "A single idle sample is not peak-load headroom.",
+    "The sensitive hosted URL was unavailable through the connector; external endpoint, transaction-pooler mode and transport verification remain unverified.",
+    "The database role has no aggregate connection limit; three connections per process does not bound serverless aggregate usage."
+  ]
+}
