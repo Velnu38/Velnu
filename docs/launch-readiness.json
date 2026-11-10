@@ -14,6 +14,12 @@
       "verifiedAt": "2026-11-10"
     },
     {
+      "title": "Customer reminder defaults: isolated review branch",
+      "detail": "Reconstructed customer invoice defaults (2 days overdue, repeat 7, maximum 3) and owner-enabled appointment defaults (48 elapsed hours, email or SMS), per-record overrides, separate customer/internal settings, purpose-specific SMS consent and durable occurrence suppression. Local synthetic checks pass; no migration, worker deployment, activation or provider send has occurred. Full-chain PostgreSQL concurrency and controlled provider/mobile acceptance remain unverified. PR69 multi-visit design was inspected but not merged.",
+      "evidence": "docs/CUSTOMER_REMINDER_DEFAULTS_2026-11-09.md; docs/evidence/2026-11-09-customer-reminders-validation.json",
+      "verifiedAt": "2026-11-09"
+    },
+    {
       "title": "Verified release baseline before PR72",
       "detail": "Private-beta source verified before this integration was bd70eef70b4ee09eafd387843df417a34cbbf02d, READY preview dpl_GskVn9r863C93pax4hTb7YhRocDM on both custom domains. It follows PR69 application merge c3dcddaaf650784f2ce59b15f6e7972b98b1f592 and documentation receipts. All seven PR69 workflows passed at final application head 36fcf3599c18741567b7a414003a2d1b7ed6b3f8. Manager-operated workers, stationery, availability, Fin guidance and private admission remain. Beta database xvybcmyoblfgzokaifsx has 129 migration ledger entries through 20261110003505; no migrations were reapplied for this reconciliation. Provider, actual-device and load acceptance remain separate open gates.",
       "evidence": "PR69 workflow/API receipts; Vercel alias/deployment read; read-only beta migration/extension aggregate on 2026-11-10; docs/evidence/2026-11-09-job-execution-validation.json",
@@ -234,7 +240,9 @@
       "owner": "Developer + owner",
       "why": "The domain still uses the beta backend. A URL/key swap can strand business data, storage, tokens and callbacks.",
       "acceptance": "Approve production ownership, stable release branch, data/storage/auth migration or retention plan, all migrations, environment-bound secrets/redirects, backup and rollback; rehearse with a second tenant before moving domains. No automatic cutover in this assessment.",
-      "evidence": []
+      "evidence": [
+        "docs/evidence/2026-11-09-customer-reminders-validation.json (synthetic only; gate remains open)"
+      ]
     },
     {
       "id": "REL-02",
@@ -474,7 +482,7 @@
       "status": "open",
       "title": "Extend owner-controlled follow-up automation",
       "owner": "Developer",
-      "why": "Scheduled email/overdue invoice reminders already exist; broader estimate/appointment automation is optional expansion.",
+      "why": "Customer reminder defaults and appointment outbox are implemented on an isolated review branch; full-chain deployment, concurrency and controlled provider acceptance remain unverified.",
       "acceptance": "Add only needed follow-up rules with owner enablement, reviewed timing, response/payment suppression and retry safety; do not advertise unimplemented rules.",
       "evidence": []
     },

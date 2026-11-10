@@ -1,3 +1,4 @@
+import InvoiceReminderPreference from './InvoiceReminderPreference'
 import CopyDocumentButton from './CopyDocumentButton'
 import SquareInvoicePayment from './SquareInvoicePayment'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
@@ -150,6 +151,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
       {invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}
       {!invoice.deposit_estimate_id&&canManage&&<DocumentChangeOrders business={business} context={context} allowNew={false} onOpen={setShowChangeOrders}/>}
       {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
+      {canManage&&<InvoiceReminderPreference key={business.id+':'+invoice.id} businessId={business.id} invoiceId={invoice.id}/>}
       <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>
     </section>
     <section id={tabIds.resources+'-panel'} role="tabpanel" aria-labelledby={tabIds.resources+'-tab'} hidden={tab!=='resources'}>{canSeeWork&&jobHref&&<p><a href={jobHref+'&tab=photos-expenses'}>View linked job photos &amp; expenses</a></p>}{resourcesOpened&&<RecordResources business={business} target={{kind:'invoice',id:invoice.id}} active={tab==='resources'}/>}</section>
