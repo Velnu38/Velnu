@@ -17,6 +17,16 @@ async function extracted(bytes: Uint8Array): Promise<string> {
   } finally { await rm(directory, { recursive: true, force: true }) }
 }
 
+test('customer reference is selectable in invoice and estimate PDFs without changing amounts',async()=>{
+ for(const kind of ['invoice','estimate'] as const){
+  const snapshot=documentPdfFixture(kind)
+  snapshot.customer_reference='PO-1109 / Building B — '+ 'Long reference '.repeat(5)
+  const before=JSON.stringify(snapshot),content=await extracted(await generateDocumentPdf(snapshot))
+  assert.match(content,/Customer PO \/ reference:/);assert.match(content,/PO-1109 \/ Building B/)
+  assert.equal(JSON.stringify(snapshot),before)
+ }
+})
+
 test('invoice PDF preserves selectable branding, customer, address, tax, deposits and exact due amount', async () => {
   const bytes = await generateDocumentPdf(documentPdfFixture())
   const content = await extracted(bytes)

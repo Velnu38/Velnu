@@ -73,6 +73,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   const [dueDate, setDueDate] = useState(() => documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice'))
   const [issueDate, setIssueDate] = useState(() => DateTime.now().setZone(business.timezone || 'UTC').toISODate()!)
   const [notes, setNotes] = useState('')
+  const [customerReference,setCustomerReference]=useState('')
   const [defaultTax, setDefaultTax] = useState(0)
   const [documentTax, setDocumentTax] = useState('0')
   const [pricingAdjustment,setPricingAdjustment] = useState(0)
@@ -175,7 +176,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   function resetForm() {
     setCreationPreview(false); savedCreation.current=null;setSavedCustomerId(''); dateEdited.current=false; setDocumentTax(String(defaultTax))
     setFinRequest(''); setFinWarnings([]); setSpokenTotal(null); setHandoff('')
-    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); setPropertyId(''); setServiceAddress(''); retryRef.current = null
+    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setCustomerReference(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); setPropertyId(''); setServiceAddress(''); retryRef.current = null
   }
 
   async function submit(sendEmail=false, stayOnPreview=false, expectedRevisionId?:string) {
@@ -195,7 +196,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
         customer={customer_id:customerRequest.current.id,new_customer:fields}
       }
       const payments=isPrimaryOwner(business)?documentPayments:{}
-      const signature = JSON.stringify({ issueDate, customer, payments, propertyId, dueDate, notes, lines: pricedLines })
+      const signature = JSON.stringify({ issueDate, customer, payments, propertyId, dueDate, notes, customerReference, lines: pricedLines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       const input = { request_id: retryRef.current.requestId,
         ...customer,...payments,
@@ -203,6 +204,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
         due_date: dueDate || undefined,
         property_id: propertyId || undefined,
         notes,
+        customer_reference:customerReference,
         items: pricedLines.map((line) => ({
           description: line.description,
           quantity: Number(line.quantity),
@@ -210,7 +212,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
           tax_rate: Number(line.tax_rate || 0),
         })),
       }
-      const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,...payments}) : await createInvoice(business.id,input)
+      const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,customer_reference:customerReference,...payments}) : await createInvoice(business.id,input)
       savedCreation.current=created.id
       if(stayOnPreview){
         setSavedCustomerId(customer.customer_id)
@@ -285,7 +287,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       {!creationPreview && spokenTotal && previewTotal !== null && Math.round(Number(spokenTotal) * 100) !== Math.round(previewTotal * 100) && <p role="status" className="form-message">Your stated total was {invoiceMoney.format(Number(spokenTotal))}. Check it against the calculated total below.</p>}
       {handoff&&<p className="form-message">Dictated request: {handoff}. Review each charge as a separate line.</p>}
       <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
-        <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setCustomerId(id);setPropertyId('');setServiceAddress('')}} onDraft={setCustomerDraft} showSuggestions={!!finRequest && !!customerDraft.name && !customerId} disabled={busy||!!sourceJob||!!finRequest&&customerLoad!=='ready'}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><PaymentTerms issued={issueDate} value={dueDate} onChange={value=>{dateEdited.current=true;setDueDate(value)}}/><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
+        <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setCustomerId(id);setPropertyId('');setServiceAddress('')}} onDraft={setCustomerDraft} showSuggestions={!!finRequest && !!customerDraft.name && !customerId} disabled={busy||!!sourceJob||!!finRequest&&customerLoad!=='ready'}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><PaymentTerms issued={issueDate} value={dueDate} onChange={value=>{dateEdited.current=true;setDueDate(value)}}/><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={e=>setCustomerReference(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
         {!sourceJob&&<CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/>}
         {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
         <DocumentLineEditor businessId={business.id} lines={lines} onChange={setLines} newLine={newLine} taxOptions taxDefault={{ rate: documentTax, onChange: setDocumentTax }}/>
@@ -296,7 +298,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       </form>
 
       {editCreationCustomer&&creationContactId&&<CustomerEditDialog businessId={business.id} customerId={creationContactId} contactField={editCreationCustomer==='all'?undefined:editCreationCustomer} onClose={()=>setEditCreationCustomer(null)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,serviceAddress,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
+      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,customerReference,serviceAddress,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
     </FormDialog>}
   </div>
 }

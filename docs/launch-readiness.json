@@ -246,6 +246,12 @@
       "detail": "Protected health previously assessed email and sandbox payments only while live calendar sync failed. Added aggregate calendar queue/reconnect, appointment stale/uncertain/failure, and overdue/review recurring signals. Local PostgreSQL fixture verifies failure, recovery and service-only ACL; 72 recovery tests pass. Full final-schema migration replay and packaged Edge deployment are pending. External incident routing, tracing and monitoring remain open.",
       "evidence": "supabase/migrations/20261110134000_worker_health_coverage.sql; tests/settings/worker-health.test.ts; tests/migrations/release-smoke.sql; docs/WORKER_HEALTH_2026-11-10.md",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Customer references and reusable service packages prepared",
+      "detail": "Added explicit reusable multi-line service packages with server validation, billing access controls, archived-name reuse and no modification of existing document lines. Added customer-visible PO/reference to atomic invoice/estimate create and draft edit, request fingerprints, linked invoice inheritance and PDF snapshots. Issued references cannot be changed; generic copy drafts reset the reference. Existing snapshots without a reference retain their prior shape. Local package/PO/PDF tests and package DOM interaction checks pass; rendered PDF inspected. Complete migration replay and deployed frontend/renderer verification remain pending.",
+      "evidence": "supabase/migrations/20261110140000_reusable_service_packages.sql; supabase/migrations/20261110140500_customer_document_references.sql; tests/records/service-packages.test.ts; tests/records/customer-reference.test.ts; tests/settings/service-packages-dom.mjs; tests/documents/documentPdf.test.ts; docs/DOCUMENT_CONVENIENCES_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
@@ -709,7 +715,7 @@
       "status": "open",
       "title": "Finish document shortcuts and consistency acceptance",
       "owner": "Developer + owner",
-      "why": "Copy-to-new-draft, optional due/validity presets, saved-service search, current receivables statements/PDF and one-time reviewed expense rebilling are implemented. PO/customer-reference structure, named service packages, historical opening-balance statements and full browser/performance acceptance remain follow-up scope. Original dates, issued documents and transactional history are retained.",
+      "why": "Copy-to-new-draft, optional due/validity presets, saved-service search, current receivables statements/PDF and one-time reviewed expense rebilling are implemented. PO/customer-reference structure, named service packages, historical opening-balance statements and full browser/performance acceptance remain follow-up scope. Original dates, issued documents and transactional history are retained. November 10: customer PO/reference and reusable multi-line service packages are prepared with local validation and immutable-reference tests; integrated replay/deployment remain pending.",
       "acceptance": "After scope selection from Finviant Invoice Ninja Benchmark, implement selected copy-to-new-draft, due/terms/PO presets, saved-service search/packages, current receivables aging/customer statements and reviewed expense rebilling. Preserve original issue-date defaults unless explicitly overridden, issued revisions, share/provider/payment identifiers and source links; clones must reset transactional state and obtain new numbers/request keys. Reuse existing service_items and workbook CSV. Verify tenant/role scope, original-price/tax/discount/fee arithmetic, opening/remaining balances, refund/partial-payment behavior and cost-versus-billed deduplication. Test PDF/link consistency, account-versus-customer defaults, quotas/accessibility/mobile and performance. Formal credits/discounts, multi-contact/bulk sends and expanded plan gates require separately selected scope, not implicit implementation.",
       "evidence": []
     },

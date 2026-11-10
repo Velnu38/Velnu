@@ -37,7 +37,7 @@ export type CanonicalDocumentSnapshot = ChangeOrderFields & {
   expires_on?: string | null; currency?: string | null
   subtotal: DocumentPdfAmount; tax_amount: DocumentPdfAmount; total: DocumentPdfAmount
   deposit_credit?: DocumentPdfAmount | null; amount_paid?: DocumentPdfAmount | null
-  balance_due?: DocumentPdfAmount | null; customer_message?: string | null
+  balance_due?: DocumentPdfAmount | null; customer_message?: string | null; customer_reference?: string | null
   payment_instructions?: string | null; payment_links?: { provider: string; url: string }[]
   customer: DocumentPdfParty; company: DocumentPdfParty
   service_address?: string | null; service_location?: DocumentPdfParty | null
@@ -229,6 +229,11 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
     lines.forEach((line, lineIndex) => draw(line, x, y - 24 - lineIndex * 12, 10, bold, ink))
   })
   y -= 72
+  if(text(snapshot.customer_reference)){
+    const referenceLines=wrap('Customer PO / reference: '+text(snapshot.customer_reference),CONTENT_WIDTH,9)
+    for(const line of referenceLines){ensure(14);draw(line,MARGIN,y,9,regular,ink);y-=13}
+    y-=10
+  }
   const customerName = partyName(snapshot.customer) || 'Customer'
   const customerDetails = [customerName, text(snapshot.customer.company) && text(snapshot.customer.company) !== customerName ? text(snapshot.customer.company) : '', ...addressLines(snapshot.customer), text(snapshot.customer.email), text(snapshot.customer.phone)].filter(Boolean)
   const service = text(snapshot.service_address) || (snapshot.service_location ? addressLines(snapshot.service_location).join('\n') : '')

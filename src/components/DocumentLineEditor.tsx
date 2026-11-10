@@ -1,4 +1,5 @@
 import ServiceItemPicker from './ServiceItemPicker'
+import ServicePackagePicker from './ServicePackagePicker'
 import { useRef, useState } from 'react'
 
 export type DraftLine = { description: string; quantity: string; unit_price: string; tax_rate: string }
@@ -38,6 +39,7 @@ export default function DocumentLineEditor({ lines, onChange, newLine, taxOption
   return <div className="line-items">
     <div className="line-items-head"><strong>Line items</strong><button type="button" className="text-button" disabled={lines.length >= 50} onClick={() => onChange([...lines, makeLine()])}>+ Add line</button></div>
     {businessId&&<ServiceItemPicker businessId={businessId} lines={lines} onChange={onChange}/>}
+    {businessId&&<ServicePackagePicker key={businessId} businessId={businessId} lines={lines} onChange={onChange}/>}
     {lines.map((line, index) => <fieldset className={`line-item${taxOptions ? ' line-item-simple' : ''}`} key={index}>
       <legend>Line {index + 1}</legend>
       {fields.filter(key => !taxOptions || key !== 'tax_rate').map(key => <label key={key}>{captions[key]}{renderInput(line, index, key)}</label>)}
