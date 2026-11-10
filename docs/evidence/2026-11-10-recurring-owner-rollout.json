@@ -1,0 +1,67 @@
+{
+  "checkedAt": "2026-11-10",
+  "repository": "Velnu38/Velnu",
+  "pullRequest": 81,
+  "head": "947ee67c869ce087ed734c90063ad3356b3d0e39",
+  "merge": "18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af",
+  "workflows": [
+    {
+      "id": 42867589710,
+      "conclusion": "success"
+    },
+    {
+      "id": 42867588999,
+      "conclusion": "success"
+    },
+    {
+      "id": 42867588638,
+      "conclusion": "success"
+    },
+    {
+      "id": 42867588577,
+      "conclusion": "success"
+    },
+    {
+      "id": 42867588588,
+      "conclusion": "success"
+    },
+    {
+      "id": 42867588766,
+      "conclusion": "success"
+    },
+    {
+      "id": 42867588745,
+      "conclusion": "success"
+    },
+    {
+      "id": 42867588639,
+      "conclusion": "success"
+    }
+  ],
+  "database": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "migration": "recurring_owner_controls",
+    "version": "20261110175517",
+    "ownerGuardVerified": true,
+    "anonymousExecute": false,
+    "authenticatedExecute": true,
+    "depositTemplateGuard": true
+  },
+  "hosting": {
+    "deployment": "dpl_Htcp9Cot1hUNcRRqxPNQ9jq57Wur",
+    "sha": "18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af",
+    "state": "READY",
+    "environment": "preview/private-beta",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "bothHttp200": true,
+    "entry": "/assets/index-CcAGNQyg.js"
+  },
+  "limits": [
+    "No real provider sends or charges were performed.",
+    "Browser simulation is not physical-device certification.",
+    "Recurring occurrence exceptions and progress allocations remain separate work."
+  ]
+}

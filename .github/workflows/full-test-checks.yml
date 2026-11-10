@@ -51,7 +51,7 @@ jobs:
       - run: deno test tests/unit/
       - run: deno test --unstable-sloppy-imports tests/stress/velnu-1500-inputs_test.ts
       - name: Typecheck candidate Edge functions with pinned Deno imports
-        run: deno check --node-modules-dir=none --config supabase/functions/deno.json supabase/functions/document-pdf/index.ts supabase/functions/fin-workflow/index.ts supabase/functions/ai-command/index.ts supabase/functions/fin-assistant/index.ts supabase/functions/transcribe-voice/index.ts supabase/functions/receipt-scan/index.ts supabase/functions/upload-attachment/index.ts
+        run: deno check --node-modules-dir=none --config supabase/functions/deno.json supabase/functions/document-pdf/index.ts supabase/functions/fin-workflow/index.ts supabase/functions/ai-command/index.ts supabase/functions/fin-assistant/index.ts supabase/functions/transcribe-voice/index.ts supabase/functions/receipt-scan/index.ts supabase/functions/upload-attachment/index.ts supabase/functions/owner-archive/index.ts supabase/functions/tier-delivery-worker/index.ts
   dom-tests:
     name: DOM checks (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
