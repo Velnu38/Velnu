@@ -8,7 +8,6 @@ import pg from 'pg'
 
 export const CLI_VERSION = '3.1.0'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const platformPath = join(root, 'supabase/bootstrap/platform-extensions.sql')
 
 export function localDatabaseUrl(value) {
   const url = new URL(value)
@@ -118,16 +117,29 @@ export async function main() {
     await requireEmptyPlatform(client)
     // The managed postgres role cannot ALTER SYSTEM. Use only our uniquely named
     // disposable container's local administrator, never a hosted administrator.
-    const platformSql = readFileSync(platformPath, 'utf8')
-    const configure = spawnSync('docker', ['exec', '-i', `supabase_db_${projectId}`, 'psql', '-U', 'supabase_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
-      '-c', "alter system set cron.launch_active_jobs = 'off'", '-c', 'select pg_reload_conf()', '-f', '-'], {
-      input: platformSql, encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024,
+    const configure = spawnSync('docker', ['exec', `supabase_db_${projectId}`, 'psql', '-U', 'supabase_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
+      '-c', "alter system set cron.launch_active_jobs = 'off'", '-c', 'select pg_reload_conf()'], {
+      encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024,
     })
-    if (configure.status !== 0) throw new Error('Could not prepare platform prerequisites and disable cron in the owned disposable container')
+    if (configure.status !== 0) throw new Error('Could not disable cron in the owned disposable container')
     const manifest = migrationManifest(join(root, 'supabase/migrations'))
     const result = await replay(client, manifest)
+    const smokeSql = readFileSync(join(root, 'tests/migrations/release-smoke.sql'), 'utf8')
+    try {
+      await client.query(smokeSql)
+    } catch (error) {
+      console.error(JSON.stringify({ phase: 'fresh-schema-financial-tenant-smoke', error: safeDatabaseError(error) }))
+      throw new Error('Fresh-schema financial/tenant smoke failed')
+    }
+    const { rows: [cleanup] } = await client.query(`select
+      (select count(*) from auth.users)::int as users,
+      (select count(*) from public.businesses)::int as businesses,
+      (select count(*) from public.payments)::int as payments,
+      (select count(*) from storage.objects)::int as files`)
+    if (Object.values(cleanup).some(value => value !== 0)) throw new Error('Synthetic replay smoke did not roll back completely')
     console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION,
-      platformPrerequisite: { file: 'supabase/bootstrap/platform-extensions.sql', sha256: createHash('sha256').update(platformSql).digest('hex') },
+      cronLaunchActiveJobs: false,
+      smoke: { file: 'tests/migrations/release-smoke.sql', sha256: createHash('sha256').update(smokeSql).digest('hex'), passed: true, rolledBackCounts: cleanup },
       migrations: result.applied.length, ...result }, null, 2))
   } finally {
     if (client) await client.end()

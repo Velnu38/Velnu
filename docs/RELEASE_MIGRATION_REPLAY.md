@@ -5,12 +5,15 @@ with Docker and Node 22. The CLI is pinned to 3.1.0. PostgreSQL uses Supabase's
 major-version-17 image and real managed Auth/Storage initialization. The report
 records exact PostgreSQL/extension versions and every SQL file's SHA-256.
 
-Fresh-platform setup explicitly enables the real `pg_cron` extension using
-`supabase/bootstrap/platform-extensions.sql`. The beta already has this extension;
-the historical scheduler migration assumes it exists. The first replay identified
-that missing prerequisite after 34 successful files (run 42808003740). This setup
-file is separate from the unchanged applied migration history and is also hashed
-in the receipt. No application functions or permissions are stubbed.
+Replay runs 42808003740 and 42808569075 exposed missing `pg_cron` setup and
+`private.recurring_invoice_plans`. Both come from the omitted historical migration
+`20261103001002_recurring_invoices_and_next_steps.sql`. It was recovered unchanged
+from Git commit `8c976f4a1f4a968a173bcd944d1d66d3eedd4a8d`; SHA-256
+`b24f036a20075e3e646e825e135514e7f19a41c95c8eeef139de49e54577c77d`
+exactly matches the already-applied beta ledger statement. This restores provenance
+and the original source sequence; it is not a new or reapplied hosted migration.
+The restored file enables the real `pg_cron` extension itself. No extra app setup,
+function shims, weakened permissions or rewritten migration versions are used.
 
 The runner creates its own temporary project. It accepts no database URL or
 project ref, inherits no hosted/provider credentials, refuses existing identities,
@@ -27,8 +30,13 @@ aggregate acceptance results; no raw CLI artifacts are uploaded.
 
 The workflow runs on ordinary Ubuntu public-repository runners with read-only
 repository permissions and no hosted secrets. A passing replay establishes a
-fresh schema installation, not provider delivery, real browser tenant sessions,
-physical-device compatibility, load capacity or safe production cutover.
+fresh schema installation. A rollback-only SQL smoke then exercises real final
+definitions for two isolated database identities: invoice tax/totals, idempotent
+document/payment requests, remaining balance, approval-to-one-job handoff,
+cross-tenant table/RPC denial, and a manager-created worker without another login
+or membership. It checks zero retained identities, businesses, payments and files.
+This simulates JWT claims/database roles, not real browser Auth sessions, provider
+delivery, physical-device compatibility, load capacity or safe production cutover.
 
 Existing PGlite fixtures remain useful targeted checks. Run them on Node 22;
 Node 24/PGlite compatibility is not established. App/browser/build checks retain
