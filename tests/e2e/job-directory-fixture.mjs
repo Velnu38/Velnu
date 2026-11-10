@@ -22,9 +22,26 @@ export function jobDirectoryPage(jobs,params,zone='America/New_York',now=Date.no
  return {items:rows.slice(page*25,(page+1)*25).map(r=>r.item),total:rows.length,page,page_size:25,counts,checked_at:new Date(now).toISOString()}
 }
 
+export function jobsOverviewSummary(jobs,params={},zone='America/New_York',now=Date.now()){
+ const page=jobDirectoryPage(jobs,{...params,p_filter:'all',p_search:'',p_page:0},zone,now)
+ const scoped=jobs.filter(j=>(!params.p_customer||j.customer_id===params.p_customer)&&(!params.p_worker||j.assigned_user_ids?.includes(params.p_worker)))
+ const active=scoped.filter(j=>!['completed','canceled'].includes(j.status))
+ const start=j=>Date.parse(j.scheduled_start)||Infinity
+ const focus=[...active].sort((a,b)=>Number(b.status==='in_progress')-Number(a.status==='in_progress')||start(a)-start(b)||a.id.localeCompare(b.id)).slice(0,4)
+ const today=scoped.filter(j=>jobDirectoryPage([j],{p_filter:'today'},zone,now).total===1)
+ const agenda=(today.length?today:active.filter(j=>j.active_appointment&&start(j)>=now)).sort((a,b)=>start(a)-start(b)||a.id.localeCompare(b.id)).slice(0,4)
+ const crew_today={};for(const j of today)for(const w of new Set(j.assigned_user_ids||[]))crew_today[w]=(crew_today[w]||0)+1
+ const normalize=j=>({...j,customers:Array.isArray(j.customers)?j.customers:j.customers?[j.customers]:[],active_appointment:j.active_appointment||null,invoice:j.invoice||null})
+ return {counts:page.counts,focus:focus.map(normalize),agenda:agenda.map(normalize),crew_today,checked_at:new Date(now).toISOString()}
+}
+
 // Fixtures supply current in-memory rows directly. Avoid nested page.evaluate/fetch
 // inside an intercepted route: an unrelated refresh can outlive a finished test.
 export async function mockJobDirectory(page,readRows,zone='America/New_York'){
+ await page.route('https://example.supabase.co/rest/v1/rpc/get_jobs_overview',route=>{
+  const params=route.request().postDataJSON()||{}
+  return route.fulfill({headers:{'access-control-allow-origin':'*'},json:jobsOverviewSummary(readRows(params),params,zone)})
+ })
  await page.route('https://example.supabase.co/rest/v1/rpc/get_job_directory_page',route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'},body:''})
   const params=route.request().postDataJSON()

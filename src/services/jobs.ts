@@ -49,6 +49,14 @@ export async function listJobs(businessId: string, customerId?: string) {
 }
 
 export type JobDirectoryFilter = 'all'|'active'|'today'|'unscheduled'|'in_progress'|'billing'|'attention'|'unassigned'|'scheduled'|'completed'|'current'|'upcoming'|'history'
+export type JobsOverviewData = {focus: Awaited<ReturnType<typeof listJobs>>; agenda: Awaited<ReturnType<typeof listJobs>>; counts: Record<JobDirectoryFilter,number>; crew_today: Record<string,number>; checked_at:string}
+export async function getJobsOverview(businessId:string,customerId?:string,workerId?:string):Promise<JobsOverviewData> {
+  const {data,error}=await supabase.rpc('get_jobs_overview',{p_business:businessId,p_customer:customerId||null,p_worker:workerId||null})
+  if(error)throw error
+  const keys:JobDirectoryFilter[]=['all','active','today','unscheduled','in_progress','billing','attention','unassigned','scheduled','completed','current','upcoming','history']
+  if(!data||!Array.isArray(data.focus)||data.focus.length>4||!Array.isArray(data.agenda)||data.agenda.length>4||!data.counts||keys.some(k=>!Number.isSafeInteger(data.counts[k])||data.counts[k]<0)||!data.crew_today||typeof data.crew_today!=='object'||Array.isArray(data.crew_today)||Object.values(data.crew_today).some(n=>!Number.isSafeInteger(n)||Number(n)<0)||!Number.isFinite(Date.parse(data.checked_at))||[...data.focus,...data.agenda].some(j=>!j.id||!Array.isArray(j.customers)))throw Error('The job overview could not be verified. Refresh to try again.')
+  return data
+}
 export async function getJobDirectoryPage(businessId:string,options:{customerId?:string;filter:JobDirectoryFilter;workerId?:string;search:string;page:number}) {
   const {data,error}=await supabase.rpc('get_job_directory_page',{p_business:businessId,p_customer:options.customerId||null,p_filter:options.filter,p_worker:options.workerId||null,p_search:options.search.trim(),p_page:options.page})
   if(error)throw error
