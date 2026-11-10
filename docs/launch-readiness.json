@@ -231,26 +231,38 @@
     },
     {
       "title": "Request identity evaluation in access policies",
-      "detail": "Fresh beta advisor findings identified 23 RLS policies that re-evaluate the same request identity for every row. A separate review migration caches only auth.uid() as a statement InitPlan and preserves every tenant/module/parent/field predicate, policy role and permissive/restrictive mode. Three local Node 22/PGlite tests verify owner/office/unrelated/null identities, module revocation, write denial, agreement selection and migration scope. A 12,002-row synthetic Jobs query retained 6,001 authorized rows and evaluated the identity InitPlan once (101.950 ms before; 78.198 ms after in one local sample). This is a narrow fixture measurement, not hosted capacity, full security certification or a 300-workspace soak. Full replay and hosted deployment remain pending.",
+      "detail": "Fresh beta advisor findings identified 23 RLS policies that re-evaluate the same request identity for every row. A separate review migration caches only auth.uid() as a statement InitPlan and preserves every tenant/module/parent/field predicate, policy role and permissive/restrictive mode. Three local Node 22/PGlite tests verify owner/office/unrelated/null identities, module revocation, write denial, agreement selection and migration scope. A 12,002-row synthetic Jobs query retained 6,001 authorized rows and evaluated the identity InitPlan once (101.950 ms before; 78.198 ms after in one local sample). This is a narrow fixture measurement, not hosted capacity, full security certification or a 300-workspace soak. Full replay and hosted deployment passed with PR75; see the reminder/calendar rollout receipt. The latest advisor review no longer reports auth_rls_initplan findings; 50 unindexed foreign keys still require targeted review.",
       "evidence": "supabase/migrations/20261110131000_rls_identity_initplans.sql; tests/settings/rls-initplans.test.ts; docs/RLS_IDENTITY_REVIEW_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     },
     {
       "title": "Calendar worker regression after visit assignments",
-      "detail": "Read-only beta review found 133 calendar scheduler HTTP 500 failures in the preceding 24-hour window, one expired queue lease and last successful Outlook sync on November 8. Runtime logs identify database_transaction_failed. PostgreSQL view-dependency and role-privilege inspection identifies exactly one unreadable final calendar_work dependency: appointments.visit_worker_ids. A narrow SELECT-column migration and regression tests are prepared; no table-wide read, financial/customer read, write, login, Vault or scheduler privilege is added. Final full-chain replay checks every actual calendar view column dependency to catch future schema drift. Backend deployment and successful worker recovery remain pending.",
+      "detail": "Read-only beta review found 133 calendar scheduler HTTP 500 failures in the preceding 24-hour window, one expired queue lease and last successful Outlook sync on November 8. Runtime logs identify database_transaction_failed. PostgreSQL view-dependency and role-privilege inspection identifies exactly one unreadable final calendar_work dependency: appointments.visit_worker_ids. A narrow SELECT-column migration and regression tests are prepared; no table-wide read, financial/customer read, write, login, Vault or scheduler privilege is added. Final full-chain replay checks every actual calendar view column dependency to catch future schema drift. The prepared repair subsequently passed CI, was deployed with PR75 and recovered actual Outlook sync at 13:36 UTC with an empty queue; see the reminder/calendar rollout receipt.",
       "evidence": "supabase/migrations/20261110131500_calendar_visit_column_access.sql; tests/calendar/setup.test.ts; tests/migrations/release-smoke.sql; docs/CALENDAR_VISIT_RECOVERY_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Worker health coverage prepared",
-      "detail": "Protected health previously assessed email and sandbox payments only while live calendar sync failed. Added aggregate calendar queue/reconnect, appointment stale/uncertain/failure, and overdue/review recurring signals. Local PostgreSQL fixture verifies failure, recovery and service-only ACL; 72 recovery tests pass. Full final-schema migration replay and packaged Edge deployment are pending. External incident routing, tracing and monitoring remain open.",
-      "evidence": "supabase/migrations/20261110134000_worker_health_coverage.sql; tests/settings/worker-health.test.ts; tests/migrations/release-smoke.sql; docs/WORKER_HEALTH_2026-11-10.md",
+      "title": "Worker health coverage deployed",
+      "detail": "Protected health previously assessed email and sandbox payments only while live calendar sync failed. Added aggregate calendar queue/reconnect, appointment stale/uncertain/failure, and overdue/review recurring signals. Local PostgreSQL fixture verifies failure, recovery and service-only ACL; 72 recovery tests pass. PR76 passed all eight triggered workflows and the 21-job full validation, and deployed to both domain aliases. Protected beta health returned 17 zero anomaly counters with service-only execution; reliability-health v16 includes the identical tested monitoring and updated document renderer. External incident routing, tracing and monitoring remain open.",
+      "evidence": "supabase/migrations/20261110134000_worker_health_coverage.sql; tests/settings/worker-health.test.ts; tests/migrations/release-smoke.sql; docs/WORKER_HEALTH_2026-11-10.md; docs/evidence/2026-11-10-health-document-rollout.json",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Customer references and reusable service packages prepared",
-      "detail": "Added explicit reusable multi-line service packages with server validation, billing access controls, archived-name reuse and no modification of existing document lines. Added customer-visible PO/reference to atomic invoice/estimate create and draft edit, request fingerprints, linked invoice inheritance and PDF snapshots. Issued references cannot be changed; generic copy drafts reset the reference. Existing snapshots without a reference retain their prior shape. Local package/PO/PDF tests and package DOM interaction checks pass; rendered PDF inspected. Complete migration replay and deployed frontend/renderer verification remain pending.",
-      "evidence": "supabase/migrations/20261110140000_reusable_service_packages.sql; supabase/migrations/20261110140500_customer_document_references.sql; tests/records/service-packages.test.ts; tests/records/customer-reference.test.ts; tests/settings/service-packages-dom.mjs; tests/documents/documentPdf.test.ts; docs/DOCUMENT_CONVENIENCES_2026-11-10.md",
+      "title": "Customer references and reusable service packages deployed",
+      "detail": "Added explicit reusable multi-line service packages with server validation, billing access controls, archived-name reuse and no modification of existing document lines. Added customer-visible PO/reference to atomic invoice/estimate create and draft edit, request fingerprints, linked invoice inheritance and PDF snapshots. Issued references cannot be changed; generic copy drafts reset the reference. Existing snapshots without a reference retain their prior shape. Local package/PO/PDF tests and package DOM interaction checks pass; rendered PDF inspected. PR77 passed all nine triggered workflows and complete 21-job validation including final schema replay. Both new migrations applied to beta; all ten PDF entrypoint file sets match the prepared packages. Merge 755bdd6282d4fb3808b710ffcefdd29f11f503fe is READY at dpl_33X8Zqx9KwM7ystfJH1sSsJXpe6r with both domain aliases. Existing document references and package counts remain zero after the additive rollout; no customer send was performed.",
+      "evidence": "supabase/migrations/20261110140000_reusable_service_packages.sql; supabase/migrations/20261110140500_customer_document_references.sql; tests/records/service-packages.test.ts; tests/records/customer-reference.test.ts; tests/settings/service-packages-dom.mjs; tests/documents/documentPdf.test.ts; docs/DOCUMENT_CONVENIENCES_2026-11-10.md; docs/evidence/2026-11-10-health-document-rollout.json",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Reminders and calendar repair deployed to private beta",
+      "detail": "PR74 passed all eight triggered workflows including the 21-job complete validation; merged as 9a73a09f4862c9456f2e2de6af11f89c63b5bdba. Reminder migrations applied; tier-delivery-worker v13 and fin-workflow v15 match prepared source bytes and retain authentication modes. Unauthorized worker POST and Fin GET/POST return 401. Invoice and appointment master rules remain disabled, appointment queue/override rows zero and no client grants on new private tables. PR75 passed all eight workflows, merged as 54ccfe796e12f6f15f48dca4f5eb2d0e312e1931, deployed READY with both finviant.com/www aliases. Applied narrow calendar grant and 23 identity policy optimization. Outlook completed a real sync at 2026-11-10T13:36:00.513614Z and cleared its queue; four scheduler completions and zero failures since the grant. Google configuration and broader provider certification remain open.",
+      "evidence": "docs/evidence/2026-11-10-reminders-calendar-rollout.json; https://github.com/Velnu38/Velnu/actions/runs/42823052069; https://github.com/Velnu38/Velnu/actions/runs/42823063659",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Genuine local Auth and Storage acceptance prepared",
+      "detail": "The disposable full-schema replay now prepares three genuine local password sessions, REST invoice retries and tenant denials, actual private PNG upload/download integrity, foreign signing denial and immediate module/membership revocation checks. Local URL guards pass; Docker is unavailable in this workspace, so actual end-to-end execution awaits mandatory GitHub replay. No hosted credentials, records or real delivery are used. This remains partial security acceptance and does not claim physical-device testing or a full backup restore.",
+      "evidence": "scripts/qa/auth-storage-replay.mjs; tests/deployment/migration-replay.test.mjs; docs/AUTH_STORAGE_ACCEPTANCE_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     }
   ],
@@ -317,7 +329,7 @@
       "status": "not_verified",
       "title": "Finish independent tenant, RPC and storage security review",
       "owner": "Developer / security reviewer",
-      "why": "RLS presence and zero ERROR lints do not prove correct policies; public definer/token endpoints intentionally bypass normal login.",
+      "why": "RLS presence and zero ERROR lints do not prove correct policies; public definer/token endpoints intentionally bypass normal login. Genuine password-session/REST/Storage tests are prepared for the owned disposable platform; CI execution remains pending.",
       "acceptance": "Review all anon/authenticated definer grants and fixed search paths, operator functions, AI/tool authorization, customer token expiry/revocation, storage isolation, webhook signatures/replay and CSP. Test at least two real tenant sessions across role changes and expired sessions; clear exploitable high findings and record intentional exceptions. Never add permissive policies to internal deny-by-default tables.",
       "evidence": []
     },
@@ -372,7 +384,7 @@
       "status": "open",
       "title": "Tune RLS, queries and connection budgets",
       "owner": "Developer",
-      "why": "Fresh beta review confirms 23 RLS identity-evaluation warnings and 49 unindexed FKs. The separate identity-initplan candidate preserves policy semantics and passes local authorization/plan checks; it is not deployed yet. Representative hosted query plans, valuable FK/order indexes, connection budgets and measured capacity remain open.",
+      "why": "Fresh beta review confirms 23 RLS identity-evaluation warnings and 49 unindexed FKs. The separate identity-initplan candidate preserves policy semantics and passes local authorization/plan checks; it is not deployed yet. Representative hosted query plans, valuable FK/order indexes, connection budgets and measured capacity remain open. The 23-policy identity InitPlan migration is applied to beta; no remaining auth_rls_initplan advisory group was returned. This is not measured hosted load capacity.",
       "acceptance": "Review plans on representative tenant sizes; fix applicable auth initplan patterns and high-value FK/filter/order indexes, then rerun tenant authorization tests. Verify transaction pooler/TLS/dedicated calendar role, aggregate serverless pool limits (calendar pool max=3 per instance), Auth reserve, timeouts and pagination. Measure before/after; do not blindly drop 39 unused indexes.",
       "evidence": []
     },
@@ -438,7 +450,7 @@
       "status": "blocked_external",
       "title": "Finish Google setup and multi-account calendar certification",
       "owner": "Owner + developer",
-      "why": "No Google connection/configuration names observed; one connected Outlook row does not prove multi-tenant refresh reliability. November 10 review confirmed a visit_worker_ids column-grant regression in the live calendar worker. A narrow repair and full-schema dependency guard are prepared; successful backend recovery remains to be observed.",
+      "why": "No Google connection/configuration names observed; one connected Outlook row does not prove multi-tenant refresh reliability. November 10 review confirmed a visit_worker_ids column-grant regression in the live calendar worker. A narrow repair and full-schema dependency guard are prepared; successful backend recovery remains to be observed. November 10 deployed repair: Outlook completed sync at 13:36 UTC and the queue cleared after restoring the missing visit column grant. Google OAuth and multi-account lifecycle acceptance remain open.",
       "acceptance": "Finish the Google external OAuth app/verification as required, scopes/redirects, publishing and token refresh; verify Google and Outlook connections, refresh/reconnect/revoke, background sync, conflicts, duplicates, time zones/DST and job/calendar consistency with separate accounts.",
       "evidence": []
     },

@@ -4,6 +4,12 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { localDatabaseUrl, migrationManifest, requireEmptyPlatform, safeDatabaseError } from '../../scripts/qa/replay-migrations.mjs'
+import { localApiOrigin } from '../../scripts/qa/auth-storage-replay.mjs'
+
+test('genuine session and object replay refuses every non-owned API target',()=>{
+ assert.equal(localApiOrigin('http://127.0.0.1:54321'),'http://127.0.0.1:54321')
+ for(const value of ['https://xvybcmyoblfgzokaifsx.supabase.co','http://localhost:54321','https://127.0.0.1:54321','http://127.0.0.1:54321/other','http://user:password@127.0.0.1:54321','http://127.0.0.1:54321/?host=remote','http://127.0.0.1:54321/#redirect'])assert.throws(()=>localApiOrigin(value))
+})
 
 test('replay refuses hosted, ambiguous or redirected database connections', () => {
   assert.equal(localDatabaseUrl('postgresql://postgres:local@127.0.0.1:54322/postgres'), 'postgresql://postgres:local@127.0.0.1:54322/postgres')
