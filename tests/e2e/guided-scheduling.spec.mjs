@@ -18,6 +18,10 @@ async function mock(page,{signedIn=true,conflict=false,plan='pro',job=null}={}){
   state.calls.push({path,method,body})
   const reply=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-expose-headers':'content-range','content-range':Array.isArray(value)?`0-${Math.max(0,value.length-1)}/${value.length}`:'0-0/0'},body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,DELETE'},body:''})
+  if(path.endsWith('/rpc/get_private_beta_access'))return reply({allowed:true})
+  if(path.endsWith('/rpc/business_onboarding_status'))return reply({required:false,completed:true})
+  if(path.endsWith('/rpc/get_job_workflow_context'))return reply(body.p_jobs.filter(id=>id===state.job?.id).map(job_id=>({job_id,active_appointment:state.job?.scheduled_start?{id:P,status:'confirmed',starts_at:state.job.scheduled_start,ends_at:state.job.scheduled_end}:null,invoice:null})))
+  if(path.endsWith('/rpc/get_estimate_workflow_context'))return reply(body.p_estimates.filter(id=>id===E).map(estimate_id=>({estimate_id,job:state.job,appointment:state.job?.scheduled_start?{id:P,status:'confirmed',starts_at:state.job.scheduled_start,ends_at:state.job.scheduled_end}:null,schedule:null,invitation:state.approved?{status:'approved',expires_at:'2099-01-01'}:null,final_invoice_id:null})))
   if(path.endsWith('/auth/v1/user'))return reply(user)
   if(path.endsWith('/rpc/get_membership_entry'))return reply(B)
   if(path.endsWith('/user_plan_preferences'))return reply({selected_tier:'pro'})
@@ -67,7 +71,7 @@ async function mock(page,{signedIn=true,conflict=false,plan='pro',job=null}={}){
  })
  return state
 }
-const scheduleWork=page=>page.getByRole('group',{name:'Needs Attention categories'}).getByRole('button',{name:/^Schedule work/})
+const scheduleWork=page=>page.getByRole('group',{name:'Needs Attention categories'}).getByRole('button',{name:/^Needs scheduling/})
 const scheduleQueue=page=>page.getByRole('region',{name:'Needs scheduling',exact:true})
 for(const width of [1440,390])test(`guided booking proposes crew availability and needs explicit owner approval at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=dashboard')
@@ -97,7 +101,7 @@ for(const width of [1440,390])test(`guided booking proposes crew availability an
 test('phone agreement books once and sends no customer message',async({page})=>{
  const state=await mock(page);await page.goto('/?view=dashboard');await scheduleWork(page).click()
  await scheduleQueue(page).getByRole('button',{name:'Schedule job',exact:true}).click()
- await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Needs scheduling 1')
  const dialog=page.getByRole('dialog')
  const confirm=dialog.getByRole('button',{name:'Confirm booking',exact:true})
  await expect(confirm).toBeDisabled()
@@ -110,7 +114,7 @@ test('phone agreement books once and sends no customer message',async({page})=>{
  expect(state.calls.filter(c=>c.path.endsWith('/functions/v1/work-scheduling'))).toHaveLength(0)
  await dialog.getByRole('button',{name:'Close scheduling'}).click()
  await expect(scheduleQueue(page)).toContainText('No work needs scheduling.')
- await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 0')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Needs scheduling 0')
  const calendar=page.getByRole('region',{name:'Work calendar'})
  await calendar.getByRole('button',{name:'Next week',exact:true}).click()
  await calendar.getByRole('button',{name:'Next week',exact:true}).click()
@@ -120,7 +124,7 @@ test('phone agreement books once and sends no customer message',async({page})=>{
 test('an older next-step response cannot restore a booking resolved by a newer refresh',async({page})=>{
  const state=await mock(page);await page.goto('/?view=dashboard')
  await scheduleWork(page).click()
- await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Needs scheduling 1')
  await expect.poll(()=>state.pendingWorkflow).toBe(0)
  state.workflowDelay=800
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')))
@@ -128,15 +132,15 @@ test('an older next-step response cannot restore a booking resolved by a newer r
  state.booked=true
  await page.evaluate(()=>window.dispatchEvent(new Event('finviant-work-changed')))
  await expect(scheduleQueue(page)).toContainText('No work needs scheduling.')
- await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 0')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Needs scheduling 0')
  await expect.poll(()=>state.pendingWorkflow).toBe(0)
  await expect(scheduleQueue(page)).toContainText('No work needs scheduling.')
- await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 0')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Needs scheduling 0')
 })
 
 for(const width of [1440,390])test(`dashboard tiles share surfaces and typography at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page);await page.goto('/?view=dashboard')
- await expect(scheduleWork(page)).toHaveAccessibleName('Schedule work 1')
+ await expect(scheduleWork(page)).toHaveAccessibleName('Needs scheduling 1')
  await expect(page.locator('.home-overview .dashboard-tile')).toHaveCount(3)
  const appearance=await page.locator('.dashboard-tile').evaluateAll(tiles=>tiles.map(tile=>{
   const style=getComputedStyle(tile),title=getComputedStyle(tile.querySelector('.dashboard-tile-title'))
@@ -148,21 +152,21 @@ for(const width of [1440,390])test(`dashboard tiles share surfaces and typograph
 })
 for(const width of [1440,390])test(`customer chooses and confirms one appointment without an account at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page,{signedIn:false});await page.goto('/?booking='+'a'.repeat(64))
- await expect(page.getByRole('heading',{name:'Choose a time that works for you'})).toBeVisible()
+ await expect(page.getByRole('heading',{name:'Find a time that works for you.',exact:true})).toBeVisible()
  await page.getByRole('radio').first().check();await page.getByLabel('Your full name').fill('Test Customer')
- const confirm=page.getByRole('button',{name:'Confirm this appointment'})
+ const confirm=page.getByRole('button',{name:'Confirm appointment',exact:true})
  await expect(confirm).toBeEnabled()
  await confirm.evaluate(button=>{button.click();button.click()})
  await expect(page.getByRole('heading',{name:'Your appointment is confirmed'})).toBeVisible()
  expect(state.calls.filter(c=>c.path.endsWith('/rpc/customer_schedule_offer')&&c.body.p_slot)).toHaveLength(1)
  expect(state.calls.some(c=>c.path.includes('/auth/v1'))).toBe(false)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
- const download=page.waitForEvent('download');await page.getByRole('button',{name:'Add to calendar (.ics)'}).click();expect((await download).suggestedFilename()).toBe('Finviant-appointment.ics')
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'Add to my calendar',exact:true}).click();expect((await download).suggestedFilename()).toBe('Finviant-appointment.ics')
 })
 test('stale customer slot reports a conflict and never claims confirmation',async({page})=>{
- await mock(page,{signedIn:false,conflict:true});await page.goto('/?booking='+'a'.repeat(64));await page.getByRole('radio').first().check();await page.getByLabel('Your full name').fill('Test Customer');await page.getByRole('button',{name:'Confirm this appointment'}).click()
+ await mock(page,{signedIn:false,conflict:true});await page.goto('/?booking='+'a'.repeat(64));await page.getByRole('radio').first().check();await page.getByLabel('Your full name').fill('Test Customer');await page.getByRole('button',{name:'Confirm appointment',exact:true}).click()
  await expect(page.getByRole('alert')).toContainText('just booked');await expect(page.getByRole('heading',{name:'Your appointment is confirmed'})).toHaveCount(0)
- await expect(page.getByRole('button',{name:'Refresh appointment times'})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Refresh times',exact:true})).toBeVisible()
 })
 test('a typed customer stays in the estimate draft without losing line-item work',async({page})=>{
  await mock(page);await page.goto('/?view=estimates');await createWork(page, 'estimate')
@@ -183,9 +187,10 @@ for (const plan of ['free', 'basic']) test(`${plan} opens manual booking with th
  await scheduleQueue(page).getByRole('button',{name:'Schedule job',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Find a time that works'})
  await expect(dialog.getByText('Customer self-booking is unavailable on the '+(plan==='free'?'Free':'Individual')+' plan.')).toBeVisible()
- await expect(dialog.getByRole('link',{name:'View Business Pro upgrade'})).toHaveAttribute('href','/?view=settings&section=plans&tier=pro')
+ await expect(dialog.getByRole('link',{name:'Explore Business Pro',exact:true})).toHaveAttribute('href','/?view=settings&section=plans&tier=pro')
  await expect(dialog.getByRole('group',{name:'Scheduling method'})).toHaveCount(0)
- await expect(dialog.getByRole('group',{name:'Crew for this appointment'})).toHaveCount(0)
+ if(plan==='free')await expect(dialog.getByRole('group',{name:'Crew for this appointment'})).toHaveCount(0)
+ else await expect(dialog.getByRole('group',{name:'Crew for this appointment'}).getByRole('checkbox',{name:'Owner (you)',exact:true})).toBeChecked()
  await dialog.getByRole('radio').first().check()
  await dialog.getByRole('button',{name:'Confirm booking'}).click()
  await expect(page.getByRole('dialog',{name:'Your next step is ready'}).getByRole('status')).toContainText('No customer message was sent.')
@@ -205,6 +210,7 @@ test('a crew conflict offers rescheduling without moving the appointment or swit
  const job=page.getByRole('dialog',{name:'Job details',exact:true})
  await expect(job).toContainText('Crew test')
  const assign=job.getByRole('button',{name:'Assign crew',exact:true})
+ await job.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
  await assign.click()
  const crew=page.getByRole('dialog',{name:'Assign crew',exact:true})
  await expect(crew.locator('input[type=datetime-local]')).toHaveCount(0)
@@ -231,6 +237,7 @@ test('a crew conflict offers rescheduling without moving the appointment or swit
  expect(Date.parse(state.job.scheduled_end)).toBe(Date.parse(slots[1].ends_at))
 
  state.crewConflict=false
+ await job.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
  await assign.click()
  await crew.getByRole('checkbox',{name:'Owner (you)'}).uncheck()
  await crew.getByRole('checkbox',{name:'Field worker'}).check()

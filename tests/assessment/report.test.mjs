@@ -108,6 +108,16 @@ test("saved pricing policy survives task completion and rejects invalid proposal
   delete legacy.proposals;
   assert.doesNotThrow(() => renderReport(legacy));
 });
+test("proposal status distinguishes built features from pending activation without losing history", () => {
+  const original = registry.proposals[0];
+  const proposal = { ...original, statusNote: "Core features built; provider acceptance remains open." };
+  const report = renderReport({ ...registry, proposals: [proposal] });
+  assert.ok(report.includes(proposal.statusNote));
+  assert.ok(report.includes(proposal.body));
+  assert.ok(report.includes("| PAY-01 |"));
+  for (const statusNote of [" ", 5, null])
+    assert.throws(() => renderReport({ ...registry, proposals: [{ ...proposal, statusNote }] }), /Invalid.*proposal/);
+});
 test("public launch remains blocked if any public acceptance gate is unverified", () => {
   const d = structuredClone(registry);
   for (const t of d.tasks) {

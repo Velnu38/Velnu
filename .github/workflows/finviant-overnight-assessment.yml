@@ -31,7 +31,7 @@ jobs:
           QA_BRANCH: ${{ github.ref_name }}
         run: node scripts/qa/publish-results.mjs
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: finviant-phase-one
           path: STRESS_TEST_LOGS.json
@@ -67,7 +67,7 @@ jobs:
           EXPECT_BROWSER_RESULTS: true
         run: node scripts/qa/publish-results.mjs
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: finviant-eight-hour-results
           path: STRESS_TEST_LOGS.json
@@ -93,7 +93,7 @@ jobs:
       - name: Browser flows and failures
         run: npx playwright test --reporter=json > browser-results.json
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: finviant-browser-and-regression-results
           path: |

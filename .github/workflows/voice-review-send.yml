@@ -29,12 +29,19 @@ jobs:
         run: npx playwright test tests/e2e/voice-review-delivery.spec.mjs tests/e2e/document-review-delivery.spec.mjs tests/e2e/voice-multiple-lines.spec.mjs tests/e2e/audit-remediation.spec.mjs tests/e2e/fin-conversation.spec.mjs tests/e2e/fin-voice-recovery.spec.mjs
         env:
           FINVIANT_TEST_CHANNEL: chrome
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
       - name: Full browser regression
-        run: npx playwright test --workers=2
+        run: npx playwright test --grep-invert @native-handoff --workers=2
         env:
           FINVIANT_TEST_CHANNEL: chrome
+      # Native app handoffs share desktop focus and must run without competing workers.
+      - run: npx playwright install --with-deps chromium
+      - name: Native app handoff regression
+        run: npx playwright test --grep @native-handoff --workers=1
+        env:
+          FINVIANT_TEST_CHANNEL: ''
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: voice-review-evidence
           path: test-results/

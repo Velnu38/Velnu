@@ -3,10 +3,14 @@ import { pathToFileURL } from 'node:url'
 // This project is deliberately retained as staging, including its existing data.
 export const STAGING_PROJECT_REF = 'xvybcmyoblfgzokaifsx'
 export const PRIVATE_BETA_GIT_REF = 'ux/private-testing-20261029'
+export const INTEGRATION_REVIEW_GIT_REF = 'review/finviant-integration-20261109'
 
 export function validateDeploymentEnvironment(env) {
   const target = env.VERCEL_ENV
   if (!target && env.VERCEL !== '1') return { target: 'local', checked: false }
+  if (env.VERCEL_GIT_COMMIT_REF === INTEGRATION_REVIEW_GIT_REF) {
+    throw new Error('The integration review branch is not approved for hosted deployment')
+  }
   if (!['production', 'preview', 'development'].includes(target)) {
     throw new Error('A recognized VERCEL_ENV is required for hosted builds')
   }

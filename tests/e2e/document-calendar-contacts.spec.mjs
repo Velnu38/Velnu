@@ -2,6 +2,10 @@ import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
+import {fulfillPdf,pdfHeaders,PDF_REVISION} from './document-pdf-fixture.mjs'
+import {generateDocumentPdf} from '../../shared/documentPdf.ts'
+import {readFile} from 'node:fs/promises'
+import {execFileSync} from 'node:child_process'
 
 // Browser fixtures only: all authentication, database and delivery calls are intercepted.
 const B='11111111-1111-4111-8111-111111111111',U='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',E='44444444-4444-4444-8444-444444444444',P='55555555-5555-4555-8555-555555555555',J='66666666-6666-4666-8666-666666666666'
@@ -18,6 +22,11 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   state.calls.push({path,method,body})
   const reply=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-expose-headers':'content-range','content-range':Array.isArray(value)?`0-${Math.max(0,value.length-1)}/${value.length}`:'0-0/0'},body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,DELETE'},body:''})
+  if(path.endsWith('/functions/v1/document-pdf'))return fulfillPdf(route)
+  if(path.endsWith('/rpc/get_private_beta_access'))return reply({allowed:true})
+  if(path.endsWith('/rpc/business_onboarding_status'))return reply({required:false,completed:true})
+  if(path.endsWith('/rpc/get_invoice_payment_operations'))return reply({state:'clear',operations:[],refunds:[]})
+  if(path.endsWith('/rpc/get_estimate_workflow_context'))return reply(body.p_estimates.filter(id=>id===E).map(estimate_id=>({estimate_id,job:completedWork?{id:J,status:'completed',scheduled_start:null,scheduled_end:null}:null,appointment:null,schedule:null,invitation:null,final_invoice_id:null})))
   if(path.endsWith('/auth/v1/user'))return reply(user)
   if(path.endsWith('/rpc/get_membership_entry'))return reply(B)
   if(path.endsWith('/user_plan_preferences'))return reply({selected_tier:'pro'})
@@ -54,7 +63,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
    return {id:P,customer_id:C,job_id:null,estimate_id:c.p_kind==='estimate'?E:null,source_invoice_id:c.p_kind==='invoice'?E:null,title:c.p_input.title,status:'draft',total:Math.max(0,change),customers:[customer],jobs:[],change_totals:{current_total:105,change_amount:change,revised_total:105+change,deposit_paid:c.p_kind==='invoice'?25:0,other_paid:0,revision_subtotal:c.p_revision?change/1.05:null,revision_tax:c.p_revision?change-change/1.05:null}}
   }))
   if(path.endsWith('/customers')){if(method==='POST'){state.customers.push(body);return reply(body,201)}return reply(state.customers)}
-  if(path.endsWith('/estimates'))return reply([{id:E,estimate_number:'EST-QA',customer_id:C,status:'accepted',issue_date:'2026-10-01',total:105,subtotal:100,tax_amount:5,customers:customer}])
+  if(path.endsWith('/estimates')){const estimate={id:E,estimate_number:'EST-QA',customer_id:C,status:'accepted',issue_date:'2026-10-01',total:105,subtotal:100,tax_amount:5,customers:customer};return reply(url.searchParams.has('id')?estimate:[estimate])}
   if(path.endsWith('/estimate_items'))return reply([{id:P,description:'Mow and trim',quantity:2,unit_price:50,tax_rate:5,line_total:100}])
   if(path.endsWith('/jobs'))return reply([])
   return reply([])
@@ -77,7 +86,7 @@ for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typ
  await page.getByLabel('Customer name',{exact:true}).fill('New Typed Customer')
  await page.getByPlaceholder('Description',{exact:true}).fill('Only this work');await page.getByPlaceholder('Unit price',{exact:true}).fill('250')
  await page.getByRole('button',{name:'Preview',exact:true}).click()
- await page.getByRole('button',{name:'Save Draft',exact:true}).click();await expect.poll(()=>state.documents.length).toBe(1)
+ await expect(page.getByRole('region',{name:kind==='invoice'?'Invoice PDF':'Estimate PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled();await expect.poll(()=>state.documents.length).toBe(1)
  const input=state.documents[0].payload;expect(input.new_customer.first_name).toBe('New');expect(input.new_customer.last_name).toBe('Typed Customer');expect(input.payment_links).toEqual([{provider:'stripe',url:'https://buy.stripe.com/owner-link'}]);expect(input.items[0].description).toBe('Only this work')
  expect(state.calls.filter(c=>c.path.endsWith('/customers')&&c.method==='POST')).toHaveLength(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
@@ -85,24 +94,24 @@ for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typ
 for(const kind of ['invoice','estimate'])test(`${kind} change order automatically uses the original document without selecting a job`,async({page})=>{
  const state=await mock(page);await page.goto('/?view='+kind+'s')
  if(kind==='invoice')await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();else await page.getByRole('button',{name:/^Open estimate EST-QA/}).click()
- await page.getByRole('button',{name:'+ New change order',exact:true}).click()
+ await page.getByRole('region',{name:'Record actions',exact:true}).locator('.record-more>summary').click();await page.getByRole('button',{name:kind==='invoice'?'New change order':'Create change order',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Create change order'});await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('Test Customer');await expect(dialog.getByRole('region',{name:'Original document'})).toContainText('1 Test Street');await expect(dialog.getByLabel('Job',{exact:true})).toHaveCount(0)
  await dialog.getByPlaceholder('Description',{exact:true}).fill('Additional work only');await dialog.getByPlaceholder('Unit price',{exact:true}).fill('20')
  await dialog.getByRole('button',{name:'Save and review',exact:true}).click();await expect.poll(()=>state.changes.length).toBe(1)
  expect(state.changes[0].p_kind).toBe(kind);expect(state.changes[0].p_document).toBe(E);expect(state.changes[0].p_input.items[0].description).toBe('Additional work only');expect(state.changes[0].p_input).not.toHaveProperty('customer_id')
 })
 test('completed work has no new change-order action',async({page})=>{
- await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'+ New change order',exact:true})).toHaveCount(0)
+ await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await page.getByRole('region',{name:'Record actions',exact:true}).locator('.record-more>summary').click();await expect(page.getByRole('button',{name:'New change order',exact:true})).toHaveCount(0)
 })
 for(const width of [1440,390])test(`select a calendar date then use Add entry to save a manual event at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'});await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
- const date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first();await date.click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await expect(dialog).toHaveCount(0);await calendar.getByRole('button',{name:'+ Add entry',exact:true}).click();await expect(dialog).toBeVisible();await dialog.getByLabel('Title',{exact:true}).fill('Pick up materials');await dialog.getByLabel('Details',{exact:true}).fill('Collect the order before the job');await expect(dialog.getByRole('button',{name:'Ask Fin'})).toBeDisabled()
+ const date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first();await date.click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await expect(dialog).toHaveCount(0);await calendar.getByRole('button',{name:'Add to calendar',exact:true}).click();await expect(dialog).toBeVisible();await dialog.getByLabel('Title',{exact:true}).fill('Pick up materials');await dialog.getByLabel('Details',{exact:true}).fill('Collect the order before the job');await expect(dialog.getByRole('button',{name:'Ask Fin'})).toBeDisabled()
  await dialog.getByRole('button',{name:'Add event',exact:true}).click();await expect.poll(()=>state.entries.length).toBe(1);expect(state.entries[0].notes).toBe('Collect the order before the job');expect(state.entries[0].assigned_user_id).toBe(U);await expect(dialog).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 test('activated calendar AI opens the existing assistant with the selected date for review',async({page})=>{
- await mock(page,{ai:true});await page.goto('/?view=dashboard');await page.getByRole('button',{name:'+ Add entry',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await dialog.getByLabel('Title',{exact:true}).fill('Mow the lawn');await dialog.getByRole('button',{name:'Ask Fin',exact:true}).click()
- await expect(page.locator('.assistant-panel')).toBeVisible();await expect(page.locator('.assistant-panel textarea')).toHaveValue(/Create a event titled Mow the lawn on \d{4}-\d{2}-\d{2}T09:00 until .*America\/New_York/)
+ await mock(page,{ai:true});await page.goto('/?view=dashboard');await page.getByRole('button',{name:'Add to calendar',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await dialog.getByLabel('Title',{exact:true}).fill('Mow the lawn');await dialog.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ const assistant=page.getByRole('dialog',{name:'Fin — your office assistant'});await expect(assistant).toBeVisible();await expect(assistant.getByLabel('Describe your invoice or request')).toHaveValue(/Help me complete the open “Add to your calendar” form[\s\S]*Title: Mow the lawn[\s\S]*Starts: \d{4}-\d{2}-\d{2}T09:00/);await expect(assistant.getByLabel('Describe your invoice or request')).toHaveValue(/not permission to save, create, send, delete, or change any record/)
 })
 for(const width of [1440,390])test(`owner reviews phone contact cards before importing at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=customers');await page.getByRole('button',{name:'Import customers',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Import customers'});const card=(name,email)=>'BEGIN:VCARD\nVERSION:3.0\nFN:'+name+'\nEMAIL:'+email+'\nEND:VCARD\n'
@@ -126,6 +135,7 @@ for(const width of [1440,390])test(`selected-day agenda shows every job, local r
  await page.route('**/rest/v1/calendar_work?**',route=>reply(route,jobs))
  await page.route('**/rest/v1/reminders?**',route=>{if(route.request().method()==='PATCH'){const r=reminders.find(row=>new URL(route.request().url()).searchParams.get('id')==='eq.'+row.id);r.status='completed';return reply(route,{id:r.id})}return reply(route,reminders)})
  await page.route('**/rest/v1/jobs?**',route=>{if(route.request().method()==='PATCH'){notes=route.request().postDataJSON().description;return reply(route,{id:J})}const job={id:J,title:'Day job 0',description:notes,status:'scheduled',scheduled_start:jobs[0].starts_at,scheduled_end:jobs[0].ends_at,assigned_user_ids:[U],customers:customer,properties:[{address_line1:'1 Test Street',city:'Chesapeake',state:'VA',postal_code:'23322'}]};return reply(route,route.request().headers().accept?.includes('vnd.pgrst.object')?job:[job])})
+ await page.route('**/rest/v1/rpc/get_job_workflow_context',route=>reply(route,[{job_id:J,active_appointment:{id:P,status:'scheduled',starts_at:jobs[0].starts_at,ends_at:jobs[0].ends_at},invoice:null}]))
  await page.route('**/api/calendar?**',route=>{externalCalls++;return reply(route,{events,issues:[],connections:2})})
  await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.locator('a.calendar-event')).toHaveCount(5)
@@ -161,7 +171,7 @@ test('viewer selects dates with the keyboard and sees that day without creation 
  await page.route('**/rest/v1/business_members?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({business_id:B,role:'viewer',access_modules:['calendar','jobs','billing','finances'],businesses:business})}))
  await page.route('**/api/calendar?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({events:[],issues:[],connections:0})}))
  await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'}),date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first()
- await date.focus();await page.keyboard.press('Enter');await expect(date).toHaveAttribute('aria-pressed','true');await expect(calendar.getByText('Read-only scheduled visit',{exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.getByRole('button',{name:'+ Add entry'})).toHaveCount(0)
+ await date.focus();await page.keyboard.press('Enter');await expect(date).toHaveAttribute('aria-pressed','true');await expect(calendar.getByText('Read-only scheduled visit',{exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.getByRole('button',{name:'Add to calendar'})).toHaveCount(0)
 })
 
 for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-$52.50','$52.50'],['2','$0.00','$105.00']]) {
@@ -169,7 +179,7 @@ for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-
   const state = await mock(page)
   await page.goto('/?view=invoices')
   await page.getByRole('button', { name: /^Open invoice INV-QA/ }).click()
-  await page.getByRole('button', { name: '+ New change order', exact: true }).click()
+  await page.getByRole('region',{name:'Record actions',exact:true}).locator('.record-more>summary').click();await page.getByRole('button', { name: 'New change order', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Create change order' })
   await dialog.getByLabel('Current item').selectOption(P)
   await expect(dialog.getByLabel('Revised quantity')).toHaveValue('2')
@@ -187,28 +197,47 @@ for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-
 }
 
 test('a customer sees and approves the same revised total shown in the change order', async ({ page }) => {
- await mock(page, { signedIn: false })
- let approved = false
- await page.route('**/functions/v1/customer-approval', async route => {
-  const request = route.request().postDataJSON()
-  if (request.mode === 'approved') {
-   expect(request.typed_name).toBe('Test Customer')
-   approved = true
-  }
-  await route.fulfill({ json: {
-   document_type: 'change_order', business_name: 'Scheduling QA', customer: { name: 'Test Customer' },
-   document: { change_order_number: 'CO-QA', title: 'Reduce original scope', schedule_impact_days: 0,
-    change_totals: { current_total: 105, change_amount: -52.50, revised_total: 52.50, deposit_paid: 25, other_paid: 0, revision_subtotal: -50, revision_tax: -2.50 } },
-   items: [{ description: 'Original work → Revised work', quantity: 1, unit_price: 0, line_total: 0, tax_rate: 5 }],
-   completed: approved ? { action: 'approved', typed_name: 'Test Customer', created_at: new Date().toISOString() } : null,
-  } })
+ const state=await mock(page, { signedIn: false })
+ const token='a'.repeat(64),decisions=[]
+ const snapshot={kind:'change_order',number:'CO-QA',status:'sent',issue_date:'2026-11-07',revision_id:PDF_REVISION,revision_number:1,revision_created_at:'2026-11-07T12:00:00Z',customer:{name:'Test Customer'},company:{name:'Scheduling QA'},title:'Reduce original scope',schedule_impact_days:0,subtotal:-50,tax_amount:-2.50,total:-52.50,
+  change_totals:{current_total:105,change_amount:-52.50,revised_total:52.50,deposit_paid:25,other_paid:0,revision_subtotal:-50,revision_tax:-2.50},
+  items:[{description:'Original work → Revised work',quantity:1,unit_price:0,line_total:0,tax_rate:5}]}
+ const bytes=Buffer.from(await generateDocumentPdf(snapshot))
+ await page.route('**/functions/v1/document-pdf',route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({headers:pdfHeaders,body:''})
+  expect(route.request().postDataJSON()).toEqual({token,token_type:'approval'})
+  expect(route.request().headers().authorization).toBeUndefined()
+  return route.fulfill({status:200,headers:pdfHeaders,body:bytes})
  })
- await page.goto('/?approval=' + 'a'.repeat(64))
- const totals = page.locator('.change-order-totals')
- await expect(totals.locator('dd')).toHaveText(['$105.00', '-$52.50', '$52.50', '$25.00', '$27.50'])
- await expect(page.locator('.approval-row').last()).toContainText('-$50.00')
- await page.getByLabel('Full name', { exact: true }).fill('Test Customer')
- await page.getByRole('button', { name: 'Approve change order', exact: true }).click()
- await expect(page.getByRole('heading', { name: 'Document approved' })).toBeVisible()
- await expect(totals.locator('dd')).toHaveText(['$105.00', '-$52.50', '$52.50', '$25.00', '$27.50'])
+ await page.route('**/functions/v1/customer-approval', async route => {
+  if(route.request().method()==='OPTIONS')return route.fulfill({headers:pdfHeaders,body:''})
+  const request=route.request().postDataJSON()
+  if(request.mode==='approved'){
+   expect(request).toMatchObject({token,typed_name:'Test Customer',terms_agreed:true,expected_revision_id:PDF_REVISION})
+   decisions.push(request)
+  }
+  await route.fulfill({json:{document_type:'change_order',business_name:'Scheduling QA',customer:{first_name:'Test',last_name:'Customer'},document:{change_order_number:snapshot.number,change_totals:snapshot.change_totals},action_state:'available',
+   completed:decisions.length?{action:'approved',typed_name:'Test Customer',amount:52.50,created_at:new Date().toISOString()}:null}})
+ })
+ await page.goto('/?approval='+token)
+ const pdf=page.getByRole('region',{name:'Change order CO-QA',exact:true})
+ await expect(pdf.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+ await expect(pdf.locator('iframe')).toHaveAttribute('src',/^blob:/)
+ async function verifyIssuedCopy(){
+  const downloading=page.waitForEvent('download');await pdf.getByRole('button',{name:'Download PDF',exact:true}).click()
+  const file=await (await downloading).path();expect(await readFile(file)).toEqual(bytes)
+  const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8'})
+  for(const amount of ['$105.00','-$52.50','$52.50','$25.00','$27.50','-$50.00'])expect(text).toContain(amount)
+  for(const label of ['Current total','This change','Revised total','Deposit paid','Remaining if approved'])expect(text).toContain(label)
+ }
+ await verifyIssuedCopy()
+ const approve=page.getByRole('button',{name:'Approve change order and agree to terms',exact:true})
+ await expect(approve).toBeDisabled()
+ await page.getByLabel('Full name',{exact:true}).fill('Test Customer')
+ await page.getByRole('checkbox',{name:/I reviewed the displayed change order/}).check()
+ await approve.click()
+ await expect(page.getByRole('heading',{name:'Change order approved',exact:true})).toBeVisible()
+ expect(decisions).toHaveLength(1)
+ await verifyIssuedCopy()
+ expect(state.calls.some(call=>call.path.includes('/auth/v1/'))).toBe(false)
 })

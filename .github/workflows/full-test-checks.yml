@@ -1,0 +1,141 @@
+name: Complete automated test checks
+on:
+  push:
+    branches: [ux/document-design-20261109]
+  pull_request:
+    branches: [ux/private-testing-20261029]
+permissions:
+  contents: read
+concurrency:
+  group: complete-tests-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      # Node 22 avoids the known Node 24/PGlite runtime incompatibility.
+      - run: node --import tsx --test --test-concurrency=2 $(find tests -name '*.test.ts' | sort)
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm run build && npm run test:recovery
+      - run: node --test --test-concurrency=2 $(find tests -name '*.test.mjs' | sort)
+      # Actual service modules with synthetic HTTP, not live-provider or load acceptance.
+      - run: node tests/stress/volume-services.mjs
+      - run: npm run typecheck:calendar && npm run assessment:check
+      - run: node scripts/build-beta-edge.mjs
+  pure-deno-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.9.8
+      - run: deno test tests/unit/
+      - run: deno test --unstable-sloppy-imports tests/stress/velnu-1500-inputs_test.ts
+      - name: Typecheck the two candidate Edge functions with pinned Deno imports
+        run: deno check --node-modules-dir=none --config supabase/functions/deno.json supabase/functions/document-pdf/index.ts supabase/functions/fin-workflow/index.ts
+  dom-tests:
+    name: DOM checks (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build && node scripts/render-operations-preview.mjs
+      - name: Run every DOM check assigned to this shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          failed=0
+          while IFS= read -r file; do
+            echo "::group::$file"
+            timeout 120s node "$file" || failed=1
+            echo "::endgroup::"
+          done < <(find tests -name '*dom.mjs' | sort | awk -v shard="$SHARD" '(NR-1)%4 == shard-1')
+          exit "$failed"
+  private-beta-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      # Synthetic fixtures intercept all provider requests; no real email is sent.
+      - run: npx playwright test --config=playwright.beta-email.config.mjs --workers=2
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
+        with:
+          name: private-beta-email-browser
+          path: test-results/
+          retention-days: 7
+  native-app-handoffs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      # Use Playwright's pinned Chromium: stable Chrome's OS sms prompt suppresses
+      # pointer events in headless CI even after focus returns. No message is sent.
+      - run: npx playwright install --with-deps chromium
+      # A single worker owns browser focus for the full handoff/confirmation journey.
+      - run: npx playwright test --grep @native-handoff --workers=1
+  iphone-webkit:
+    name: iPhone WebKit (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps webkit
+      # Existing simulated Safari coverage; this does not certify physical devices.
+      - run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --config=playwright.mobile.config.mjs --fully-parallel --workers=2 --shard=${{ matrix.shard }}/4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
+        with:
+          name: iphone-webkit-shard-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 7

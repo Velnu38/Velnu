@@ -285,7 +285,7 @@ function VisitEditor({
               onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
             />
           </label>
-          <fieldset className="full">
+          <fieldset className="full jm-visit-crew">
             <legend>Crew for this visit</legend>
             {team
               .filter((w) => w.active !== false || form.workers.includes(w.id))

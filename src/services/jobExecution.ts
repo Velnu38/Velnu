@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { announceCalendarChange } from "../lib/workEvents";
-import { prepareRecordImage, uploadAttachment } from "../lib/businessStorage";
+import { prepareRecordImage } from "../lib/businessStorage";
 export type JobVisit = {
   id: string;
   title: string;
@@ -9,38 +9,6 @@ export type JobVisit = {
   status: string;
   worker_ids: string[];
   version: number;
-};
-export type FieldAccount = {
-  user_id: string;
-  worker_id: string;
-  enabled?: boolean;
-  version: number;
-};
-export type FieldJob = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  customer: string;
-  phone: string | null;
-  address: string;
-  visits: JobVisit[];
-  tasks: {
-    id: string;
-    title: string;
-    completed: boolean;
-    version: number;
-    visit_id: string | null;
-    can_update: boolean;
-  }[];
-  time: {
-    id: string;
-    worked_on: string;
-    minutes: number;
-    note: string;
-    status: string;
-    review_note: string;
-  }[];
 };
 export type CostReview = {
   pending_time: {
@@ -123,57 +91,6 @@ export async function manageJobVisit(
   announceCalendarChange();
   return value;
 }
-export const getFieldAccounts = (b: string) =>
-  rpc<FieldAccount[]>("get_field_accounts", { p_business: b });
-export const setFieldAccount = (
-  b: string,
-  user: string,
-  worker: string | null,
-  version: number,
-) =>
-  rpc<void>("set_field_account", {
-    p_business: b,
-    p_user: user,
-    p_worker: worker,
-    p_version: version,
-  });
-export async function getFieldJobs(b: string, j?: string, offset = 0) {
-  const data = await rpc<FieldJob[]>("get_field_jobs", {
-    p_business: b,
-    p_job: j || null,
-    p_offset: offset,
-  });
-  if (!Array.isArray(data)) throw Error("Assigned jobs could not load.");
-  return data;
-}
-export async function manageFieldJob(
-  b: string,
-  j: string,
-  action: string,
-  input: Record<string, unknown>,
-) {
-  await rpc("manage_field_job", {
-    p_business: b,
-    p_job: j,
-    p_action: action,
-    p_input: input,
-  });
-  announceCalendarChange();
-}
-export async function uploadFieldPhoto(b: string, j: string, file: File) {
-  const blob = await prepareRecordImage(file),
-    id = crypto.randomUUID();
-  const path = await rpc<string>("prepare_field_photo", {
-    p_business: b,
-    p_job: j,
-    p_id: id,
-    p_name: file.name,
-    p_bytes: blob.size,
-  });
-  if (path !== `${b}/${id}.jpg`)
-    throw Error("Photo destination could not be verified.");
-  await uploadAttachment("finviant-record-photos", path, blob);
-}
 export const getCostReview = (b: string, j: string) =>
   rpc<CostReview>("get_job_cost_review", { p_business: b, p_job: j });
 export async function manageCostReview(
@@ -214,12 +131,10 @@ export async function completionPhoto(path: string) {
     );
   if (data.size > 10_000_000)
     throw Error("A report photo exceeds the size limit.");
-  return new Uint8Array(await data.arrayBuffer());
+  // The PDF library accepts JPEG/PNG. Legacy WebP job photos are converted
+  // only for this download; the retained source object is never changed.
+  const image = data.type === 'image/webp' || /\.webp$/i.test(path)
+    ? await prepareRecordImage(new File([data], 'report-photo.webp', {type:'image/webp'}))
+    : data;
+  return new Uint8Array(await image.arrayBuffer());
 }
-
-export const clearFieldAccount = (b: string, user: string, version: number) =>
-  rpc<void>("clear_field_account", {
-    p_business: b,
-    p_user: user,
-    p_version: version,
-  });

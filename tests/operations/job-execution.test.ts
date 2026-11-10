@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { executionFixture, ids, actor } from "./execution-fixture.ts";
+const businessDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const J = "88888888-8888-4888-8888-888888888888",
   V1 = "99999999-9999-4999-8999-999999999991",
   V2 = "99999999-9999-4999-8999-999999999992";
@@ -169,7 +170,7 @@ test("restricted field account sees assigned work only, can submit progress/time
     const rid = crypto.randomUUID(),
       input = {
         id: rid,
-        worked_on: new Date().toISOString().slice(0, 10),
+        worked_on: businessDate(),
         minutes: 90,
         note: "Fitting tested",
         visit_id: V1,
@@ -256,7 +257,7 @@ test("cost review uses one allocation, supports audited duplicate exclusion and 
       "add_time",
       {
         request_id: crypto.randomUUID(),
-        worked_on: new Date().toISOString().slice(0, 10),
+        worked_on: businessDate(),
         minutes: 90,
         hourly_cost: 0,
         worker_id: ids.worker,
@@ -476,7 +477,7 @@ test("three-visit approved job, deposit, approved addition, tracked costs, compl
       "add_time",
       {
         request_id: crypto.randomUUID(),
-        worked_on: new Date().toISOString().slice(0, 10),
+        worked_on: businessDate(),
         minutes: 120,
         hourly_cost: 25,
         worker_id: ids.worker,
@@ -735,3 +736,4 @@ test("assigned photo metadata and storage reservation enforce assignment, owners
     await db.close();
   }
 });
+

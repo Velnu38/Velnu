@@ -167,12 +167,9 @@ export async function generateJobCompletionPdf(
       throw Error(
         "Selected photos are too large for one report PDF. Publish a new version with fewer photos.",
       );
-    const img =
-      photo.media_type === "image/png"
-        ? await pdf.embedPng(data)
-        : photo.media_type === "image/jpeg"
-          ? await pdf.embedJpg(data)
-          : null;
+    const png=[137,80,78,71,13,10,26,10].every((v,n)=>data[n]===v);
+    const jpeg=data[0]===255&&data[1]===216&&data[2]===255;
+    const img=png?await pdf.embedPng(data):jpeg?await pdf.embedJpg(data):null;
     if (!img) throw Error("A selected photo has an unsupported PDF format.");
     const scale = Math.min(516 / img.width, 270 / img.height, 1),
       w = img.width * scale,

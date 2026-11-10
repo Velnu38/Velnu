@@ -92,6 +92,10 @@ test("completion PDF renders the saved report with Unicode, pagination, acknowle
       ),
     );
   });
+  // A normalized legacy WebP may carry a PNG/JPEG PDF representation while
+  // the immutable source metadata and original storage object remain WebP.
+  const normalized=await generateJobCompletionPdf({...completionSample,photos:[{...long.photos[0],media_type:'image/webp'}]},async()=>new Uint8Array(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aNIcAAAAASUVORK5CYII=','base64')));
+  assert.ok((await PDFDocument.load(normalized)).getPageCount()>=1);
   assert.equal(loads, 1);
   assert.ok((await PDFDocument.load(result)).getPageCount() > 3);
   await writeFile("tmp/pdfs/job-completion-long.pdf", result);

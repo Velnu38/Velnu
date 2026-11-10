@@ -3,7 +3,7 @@ import RefreshButton from '../components/RefreshButton'
 import { useEffect, useRef, useState } from 'react'
 import { getSharedDocument, type SharedDocument } from '../services/personalDelivery'
 import { supabase } from '../lib/supabase'
-import { safePaymentLinks, invoicePaymentUrl, paymentProviders } from '../lib/paymentLinks'
+import { safePaymentLinks, invoicePaymentUrl, paymentProviderName } from '../lib/paymentLinks'
 import DocumentPdfPreview from '../components/DocumentPdfPreview'
 
 type PaymentReadiness = { available: boolean; state: string; message?: string }
@@ -89,7 +89,7 @@ export default function SharedDocumentPage({ token }: { token: string }) {
           {doc.pro_actions_enabled&&statusVerified&&payableDocument(doc)&&<CustomerSquareCheckout token={token} blocked={!!payment&&['pending','review_required'].includes(payment.state)}/>}
           {payment && !payment.available && <p>{payment.message || 'Online invoice payment is not activated. Contact the business or use its payment instructions.'}</p>}
           {canPay&&doc.payment_instructions && <p>{doc.payment_instructions}</p>}
-          {canPay&&safePaymentLinks(doc.payment_links).length > 0 && <><p>Other payment options are confirmed by the business after payment.</p><div className="personal-delivery-actions">{safePaymentLinks(doc.payment_links).map(link => <a key={link.provider} className="secondary-button" href={invoicePaymentUrl(link, balance, doc.number, doc.currency || 'USD')} rel="noopener noreferrer" target="_blank">Pay with {paymentProviders.find(provider => provider.id === link.provider)?.name || link.provider}</a>)}</div></>}
+          {canPay&&safePaymentLinks(doc.payment_links).length > 0 && <><p>Other payment options are confirmed by the business after payment.</p><div className="personal-delivery-actions">{safePaymentLinks(doc.payment_links).map(link => <a key={link.provider} className="secondary-button" href={invoicePaymentUrl(link, balance, doc.number, doc.currency || 'USD')} rel="noopener noreferrer" target="_blank">Pay with {paymentProviderName(link.provider)}</a>)}</div></>}
         </>}
       </> : doc.completed ? <><p><strong>{doc.completed.action === 'approved' ? 'Approved' : 'Declined'}</strong> by {doc.completed.typed_name} on {new Date(doc.completed.created_at).toLocaleString()}.</p><p>Your decision is recorded with this document version.</p></>
         : doc.approval_token ? <a className="primary-button" href={'/?approval=' + encodeURIComponent(doc.approval_token)}>Review and {doc.kind === 'estimate' ? 'accept estimate' : 'approve change order'}</a>

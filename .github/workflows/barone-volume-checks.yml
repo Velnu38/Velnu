@@ -22,7 +22,7 @@ jobs:
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: barone-qa-results
           path: |

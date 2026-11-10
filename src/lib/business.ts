@@ -31,10 +31,6 @@ export interface BusinessProfile {
 }
 
 export interface CurrentBusiness extends BusinessProfile {
-  field_restricted?: boolean
-  field_active?: boolean
-  field_worker_id?: string
-  field_user_id?: string
   onboarding_required?: boolean
   primary_owner?: boolean
   access_modules?: string[]
@@ -128,9 +124,6 @@ export async function getCurrentBusiness(): Promise<CurrentBusiness | null> {
   const row = membership as unknown as { businesses: BusinessProfile | BusinessProfile[] | null; role: BusinessRole; access_modules: string[] }
   const record = Array.isArray(row.businesses) ? row.businesses[0] : row.businesses
   if (!record) return null
-  const {data: field, error: fieldError} = await supabase.rpc('get_field_access_context', {p_business: record.id})
-  if (fieldError) throw fieldError
-  if (field?.restricted === true) return { ...record, field_restricted: true, field_active: field.active === true, field_worker_id: field.worker_id, field_user_id: authData.user.id, onboarding_required: false, role: row.role, access_modules: [], primary_owner: false }
   const {data: onboarding, error: setupError} = await supabase.rpc('business_onboarding_status', {p_business: record.id})
   if (setupError) throw setupError
   return { ...record, onboarding_required: onboarding?.required === true, role: row.role, access_modules: row.access_modules ?? [], primary_owner: row.role === 'owner' && record.created_by_user_id === authData.user.id }

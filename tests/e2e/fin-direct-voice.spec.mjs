@@ -39,7 +39,7 @@ for(const width of [320,390])test(`the speaking control records real audio and s
    if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
    questions++;return route.fulfill({status:200,headers:cors,json:{answer:'Your saved service is landscaping.',sources:[],limits:[],as_of:new Date().toISOString()}})
   })
-  await page.goto('http://127.0.0.1:4173/')
+  await page.goto('http://127.0.0.1:4173/?view=dashboard')
   const dock=page.getByRole('navigation',{name:'Workspace navigation'}),launcher=page.locator('.fin-launcher').getByRole('button',{name:'Ask Fin',exact:true})
   await expect(launcher).toBeVisible()
   const bounds=await dock.boundingBox(),button=await launcher.boundingBox()
@@ -71,7 +71,7 @@ test('cancel releases native audio tracks without uploading',async()=>{
   const page=await context.newPage();const state=await mock(page,{ai:true});let uploads=0
   await page.route('**/functions/v1/transcribe-voice',route=>{if(route.request().method()==='POST'&&!route.request().headers()['content-type']?.includes('application/json'))uploads++;return route.fulfill({status:200,headers:cors,json:{configured:true}})})
   await page.addInitScript(()=>{const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=async options=>{const stream=await original(options);window.__capturedStream=stream;return stream}})
-  await page.goto('http://127.0.0.1:4173/');await openFinVoice(page)
+  await page.goto('http://127.0.0.1:4173/?view=dashboard');await openFinVoice(page)
   await page.getByRole('button',{name:'Cancel recording',exact:true}).click()
   await expect(page.getByRole('textbox',{name:'Describe your invoice or request'})).toBeEnabled()
   expect(await page.evaluate(()=>window.__capturedStream.getTracks().every(t=>t.readyState==='ended'))).toBe(true)

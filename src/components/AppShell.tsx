@@ -34,7 +34,6 @@ import './private-beta.css'
 // Load each workspace module only when navigated to; preserve page state boundaries.
 const DashboardPage = lazy(() => import('../pages/DashboardPage'))
 const CustomersPage = lazy(() => import('../pages/CustomersPage'))
-const FieldJobsPage = lazy(() => import('../pages/FieldJobsPage'))
 const JobsPage = lazy(() => import('../pages/JobsPage'))
 const SchedulePage = lazy(() => import('../pages/SchedulePage'))
 const RemindersPage = lazy(() => import('../pages/RemindersPage'))
@@ -160,7 +159,6 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     return <PaymentsPage business={company} onOpenWorkbook={() => navigate('bookkeeping')} />
   }
 
-  if(company.field_restricted)return <Suspense fallback={<p role="status">Loading assigned work…</p>}><FieldJobsPage business={company}/></Suspense>
   return (
     <WorkspaceNavigation.Provider value={back}><div className={`app-shell finviant-workspace${view === 'dashboard' ? ' home-view' : ''}`} onClick={openAppLink}>
       <aside className="sidebar">

@@ -1,3 +1,4 @@
+import { documentFooter } from '../../../shared/documentAppearance'
 import EBusinessCard from './EBusinessCard'
 import StorageUsage from '../StorageUsage'
 import PaymentSettings from './PaymentSettings'
@@ -130,6 +131,8 @@ export default function DocumentSettings({
             Document footer
             <textarea
               maxLength={500}
+              placeholder="Thank You!"
+              aria-describedby="document-footer-help"
               value={brand.document_footer}
               onChange={(e) =>
                 setBrand({ ...brand, document_footer: e.target.value })
@@ -137,6 +140,7 @@ export default function DocumentSettings({
             />
           </label>
         </div>
+        <p id="document-footer-help" className="muted">Leave blank to use “Thank You!” centered at the bottom of invoices and estimates.</p>
         <div className="settings-document-preview">
           <DocumentBrand
             business={{
@@ -146,7 +150,7 @@ export default function DocumentSettings({
             }}
             kind="Preview"
           />
-          {brand.document_footer && <p>{brand.document_footer}</p>}
+          <p className="document-footer">{documentFooter(brand.document_footer)}</p>
         </div>
       </section>
       <section className="settings-inset">

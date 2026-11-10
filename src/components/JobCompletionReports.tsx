@@ -339,7 +339,7 @@ function ReportEditor({
         </fieldset>
         <fieldset>
           <legend>Customer acknowledgement (optional)</legend>
-          <label>
+          <label className="jm-check-row">
             <input
               type="checkbox"
               checked={present}
@@ -368,7 +368,7 @@ function ReportEditor({
                   onChange={(e) => setSigner(e.target.value)}
                 />
               </label>
-              <label>
+              <label className="jm-check-row">
                 <input
                   type="checkbox"
                   required

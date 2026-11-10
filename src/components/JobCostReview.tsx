@@ -100,7 +100,7 @@ export default function JobCostReview({
       {!data && !error && <p role="status">Loading cost review…</p>}
       {data && (
         <>
-          <h4>Field time awaiting review ({data.pending_time.length})</h4>
+          <h4>Submitted time awaiting review ({data.pending_time.length})</h4>
           <ul className="jm-lines">
             {data.pending_time.map((t) => (
               <li key={t.id}>
@@ -148,7 +148,7 @@ export default function JobCostReview({
             ))}
           </ul>
           {!data.pending_time.length && (
-            <p className="quiet">No field hours awaiting review.</p>
+            <p className="quiet">No submitted hours awaiting review.</p>
           )}
           <details className="work-plan-section">
             <summary>Recorded labor rates ({time.length})</summary>
@@ -318,9 +318,9 @@ function CostEditor({
       <form onSubmit={save}>
         <h2>
           {editing.action === "approve_time"
-            ? "Review field time"
+            ? "Review submitted time"
             : editing.action === "reject_time"
-              ? "Return field time"
+              ? "Return submitted time"
               : cost
                 ? "Edit labor cost rate"
                 : "Exclude duplicate cost"}

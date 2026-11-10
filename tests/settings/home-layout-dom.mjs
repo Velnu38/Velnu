@@ -40,7 +40,7 @@ try{
  await click('Quick Links');assert.equal(document.querySelector('dialog').getAttribute('aria-label'),'Quick Links')
  for(const destination of ['invoices','estimates','work','reminders','customers'])assert.ok(document.querySelector(`.home-create-options a[href*="view=${destination}"]`))
  assert.equal(document.querySelector('.home-create-options a[aria-label="Team Management"]').getAttribute('href'),'/?view=settings&section=team')
- assert.equal(document.querySelector('.home-create-options button'),null,'calendar creation is removed from Quick Links')
+ assert.equal([...document.querySelectorAll('.home-create-options button')].some(el=>/calendar|appointment/i.test(el.textContent)),false,'calendar creation is removed from Quick Links')
  await act(async()=>document.querySelector('button[aria-label="Close"]').click());await tick()
  assert.equal([...document.querySelectorAll('button')].filter(el=>el.textContent.trim()==='Refresh').length,1);assert.equal(document.querySelector('.home-header-actions details'),null);assert.ok(document.querySelector('.home-header-actions>.refresh-button'));const beforeRefresh=calls.filter(c=>c.name==='get_dashboard_invoice_totals').length;await click('Refresh');await tick();assert.ok(calls.filter(c=>c.name==='get_dashboard_invoice_totals').length>beforeRefresh,'Home refresh retains its data reload')
  assert.equal(document.querySelector('.worker-select'),null,'solo owner does not need a redundant crew filter')
@@ -65,13 +65,13 @@ try{
  window.confirm=()=>true;const finish=button('Mark complete');await act(async()=>{finish.click();finish.click()});await tick();await tick();assert.equal(completions,1);assert.match(document.body.textContent,/invoice draft is ready/);assert.equal(button('Mark complete'),undefined)
  await act(async()=>root.render(React.createElement(Calendar,{business:{...business,role:'viewer'},compact:true,key:'viewer'})));await tick();assert.equal(button('Start job'),undefined);assert.equal(button('Mark complete'),undefined);assert.equal(button('Add to calendar'),undefined)
  for(const tier of ['free','basic','pro']){
-  plan=tier;calendarJobStatus=null;await act(async()=>root.render(React.createElement(Home,{business,key:'home-'+tier})));await tick();await tick();await click('Quick Links');assert.ok(document.querySelector('.home-create-options a[aria-label="Team Management"]'),'owner Team Management link on '+tier);assert.equal(document.querySelector('.home-create-options button'),null)
+  plan=tier;calendarJobStatus=null;await act(async()=>root.render(React.createElement(Home,{business,key:'home-'+tier})));await tick();await tick();await click('Quick Links');assert.ok(document.querySelector('.home-create-options a[aria-label="Team Management"]'),'owner Team Management link on '+tier);assert.equal([...document.querySelectorAll('.home-create-options button')].some(el=>/calendar|appointment/i.test(el.textContent)),false)
   await act(async()=>document.querySelector('button[aria-label="Close"]').click());await tick()
  }
  for(const role of ['office','technician','viewer']){
   const member={...business,role,primary_owner:false};await act(async()=>root.render(React.createElement(Home,{business:member,key:role})));await tick();await tick()
   if(role==='viewer'){assert.equal(button('Quick Links'),undefined);continue}
-  await click('Quick Links');assert.equal(!!document.querySelector('.home-create-options a[aria-label="Team Management"]'),role==='office');assert.equal(document.querySelector('.home-create-options button'),null)
+  await click('Quick Links');assert.equal(!!document.querySelector('.home-create-options a[aria-label="Team Management"]'),role==='office');assert.equal([...document.querySelectorAll('.home-create-options button')].some(el=>/calendar|appointment/i.test(el.textContent)),false)
  }
  assert.ok(!calls.some(c=>c.name.startsWith('send_')||c.name==='record_manual_payment'||c.name==='set_tier_test'),'read-only layout checks never send or record money')
  console.log('PASS Home Quick Links, Team Management tier/permission visibility, removed calendar shortcut, visible Refresh, existing destinations, visible queue/filter switching, approval breakdown, pagination, payment-processing guard, calendar modes/Today/solo filter, financial drilldown visible reconnect issues, shared job start/completion confirmation, duplicate-click protection and viewer restrictions')

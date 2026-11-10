@@ -1,3 +1,4 @@
+import { fulfillPdf } from './document-pdf-fixture.mjs'
 import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
@@ -11,13 +12,21 @@ const customer={id:C,first_name:'Test',last_name:'Customer',company:null,email:'
 const team=[{id:U,label:'Owner',role:'owner',is_you:true},{id:J,label:'Field worker',role:'technician',is_you:false}]
 const slots=Array.from({length:3},(_,n)=>({id:`77777777-7777-4777-8777-${String(n+1).padStart(12,'0')}`,starts_at:DateTime.now().setZone(zone).plus({days:14+n}).set({hour:9,minute:0,second:0,millisecond:0}).toISO(),ends_at:DateTime.now().setZone(zone).plus({days:14+n}).set({hour:11,minute:0,second:0,millisecond:0}).toISO()}))
 async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=false,owner=true,defaultTax=0}={}){
- const state={calls:[],booked:false,approved:false,customers:[customer],completed:false,documents:[],entries:[],changes:[],imported:[]}
+ const state={calls:[],booked:false,approved:false,customers:[customer],completed:false,documents:[],documentUpdates:[],savedDocuments:{},entries:[],changes:[],imported:[]}
+ function savedDocument(kind,payload,updated='2026-11-04T10:00:00Z'){
+  const items=payload.items.map((item,index)=>({...item,id:`line-${index}`,sort_order:index,line_total:Math.round(item.quantity*item.unit_price*100)/100}))
+  const subtotal=items.reduce((sum,item)=>sum+item.line_total,0)
+  const tax_amount=items.reduce((sum,item)=>sum+Math.round(item.line_total*item.tax_rate)/100,0)
+  return {...payload,id:E,[kind+'_number']:kind==='invoice'?'INV-QA':'EST-QA',status:'draft',updated_at:updated,created_at:updated,items,subtotal,tax_amount,total:subtotal+tax_amount,amount_paid:0,balance_due:subtotal+tax_amount,customers:state.customers.find(person=>person.id===payload.customer_id)||customer,payment_links:[],payment_instructions:''}
+ }
  if(signedIn){const head=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),body=Buffer.from(JSON.stringify({sub:U,aud:'authenticated',role:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');await page.addInitScript(session=>localStorage.setItem('sb-example-auth-token',JSON.stringify(session)),{access_token:`${head}.${body}.test`,refresh_token:'test',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user})}
  await page.route('https://example.supabase.co/**',async route=>{
   const req=route.request(),url=new URL(req.url()),path=url.pathname,method=req.method();let body;try{body=req.postDataJSON()}catch{}
   state.calls.push({path,method,body})
   const reply=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-expose-headers':'content-range','content-range':Array.isArray(value)?`0-${Math.max(0,value.length-1)}/${value.length}`:'0-0/0'},body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,DELETE'},body:''})
+  if(path.endsWith('/functions/v1/document-pdf'))return fulfillPdf(route)
+  if(path.endsWith('/rpc/business_onboarding_status'))return reply({required:false,completed:true})
   if(path.endsWith('/auth/v1/user'))return reply(user)
   if(path.endsWith('/rpc/get_private_beta_access'))return reply({allowed:true})
   if(path.endsWith('/rpc/get_financial_overview'))return reply({currency_supported:true,as_of:DateTime.now().toISODate(),receivables:{invoices:0,outstanding:0,overdue:0,overdue_count:0},aging:[],customers:[],oldest:[]})
@@ -28,11 +37,30 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:defaultTax,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
   if(path.endsWith('/rpc/get_document_change_context'))return reply({business_id:B,document_id:body.p_document,kind:body.p_kind,number:body.p_kind==='invoice'?'INV-QA':'EST-QA',customer_id:C,customer_name:'Test Customer',job_id:null,estimate_id:body.p_kind==='estimate'?E:null,work_status:completedWork?'completed':'unscheduled',can_change:!completedWork,total:105,address:'1 Test Street',items:[{description:'Original work',quantity:2,unit_price:50,tax_rate:5}]})
   if(path.endsWith('/rpc/create_document_change_order')){state.changes.push(body);return reply({id:P,status:'draft',total:20})}
-  if(path.endsWith('/rpc/create_document')){state.documents.push(body);return reply({id:E,status:'draft',total:250})}
+  if(path.endsWith('/rpc/create_document')){
+   state.documents.push(body)
+   const record=savedDocument(body.document_kind,body.payload)
+   state.savedDocuments[body.document_kind]=record
+   return reply(record)
+  }
+  if(path.endsWith('/rpc/update_draft_document')){
+   const existing=state.savedDocuments[body.document_kind]
+   if(!existing||body.document_id!==existing.id||body.expected_updated_at!==existing.updated_at)return reply({message:'Draft version mismatch'},409)
+   state.documentUpdates.push(body)
+   const record=savedDocument(body.document_kind,{...existing,...body.payload},new Date(Date.parse(existing.updated_at)+1000).toISOString())
+   state.savedDocuments[body.document_kind]=record
+   return reply(record)
+  }
+  for(const kind of ['invoice','estimate']){
+   const saved=state.savedDocuments[kind]
+   if(saved&&path.endsWith('/'+kind+'s'))return reply(url.searchParams.has('id')?saved:[saved])
+   if(saved&&path.endsWith('/'+kind+'_items'))return reply(saved.items)
+  }
   if(path.endsWith('/rpc/import_customer_contacts')){state.imported.push(...body.p_contacts);return reply({imported:body.p_contacts.length,skipped:0,already_imported:0})}
   if(path.endsWith('/appointments')){if(method==='POST'){const entry={...body,updated_at:new Date().toISOString()};state.entries.push(entry);return reply(entry,201)}return reply([])}
   if(path.endsWith('/calendar_work'))return reply(state.entries.map(e=>({source_key:'appointment:'+e.id,title:e.title,starts_at:e.starts_at,ends_at:e.ends_at,status:'scheduled',document_kind:'work',document_id:e.id,job_id:null,assigned_user_ids:[U]})))
   if(path.endsWith('/functions/v1/transcribe-voice'))return reply({configured:false})
+  if(path.endsWith('/rpc/get_delivery_automation'))return reply({plan:ai?'pro':'free',ready:true,rule:{enabled:false,after_days:3,repeat_days:7,max_reminders:3},tasks:[]})
   if(path.endsWith('/rpc/get_delivery_setup'))return reply({plan:'pro',email:'owner@example.test',phone:'+17575550100',personal_email_ready:false,personal_sms_ready:false,managed_email_ready:true,managed_sms_ready:false,acknowledged:true,reply_to:'owner@example.test',sms_reply_route:null})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:ai?'pro':'free',ai_limit:ai?100:0,ai_used:0,voice_limit:ai?100:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)

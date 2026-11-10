@@ -83,17 +83,19 @@ export async function executionFixture(billing = false) {
       lifecycleStart,
     );
     await db.exec(lifecycle.slice(lifecycleStart, lifecycleEnd));
-    for (const path of [
-      "20261109203232_planned_job_visits.sql",
-      "20261109203235_assigned_field_workspace.sql",
-      "20261109203238_job_cost_review_completion_reports.sql",
-    ])
-      await db.exec(await readFile("supabase/migrations/" + path, "utf8"));
     await db.exec(`alter table public.jobs enable row level security;create policy jobs_read on public.jobs for select to authenticated using(private.is_business_member(business_id));create policy jobs_write on public.jobs for update to authenticated using(private.can_write_business(business_id));create policy jobs_module on public.jobs as restrictive for all to authenticated using(private.member_module_access(business_id,auth.uid(),'jobs'));
  alter table public.customers enable row level security;create policy customers_read on public.customers for select to authenticated using(private.is_business_member(business_id));
- alter table public.business_members enable row level security;create policy members_read on public.business_members for select to authenticated using(private.is_business_member(business_id));
- alter table public.businesses enable row level security;create policy businesses_read on public.businesses for select to authenticated using(private.is_business_member(id));
- alter table storage.objects enable row level security;set role authenticated;`);
+ alter table public.business_members enable row level security;create policy business_members_member_select on public.business_members for select to authenticated using(private.is_business_member(business_id));
+ alter table public.businesses enable row level security;create policy businesses_member_select on public.businesses for select to authenticated using(private.is_business_member(id));
+ alter table storage.objects enable row level security;`);
+    for (const path of [
+      "20261110002708_planned_job_visits.sql",
+      "20261110002741_assigned_field_workspace.sql",
+      "20261110002751_job_cost_review_completion_reports.sql",
+      "20261110003505_job_execution_access_hardening.sql",
+    ])
+      await db.exec(await readFile("supabase/migrations/" + path, "utf8"));
+    await db.exec('set role authenticated;');
     return db;
   } catch (e) {
     await db.close();

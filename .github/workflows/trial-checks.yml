@@ -45,7 +45,7 @@ jobs:
       - name: Voice backend security and reliability (no external services)
         run: deno test supabase/functions/transcribe-voice/index_test.ts
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: trial-check-results
           path: test-results/

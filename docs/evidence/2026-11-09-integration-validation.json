@@ -1,0 +1,114 @@
+{
+  "date": "2026-11-09",
+  "timezone": "America/New_York",
+  "branch": "review/finviant-integration-20261109",
+  "release_baseline": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "source_fingerprint": {
+    "algorithm": "sha256",
+    "scope": "Sorted git ls-files over src/shared/supabase/scripts/tests and named build/package configuration, each path NUL file SHA256 LF. Documentation and Git metadata excluded.",
+    "files": 703,
+    "value": "94d119bfda777be523c606b9111798b4881b91d9b275dcd91ccd0a413241427a"
+  },
+  "checks": [
+    {
+      "command": "npm run build",
+      "runtime": "Node 24.22.1",
+      "result": "passed",
+      "startup_checks": 58
+    },
+    {
+      "command": "Node 22.23.4 --import tsx --test --test-concurrency=2 tests/settings/*.test.ts tests/scheduling/*.test.ts tests/documents/*.test.ts",
+      "result": "passed",
+      "tests": 217,
+      "note": "Initial integration run; the two added zero-tax tests were subsequently run in the full document suite below."
+    },
+    {
+      "command": "Node 22.23.4 --import tsx --test --test-concurrency=2 tests/operations/*.test.ts tests/tiers/*.test.ts tests/records/*.test.ts",
+      "result": "passed",
+      "tests": 197
+    },
+    {
+      "command": "node --import tsx --test tests/documents/*.test.ts",
+      "result": "passed",
+      "tests": 21,
+      "note": "Final zero-tax fix included; overlaps the initial core run."
+    },
+    {
+      "command": "node --test tests/financial/*.test.mjs",
+      "result": "passed",
+      "tests": 33
+    },
+    {
+      "command": "npm run assessment:sync && npm run assessment:test && npm run assessment:check",
+      "result": "passed",
+      "tests": 8
+    },
+    {
+      "command": "npm run typecheck:calendar",
+      "result": "passed"
+    }
+  ],
+  "dom_checks": [
+    "tests/settings/worker-availability-dom.mjs",
+    "tests/settings/team-management-dom.mjs",
+    "tests/settings/document-pdf-dom.mjs",
+    "tests/settings/mobile-email-routing-dom.mjs",
+    "tests/operations/job-management-dom.mjs"
+  ],
+  "dom_result": "passed with synthetic provider/authentication boundaries; Job Management covered mixed/approved/restricted/empty/failure modes",
+  "pdf_visual": {
+    "result": "inspected",
+    "references": [
+      "invoice-redesign.png",
+      "estimate-redesign.png"
+    ],
+    "cases": [
+      "invoice default footer",
+      "estimate default footer",
+      "four-page invoice custom footer and zero tax"
+    ],
+    "template": "finviant-document-3",
+    "issued_pdf_mutation": false
+  },
+  "browser": {
+    "command": "node tests/scheduling/worker-availability-browser.mjs",
+    "result": "blocked_before_browser_launch",
+    "error": "process_singleton_posix.cc: socket() failed: Operation not permitted",
+    "shared_preview": "Daemon already occupied; not stopped or replaced",
+    "acceptance": false
+  },
+  "source_ci": {
+    "head": "c2c717eee70843e20a53f2b0bd246b906f6b66b7",
+    "result": "not_green",
+    "failed_checks": [
+      "verify (workflow identification/triage pending)",
+      "iPhone WebKit 2/4, 3/4, 4/4",
+      "Full browser regression 2/6, 5/6"
+    ],
+    "passed_examples": [
+      "node-tests",
+      "pure-deno-tests",
+      "DOM shards 1-4",
+      "private-beta-email",
+      "documents"
+    ],
+    "note": "These are PR70 upstream checks, not verification of this integration commit. Canceled older attempts are not current passes."
+  },
+  "release_status": {
+    "built": true,
+    "locally_tested": true,
+    "independent_review": false,
+    "merged_into_private_beta": false,
+    "deployed": false,
+    "activated": false,
+    "live_provider_tested": false,
+    "physical_device_tested": false,
+    "full_migration_replay": false
+  },
+  "limits": [
+    "No new remote workflow dispatched; Actions quota is not exposed.",
+    "PGlite suites are synthetic PostgreSQL-compatible fixtures, not clean from-zero Supabase replay.",
+    "Metadata presence/fingerprints do not certify two genuine tenant sessions or live providers.",
+    "Final same-commit checks and their exact tested SHA will be recorded in the draft integration review receipt."
+  ]
+}
