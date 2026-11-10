@@ -38,6 +38,7 @@ export function validateDocumentInput(input: unknown): asserts input is Record<s
     const value = input[field]
     if (value !== undefined && value !== null && (typeof value !== 'string' || value.length > 4000)) throw new Error('Document text must be at most 4,000 characters')
   }
+  if(input.customer_reference!==undefined&&input.customer_reference!==null&&(typeof input.customer_reference!=='string'||input.customer_reference.trim().length>120||/[\x00-\x1f\x7f]/.test(input.customer_reference)))throw new Error('Customer PO/reference must be at most 120 characters on one line')
   let totalCents = 0n
   for (const item of input.items) {
     if (!isRecord(item) || typeof item.description !== 'string' || !item.description.trim() || item.description.length > 4000) throw new Error('Every line item needs a valid description')

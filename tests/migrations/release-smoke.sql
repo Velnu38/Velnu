@@ -36,7 +36,7 @@ declare
  business_a uuid:=gen_random_uuid(); business_b uuid:=gen_random_uuid();
  customer uuid:=gen_random_uuid(); worker uuid:=gen_random_uuid();
  request uuid:=gen_random_uuid(); receipt uuid:=gen_random_uuid();
- invoice uuid; estimate uuid; job uuid; data jsonb; payload jsonb; blocked boolean;
+ invoice uuid; estimate uuid; job uuid; data jsonb; payload jsonb; blocked boolean; reference_draft uuid; copy_id uuid; version_time timestamptz; original_snapshot jsonb;
 begin
  insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at)
  values(owner_a,'authenticated','authenticated','replay-a@example.test',now(),now(),now()),
@@ -53,6 +53,22 @@ begin
  perform set_config('request.jwt.claim.sub',owner_a::text,true);
  execute 'set local role authenticated';
  insert into public.customers(id,business_id,first_name,last_name) values(customer,business_a,'Replay','Synthetic');
+ insert into public.service_packages(business_id,name,items) values(business_a,'Synthetic service package','[{"description":"Synthetic package line","quantity":2,"unit_price":50,"tax_rate":5}]');
+ payload:=jsonb_build_object('customer_id',customer,'customer_reference','PO-1109','items',jsonb_build_array(jsonb_build_object('description','Reference fixture','quantity',1,'unit_price',50,'tax_rate',0)));
+ data:=public.create_document(business_a,'invoice',gen_random_uuid(),payload);reference_draft:=(data->>'id')::uuid;
+ if data->>'customer_reference' is distinct from 'PO-1109' or (data->>'total')::numeric<>50 then raise exception 'Customer reference or amount was not saved atomically' using errcode='23514',constraint='replay_customer_reference';end if;
+ select updated_at into version_time from public.invoices where id=reference_draft;
+ data:=public.update_draft_document(business_a,'invoice',reference_draft,version_time,payload||jsonb_build_object('customer_reference','PO-1110'));
+ if data->>'customer_reference' is distinct from 'PO-1110' then raise exception 'Reference draft edit failed' using errcode='23514',constraint='replay_reference_edit';end if;
+ data:=public.copy_document_to_draft(business_a,'invoice',reference_draft,gen_random_uuid());copy_id:=(data->>'id')::uuid;
+ if data->>'customer_reference' is not null or (data->>'amount_paid')::numeric<>0 then raise exception 'Copied draft retained transaction reference or payments' using errcode='23514',constraint='replay_reference_clone';end if;
+ update public.invoices set status='sent' where id=reference_draft;
+ blocked:=false;begin update public.invoices set customer_reference='CHANGED' where id=reference_draft;exception when check_violation then blocked:=true;end;
+ if not blocked then raise exception 'Issued customer reference was mutable' using errcode='23514',constraint='replay_reference_immutable';end if;
+ execute 'reset role';
+ original_snapshot:=private.customer_document_snapshot(business_a,'invoice',reference_draft);
+ if original_snapshot->>'customer_reference' is distinct from 'PO-1110' then raise exception 'Customer snapshot omits reference' using errcode='23514',constraint='replay_reference_snapshot';end if;
+ execute 'set local role authenticated';
  perform public.save_worker_profile(business_a,worker,jsonb_build_object('name','Replay roster worker','active',true),null);
  payload:=jsonb_build_object('customer_id',customer,'issue_date',current_date,'due_date',current_date,
    'items',jsonb_build_array(jsonb_build_object('description','Synthetic service','quantity',2,'unit_price',50,'tax_rate',5)));
@@ -73,6 +89,7 @@ begin
  if (select count(*) from public.jobs where source_estimate_id=estimate)<>1 then raise exception 'Approval retry duplicated the job' using errcode='23514',constraint='replay_approval_retry';end if;
 
  perform set_config('request.jwt.claim.sub',owner_b::text,true);
+ if exists(select 1 from public.service_packages where business_id=business_a) then raise exception 'Second tenant read service packages' using errcode='23514',constraint='replay_packages_tenant';end if;
  if exists(select 1 from public.customers where business_id=business_a) or exists(select 1 from public.invoices where id=invoice) or exists(select 1 from public.jobs where id=job) then raise exception 'Second tenant read another tenant record' using errcode='23514',constraint='replay_tenant_read';end if;
  blocked:=false;begin perform public.get_job_management(business_a,job);exception when insufficient_privilege then blocked:=true;end;
  if not blocked then raise exception 'Second tenant invoked another tenant management RPC' using errcode='23514',constraint='replay_tenant_rpc';end if;

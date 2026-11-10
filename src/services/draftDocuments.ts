@@ -1,7 +1,7 @@
 import {supabase} from '../lib/supabase'
 import {validateDocumentInput} from '../lib/financialValidation'
 import {announceCalendarChange} from '../lib/workEvents'
-export async function updateDraftDocument(businessId:string,kind:'invoice'|'estimate',id:string,version:string,input:{customer_id:string;due_date?:string|null;expires_on?:string|null;notes:string;customer_message:string;items:{description:string;quantity:number;unit_price:number;tax_rate:number}[]}) {
+export async function updateDraftDocument(businessId:string,kind:'invoice'|'estimate',id:string,version:string,input:{customer_id:string;due_date?:string|null;expires_on?:string|null;notes:string;customer_message:string;customer_reference?:string;items:{description:string;quantity:number;unit_price:number;tax_rate:number}[]}) {
  validateDocumentInput(input)
  const {data,error}=await supabase.rpc('update_draft_document',{target_business_id:businessId,document_kind:kind,document_id:id,expected_updated_at:version,payload:input})
  if(error)throw error

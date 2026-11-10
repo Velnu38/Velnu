@@ -73,7 +73,7 @@ export async function saveJobAppointment(job:JobScheduleSnapshot,start:string,en
     p_expected_end:job.scheduled_end??null,p_use_my_schedule:useMySchedule})
   announceCalendarChange()
 }
-export function createJobInvoice(job:string,request:string,items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>,due?:string,details?:{issue_date:string;notes:string;payment_links?:import('./settings').PaymentLink[];payment_instructions?:string}) {return rpc<{id:string;already_created:boolean}>('create_job_invoice',{p_job:job,p_request:request,p_items:items,p_due:due || null,p_details:details || {}})}
+export function createJobInvoice(job:string,request:string,items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>,due?:string,details?:{issue_date:string;notes:string;customer_reference?:string;payment_links?:import('./settings').PaymentLink[];payment_instructions?:string}) {return rpc<{id:string;already_created:boolean}>('create_job_invoice',{p_job:job,p_request:request,p_items:items,p_due:due || null,p_details:details || {}})}
 
 export type InvoiceJobContext = SchedulingContext & {
  invoice:{id:string;number:string|null;customer_id:string;customer_name:string;job_id:string|null;property_id:string|null;title:string;scope:string};
