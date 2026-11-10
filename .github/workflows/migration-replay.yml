@@ -1,7 +1,6 @@
 name: Full Supabase migration replay
 on:
-  push:
-    branches: [review/release-replay-20261110]
+  # Called by the complete gate for every release PR and release-branch push.
   workflow_call:
 permissions:
   contents: read

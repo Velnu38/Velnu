@@ -206,15 +206,9 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Verified candidate private-beta release",
-      "detail": "PR71 merged as b2fe20ce0b9d36806b7e94231eed962322eb6f55. Its complete Git tree 474c26c57ceec7c6ee46db375be66bb278b95540 matches tested candidate 0bb6ff2963edea6bfeae97cafefaa8f6836a398e. All ten hosted workflows passed: 526 TypeScript checks, 401 main Chromium journeys, five native-handoff journeys, 92 WebKit journeys, four DOM shards, Deno checks and build/startup suites. Vercel dpl_FR471eC4y8xzy3PQGiSDBytcJFiq is READY with both existing domains; the preview isolation guard and 58 deployed-build startup checks passed. Ten existing Edge packages were updated and their source bytes/JWT modes verified, including every document-PDF rendering entry point and Fin guidance. Live PDF origin/auth smoke checks passed and all three fixture paths returned 404. The live workspace still opens Sign in with the approved-testers/private-beta notice. No migration, provider activation, paid service, invitation, real send or charge/refund was performed. Signed-in genuine-tenant/device/provider acceptance and clean full migration replay remain open. The auditedCommit above remains the preceding full assessment; this is a targeted release receipt, not a new complete live audit.",
-      "evidence": "PR71; docs/evidence/2026-11-10-private-beta-release.json; exact prior function packages in this archive at 3a1a68cc8b72451f783411b589db82a16da0de1c",
-      "verifiedAt": "2026-11-09"
-    },
-    {
-      "title": "Full migration replay preparation",
-      "detail": "Added an isolated Supabase/PostgreSQL 17 replay check using the pinned CLI. It creates a unique local Docker project, requires empty managed Auth/Storage, submits every migration unchanged, disables local cron, verifies no enabled delivery or copied secrets, and destroys only its owned disposable volumes. Local safety tests passed; complete replay is pending CI. Native local runtime artifact download failed with EAI_AGAIN; no hosted database was modified.",
-      "evidence": "scripts/qa/replay-migrations.mjs; tests/deployment/migration-replay.test.mjs; .github/workflows/migration-replay.yml",
+      "title": "Full migration replay and release validation",
+      "detail": "Full 78-file unchanged application SQL replay passed in a fresh Supabase/PostgreSQL 17.11 instance at 74c92cf6f2c4a403acf76bb470433f600e7aeec7, run 42809118643. Recovered the omitted 20261103001002 recurring migration from Git; its SHA-256 exactly matches the already-applied beta ledger. Real final definitions passed invoice tax/totals, document/payment retries, remaining balances, approval-to-one-job, two database-identity tenant denial and manager-created roster worker without a login/membership. Fixtures rolled back with zero identities/businesses/payments/files retained; cron was disabled, delivery unconfigured and Vault empty. The combined Release validation workflow now includes all desktop/mobile/browser, financial/security/PDF/DOM/Deno and full replay suites on release PRs and actual release-branch pushes. Repository enforcement and staged Vercel promotion are prepared for owner review, not activated. No hosted SQL or provider writes occurred.",
+      "evidence": "docs/evidence/2026-11-10-migration-replay-validation.json; https://github.com/Velnu38/Velnu/actions/runs/42809118643; docs/RELEASE_MIGRATION_REPLAY.md",
       "verifiedAt": "2026-11-10"
     }
   ],
@@ -257,9 +251,9 @@
       "priority": "P0",
       "gate": "public",
       "status": "open",
-      "title": "Restore a green release gate for current user flows",
+      "title": "Complete release validation and staged promotion enforcement",
       "owner": "Developer",
-      "why": "PR71 and subsequent manager Job Management PR69 have green remote browser, DOM, build, database/service, PDF and security fixture suites on their final application commits. Clean full-chain Supabase replay, enforced repository required checks/staged promotion and genuine tenant/device acceptance remain incomplete. Node 22 is used for PGlite/database suites; Node 24 is used for app/build/browser checks. Current work adds a credential-free disposable PostgreSQL 17 replay instead of treating fragment fixtures as complete migration proof.",
+      "why": "PR71 and PR69 have green final-application CI receipts. A fresh real Supabase/PostgreSQL 17.11 replay now passes all 78 source files, including an exact ledger-matched recovered recurring migration, plus rollback-only financial/two-identity permission smoke. The combined Release validation check includes every desktop/mobile/browser, financial/security/PDF/DOM/Deno and replay suite and rejects failed/canceled/skipped results. Node 22 is retained for PGlite/database checks and Node 24 for builds/browser checks. Enforced required-check settings and staged promotion remain unverified; database JWT-claim simulation and mocked browsers do not replace genuine hosted tenant/device acceptance.",
       "acceptance": "Update obsolete fixtures without weakening functional assertions; pass complete current build, financial/tenant/voice/storage/calendar and authenticated browser journeys for the same immutable release commit. Enforce required checks and staged deployment/promotion before domain release; unify supported Node versions and include the actual release branch in CI.",
       "evidence": []
     },

@@ -1,0 +1,417 @@
+{
+  "recorded_at": "2026-11-10",
+  "timezone": "America/New_York",
+  "source_commit": "74c92cf6f2c4a403acf76bb470433f600e7aeec7",
+  "source_branch": "review/release-replay-20261110",
+  "base_release": "bd70eef70b4ee09eafd387843df417a34cbbf02d",
+  "runtime_evidence": {
+    "workflow_run": 42809118643,
+    "job": 129805756452,
+    "url": "https://github.com/Velnu38/Velnu/actions/runs/42809118643",
+    "result": "passed",
+    "cli": "3.1.0",
+    "cronLaunchActiveJobs": false,
+    "smoke": {
+      "file": "tests/migrations/release-smoke.sql",
+      "sha256": "a9d048ff93e542aeb089cb926418a1c976867059503b4fdb4b88697d64ac4647",
+      "passed": true,
+      "rolledBackCounts": {
+        "users": 0,
+        "businesses": 0,
+        "payments": 0,
+        "files": 0
+      }
+    },
+    "migrations": 78,
+    "applied": [
+      {
+        "file": "20261028173902_finviant_complete_application_bootstrap.sql",
+        "sha256": "a433f9404f632efe8cfeabd727019b75a28fb7fa6ed57da32280917e0a3e9038"
+      },
+      {
+        "file": "20261029012001_guard_document_supported_financial_totals.sql",
+        "sha256": "1353833a0b5147aee8f8dc18541ffa2c2f8422217695d7e35c807eac46e6fff2"
+      },
+      {
+        "file": "20261102144435_calendar_sync_dashboard.sql",
+        "sha256": "0ab75b67cfcc70415a6e5fa4cb645b69392a3130142c80827d1532965ffbd5d6"
+      },
+      {
+        "file": "20261102152958_record_photos_expenses.sql",
+        "sha256": "06c118c5113f46831f88d7ca8780577553e2b1e48651a2f000b16d1b40b37797"
+      },
+      {
+        "file": "20261102170333_owner_team_document_settings.sql",
+        "sha256": "75306b5f894f92ea6e5f56e03b1db7cabdac66d081459ded9fe7c99f2b8f416e"
+      },
+      {
+        "file": "20261102173504_private_team_preview.sql",
+        "sha256": "498556836ad1ae00c6cf2809fdbe67b5db8b4e0deccf44c93cf991602007c958"
+      },
+      {
+        "file": "20261102194320_historical_document_dates.sql",
+        "sha256": "860bf8ecbe0977ff8f0b355b072363c966c9e01294cd3102576f0f9902cd7be2"
+      },
+      {
+        "file": "20261102201231_private_volume_preview.sql",
+        "sha256": "16a322680fde265a5715115d985b99dfddaa436821abe8d9fc0d5876b4425a06"
+      },
+      {
+        "file": "20261102221000_guided_scheduling_workflow.sql",
+        "sha256": "ab85772d9df7b532f5d9d13f5dc85cd2ad87c204979729972faa2a0eda0cff12"
+      },
+      {
+        "file": "20261102231643_document_workflow_and_contact_import.sql",
+        "sha256": "9b33933c8868a2bf1cb7ff9431e82f7be07467f17a59e0142552590cd4083b11"
+      },
+      {
+        "file": "20261103001002_recurring_invoices_and_next_steps.sql",
+        "sha256": "b24f036a20075e3e646e825e135514e7f19a41c95c8eeef139de49e54577c77d"
+      },
+      {
+        "file": "20261103004720_dashboard_attention_calendar_sync.sql",
+        "sha256": "cd7915ca258ca147e96383c93da4711a81d506522a90f953e1109e34b16ddd4d"
+      },
+      {
+        "file": "20261103130223_invoice_job_handoff.sql",
+        "sha256": "de91ee825c100073ef515d30db48e80bbfaa306f7885ec41c7c78c910e979bbe"
+      },
+      {
+        "file": "20261103141230_dashboard_attention_paging.sql",
+        "sha256": "c3a98fa5158743eba2f53f7ba76ec558ce81959b1a31f568c899cbe4e55b4d72"
+      },
+      {
+        "file": "20261103182409_audit_flow_recovery.sql",
+        "sha256": "e38956abaaaa7cabf05d9cbee91b93b6c80da2c8b9cb24f18cfe69b3e5e17b1c"
+      },
+      {
+        "file": "20261103194234_private_integration_testing.sql",
+        "sha256": "314de57630a0d07b36a05d87ca767c7792edd6192a45c728c2ed664e489c5bca"
+      },
+      {
+        "file": "20261103213450_ten_pro_test_accounts.sql",
+        "sha256": "062b7e7787a8deb6a65f179a25c2cef06d71ac06124328ad0828e25ff3fb21aa"
+      },
+      {
+        "file": "20261103215156_platform_admin_support.sql",
+        "sha256": "352138afa56ef4e4250c15e40a55cf87b35698b3f49732d8a46e4474ef7a47a6"
+      },
+      {
+        "file": "20261104002548_require_sms_owner_mobile.sql",
+        "sha256": "f5e86f1141c8e0ca88645769efad11393f946558e7a1cb5669b8a1054eaa9c4d"
+      },
+      {
+        "file": "20261104150757_review_email_recipient_guard.sql",
+        "sha256": "01d1f02b78340860f1adc0edb71d0669d9c7dd96505adcc4ff8ba99091ea5f90"
+      },
+      {
+        "file": "20261104164218_change_order_review_recipient.sql",
+        "sha256": "f83a13eafb228fbe3976859beffabc51a504e6ffa672e5f950c3905e0cc7ede3"
+      },
+      {
+        "file": "20261104180222_customer_with_service_address.sql",
+        "sha256": "c7b24683b7f54139c757d98fe3bf1933ee9c0a98f64305726b7fc67f8a8f2070"
+      },
+      {
+        "file": "20261104203418_fin_contextual_workflows.sql",
+        "sha256": "eaa2c7bac51af7ba0097cf5e782956da5b1903d7b68868603e4392fdcb833870"
+      },
+      {
+        "file": "20261104203831_fin_reminder_review_snapshot.sql",
+        "sha256": "84ac6cb00c4410d4a7a8b70efdd61803c7120844b39732922fce4811cadc1e60"
+      },
+      {
+        "file": "20261104213217_fin_account_coverage.sql",
+        "sha256": "34cd79e2a8d11fd79883da8c3e41a098e5a113f663ed2263c3e636d45531330a"
+      },
+      {
+        "file": "20261104213955_fin_support_reporter_scope.sql",
+        "sha256": "fad5fff58019430efff7deb7df1b092df51e6ac06b994a1354150323af239cc9"
+      },
+      {
+        "file": "20261104214408_fin_completed_work_guard.sql",
+        "sha256": "0629952c644c1443e89f9c04065fb9621c8ca962a95e5ca7d647f541e07763dc"
+      },
+      {
+        "file": "20261105141553_attention_queue_rebalance.sql",
+        "sha256": "13d39a7263dbcb5203cca9053296553f98cda5221c98f65cba35d4f0a1d66df9"
+      },
+      {
+        "file": "20261105161826_invoice_payment_reminders.sql",
+        "sha256": "fd15b7ae48c269dd60a5df26cebd619df58dfe39e43ab06230a2514f0d805606"
+      },
+      {
+        "file": "20261105164248_centralized_payment_defaults.sql",
+        "sha256": "5b2776b204b5eca0371294402bd47be3ec654f609e331de47f48d1b02a20b272"
+      },
+      {
+        "file": "20261106115832_attention_category_filters.sql",
+        "sha256": "3930e6a8c59265252b9d12c0fe783f7ca9ae1fa60b519a0fb654e8998a0fc08f"
+      },
+      {
+        "file": "20261106131110_estimate_deposit_final_balance.sql",
+        "sha256": "bb9b9b9a65df76dc2bd44f39a1d5b3a355a407cc3fcd865a3565fea1882e48f2"
+      },
+      {
+        "file": "20261106141538_business_storage_limits.sql",
+        "sha256": "fc62985eb8409ea75178dc5eaf6889fe6092955ea358dc3eaef666039812ead8"
+      },
+      {
+        "file": "20261106150713_tier_entitlements_and_personal_delivery.sql",
+        "sha256": "af199427df32c84fa45cb66f0aec50f44f9224b1c4bad46ecbdc5df996a887b5"
+      },
+      {
+        "file": "20261106151510_managed_messaging_and_reminders.sql",
+        "sha256": "6773d28f144837fc397a215a36a9a9e100d2f4e6da205473c607754b491309fd"
+      },
+      {
+        "file": "20261106152226_tier_scheduler_activation.sql",
+        "sha256": "4b4284283aa8c88d38fd55af16df8e66b771cde435d4159d52802c52be3b8993"
+      },
+      {
+        "file": "20261106155000_included_tier_access.sql",
+        "sha256": "138dc3e247970262105f39e1891386e5625ec1f9165c7e1d8df3c7e948f64aad"
+      },
+      {
+        "file": "20261106161000_revalidate_queued_delivery.sql",
+        "sha256": "047085f156b2d7beed0a5d8a8b288d4e1fafcafe9765845a07be55f89d2670fa"
+      },
+      {
+        "file": "20261106183334_deduplicate_inbound_sms.sql",
+        "sha256": "b24ffe4420014184d564d29cf1a79e94731567fe9f358f582ae4b8b99c342713"
+      },
+      {
+        "file": "20261106202233_business_pro_scheduling.sql",
+        "sha256": "1ba7f3ea656151696ddea8658d5fb15570129ea5418522ac72b3b79a081d7443"
+      },
+      {
+        "file": "20261106202916_business_pro_recurring_visits.sql",
+        "sha256": "0c9ae9fad62cd5bde9a4e6625dd3af2ac3d0ade13734c53e09d09ddd8e0b5c55"
+      },
+      {
+        "file": "20261106214154_approval_document_branding.sql",
+        "sha256": "a495d634a8248575fd905c143fa9536f4a77870c4175474f7b0c1cb0930c879a"
+      },
+      {
+        "file": "20261106215512_linked_change_order_lines.sql",
+        "sha256": "b1b67f8ddbf949a91c6073f7505f2760b4d1dd617631a6f9b7cb2287e0e64033"
+      },
+      {
+        "file": "20261106215735_change_order_billing_handoff.sql",
+        "sha256": "263c850043055ed045da28e11ddaa6d6ee4ccb2895903f20d94d57196141f2f6"
+      },
+      {
+        "file": "20261106222808_separate_job_appointment_and_crew.sql",
+        "sha256": "b78908308cc6cccbd50082256891ee32d109174ae5fa0e4325eee794944187c6"
+      },
+      {
+        "file": "20261106225254_receipt_scans_and_google_review_links.sql",
+        "sha256": "96523ae2f195b9b752fc8ee746f93d306754f32acdbad968ac406585a8e5fcdc"
+      },
+      {
+        "file": "20261106235327_reviewed_change_order_totals.sql",
+        "sha256": "b41b9185482e5fe81d8bef9b59c5277f56137bbf113145b83a359b1231f6b65d"
+      },
+      {
+        "file": "20261107023520_streamlined_workflow_handoffs.sql",
+        "sha256": "f34fff188c1cf9a3792a9048cffc996015f42383c8707f79b912353ea364b36d"
+      },
+      {
+        "file": "20261107034000_change_order_attention.sql",
+        "sha256": "9c2cc39a9828bf5d643e03d4620b8ba17d02fb7319e6f6a4780cdac766e0ff8a"
+      },
+      {
+        "file": "20261107213625_calendar_service_setup.sql",
+        "sha256": "be1954dab605e20dbd70b83a7b2b605be2827a672f49b55e1621d24ed9e11589"
+      },
+      {
+        "file": "20261107225351_private_beta_email_delivery.sql",
+        "sha256": "432c74c2629e4348b749e90dfeaec38584e5f3f89246af29ed7be8194aa9bc2d"
+      },
+      {
+        "file": "20261107225751_stop_private_beta_email.sql",
+        "sha256": "41d8e36914b2306884f73ff94139b6f4836071fc2f7a3d507022d65602729ee9"
+      },
+      {
+        "file": "20261108001428_canonical_customer_document_revisions.sql",
+        "sha256": "2f8a509bca7d7715156dc8a8a9bab20a9576fd31f123228b70276efcce11a468"
+      },
+      {
+        "file": "20261108001434_canonical_pdf_delivery_artifacts.sql",
+        "sha256": "ef9ee91d6b9d4f1276374c83003954f5536cb2baa94ffeacf4a37a6d32efb0fc"
+      },
+      {
+        "file": "20261108001511_verified_customer_invoice_payments.sql",
+        "sha256": "f53e93f5ee564e11d4a9c3e1b97b8a5fcb17430d2e1f32af74d6e200bf000cf1"
+      },
+      {
+        "file": "20261108001744_private_beta_customer_access.sql",
+        "sha256": "4da4630cc03dec3cd28400d65b9970eb37517b2ad9ec6f150a99a4a0d14e79c7"
+      },
+      {
+        "file": "20261108003415_live_customer_scheduling.sql",
+        "sha256": "1452054d0abf18d869991190333f991df77a3459465c316418de73ad3ec0d2f0"
+      },
+      {
+        "file": "20261108003822_legacy_document_snapshot_privacy.sql",
+        "sha256": "d72a179131ee11afb9c99e64270904b77c23c6e69859f2af9460c7bf30708b77"
+      },
+      {
+        "file": "20261108011707_record_action_consistency.sql",
+        "sha256": "c0aa9f73de61844096726065c34063a04352c6a0988c2ccc632dc16d77204234"
+      },
+      {
+        "file": "20261108131228_team_management_workers.sql",
+        "sha256": "b639fad5754e1f649b7b9c396b4bcc3add21ee5d764a093cc8c8fa5826a38495"
+      },
+      {
+        "file": "20261108155833_pro_value_workflow_release.sql",
+        "sha256": "0adaab305550e3e96c7f54d93035e1764154004f024f5040de4f56a6ad3c5ac2"
+      },
+      {
+        "file": "20261108165736_e_business_card.sql",
+        "sha256": "dc81df35bb871dee4b1feb749906f15eb0a38358db7953f3f9f0d05bf5e63427"
+      },
+      {
+        "file": "20261108172645_business_card_links.sql",
+        "sha256": "701db65a2ac292bae306f8bd6a40996bdd5a017618a2f9b5b0ca39846ce7630a"
+      },
+      {
+        "file": "20261108203002_streamlined_business_onboarding.sql",
+        "sha256": "50de8986629ce1a3fe65383cb75648f9851074499a1763bc4ca37b9ec60d448e"
+      },
+      {
+        "file": "20261108203653_onboarding_owner_role_guard.sql",
+        "sha256": "6af34d672303b383dda10e49b03a14b05a7b970cb2d5ca859274528036d8ab58"
+      },
+      {
+        "file": "20261108213818_beta_business_only_access.sql",
+        "sha256": "5074ebff08b1cbb99eb288ddac84553c5b3b1de2337f05c23e6031dff378efb1"
+      },
+      {
+        "file": "20261109165725_financial_job_workspace.sql",
+        "sha256": "0056e6d9592a1b826b90ca58e4a89ffa78af378e6a370d0aef127db36159c6dc"
+      },
+      {
+        "file": "20261109165731_square_payment_workflow.sql",
+        "sha256": "84960cf5eda6dd09e4a2209c7039c08a8ae93240a68f88ab5e72d784ea582e70"
+      },
+      {
+        "file": "20261109171432_operations_recovery_polish.sql",
+        "sha256": "1f3a0ee1ede7edc21f0d9d8c7db47f4d67d5d2227cbbcf5c23f31ff4175990c7"
+      },
+      {
+        "file": "20261109171931_operations_foreign_key_indexes.sql",
+        "sha256": "281dd62e71e5def4283b2c6293f58d462fec5fcc2651b08e654002025b9f68a6"
+      },
+      {
+        "file": "20261109181418_job_plan_summaries.sql",
+        "sha256": "5f8567b69994ef26b0c964a42e1fcb4d7503849e92f18a219e7971051652acca"
+      },
+      {
+        "file": "20261109184128_job_management_workspace.sql",
+        "sha256": "dde16c121df70f6baa6ca0e7a6b5b920735cbcac9858598d80a054ca5a65ff93"
+      },
+      {
+        "file": "20261109184432_approved_job_management_handoff.sql",
+        "sha256": "53040923c18309d139b15e96e831a7562ec721fa397e434f77e0cd587e94b067"
+      },
+      {
+        "file": "20261109200048_job_management_foreign_key_indexes.sql",
+        "sha256": "91be3f1ab990d751e3f74482571239e0e8b748fcb6ddf5880271e16f330d31de"
+      },
+      {
+        "file": "20261110002708_planned_job_visits.sql",
+        "sha256": "2355476c54c51629f88863335b87d3fcacf147844364989ecf3e8bf3278013c0"
+      },
+      {
+        "file": "20261110002741_assigned_field_workspace.sql",
+        "sha256": "bb1ca4d959e8412341e14f4aee15c8bb1a36cdc487a19edb414dd95b6231287f"
+      },
+      {
+        "file": "20261110002751_job_cost_review_completion_reports.sql",
+        "sha256": "5367857aaab97ff3dbac9731bbc12980097070d34358f6a118930166e54b2680"
+      },
+      {
+        "file": "20261110003505_job_execution_access_hardening.sql",
+        "sha256": "19d4bec46637967d97a9336b8833c965e99389a7a362c93f3d696b732fcba56e"
+      }
+    ],
+    "extensions": [
+      {
+        "extname": "http",
+        "extversion": "1.6"
+      },
+      {
+        "extname": "pg_cron",
+        "extversion": "1.6.4"
+      },
+      {
+        "extname": "pg_net",
+        "extversion": "0.20.4"
+      },
+      {
+        "extname": "pg_stat_statements",
+        "extversion": "1.11"
+      },
+      {
+        "extname": "pgcrypto",
+        "extversion": "1.3"
+      },
+      {
+        "extname": "plpgsql",
+        "extversion": "1.0"
+      },
+      {
+        "extname": "supabase_vault",
+        "extversion": "0.3.1"
+      },
+      {
+        "extname": "uuid-ossp",
+        "extversion": "1.1"
+      }
+    ],
+    "postgres": "PostgreSQL 17.11 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+    "safety": {
+      "delivery_disabled": true,
+      "empty_vault": true,
+      "no_identities": true,
+      "no_files": true
+    }
+  },
+  "recovered_migration": {
+    "version": "20261103001002",
+    "name": "recurring_invoices_and_next_steps",
+    "git_commit": "8c976f4a1f4a968a173bcd944d1d66d3eedd4a8d",
+    "sha256": "b24f036a20075e3e646e825e135514e7f19a41c95c8eeef139de49e54577c77d",
+    "beta_ledger_matches": true,
+    "already_applied": true,
+    "reapplied": false
+  },
+  "live_baseline": {
+    "deployment": "dpl_GskVn9r863C93pax4hTb7YhRocDM",
+    "source": "bd70eef70b4ee09eafd387843df417a34cbbf02d",
+    "backend": "xvybcmyoblfgzokaifsx",
+    "ledger_count": 129,
+    "latest_version": "20261110003505",
+    "postgres": "17.6"
+  },
+  "local_checks": {
+    "deployment_tests": 62,
+    "assessment_tests": 8,
+    "build_startup": 65,
+    "node": "24.22.1",
+    "all_passed": true
+  },
+  "hosted_writes": false,
+  "provider_calls": false,
+  "physical_device_acceptance": false,
+  "genuine_hosted_tenant_sessions": false,
+  "required_check_settings_modified": false,
+  "rollback": "Revert test-tooling/source-recovery commit; no hosted schema rollback or data change required.",
+  "remaining": [
+    "Enforce required status and staged promotion after owner security-settings review",
+    "Real hosted tenant sessions and physical-device/provider acceptance",
+    "Customer reminder integration and later work packages"
+  ]
+}
