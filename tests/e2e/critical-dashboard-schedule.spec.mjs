@@ -1536,7 +1536,10 @@ for(const width of [1440,390])test(`invoice review has accessible ordered action
  await page.emulateMedia({media:'print'})
  await expect(resourcesTab).toBeHidden();await expect(actions).toBeHidden()
 })
-for(const width of [1440,390])test(`estimate review has accessible actions, a canonical PDF and document history at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`estimate review has accessible actions, a canonical PDF and document history at ${width}px`,async({page},testInfo)=>{
+ // This full PDF/dialog/history journey also captures a full-page 3x WebKit image.
+ // Bound the whole Safari journey at 60s; retain every action and assertion.
+ if(testInfo.project.name==='iphone-webkit')test.setTimeout(60000)
  await page.setViewportSize({width,height:1000})
  const est={...reviewDocument(4002),sent_at:undefined,expires_on:'2099-11-30'};await mockWorkspace(page,{plan:'pro',estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
  await page.goto('/?view=estimates&document='+est.id)

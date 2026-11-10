@@ -134,7 +134,7 @@
     "supabase/migrations/20261110002741_assigned_field_workspace.sql": "bb1ca4d959e8412341e14f4aee15c8bb1a36cdc487a19edb414dd95b6231287f",
     "supabase/migrations/20261110003505_job_execution_access_hardening.sql": "19d4bec46637967d97a9336b8833c965e99389a7a362c93f3d696b732fcba56e",
     "supabase/migrations/20261110002708_planned_job_visits.sql": "2355476c54c51629f88863335b87d3fcacf147844364989ecf3e8bf3278013c0",
-    "tests/e2e/critical-dashboard-schedule.spec.mjs": "7fbe52fb5a14f807e3705ff6250722d48f66a02a2ffde9542feb1c18825c6b78"
+    "tests/e2e/critical-dashboard-schedule.spec.mjs": "5bb43d6b50bc992b1672c925ab662e95722b278ce35187a9a9cde99e722ee97d"
   },
   "preparation": {
     "original_head": "373fba610a6ef46770e2e06cebeff4e39643ea98",
@@ -160,6 +160,13 @@
       129687769342,
       129687765575
     ],
-    "state": "rerun_pending"
+    "state": "rerun_pending",
+    "safari_journey": {
+      "run": 42774770626,
+      "failed_job": 129690700313,
+      "retry_job": 129694136458,
+      "finding": "The same long estimate PDF/dialog/history journey exhausted its 30-second overall budget on two runs, first at its final Activity tab and next at its final Close preview step. The test also captures a full-page 3x WebKit image. Only this journey receives a bounded 60-second Safari budget; every interaction, assertion and production file is unchanged.",
+      "state": "rerun_pending"
+    }
   }
 }
