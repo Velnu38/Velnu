@@ -14,4 +14,20 @@ Capture phase latency percentiles/errors/bytes, restart recovery time, duplicate
 
 This runner combines load generation and services on one machine. It does not measure Vercel/hosted Supabase networking, real provider latency, browser rendering, hosted Edge Functions, device performance or calendar queue delivery. Cron and billable-provider configuration stay disabled; queue-lag acceptance remains separate. Results must identify this scope and hardware rather than claim production capacity for hundreds of businesses.
 
-Run through the one-off `review/capacity-soak-20261110` PR workflow. A successful source-only build or mock stress test is not a completed campaign. Actual execution and immutable result receipts are pending.
+The one-off campaign passed in [run 42888401958](https://github.com/Velnu38/Velnu/actions/runs/42888401958), job 130082885741. The verified aggregate artifact and digest are preserved in `docs/evidence/2026-11-10-capacity-results.json`. This measured the directory/Overview and existing API paths, not the later Management/customer-search RPCs. Separate SQL/Auth/browser checks cover those changes; a separate 300-workspace reminder receipt covers simulated queue catch-up.
+
+## Measured results
+
+| Phase | Client loops | Requests | Unexpected errors | HTTP p95 / p99 | Pacing p95 | Peak HTTP in flight |
+| --- | ---: | ---: | ---: | --- | ---: | ---: |
+| ramp-10 | 10 | 900 | 0 | 46 / 57 ms | 177 ms | 4 |
+| ramp-50 | 50 | 4,500 | 0 | 45 / 50 ms | 998 ms | 4 |
+| ramp-100 | 100 | 4,527 | 0 | 41 / 48 ms | 2018 ms | 3 |
+| owned-rest-restart | 50 | 1,504 | 0 | 41 / 68 ms | 941 ms | 10 |
+| soak | 50 | 178,038 | 0 | 40 / 46 ms | 1023 ms | 12 |
+
+HTTP timings exclude deliberate request pacing. The 100-client phase is not 100 simultaneous HTTP requests. The request ceiling was 50/second. The 60-minute soak made 178,038 requests; its maximum observed HTTP duration was 4,041 ms. Twelve expected interruptions occurred during the deliberate REST restart and are accounted for separately from unexpected errors. Recovery took 1,047 ms and created no duplicate invoices.
+
+All 300 genuine sessions, 6,000 customers, 12,000 jobs, 6,000 invoices, 1,500 payments and 300 private files were verified. The files contained 236,175,600 source bytes. Fifty-six resource samples recorded at most 20 database connections and zero lock waiters; database size ranged from 45,758,131 to 48,854,707 bytes. Every sample confirmed delivery remained disabled. Fixture cleanup left zero users, businesses and files. Provider and hosted-project request counts were zero.
+
+Authenticated representative plans used existing Jobs/customer/open-invoice indexes, with observed execution times of 61.637, 15.643 and 15.551 ms respectively. These tenant sizes were 40 jobs and 20 customers; they do not establish large-tenant hosted latency. Costs and resource behavior on a shared local CI host cannot predict hosted production unit economics. Hosted pool/TLS budgets, concurrent booking/payment/provider/PDF/AI/OCR acceptance and physical-device checks remain separate. PERF-01 and PERF-02 remain open.

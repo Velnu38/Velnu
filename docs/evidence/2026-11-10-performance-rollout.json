@@ -1,0 +1,197 @@
+{
+  "observedAt": "2026-11-10",
+  "scope": "Controlled private beta only; no public cutover or provider delivery activation",
+  "repository": "Velnu38/Velnu",
+  "branch": "ux/private-testing-20261029",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/89",
+  "testedHead": "7b6c6556389fcc5380d98b2f93a5466df137f8a3",
+  "testedTree": "2034172bc0f6cfba9af74bf1f691b0220176c6ed",
+  "deployedCommit": "1a83c98466e3a6a2a220fcd17858b012c7929d8e",
+  "deployedTree": "2034172bc0f6cfba9af74bf1f691b0220176c6ed",
+  "deployment": {
+    "id": "dpl_876WcvrLESwPFgs58YN3Wx85hEnv",
+    "url": "finviant-office-4n9nbon31-mbarone5-1747.vercel.app",
+    "readyState": "READY",
+    "target": null,
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "workflows": [
+    {
+      "id": 42897597914,
+      "name": "Finviant assessment maintenance",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597914"
+    },
+    {
+      "id": 42897598165,
+      "name": "Finviant authentication access checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897598165"
+    },
+    {
+      "id": 42897597692,
+      "name": "Customer contact checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597692"
+    },
+    {
+      "id": 42897597924,
+      "name": "Predictive customer checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597924"
+    },
+    {
+      "id": 42897597687,
+      "name": "Document design checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597687"
+    },
+    {
+      "id": 42897597618,
+      "name": "Isolated 300-workspace capacity soak",
+      "conclusion": "skipped",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597618"
+    },
+    {
+      "id": 42897597932,
+      "name": "Pricing tier checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597932"
+    },
+    {
+      "id": 42897597923,
+      "name": "Complete automated test checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597923"
+    },
+    {
+      "id": 42897597668,
+      "name": "Voice review delivery checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/42897597668"
+    }
+  ],
+  "skippedWorkflowReason": "The capacity workflow is branch-guarded. Its actual 300-workspace run 42888401958 passed separately on head defdc949809f47207c7acb15bde94b576f1214c1.",
+  "completeValidation": {
+    "run": 42897597923,
+    "jobs": 21,
+    "conclusion": "success",
+    "migrationJob": 130114937839
+  },
+  "database": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "ledger": [
+      {
+        "version": "20261110205944",
+        "name": "job_management_queue_pagination"
+      },
+      {
+        "version": "20261110205948",
+        "name": "job_customer_search"
+      },
+      {
+        "version": "20261110205954",
+        "name": "appointment_reminder_queue_scan"
+      }
+    ],
+    "functions": [
+      {
+        "proname": "get_job_management_page",
+        "body_md5": "843f4236c237bd3568cf469b737ffba0",
+        "prosecdef": true,
+        "anon_execute": false,
+        "authenticated_execute": true,
+        "service_execute": false
+      },
+      {
+        "proname": "prepare_due_appointment_reminders",
+        "body_md5": "921743c19da05060757443d5646958a0",
+        "prosecdef": true,
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "service_execute": true
+      },
+      {
+        "proname": "search_job_customers",
+        "body_md5": "2b0f958c97c5a91550142e571fe95246",
+        "prosecdef": false,
+        "anon_execute": false,
+        "authenticated_execute": true,
+        "service_execute": false
+      }
+    ],
+    "sourceBodiesMatch": true
+  },
+  "advisors": {
+    "checkedAt": "2026-11-10T21:01:00Z",
+    "performance": {
+      "unindexed_foreign_keys": 50,
+      "unused_index": 66,
+      "multiple_permissive_policies": 4,
+      "auth_db_connections_absolute": 1,
+      "auth_rls_initplan": 0
+    },
+    "security": {
+      "rls_enabled_no_policy": 76,
+      "extension_in_public": 1,
+      "anon_security_definer_function_executable": 5,
+      "authenticated_security_definer_function_executable": 55,
+      "errors": 0
+    }
+  },
+  "capacityEvidence": "docs/evidence/2026-11-10-capacity-results.json",
+  "queueEvidence": "docs/evidence/2026-11-10-queue-optimized.json",
+  "rollback": {
+    "previousFrontendCommit": "2cd21f8a966d03f1e19a4f94887be60cd42bc14e",
+    "previousDeployment": "dpl_Cxs4fvyMVM22msE79A6kd779Rzze",
+    "database": "Unused read RPCs may remain after frontend rollback. If necessary restore only the previous prepare_due_appointment_reminders function definition from 20261109221000_appointment_customer_reminders.sql; do not replay the entire old migration."
+  },
+  "remainingAcceptance": [
+    "Hosted aggregate serverless connection budget, transaction-pooler endpoint and external TLS",
+    "Hosted representative query/load latency, including the new Management/customer-search RPCs",
+    "Concurrent bookings/payments, bounded PDF/AI/OCR/provider workload and actual Edge-worker cadence",
+    "Physical-device/current-user acceptance and the other public-launch gates"
+  ],
+  "httpVerification": {
+    "checkedAt": "2026-11-10T21:10:50.007264+00:00",
+    "checks": [
+      {
+        "host": "finviant.com",
+        "rootStatus": 200,
+        "robots": "noindex, nofollow, noarchive",
+        "title": "Finviant Office \u2014 AI Business Assistant",
+        "entry": "/assets/index-DB_c_WGD.js",
+        "entryStatus": 200,
+        "appChunk": "/assets/App-D15jXjJA.js",
+        "appStatus": 200,
+        "jobsChunk": "/assets/JobsPage-C2rpkRZf.js",
+        "jobsStatus": 200,
+        "deployedFunctionReferences": {
+          "get_job_management_page": true,
+          "search_job_customers": true,
+          "get_private_beta_access": true
+        }
+      },
+      {
+        "host": "www.finviant.com",
+        "rootStatus": 200,
+        "robots": "noindex, nofollow, noarchive",
+        "title": "Finviant Office \u2014 AI Business Assistant",
+        "entry": "/assets/index-DB_c_WGD.js",
+        "entryStatus": 200,
+        "appChunk": "/assets/App-D15jXjJA.js",
+        "appStatus": 200,
+        "jobsChunk": "/assets/JobsPage-C2rpkRZf.js",
+        "jobsStatus": 200,
+        "deployedFunctionReferences": {
+          "get_job_management_page": true,
+          "search_job_customers": true,
+          "get_private_beta_access": true
+        }
+      }
+    ]
+  }
+}

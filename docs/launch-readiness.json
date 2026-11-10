@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "b19f89f278eeed0bf09b32123cfaed83c47db565",
+  "auditedCommit": "1a83c98466e3a6a2a220fcd17858b012c7929d8e",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -15,8 +15,8 @@
     },
     {
       "title": "Current audited release baseline",
-      "detail": "Current private-beta merge b19f89f278eeed0bf09b32123cfaed83c47db565 is READY at dpl_ABypKt34wEfTbirtodshytiNnz5Y on finviant.com and www.finviant.com. PR83 archive and PR84 Jobs Overview passed every final PR workflow, including complete validation runs 42875112089 and 42876650472. Hosted migration grants, matching archive/worker sources and unauthorized access were checked. This release does not certify hosted load, provider sending, merchant payments, physical devices or public cutover.",
-      "evidence": "docs/evidence/2026-11-10-archive-overview-rollout.json",
+      "detail": "Private-beta merge 1a83c98466e3a6a2a220fcd17858b012c7929d8e is READY at dpl_876WcvrLESwPFgs58YN3Wx85hEnv on both domains. The deployed tree exactly matches final PR89 candidate 7b6c655. All eight applicable release workflows passed, including all 21 complete-validation jobs, full browser and iPhone WebKit checks. Three hosted functions match source hashes and expected grants. The separate isolated 300-workspace campaign and reminder concurrency test passed; hosted/provider/device and public-launch gates remain open.",
+      "evidence": "docs/evidence/2026-11-10-performance-rollout.json",
       "verifiedAt": "2026-11-10"
     },
     {
@@ -332,39 +332,39 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Isolated capacity harness prepared",
-      "detail": "A separate disposable CI platform creates 300 genuine password sessions and workspaces, 6,000 customers, 12,000 jobs, 6,000 invoice histories with 1,500 payments, and 300 actual private PNG files. The bounded workload exercises 10/50/100 clients, a controlled owned PostgREST restart, retry identity, tenant denials, session refresh and a 60-minute soak. Limits are 50 requests/second, 250,000 requests, 15-second request timeout and 1,500ms p95 target. Local safety/statistics/PNG checks pass; the actual campaign is pending. It neither targets beta nor certifies hosted/provider/browser capacity.",
-      "evidence": "docs/ISOLATED_CAPACITY_2026-11-10.md; scripts/qa/local-capacity.mjs; .github/workflows/capacity-soak.yml",
+      "title": "Isolated 300-workspace capacity campaign passed",
+      "detail": "Run 42888401958 created 300 genuine password sessions/workspaces, 6,000 customers, 12,000 jobs, 6,000 invoices, 1,500 payment histories and 300 private PNG files (236,175,600 bytes). The 10/50/100 client-loop ramps, controlled owned REST restart and 60-minute soak passed. The 178,038-request soak had zero unexpected errors and HTTP p95/p99 40/46 ms; the 50-request/second cap and pacing are separate from HTTP timing. Peak simultaneous HTTP requests was 12, so this does not prove 100 simultaneous requests. Recovery took 1,047 ms with 12 expected outage errors. Complete fixture cleanup passed. No hosted project or external provider requests were made. Hosted connection budgets, concurrent bookings/payments and PDF/AI/OCR/provider work remain open.",
+      "evidence": "docs/evidence/2026-11-10-capacity-results.json; docs/ISOLATED_CAPACITY_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Bounded Job Management queue prepared",
-      "detail": "A separate review candidate replaces the full Jobs and legacy-approved-work fetch with get_job_management_page: ten jobs or accepted estimates, full scope counts, literal job/customer/address search, and signals only for visible jobs. Selected workspaces and unsaved forms survive queue refreshes. Database tests cover 50,002 jobs, final-page clamping, real legacy rows, due tasks/materials, customer scope and staff/anonymous/foreign/revoked access; existing management and execution journeys remain covered. Full CI, genuine Auth replay, hosted migration and deployment remain pending. Customer-picker scaling and hosted load/queue capacity remain separate open work.",
-      "evidence": "docs/JOB_MANAGEMENT_PAGING_2026-11-10.md; tests/operations/management-page.test.ts; tests/e2e/operations-workspaces.spec.mjs",
+      "title": "Bounded Job Management queue deployed",
+      "detail": "The private beta now uses get_job_management_page for ten jobs or legacy accepted estimates, complete scope counts, literal job/customer/address search and visible-job signals. Selected workspaces and unsaved forms survive refreshes. Final PR89 workflows passed 50,002-job SQL/access tests, genuine Auth replay, phone/desktop browser and management/execution journeys. Hosted migration 20261110205944 has the expected source hash and grants; both domains serve the tested release. The earlier capacity campaign did not load this new RPC; hosted latency acceptance remains open.",
+      "evidence": "docs/evidence/2026-11-10-performance-rollout.json; docs/JOB_MANAGEMENT_PAGING_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Job draft customer search prepared",
-      "detail": "A separate review candidate removes the full customer-list fetch from Jobs entry and refresh. Job forms use eight server-selected matches plus one selected active contact, retaining customer RLS, Jobs permissions, accent/phone/literal search, inline new customers and draft state. Local 50,000-contact access/search tests, build and operations DOM checks pass. Full CI and private-beta migration/deployment remain pending. This is not whole-app directory or hosted latency acceptance.",
-      "evidence": "docs/JOB_CUSTOMER_SEARCH_2026-11-10.md; tests/records/job-customer-search.test.ts; tests/e2e/job-customer-search.spec.mjs",
+      "title": "Job draft customer search deployed",
+      "detail": "Jobs entry and refresh no longer fetch the full customer directory. Forms use eight server matches plus one selected active contact, with caller-rights RLS, Jobs permission checks, accent/phone/literal search, inline creation and preserved drafts. Final PR89 workflows passed 50,001-contact access/search tests, genuine Auth replay and actual phone/desktop picker contracts. Hosted migration 20261110205948 and both beta domains were verified. Other directories and measured hosted search latency remain separate acceptance.",
+      "evidence": "docs/evidence/2026-11-10-performance-rollout.json; docs/JOB_CUSTOMER_SEARCH_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     },
     {
       "title": "Current hot-path advisor review",
-      "detail": "The November 10 19:57 UTC beta review found 50 unindexed FK notices, 66 unused indexes, four multiple-permissive-policy notices and Auth connection allocation fixed at ten. No identity InitPlan or health findings remain; security returned no ERROR findings. Reviewed the five missing-FK notices on Jobs, invoices and appointments against actual index definitions; existing partial/unique coverage and missing broader coverage are documented without blindly adding/removing indexes. Aggregate serverless/transaction-pooler/TLS configuration and representative plan/capacity acceptance remain open.",
-      "evidence": "docs/PERFORMANCE_ADVISOR_REVIEW_2026-11-10.md",
+      "detail": "The November 10 21:01 UTC post-release beta review retained 50 unindexed FK notices, 66 unused indexes, four multiple-permissive-policy notices and the Auth connection strategy notice. No auth identity InitPlan group or security ERROR finding was returned. The authenticated security-definer count increased from 54 to 55 for the new membership-guarded Management read function. Five hot-path FK notices were reviewed against actual coverage without blind index changes. Isolated authenticated plans and connection samples are recorded; aggregate hosted serverless/pooler/TLS configuration remains unverified.",
+      "evidence": "docs/PERFORMANCE_ADVISOR_REVIEW_2026-11-10.md; docs/evidence/2026-11-10-performance-rollout.json",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Isolated reminder queue catch-up prepared",
-      "detail": "A review candidate adds 300 synthetic workspace reminders with four overlapping PostgreSQL service-role dispatcher loops to the disposable full-schema replay. It checks bounded preparation/list batches, single dispatch and allowance reservation, simulated accepted receipts, one uncertain outcome retained for reconciliation, backlog drainage and complete fixture cleanup. No provider requests or hosted workers run. Real execution metrics and CI are pending; hosted worker cadence and full PERF-02 acceptance remain open.",
-      "evidence": "docs/QUEUE_CATCHUP_2026-11-10.md; scripts/qa/queue-catchup.mjs; tests/deployment/queue-catchup.test.mjs",
+      "title": "Isolated reminder queue catch-up passed",
+      "detail": "Final-head genuine PostgreSQL replay prepared 300 synthetic-workspace reminders and drained them with four overlapping SQL dispatcher loops in 15,359 ms after 7,083 ms preparation. Claim p95/p99 was 53/59 ms. All 300 allowance reservations were unique: 299 simulated accepted receipts and one uncertain retained without resend; 900 overlapping claims were skipped, no duplicate dispatch occurred and fixture cleanup passed. Provider requests were zero. Synthetic database identities and local SQL dispatchers do not certify hosted Edge-worker cadence or real delivery.",
+      "evidence": "docs/evidence/2026-11-10-queue-optimized.json; docs/QUEUE_CATCHUP_2026-11-10.md",
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Reminder queue baseline measured; repeated scan fix prepared",
-      "detail": "The isolated PostgreSQL replay drained 300 reminders with four overlapping SQL dispatchers in 17,483 ms: 299 simulated accepted, one uncertain retained, 300 usage reservations, 900 duplicate claims skipped, no duplicate dispatch and complete cleanup. Preparation took 37,208 ms across six insert batches and an idempotence recheck. A new additive migration uses the existing unique occurrence index to skip all durably queued states before recipient/consent snapshots, preserving claim-time checks and the 50-row insert batch. Post-change timing and full release verification are pending; no real delivery or hosted capacity is certified.",
-      "evidence": "docs/evidence/2026-11-10-queue-baseline.json; docs/REMINDER_SCAN_2026-11-10.md",
+      "title": "Reminder preparation scan optimized and deployed",
+      "detail": "The measured baseline preparation time of 37,208 ms fell to 7,083 ms (81.0%) in the final-head isolated replay. The deployed function uses the existing unique occurrence index to exclude every durably queued state before rebuilding recipient/consent snapshots, retaining uncertain outcomes, claim-time eligibility, rescheduled occurrences and the 50-row batch. Final CI passed; hosted migration 20261110205954 matches source and remains service-only. No cron or customer delivery was activated.",
+      "evidence": "docs/evidence/2026-11-10-queue-baseline.json; docs/evidence/2026-11-10-queue-optimized.json; docs/evidence/2026-11-10-performance-rollout.json",
       "verifiedAt": "2026-11-10"
     }
   ],
@@ -486,7 +486,7 @@
       "status": "open",
       "title": "Tune RLS, queries and connection budgets",
       "owner": "Developer",
-      "why": "The 23-policy identity InitPlan migration is deployed; no remaining auth_rls_initplan advisor group was returned on November 10 at 19:57 UTC. The current inventory has 50 unindexed foreign keys and 66 unused indexes; five hot-path FK notices were reviewed against existing coverage without blind index removal. Jobs directory/Overview pagination is deployed; Management and job-customer search are separate review candidates. Representative hosted plans, aggregate connection budgets and measured capacity remain open.",
+      "why": "The 23-policy identity InitPlan fix and bounded Jobs directory, Overview, Management and job-customer search are deployed. Post-release advisors show no auth InitPlan group; 50 FK and 66 unused-index notices remain, with five hot-path FK notices reviewed against actual coverage. Isolated authenticated query plans and 300-workspace resource samples are recorded. Representative hosted plans, aggregate serverless connection budgets, transaction-pooler endpoint and external TLS verification remain open.",
       "acceptance": "Review plans on representative tenant sizes; fix applicable auth initplan patterns and high-value FK/filter/order indexes, then rerun tenant authorization tests. Verify transaction pooler/TLS/dedicated calendar role, aggregate serverless pool limits (calendar pool max=3 per instance), Auth reserve, timeouts and pagination. Measure before/after; do not blindly drop 39 unused indexes.",
       "evidence": []
     },
@@ -497,7 +497,7 @@
       "status": "not_verified",
       "title": "Measure capacity with realistic isolated tenant load",
       "owner": "Developer / QA",
-      "why": "One business and a malformed-input campaign do not establish a hundreds-of-business capacity claim.",
+      "why": "The isolated 300-genuine-workspace campaign passed 10/50/100 client-loop ramps, a controlled REST recovery and a 60-minute soak with realistic history and private files; a separate 300-workspace reminder concurrency test passed with simulated outcomes. The 50-request/second cap produced at most 12 simultaneous HTTP requests. This is not hosted capacity acceptance: concurrent booking/payment workflows, bounded PDF/AI/OCR/provider load, hosted pool/TLS budgets and actual worker cadence remain unverified.",
       "acceptance": "Use isolated, provider-approved staging and synthetic distinct authenticated tenants; run smoke, 10/50/100-concurrent-user ramps across at least 300 workspaces, then a 60-minute soak and queue catch-up. Cover realistic invoices/jobs/history/photos, concurrent bookings/payments, PDF/AI/OCR work with bounded stub providers, and second-tenant isolation. Record p95/p99 latency, failures, saturation and cost; proceed toward 1,000 workspaces only after the first target passes.",
       "evidence": []
     },
