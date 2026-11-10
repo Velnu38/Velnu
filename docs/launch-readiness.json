@@ -14,8 +14,8 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Live release",
-      "detail": "Current private-beta source is bd70eef70b4ee09eafd387843df417a34cbbf02d, READY preview dpl_GskVn9r863C93pax4hTb7YhRocDM on both custom domains. It follows PR69 application merge c3dcddaaf650784f2ce59b15f6e7972b98b1f592 and documentation receipts. All seven PR69 workflows passed at final application head 36fcf3599c18741567b7a414003a2d1b7ed6b3f8. Manager-operated workers, stationery, availability, Fin guidance and private admission remain. Beta database xvybcmyoblfgzokaifsx has 129 migration ledger entries through 20261110003505; no migrations were reapplied for this reconciliation. Provider, actual-device and load acceptance remain separate open gates.",
+      "title": "Verified release baseline before PR72",
+      "detail": "Private-beta source verified before this integration was bd70eef70b4ee09eafd387843df417a34cbbf02d, READY preview dpl_GskVn9r863C93pax4hTb7YhRocDM on both custom domains. It follows PR69 application merge c3dcddaaf650784f2ce59b15f6e7972b98b1f592 and documentation receipts. All seven PR69 workflows passed at final application head 36fcf3599c18741567b7a414003a2d1b7ed6b3f8. Manager-operated workers, stationery, availability, Fin guidance and private admission remain. Beta database xvybcmyoblfgzokaifsx has 129 migration ledger entries through 20261110003505; no migrations were reapplied for this reconciliation. Provider, actual-device and load acceptance remain separate open gates.",
       "evidence": "PR69 workflow/API receipts; Vercel alias/deployment read; read-only beta migration/extension aggregate on 2026-11-10; docs/evidence/2026-11-09-job-execution-validation.json",
       "verifiedAt": "2026-11-10"
     },
@@ -209,6 +209,12 @@
       "title": "Full migration replay and release validation",
       "detail": "Full 78-file unchanged application SQL replay passed in a fresh Supabase/PostgreSQL 17.11 instance at 74c92cf6f2c4a403acf76bb470433f600e7aeec7, run 42809118643. Recovered the omitted 20261103001002 recurring migration from Git; its SHA-256 exactly matches the already-applied beta ledger. Real final definitions passed invoice tax/totals, document/payment retries, remaining balances, approval-to-one-job, two database-identity tenant denial and manager-created roster worker without a login/membership. Fixtures rolled back with zero identities/businesses/payments/files retained; cron was disabled, delivery unconfigured and Vault empty. The combined Release validation workflow now includes all desktop/mobile/browser, financial/security/PDF/DOM/Deno and full replay suites on release PRs and actual release-branch pushes. Repository enforcement and staged Vercel promotion are prepared for owner review, not activated. No hosted SQL or provider writes occurred.",
       "evidence": "docs/evidence/2026-11-10-migration-replay-validation.json; https://github.com/Velnu38/Velnu/actions/runs/42809118643; docs/RELEASE_MIGRATION_REPLAY.md",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Remaining PR70 mobile regression repairs",
+      "detail": "Retained the approved shared editable full/partial-payment form and corrected its obsolete standalone browser expectations. The test checks default/open balances, editable amount bounds, partial then remaining settlement, deposit credit display, deposit creation and navigation. Integrated PR70\u2019s constrained Jobs grid with a 390px assertion that the board retains its own horizontal scrolling while the page fits the viewport. These prepared repairs are included in the combined same-source Release validation workflow; no customer sending or payment capture is performed.",
+      "evidence": "PR72; tests/billing-ui/run.mjs; tests/e2e/operations-workspaces.spec.mjs; src/components/jobs-overview.css; initial obsolete-assertion receipt job 129807759957",
       "verifiedAt": "2026-11-10"
     }
   ],
