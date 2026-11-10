@@ -2,6 +2,19 @@
 -- Real managed Auth/Storage and final application definitions; no helper stubs.
 -- Database role/JWT-claim simulation, not hosted Auth sessions or provider tests.
 begin;
+do $$declare health jsonb; metric text;begin
+ if has_function_privilege('anon','public.finviant_ops_health()','EXECUTE')
+  or has_function_privilege('authenticated','public.finviant_ops_health()','EXECUTE')
+  or not has_function_privilege('service_role','public.finviant_ops_health()','EXECUTE') then
+  raise exception 'Worker health must retain service-only access' using errcode='23514',constraint='replay_health_acl';
+ end if;
+ health:=public.finviant_ops_health();
+ foreach metric in array array['calendar_stale','calendar_dead','calendar_reconnect_required','appointment_stale','appointment_uncertain','appointment_failed_last_day','recurring_overdue','recurring_needs_review'] loop
+  if jsonb_typeof(health->metric) is distinct from 'number' or (health->>metric)::bigint<>0 then
+   raise exception 'Disposable empty database has missing or unhealthy worker metrics' using errcode='23514',constraint='replay_health_metrics';
+  end if;
+ end loop;
+end $$;
 -- View dependencies evolve with Job Management. Check the actual final view,
 -- not a copied fixture, against the dedicated worker's column privileges.
 do $$begin

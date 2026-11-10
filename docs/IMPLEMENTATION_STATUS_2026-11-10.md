@@ -9,7 +9,7 @@ The user authorized continued implementation, testing and deployment on November
 
 The last verified domain release before this batch was `bd70eef70b4ee09eafd387843df417a34cbbf02d`, Vercel preview `dpl_GskVn9r863C93pax4hTb7YhRocDM`. It includes the integrated document stationery, manager availability, Fin guide and manager Job Management releases. Beta database: `xvybcmyoblfgzokaifsx`. The separate production project is not the target.
 
-PR72 adds full migration replay and a combined release check. PR73's missing-suite rejection is merged into PR72. PR74 integrates the existing reminder branch with Job Management and adds mandatory full-schema concurrent reminder tests. Both candidates await their final checks and deployment; this document is not a deployment receipt.
+PR72 adds full migration replay and a combined release check. PR73's missing-suite rejection is merged into PR72. PR74 integrates the existing reminder branch with Job Management and adds mandatory full-schema concurrent reminder tests. PR72 is now deployed as merge 045c697e718ef1116b86774b996ffd2ea5259c1e (Vercel dpl_9fbaX5ymTMd8YbQsz5RqandyWZ8r), with both domain aliases verified. PR74 and PR75 await final checks and deployment. PR75 includes the calendar grant repair and 23-policy identity optimization. Worker health coverage is prepared in a dependent candidate.
 
 | # | Work package | Implementation / current evidence | Acceptance or implementation still required |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ PR72 adds full migration replay and a combined release check. PR73's missing-sui
 | 8 | Tenant/security | Fresh review finds no private table directly readable by anon/authenticated; new reminder tests deny unrelated identity and worker RPC access | Genuine tenant/role/revoked-session/storage/token matrix and independent security acceptance |
 | 9 | Auth/recovery | Existing password/session/onboarding fixes and automated access tests retained | Auth configuration, branded SMTP/domain ownership, real recovery/invitation/MFA and physical-device acceptance |
 | 10 | Abuse controls | Existing atomic feature quotas and provider-attempt budgets retained | Shared burst limits across public reads, signup, AI/voice/OCR, PDFs, uploads and sends; dollar ceilings |
-| 11 | Monitoring | Protected aggregate health endpoint and safe request diagnostics exist | Queue coverage, alert configuration/approved destination and proven controlled incident delivery |
+| 11 | Monitoring | Expanded calendar/reminder/recurring aggregate health and service-only failure/recovery checks prepared | Full replay/deployment, alert configuration/approved destination and proven controlled incident delivery |
 | 12 | Workers | Existing idempotency/leases; reminder concurrency test adds changed-recipient, competing-claim and uncertain-send coverage | Complete calendar/recurrence/payment recovery matrix, queue-age visibility and reconciliation procedures |
 | 13 | Backup/restore | Disposable migration replay validates schema construction | Complete synthetic business and actual Storage restore, hash/permission/balance checks and measured RPO/RTO |
 | 14 | Performance/capacity | 23-policy identity optimization prepared and tested locally; 49 unindexed FKs still require query review | Representative query plans/tuning, 300-tenant 10/50/100-user load and 60-minute isolated soak |
