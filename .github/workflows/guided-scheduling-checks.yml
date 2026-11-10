@@ -2,8 +2,8 @@ name: Guided scheduling workflow
 on:
   push:
     branches: [feature/guided-scheduling-20261102]
-  pull_request:
-    branches: [ux/private-testing-20261029]
+  # The complete release workflow invokes these same jobs for release PRs/pushes.
+  workflow_call:
 permissions:
   contents: read
 concurrency:
@@ -43,7 +43,7 @@ jobs:
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always() && github.head_ref != 'review/finviant-integration-20261109'
+        if: failure() && !startsWith(github.head_ref, 'review/')
         with:
           name: guided-scheduling-results
           path: test-results/
@@ -72,7 +72,7 @@ jobs:
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always() && github.head_ref != 'review/finviant-integration-20261109'
+        if: failure() && !startsWith(github.head_ref, 'review/')
         with:
           name: guided-browser-shard-${{ matrix.shard }}
           path: test-results/

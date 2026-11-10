@@ -7,7 +7,7 @@ try{
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});const page=await browser.newPage({viewport:{width:390,height:844}});page.on('dialog',d=>d.accept())
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto('http://127.0.0.1:4178/tests/billing-ui/index.html')
- await expect(page.getByText('Deposit credited',{exact:true})).toBeVisible()
+ await expect(page.getByText('Deposit credited: $30.00 · Open deposit invoice',{exact:true})).toBeVisible()
  await page.getByRole('button',{name:'Mark Paid',exact:true}).click()
  await expect(page.getByLabel('Amount',{exact:true})).toHaveValue('75')
  await expect(page.getByLabel('Amount',{exact:true})).toHaveAttribute('readonly','')

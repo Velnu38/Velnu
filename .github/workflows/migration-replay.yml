@@ -2,13 +2,11 @@ name: Full Supabase migration replay
 on:
   push:
     branches: [review/release-replay-20261110]
-  pull_request:
-    branches: [ux/private-testing-20261029]
-    paths: ['supabase/migrations/**', 'scripts/qa/replay-migrations.mjs', 'tests/deployment/migration-replay.test.mjs', '.github/workflows/migration-replay.yml']
+  workflow_call:
 permissions:
   contents: read
 concurrency:
-  group: migration-replay-${{ github.head_ref || github.ref_name }}
+  group: migration-replay-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   postgres-17:

@@ -8,6 +8,7 @@ import pg from 'pg'
 
 export const CLI_VERSION = '3.1.0'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const platformPath = join(root, 'supabase/bootstrap/platform-extensions.sql')
 
 export function localDatabaseUrl(value) {
   const url = new URL(value)
@@ -110,20 +111,24 @@ export async function main() {
     console.log(`Starting disposable Supabase with CLI ${CLI_VERSION}; no hosted credentials or source migrations at startup`)
     started = true
     cli(['start', '--exclude', 'realtime,imgproxy,studio,postgres-meta,edge-runtime,logflare,vector,supavisor'], 720_000)
-    // The managed postgres role cannot ALTER SYSTEM. Use only our uniquely named
-    // disposable container's local administrator, never a hosted administrator.
-    const configure = spawnSync('docker', ['exec', `supabase_db_${projectId}`, 'psql', '-U', 'supabase_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
-      '-c', "alter system set cron.launch_active_jobs = 'off'", '-c', 'select pg_reload_conf()'], {
-      encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024,
-    })
-    if (configure.status !== 0) throw new Error('Could not disable cron in the owned disposable container')
     const status = JSON.parse(cli(['status', '-o', 'json']))
     if (!status.DB_URL) throw new Error('Local Supabase status did not return a database URL')
-    client = new pg.Client({ connectionString: localDatabaseUrl(status.DB_URL), application_name: 'finviant-disposable-replay' })
+    client = new pg.Client({ connectionString: localDatabaseUrl(status.DB_URL), application_name: 'finviant-disposable-replay', connectionTimeoutMillis: 10_000, statement_timeout: 30_000 })
     await client.connect()
+    await requireEmptyPlatform(client)
+    // The managed postgres role cannot ALTER SYSTEM. Use only our uniquely named
+    // disposable container's local administrator, never a hosted administrator.
+    const platformSql = readFileSync(platformPath, 'utf8')
+    const configure = spawnSync('docker', ['exec', '-i', `supabase_db_${projectId}`, 'psql', '-U', 'supabase_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
+      '-c', "alter system set cron.launch_active_jobs = 'off'", '-c', 'select pg_reload_conf()', '-f', '-'], {
+      input: platformSql, encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024,
+    })
+    if (configure.status !== 0) throw new Error('Could not prepare platform prerequisites and disable cron in the owned disposable container')
     const manifest = migrationManifest(join(root, 'supabase/migrations'))
     const result = await replay(client, manifest)
-    console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION, migrations: result.applied.length, ...result }, null, 2))
+    console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION,
+      platformPrerequisite: { file: 'supabase/bootstrap/platform-extensions.sql', sha256: createHash('sha256').update(platformSql).digest('hex') },
+      migrations: result.applied.length, ...result }, null, 2))
   } finally {
     if (client) await client.end()
     // Unique project only. Never use --all, a linked ref, or a remote db reset.

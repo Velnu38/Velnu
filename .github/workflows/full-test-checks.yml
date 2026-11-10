@@ -1,7 +1,7 @@
 name: Complete automated test checks
 on:
   push:
-    branches: [ux/document-design-20261109]
+    branches: [ux/document-design-20261109, ux/private-testing-20261029]
   pull_request:
     branches: [ux/private-testing-20261029]
 permissions:
@@ -10,6 +10,10 @@ concurrency:
   group: complete-tests-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
+  migrations:
+    uses: ./.github/workflows/migration-replay.yml
+  desktop-and-scheduling:
+    uses: ./.github/workflows/guided-scheduling-checks.yml
   node-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -93,7 +97,7 @@ jobs:
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always() && github.head_ref != 'review/finviant-integration-20261109'
+        if: failure() && !startsWith(github.head_ref, 'review/')
         with:
           name: private-beta-email-browser
           path: test-results/
@@ -114,6 +118,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # A single worker owns browser focus for the full handoff/confirmation journey.
       - run: npx playwright test --grep @native-handoff --workers=1
+      - name: Mobile invoice settlement and deposit browser journey
+        run: node tests/billing-ui/run.mjs
   iphone-webkit:
     name: iPhone WebKit (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -134,8 +140,29 @@ jobs:
       # Existing simulated Safari coverage; this does not certify physical devices.
       - run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --config=playwright.mobile.config.mjs --fully-parallel --workers=2 --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always() && github.head_ref != 'review/finviant-integration-20261109'
+        if: failure() && !startsWith(github.head_ref, 'review/')
         with:
           name: iphone-webkit-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
+  release-validation:
+    name: Release validation
+    if: always()
+    needs: [migrations, desktop-and-scheduling, node-tests, pure-deno-tests, dom-tests, private-beta-email, native-app-handoffs, iphone-webkit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every release suite to succeed
+        env:
+          SUITE_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node --input-type=module <<'JS'
+          const results = JSON.parse(process.env.SUITE_RESULTS)
+          if (!Object.keys(results).length) throw new Error('No release suite results were supplied')
+          const failed = Object.entries(results).filter(([, value]) => value.result !== 'success')
+          if (failed.length) {
+            console.error('Release blocked:', failed.map(([name, value]) => `${name}=${value.result}`).join(', '))
+            process.exit(1)
+          }
+          console.log('All required release suites passed on this commit')
+          JS
