@@ -4,7 +4,7 @@ import { resolveAppEnvironment } from '../_shared/appEnvironment.ts'
 import { receiptScanHandler } from './handler.ts'
 
 const url = Deno.env.get('SUPABASE_URL')!
-const environment = resolveAppEnvironment(url, Deno.env.get('FINVIANT_APP_BASE_URL'), Deno.env.get('FINVIANT_QA_SUPABASE_PROJECT_REF'))
+const environment = resolveAppEnvironment(url, Deno.env.get('FINVIANT_APP_BASE_URL'))
 const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } })
 const region = Deno.env.get('RECEIPT_AWS_REGION')
 const accessKeyId = Deno.env.get('RECEIPT_AWS_ACCESS_KEY_ID')
