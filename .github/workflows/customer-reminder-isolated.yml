@@ -1,0 +1,54 @@
+name: Isolated customer reminder verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Synthetic reminder and UI regressions
+        run: |
+          npx tsc -b --pretty false
+          npm run test:settings
+          npm run test:integrations
+          node tests/settings/appointment-reminders-dom.mjs
+          node tests/settings/invoice-reminder-overrides-dom.mjs
+          npm run assessment:check
+      - name: Start disposable local database and apply full migration chain
+        # No hosted project link, secrets, external provider credentials or Edge Runtime.
+        run: |
+          npx --no-install supabase init --yes
+          npx --no-install supabase start --exclude edge-runtime,studio,imgproxy,logflare,vector,supavisor --yes
+      - name: Verify default-off database state
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: |
+          node --input-type=module <<'JS'
+          import pg from 'pg'; import assert from 'node:assert/strict';
+          const db=new pg.Client(); await db.connect();
+          const result=await db.query(`select to_regprocedure('public.claim_appointment_reminder(uuid,boolean)')::text as claim, (select count(*)::int from private.appointment_reminder_rules where enabled) as enabled, (select count(*)::int from private.appointment_reminder_queue) as queued`);
+          assert.ok(result.rows[0].claim); assert.equal(result.rows[0].enabled,0); assert.equal(result.rows[0].queued,0);
+          await db.query('create database finviant_reminder_test_concurrency');
+          await db.end(); console.log('Full migration chain applied; appointment defaults disabled; queue empty. No provider invoked.');
+          JS
+      - name: Exercise real local PostgreSQL concurrency with synthetic fixtures
+        env:
+          FINVIANT_REMINDER_LOCAL_PG_URL: postgresql://postgres:postgres@127.0.0.1:54322/finviant_reminder_test_concurrency
+        run: node --import tsx --test --test-name-pattern='optional local PostgreSQL' tests/settings/appointment-reminders.test.ts
+      - name: Stop disposable local services
+        if: always()
+        run: npx --no-install supabase stop --no-backup || true

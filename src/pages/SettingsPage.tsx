@@ -1,3 +1,5 @@
+import AppointmentReminderDefaults from '../components/settings/AppointmentReminderDefaults'
+import DeliveryAutomation from '../components/settings/DeliveryAutomation'
 import EBusinessCard from '../components/settings/EBusinessCard'
 import PlanRestriction from '../components/PlanRestriction'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
@@ -37,6 +39,7 @@ export default function SettingsPage({ business, onSaved }: {
   const permitted = section !== null && canOpenSettingsSection(business, section)
 
   function content(id: SettingsSection) {
+    if (id === "customer_reminders") return <><DeliveryAutomation key={business.id} businessId={business.id}/><AppointmentReminderDefaults key={business.id} businessId={business.id}/></>;
     if (id === "plans") return <PlansAndUsage businessId={business.id}/>;
     if (id === "delivery") return <DeliverySetup businessId={business.id}/>;
     if (id === "storage") return <StorageUsage key={business.id} businessId={business.id} detailed canUpgrade={isPrimaryOwner(business)}/>;

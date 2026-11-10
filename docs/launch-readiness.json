@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Customer reminder defaults: isolated review branch",
+      "detail": "Reconstructed customer invoice defaults (2 days overdue, repeat 7, maximum 3) and owner-enabled appointment defaults (48 elapsed hours, email or SMS), per-record overrides, separate customer/internal settings, purpose-specific SMS consent and durable occurrence suppression. Local synthetic checks pass; no migration, worker deployment, activation or provider send has occurred. Full-chain PostgreSQL concurrency and controlled provider/mobile acceptance remain unverified. PR69 multi-visit design was inspected but not merged.",
+      "evidence": "docs/CUSTOMER_REMINDER_DEFAULTS_2026-11-09.md; docs/evidence/2026-11-09-customer-reminders-validation.json",
+      "verifiedAt": "2026-11-09"
+    },
+    {
       "title": "Live release",
       "detail": "Job Management source 626c9ee15be64e13063286f46af4807f713c22f4 reached READY deployment dpl_GpVsvU76D38cC8mLCPqUeFG53Mcc on finviant.com/www. The Jobs route, application loader and new Jobs JavaScript/CSS returned HTTP 200. Loaded JavaScript includes Job Management, Materials, Complete job and the approved-job preparation RPC. Hosted isolation guard passed for preview; existing authentication/audience remains. This proves source delivery, not a signed-in physical-device/provider journey.",
       "evidence": "Vercel deployment/alias metadata and protected HTTP asset fetches; docs/evidence/2026-11-09-job-management-validation.json",
@@ -408,9 +414,11 @@
       "status": "open",
       "title": "Extend owner-controlled follow-up automation",
       "owner": "Developer",
-      "why": "Scheduled email/overdue invoice reminders already exist; broader estimate/appointment automation is optional expansion.",
+      "why": "Customer reminder defaults and appointment outbox are implemented on an isolated review branch; full-chain deployment, concurrency and controlled provider acceptance remain unverified.",
       "acceptance": "Add only needed follow-up rules with owner enablement, reviewed timing, response/payment suppression and retry safety; do not advertise unimplemented rules.",
-      "evidence": []
+      "evidence": [
+        "docs/evidence/2026-11-09-customer-reminders-validation.json (synthetic only; gate remains open)"
+      ]
     },
     {
       "id": "EXPORT-01",
