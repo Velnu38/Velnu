@@ -14,12 +14,6 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Customer reminder defaults: isolated review branch",
-      "detail": "Reconstructed customer invoice defaults (2 days overdue, repeat 7, maximum 3) and owner-enabled appointment defaults (48 elapsed hours, email or SMS), per-record overrides, separate customer/internal settings, purpose-specific SMS consent and durable occurrence suppression. Local synthetic checks pass; no migration, worker deployment, activation or provider send has occurred. Full-chain PostgreSQL concurrency and controlled provider/mobile acceptance remain unverified. PR69 multi-visit design was inspected but not merged.",
-      "evidence": "docs/CUSTOMER_REMINDER_DEFAULTS_2026-11-09.md; docs/evidence/2026-11-09-customer-reminders-validation.json",
-      "verifiedAt": "2026-11-09"
-    },
-    {
       "title": "Verified release baseline before PR72",
       "detail": "Private-beta source verified before this integration was bd70eef70b4ee09eafd387843df417a34cbbf02d, READY preview dpl_GskVn9r863C93pax4hTb7YhRocDM on both custom domains. It follows PR69 application merge c3dcddaaf650784f2ce59b15f6e7972b98b1f592 and documentation receipts. All seven PR69 workflows passed at final application head 36fcf3599c18741567b7a414003a2d1b7ed6b3f8. Manager-operated workers, stationery, availability, Fin guidance and private admission remain. Beta database xvybcmyoblfgzokaifsx has 129 migration ledger entries through 20261110003505; no migrations were reapplied for this reconciliation. Provider, actual-device and load acceptance remain separate open gates.",
       "evidence": "PR69 workflow/API receipts; Vercel alias/deployment read; read-only beta migration/extension aggregate on 2026-11-10; docs/evidence/2026-11-09-job-execution-validation.json",
@@ -228,6 +222,12 @@
       "detail": "Two WebKit dependency installations timed out on Ubuntu Azure mirror downloads in run 42811129759; the aggregate Release validation check correctly blocked promotion. One affected shard passed after rerun while another remained in setup. WebKit CI now uses the official prebuilt Playwright 1.63.0 Noble image, matched to the locked test package, retaining every Safari shard and assertion. A version-match regression check prevents incompatible image/package revisions. This changes isolated test infrastructure only; no paid runner, provider activation or hosted security setting was introduced.",
       "evidence": ".github/workflows/full-test-checks.yml; tests/deployment/release-gate.test.mjs; timeout jobs 129812711348 and 129812711404; docs/RELEASE_MIGRATION_REPLAY.md",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Customer reminder defaults: isolated review branch",
+      "detail": "Reconstructed customer invoice defaults (2 days overdue, repeat 7, maximum 3) and owner-enabled appointment defaults (48 elapsed hours, email or SMS), per-record overrides, separate customer/internal settings, purpose-specific SMS consent and durable occurrence suppression. Local synthetic checks pass; no migration, worker deployment, activation or provider send has occurred. Full-chain PostgreSQL concurrency and controlled provider/mobile acceptance remain unverified. PR69 multi-visit design was inspected but not merged.",
+      "evidence": "docs/CUSTOMER_REMINDER_DEFAULTS_2026-11-09.md; docs/evidence/2026-11-09-customer-reminders-validation.json",
+      "verifiedAt": "2026-11-09"
     }
   ],
   "tasks": [
@@ -240,9 +240,7 @@
       "owner": "Developer + owner",
       "why": "The domain still uses the beta backend. A URL/key swap can strand business data, storage, tokens and callbacks.",
       "acceptance": "Approve production ownership, stable release branch, data/storage/auth migration or retention plan, all migrations, environment-bound secrets/redirects, backup and rollback; rehearse with a second tenant before moving domains. No automatic cutover in this assessment.",
-      "evidence": [
-        "docs/evidence/2026-11-09-customer-reminders-validation.json (synthetic only; gate remains open)"
-      ]
+      "evidence": []
     },
     {
       "id": "REL-02",
@@ -484,7 +482,9 @@
       "owner": "Developer",
       "why": "Customer reminder defaults and appointment outbox are implemented on an isolated review branch; full-chain deployment, concurrency and controlled provider acceptance remain unverified.",
       "acceptance": "Add only needed follow-up rules with owner enablement, reviewed timing, response/payment suppression and retry safety; do not advertise unimplemented rules.",
-      "evidence": []
+      "evidence": [
+        "docs/evidence/2026-11-09-customer-reminders-validation.json (synthetic only; gate remains open)"
+      ]
     },
     {
       "id": "EXPORT-01",
