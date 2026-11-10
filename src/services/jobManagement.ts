@@ -1,5 +1,7 @@
 import { supabase } from "../lib/supabase";
 import { announceCalendarChange } from "../lib/workEvents";
+import type { JobWorkflow } from "./jobs";
+import type { ServiceAddress } from "../lib/googleMaps";
 import type { JobWorkspace } from "./operations";
 export type JobMaterial = {
   id: string;
@@ -167,4 +169,73 @@ export async function finishJobVisit(
   });
   if (error) throw error;
   announceCalendarChange();
+}
+
+export type ManagementJob = JobWorkflow & {
+  id: string;
+  title: string;
+  status: string;
+  customer_id: string | null;
+  source_estimate_id?: string | null;
+  scheduled_start: string | null;
+  scheduled_end?: string | null;
+  assigned_user_ids?: string[];
+  customers:
+    | {
+        first_name: string | null;
+        last_name: string | null;
+        company: string | null;
+      }[]
+    | {
+        first_name: string | null;
+        last_name: string | null;
+        company: string | null;
+      }
+    | null;
+  properties?: ServiceAddress[] | null;
+};
+export type ManagementFilter =
+  | "active"
+  | "approved"
+  | "unscheduled"
+  | "in_progress"
+  | "attention"
+  | "billing"
+  | "history"
+  | "all";
+export type ManagementPage = {
+  entries: ({kind:"job";data:ManagementJob}|{kind:"approved";data:ApprovedWork})[];
+  signals: JobSignals[];
+  total:number;page:number;page_size:10;
+  counts:Record<ManagementFilter,number>;
+  checked_at:string;
+};
+export async function getJobManagementPage(
+  business: string,
+  options: {customer?: string; filter: ManagementFilter; search: string; page: number},
+) {
+  const {data, error} = await supabase.rpc("get_job_management_page", {
+    p_business: business, p_customer: options.customer || null,
+    p_filter: options.filter, p_search: options.search, p_page: options.page,
+  });
+  if (error) throw error;
+  const d = data as ManagementPage;
+  const whole = (v: unknown) => Number.isSafeInteger(v) && Number(v) >= 0;
+  const keys: ManagementFilter[] = ["all", "active", "approved", "unscheduled", "in_progress", "attention", "billing", "history"];
+  const invalid = () => Error("The management queue could not be verified. Please retry.");
+  if (!d || !whole(d.total) || !whole(d.page) || d.page_size !== 10 ||
+      d.page !== Math.min(options.page, Math.max(0, Math.ceil(d.total / 10) - 1)) ||
+      !d.counts || keys.some(k => !whole(d.counts[k])) ||
+      !Array.isArray(d.entries) || d.entries.length !== Math.min(10, Math.max(0, d.total - d.page * 10)) ||
+      !Array.isArray(d.signals) || typeof d.checked_at !== "string" || !Number.isFinite(Date.parse(d.checked_at))) throw invalid();
+  if (d.entries.some(e => !e || !["job", "approved"].includes(e.kind) || !e.data ||
+      typeof e.data.id !== "string" || typeof e.data.title !== "string" ||
+      (e.kind === "job" && (!Array.isArray(e.data.customers) || !Array.isArray(e.data.properties))))) throw invalid();
+  const jobIds = d.entries.filter(e => e.kind === "job").map(e => e.data.id);
+  if (d.signals.some(s => !s || typeof s.job_id !== "string" ||
+      [s.tasks_total, s.tasks_completed, s.due_tasks, s.materials_needed, s.pending_changes].some(v => !whole(v))) ||
+      new Set(d.entries.map(e => e.kind + e.data.id)).size !== d.entries.length ||
+      d.signals.length !== jobIds.length || new Set(d.signals.map(s => s.job_id)).size !== jobIds.length ||
+      jobIds.some(id => !d.signals.some(s => s.job_id === id))) throw invalid();
+  return d;
 }

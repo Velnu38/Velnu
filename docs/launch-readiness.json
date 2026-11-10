@@ -336,6 +336,12 @@
       "detail": "A separate disposable CI platform creates 300 genuine password sessions and workspaces, 6,000 customers, 12,000 jobs, 6,000 invoice histories with 1,500 payments, and 300 actual private PNG files. The bounded workload exercises 10/50/100 clients, a controlled owned PostgREST restart, retry identity, tenant denials, session refresh and a 60-minute soak. Limits are 50 requests/second, 250,000 requests, 15-second request timeout and 1,500ms p95 target. Local safety/statistics/PNG checks pass; the actual campaign is pending. It neither targets beta nor certifies hosted/provider/browser capacity.",
       "evidence": "docs/ISOLATED_CAPACITY_2026-11-10.md; scripts/qa/local-capacity.mjs; .github/workflows/capacity-soak.yml",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Bounded Job Management queue prepared",
+      "detail": "A separate review candidate replaces the full Jobs and legacy-approved-work fetch with get_job_management_page: ten jobs or accepted estimates, full scope counts, literal job/customer/address search, and signals only for visible jobs. Selected workspaces and unsaved forms survive queue refreshes. Database tests cover 50,002 jobs, final-page clamping, real legacy rows, due tasks/materials, customer scope and staff/anonymous/foreign/revoked access; existing management and execution journeys remain covered. Full CI, genuine Auth replay, hosted migration and deployment remain pending. Customer-picker scaling and hosted load/queue capacity remain separate open work.",
+      "evidence": "docs/JOB_MANAGEMENT_PAGING_2026-11-10.md; tests/operations/management-page.test.ts; tests/e2e/operations-workspaces.spec.mjs",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [

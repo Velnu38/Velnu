@@ -41,6 +41,7 @@ const cases = [
   ['next steps review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/next-steps-20261110' }],
   ['reminders review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/reminders-release-20261110' }],
   ['identity policy review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/rls-initplans-20261110' }],
+  ['management queue review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/management-queue-20261110' }],
   ['isolated capacity review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/capacity-soak-20261110' }],
   ['jobs overview review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/jobs-management-pagination-20261110' }],
   ['owner archive review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/owner-archive-20261110' }],
@@ -111,6 +112,7 @@ test('integration review disables automatic deployment without changing the beta
   assert.equal(config.git.deploymentEnabled['review/owner-archive-20261110'], false)
   assert.equal(config.git.deploymentEnabled['review/jobs-management-pagination-20261110'], false)
   assert.equal(config.git.deploymentEnabled['review/capacity-soak-20261110'], false)
+  assert.equal(config.git.deploymentEnabled['review/management-queue-20261110'], false)
   assert.notEqual(config.git.deploymentEnabled[PRIVATE_BETA_GIT_REF], false)
   assert.equal(validateDeploymentEnvironment({ VERCEL_GIT_COMMIT_REF: INTEGRATION_REVIEW_GIT_REF }).checked, false)
 })

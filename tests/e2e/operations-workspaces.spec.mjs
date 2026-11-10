@@ -31,3 +31,22 @@ for(const width of [390,1440])test(`Jobs overview uses full server totals withou
  failed=false;await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.locator('.jobs-pulse-heading')).toContainText('50001 active · 9999 completed');await expect(page.locator('.jobs-focus')).toContainText('Bounded focus job');await expect(page.locator('.crew-today')).toContainText('7 scheduled jobs');expect(scans).toBe(0);expect(calls).toBeGreaterThanOrEqual(2)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
+
+for(const width of [390,1440])test(`Management queue pages and searches complete totals without a jobs scan at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000});await mock(page,{ai:true});let scans=0,failed=false;const calls=[];
+ page.on('request',r=>{if(new URL(r.url()).pathname==='/rest/v1/jobs')scans++});
+ const counts={all:50001,active:50001,approved:0,unscheduled:50001,in_progress:0,attention:0,billing:0,history:0};
+ await page.route('**/rpc/get_job_management_page',r=>{
+  const p=r.request().postDataJSON();calls.push(p);expect(p.p_business).toBe(B);
+  if(failed)return r.fulfill({json:{}});
+  const searched=!!p.p_search,total=searched?1:50001,n=searched?0:p.p_page;
+  const entries=Array.from({length:searched?1:10},(_,i)=>({kind:'job',data:{id:`aaaaaaaa-aaaa-4aaa-8aaa-${String(n*10+i).padStart(12,'0')}`,customer_id:C,title:searched?'Needle 100% repair':`Managed job ${n*10+i}`,status:'lead',source_estimate_id:null,scheduled_start:null,scheduled_end:null,assigned_user_ids:[U],customers:[customer],properties:[],active_appointment:null,invoice:null}}));
+  return r.fulfill({json:{entries,signals:entries.map(e=>({job_id:e.data.id,tasks_total:2,tasks_completed:1,due_tasks:0,materials_needed:0,pending_changes:0})),total,page:n,page_size:10,counts,checked_at:new Date().toISOString()}});
+ });
+ await page.goto('/?view=work&workspace=management');const queue=page.getByRole('complementary',{name:'Approved and active job queue'});
+ await expect(queue.locator('.jm-queue-count')).toHaveText('50001 jobs');await expect(queue.locator('.jm-job-option')).toHaveCount(10);await expect(page.locator('.jm-summary summary')).toContainText('50001 active jobs');
+ await queue.getByRole('button',{name:'Next',exact:true}).click();await expect(queue.locator('.jm-pagination')).toContainText('2 / 5001');await expect(queue.locator('.jm-job-option').first()).toContainText('Managed job 10');
+ const search=queue.getByRole('searchbox',{name:'Find a job'});await search.fill('100%');await expect(queue.locator('.jm-queue-count')).toHaveText('1 job');await expect(queue.locator('.jm-job-option')).toHaveCount(1);await expect(queue).toContainText('Needle 100% repair');expect(calls.at(-1).p_search).toBe('100%');expect(calls.at(-1).p_page).toBe(0);
+ failed=true;await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.locator('.jm-error')).toContainText('queue could not be verified');await expect(queue.locator('.jm-job-option')).toHaveCount(0);await expect(queue).not.toContainText('Your work starts here');await expect(search).toHaveValue('100%');
+ failed=false;await page.getByRole('button',{name:'Retry queue',exact:true}).click();await expect(queue).toContainText('Needle 100% repair');expect(scans).toBe(0);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+})

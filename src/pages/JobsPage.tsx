@@ -17,7 +17,7 @@ import RecordListControls, { RecordListPagination, useRecordList } from '../comp
 import { FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
-import { createJob, getJob, listJobs, getJobsOverview, getJobDirectoryPage, updateJobStatus, type JobWorkflow } from '../services/jobs'
+import { createJob, getJob, getJobsOverview, getJobDirectoryPage, updateJobStatus, type JobWorkflow } from '../services/jobs'
 import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
@@ -117,14 +117,14 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     const request = ++requestId.current
     if(!background)setLoading(true)
     try {
-    const [jobResult, customerRows, linkedJob] = await Promise.all([useDirectory?getJobDirectoryPage(business.id,{customerId:customerScope,filter:quickFilter||group,workerId:teamScheduling&&workerFilter!=='all'?workerFilter:undefined,search:directoryQuery,page:directoryPage}):useOverview?getJobsOverview(business.id,customerScope,teamScheduling&&workerFilter!=='all'?workerFilter:undefined):listJobs(business.id,customerScope), directoryOnly&&customerCache.current?.scope===accessKey?Promise.resolve(customerCache.current.rows):listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
+    const [jobResult, customerRows, linkedJob] = await Promise.all([useDirectory?getJobDirectoryPage(business.id,{customerId:customerScope,filter:quickFilter||group,workerId:teamScheduling&&workerFilter!=='all'?workerFilter:undefined,search:directoryQuery,page:directoryPage}):useOverview?getJobsOverview(business.id,customerScope,teamScheduling&&workerFilter!=='all'?workerFilter:undefined):Promise.resolve(null), directoryOnly&&customerCache.current?.scope===accessKey?Promise.resolve(customerCache.current.rows):listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
     if (linkedJob) {
       setDetailsJob({id:linkedJob.id,initialPhotos:query.get('tab')==='photos-expenses',initialSchedule:requestedSchedule.current})
       if (requestedSchedule.current) { const url = new URL(location.href); url.searchParams.delete('schedule'); history.replaceState(history.state, '', url.pathname + url.search + url.hash); requestedSchedule.current = false }
       setGroup('all'); setQuickFilter(null); requestedJob.current = null
     }
-    if(useDirectory){const page=jobResult as Awaited<ReturnType<typeof getJobDirectoryPage>>;setDirectory(page);setJobs(page.items as Job[])}else if(useOverview){const summary=jobResult as Awaited<ReturnType<typeof getJobsOverview>>;setOverviewData(summary);setJobs([...new Map([...summary.focus,...summary.agenda].map(j=>[j.id,j])).values()] as Job[])}else setJobs(jobResult as Job[])
+    if(useDirectory){const page=jobResult as Awaited<ReturnType<typeof getJobDirectoryPage>>;setDirectory(page);setJobs(page.items as Job[])}else if(useOverview){const summary=jobResult as Awaited<ReturnType<typeof getJobsOverview>>;setOverviewData(summary);setJobs([...new Map([...summary.focus,...summary.agenda].map(j=>[j.id,j])).values()] as Job[])}else setJobs([])
     customerCache.current={scope:accessKey,rows:customerRows as Customer[]}
     setOverviewRevision(v=>v+1)
     setCustomers(customerRows as Customer[])
@@ -232,7 +232,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
       <CustomerRecordScope customerId={customerScope} customers={customers} view="work"/>
       <div className="jobs-workspace-tabs"><RecordTabs label="Jobs workspace" tabs={[{id:workspaceId+'-jobs',label:'Jobs'},{id:workspaceId+'-management',label:'Job Management'}]} active={workspaceId+'-'+workspace} onChange={id=>changeWorkspace(id===workspaceId+'-management'?'management':'jobs')}/></div>
-      <div role="tabpanel" id={workspaceId+'-management-panel'} aria-labelledby={workspaceId+'-management-tab'} hidden={workspace!=='management'}>{managementOpened&&(loading&&!jobs.length?<p role="status">Loading jobs…</p>:<JobManagement key={managementKey} business={business} jobs={jobs} team={team} customerScope={customerScope} selectedJobId={selectedJob} onSelect={selectManagedJob} initialComplete={managementComplete} revision={overviewRevision} onUpdated={()=>void refresh(true).catch(err=>setError(readableError(err,'Unable to refresh jobs')))}/>)}</div>
+      <div role="tabpanel" id={workspaceId+'-management-panel'} aria-labelledby={workspaceId+'-management-tab'} hidden={workspace!=='management'}>{managementOpened&&<JobManagement key={managementKey} business={business} team={team} customerScope={customerScope} selectedJobId={selectedJob} onSelect={selectManagedJob} initialComplete={managementComplete} revision={overviewRevision} onUpdated={()=>void refresh(true,true).catch(err=>setError(readableError(err,'Unable to refresh jobs')))}/>}</div>
       <div role="tabpanel" id={workspaceId+'-jobs-panel'} aria-labelledby={workspaceId+'-jobs-tab'} hidden={workspace!=='jobs'}>
       <nav className="jobs-hub-navigation" aria-label="Job workspace views"><div className="view-switch" role="group" aria-label="Job view">{(['overview','list','board'] as const).map(view=><button type="button" key={view} aria-pressed={layout===view} onClick={()=>setLayout(view)}>{view==='overview'?'Overview':view==='list'?'List':'Board'}</button>)}</div><span>Plan · Assign · Track · Invoice</span></nav>
       {notice&&<p role="status" className="guided-success">{notice} {invoiceAction&&canAccess(business,"billing")&&<a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
