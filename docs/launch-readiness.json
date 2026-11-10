@@ -324,6 +324,12 @@
       "detail": "Explicit 84-collection snapshot, all stored business files, bounded ZIP parts and integrity manifests, retry leases, seven-day owner-only download expiry and archive-only cleanup are implemented for review. Local build, independent ZIP reader and 50,001-row SQL tests passed. Genuine-session/private-Storage replay and full browser CI are required before deployment; export acceptance remains open. No source-record retention purge or Fin usage is introduced.",
       "evidence": "docs/OWNER_ARCHIVE_2026-11-10.md; tests/records/owner-archive.test.ts; tests/storage/owner-archive.test.ts; scripts/qa/owner-archive-replay.mjs",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Bounded Jobs Overview candidate",
+      "detail": "Jobs Overview now requests one server summary with full filter totals, four agenda cards, four focus cards and complete per-worker daily counts. Server results retain tenant/customer/worker scope and hide billing amounts/counts without billing access. SQL coverage compares directory and overview totals beyond 50,000 jobs; browser/DOM checks retain actions and failure recovery. This removes the overview client-wide job/workflow scan; Job Management and the customer picker still need separate bounded-loading work. Hosted capacity and concurrent-load acceptance remain open.",
+      "evidence": "supabase/migrations/20261110182728_jobs_overview_summary.sql; tests/records/job-directory.test.ts; tests/e2e/operations-workspaces.spec.mjs; scripts/qa/auth-storage-replay.mjs",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [

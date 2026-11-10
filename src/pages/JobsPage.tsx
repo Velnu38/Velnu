@@ -17,7 +17,7 @@ import RecordListControls, { RecordListPagination, useRecordList } from '../comp
 import { FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
-import { createJob, getJob, listJobs, getJobDirectoryPage, updateJobStatus, type JobWorkflow } from '../services/jobs'
+import { createJob, getJob, listJobs, getJobsOverview, getJobDirectoryPage, updateJobStatus, type JobWorkflow } from '../services/jobs'
 import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
@@ -75,6 +75,8 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const accessKey=[business.id,business.role,business.access_modules?.join(',')].join(':')
   const customerCache=useRef<{scope:string;rows:Customer[]}|null>(null)
   const useDirectory=workspace==='jobs'&&layout!=='overview'
+  const useOverview=workspace==='jobs'&&layout==='overview'
+  const [overviewData,setOverviewData]=useState<Awaited<ReturnType<typeof getJobsOverview>>|null>(null)
   const [showForm, setShowForm] = useState(()=>new URLSearchParams(window.location.search).get('new')==='1'&&canWrite(business.role))
   useEffect(()=>{const url=new URL(location.href);if(url.searchParams.has('new')){url.searchParams.delete('new');url.searchParams.delete('day');url.searchParams.delete('schedule');history.replaceState(history.state,'',url.pathname+url.search)}},[])
   const [noAddress,setNoAddress]=useState(false)
@@ -115,14 +117,14 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     const request = ++requestId.current
     if(!background)setLoading(true)
     try {
-    const [jobResult, customerRows, linkedJob] = await Promise.all([useDirectory?getJobDirectoryPage(business.id,{customerId:customerScope,filter:quickFilter||group,workerId:teamScheduling&&workerFilter!=='all'?workerFilter:undefined,search:directoryQuery,page:directoryPage}):listJobs(business.id,customerScope), directoryOnly&&customerCache.current?.scope===accessKey?Promise.resolve(customerCache.current.rows):listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
+    const [jobResult, customerRows, linkedJob] = await Promise.all([useDirectory?getJobDirectoryPage(business.id,{customerId:customerScope,filter:quickFilter||group,workerId:teamScheduling&&workerFilter!=='all'?workerFilter:undefined,search:directoryQuery,page:directoryPage}):useOverview?getJobsOverview(business.id,customerScope,teamScheduling&&workerFilter!=='all'?workerFilter:undefined):listJobs(business.id,customerScope), directoryOnly&&customerCache.current?.scope===accessKey?Promise.resolve(customerCache.current.rows):listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
     if (linkedJob) {
       setDetailsJob({id:linkedJob.id,initialPhotos:query.get('tab')==='photos-expenses',initialSchedule:requestedSchedule.current})
       if (requestedSchedule.current) { const url = new URL(location.href); url.searchParams.delete('schedule'); history.replaceState(history.state, '', url.pathname + url.search + url.hash); requestedSchedule.current = false }
       setGroup('all'); setQuickFilter(null); requestedJob.current = null
     }
-    if(useDirectory){const page=jobResult as Awaited<ReturnType<typeof getJobDirectoryPage>>;setDirectory(page);setJobs(page.items as Job[])}else setJobs(jobResult as Job[])
+    if(useDirectory){const page=jobResult as Awaited<ReturnType<typeof getJobDirectoryPage>>;setDirectory(page);setJobs(page.items as Job[])}else if(useOverview){const summary=jobResult as Awaited<ReturnType<typeof getJobsOverview>>;setOverviewData(summary);setJobs([...new Map([...summary.focus,...summary.agenda].map(j=>[j.id,j])).values()] as Job[])}else setJobs(jobResult as Job[])
     customerCache.current={scope:accessKey,rows:customerRows as Customer[]}
     setOverviewRevision(v=>v+1)
     setCustomers(customerRows as Customer[])
@@ -130,13 +132,16 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     } finally { if (mounted.current && request === requestId.current) setLoading(false) }
   }
 
+  const overviewMinute=useRef(Math.floor(clock/60000))
+  useEffect(()=>{const minute=Math.floor(clock/60000);if(minute===overviewMinute.current)return;overviewMinute.current=minute;if(useOverview)void refresh(true,true).catch(err=>setError(readableError(err,'Unable to refresh the job overview.')))},[Math.floor(clock/60000)])
+
   useBusinessRefresh(business.id,()=>refresh(true).catch(err=>setError(readableError(err,'Unable to refresh jobs.'))))
 
   useEffect(() => {
     mounted.current = true
     void refresh(false,true).catch(err => { if (mounted.current) setError(readableError(err, 'Unable to load jobs')) })
     return () => { mounted.current = false; requestId.current++ }
-  }, [accessKey,customerScope,useDirectory,useDirectory?quickFilter:null,useDirectory?group:null,useDirectory?workerFilter:null,useDirectory?teamScheduling:null,useDirectory?directoryQuery:null,useDirectory?directoryPage:null])
+  }, [accessKey,customerScope,useDirectory,useOverview,useDirectory?quickFilter:null,useDirectory?group:null,workspace==='jobs'?workerFilter:null,workspace==='jobs'?teamScheduling:null,useDirectory?directoryQuery:null,useDirectory?directoryPage:null])
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -231,7 +236,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       <div role="tabpanel" id={workspaceId+'-jobs-panel'} aria-labelledby={workspaceId+'-jobs-tab'} hidden={workspace!=='jobs'}>
       <nav className="jobs-hub-navigation" aria-label="Job workspace views"><div className="view-switch" role="group" aria-label="Job view">{(['overview','list','board'] as const).map(view=><button type="button" key={view} aria-pressed={layout===view} onClick={()=>setLayout(view)}>{view==='overview'?'Overview':view==='list'?'List':'Board'}</button>)}</div><span>Plan · Assign · Track · Invoice</span></nav>
       {notice&&<p role="status" className="guided-success">{notice} {invoiceAction&&canAccess(business,"billing")&&<a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
-      {layout==='overview'&&(loading?<p role="status">Loading job dashboard…</p>:error?<p>Select Refresh to load the job dashboard.</p>:<JobsOverview business={business} jobs={jobs} team={team} now={now} revision={overviewRevision} canCreate={canWrite(business.role)&&canAccess(business,'jobs')} onCreate={openNewJob} onOpen={(id,initialPlan)=>setDetailsJob({id,initialPlan})} onFilter={filter=>{setLayout('list');setWorkerFilter('all');recordList.setSearch('');recordList.setPage(0);if(filter==='all'||filter==='history'){setQuickFilter(null);setGroup(filter)}else{setQuickFilter(filter);setGroup('all')}}}/>)}
+      {layout==='overview'&&(loading?<p role="status">Loading job dashboard…</p>:error?<p>Select Refresh to load the job dashboard.</p>:overviewData?<JobsOverview business={business} data={overviewData} team={team} now={now} revision={overviewRevision} canCreate={canWrite(business.role)&&canAccess(business,'jobs')} onCreate={openNewJob} onOpen={(id,initialPlan)=>setDetailsJob({id,initialPlan})} onFilter={filter=>{setLayout('list');setWorkerFilter('all');recordList.setSearch('');recordList.setPage(0);if(filter==='all'||filter==='history'){setQuickFilter(null);setGroup(filter)}else{setQuickFilter(filter);setGroup('all')}}}/>:<p role="status">Loading job dashboard…</p>)}
       {layout!=='overview'&&<>
       <details className="jobs-filter-panel"><summary>Filter jobs · {quickFilter?({today:'Today',active:'Active work',unscheduled:'Needs scheduling',in_progress:'In progress',billing:'Ready for billing',attention:'Past appointments',unassigned:'Unassigned',scheduled:'Scheduled',completed:'Completed'}[quickFilter]):group==='all'?'All jobs':group==='history'?'History':'Upcoming'}</summary>
       <nav className="work-filters module-job-filters" aria-label="Job timing">{([{id:'today',label:'Today',count:todayJobs.length},{id:'active',label:'Active',count:activeJobs.length},{id:'unscheduled',label:'Needs scheduling',count:unscheduledJobs.length},{id:'all',label:'All',count:grouped.all.length},{id:'upcoming',label:'Upcoming',count:grouped.upcoming.length},{id:'history',label:'History',count:grouped.history.length}] as const).map(item=><button type="button" key={item.id} aria-pressed={quickFilter===item.id||quickFilter===null&&group===item.id} onClick={()=>{if(item.id==='all'||item.id==='upcoming'||item.id==='history'){setQuickFilter(null);setGroup(item.id)}else{setQuickFilter(item.id);setGroup('all')}recordList.setPage(0)}}>{item.label}<span>{loading?'—':useDirectory?(directory?.counts[item.id]??0):item.count}</span></button>)}</nav>
