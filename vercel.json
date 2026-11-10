@@ -316,7 +316,8 @@
       "review/capacity-soak-20261110": false,
       "review/management-queue-20261110": false,
       "review/job-customer-search-20261110": false,
-      "review/queue-catchup-20261110": false
+      "review/queue-catchup-20261110": false,
+      "review/reminder-scan-20261110": false
     }
   }
 }

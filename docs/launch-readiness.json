@@ -360,6 +360,12 @@
       "detail": "A review candidate adds 300 synthetic workspace reminders with four overlapping PostgreSQL service-role dispatcher loops to the disposable full-schema replay. It checks bounded preparation/list batches, single dispatch and allowance reservation, simulated accepted receipts, one uncertain outcome retained for reconciliation, backlog drainage and complete fixture cleanup. No provider requests or hosted workers run. Real execution metrics and CI are pending; hosted worker cadence and full PERF-02 acceptance remain open.",
       "evidence": "docs/QUEUE_CATCHUP_2026-11-10.md; scripts/qa/queue-catchup.mjs; tests/deployment/queue-catchup.test.mjs",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Reminder queue baseline measured; repeated scan fix prepared",
+      "detail": "The isolated PostgreSQL replay drained 300 reminders with four overlapping SQL dispatchers in 17,483 ms: 299 simulated accepted, one uncertain retained, 300 usage reservations, 900 duplicate claims skipped, no duplicate dispatch and complete cleanup. Preparation took 37,208 ms across six insert batches and an idempotence recheck. A new additive migration uses the existing unique occurrence index to skip all durably queued states before recipient/consent snapshots, preserving claim-time checks and the 50-row insert batch. Post-change timing and full release verification are pending; no real delivery or hosted capacity is certified.",
+      "evidence": "docs/evidence/2026-11-10-queue-baseline.json; docs/REMINDER_SCAN_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
