@@ -55,6 +55,18 @@ try{
  const approval=[...document.querySelectorAll('.attention-view-switch button')][1];assert.match(approval.textContent,/1 estimate · 1 change order/)
  await act(async()=>approval.click());await tick();assert.equal(filter,'approvals');assert.match(document.body.textContent,/EST-1/);assert.equal(document.querySelector('.attention-category-pills'),null)
  payment='pending';await act(async()=>root.render(React.createElement(BillingHub,{business,key:'processing'})));await tick();await tick();assert.equal(button('Send reminder'),undefined);assert.ok([...document.querySelectorAll('a')].some(a=>a.textContent==='Payment processing'))
+ // Deterministic calendar cache assertions: JSDOM has no competing OS window
+ // focus, while the browser journey still verifies every selected-day item.
+ let calendarReads=0
+ globalThis.fetch=async()=>{calendarReads++;return new Response(JSON.stringify({events:[],issues:[],connections:0}),{headers:{'content-type':'application/json'}})}
+ await act(async()=>root.render(React.createElement(Calendar,{business,compact:true,key:'range-cache'})));await tick();await tick()
+ assert.equal(calendarReads,1)
+ await click('Month');assert.equal(calendarReads,2)
+ const otherDay=document.querySelector('.calendar-day:not(.outside-month)[aria-pressed="false"]');assert.ok(otherDay)
+ await act(async()=>otherDay.click());await tick();assert.equal(calendarReads,2,'selecting another day in the loaded month does not fetch provider events')
+ await act(async()=>window.dispatchEvent(new Event('focus')));await tick();assert.equal(calendarReads,3,'returning window focus refreshes provider events')
+ await act(async()=>window.dispatchEvent(new Event('finviant-work-changed')));await tick();assert.equal(calendarReads,4,'actual work invalidation refreshes provider events')
+ await act(async()=>root.render(React.createElement(Calendar,{business:{...business,id:'22222222-2222-4222-8222-222222222222'},compact:true,key:'range-cache'})));await tick();assert.equal(calendarReads,5,'changing workspace cannot reuse another business calendar')
  globalThis.fetch=async()=>new Response(JSON.stringify({events:[],issues:[{provider:'google',email:'test@example.test',reconnect:true}],connections:1}),{headers:{'content-type':'application/json'}})
  await act(async()=>root.render(React.createElement(Calendar,{business,compact:true,key:'reconnect'})));await tick();await tick();assert.equal(document.querySelectorAll('.home-calendar-extras>details')[1].open,true,'connection problems stay visible');assert.match(document.body.textContent,/Reconnect/)
  calendarJobStatus='scheduled';globalThis.fetch=async()=>new Response(JSON.stringify({events:[],issues:[],connections:0}),{headers:{'content-type':'application/json'}})
