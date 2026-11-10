@@ -1,3 +1,4 @@
+import {jobDirectoryPage} from '../e2e/job-directory-fixture.mjs'
 import React from 'react'
 import {createRoot} from 'react-dom/client'
 import {supabase} from '../../src/lib/supabase'
@@ -36,6 +37,7 @@ function rawJob(){const {active_appointment,invoice,...job}=state.job;return str
 }
 ;(supabase as any).rpc=async(name:string,input:any)=>{
  state.calls.push({name,input})
+ if(name==='get_job_directory_page')return {data:jobDirectoryPage([{...state.job,invoice:canBill()?state.job.invoice:null}],input),error:null}
  if(name==='get_job_workflow_context')return {data:[{job_id:jobId,active_appointment:state.job.active_appointment,invoice:canBill()?state.job.invoice:null}],error:null}
  if(name==='get_plan_usage')return {data:{plan:state.plan,jobs_used:0,jobs_limit:state.plan==='free'?5:null},error:null}
  if(name==='get_schedule_team')return {data:[{id:ownerId,label:'Office owner',role:'owner',is_you:true}],error:null}

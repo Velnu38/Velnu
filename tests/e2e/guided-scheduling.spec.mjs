@@ -70,7 +70,7 @@ async function mock(page,{signedIn=true,conflict=false,plan='pro',job=null}={}){
   if(path.endsWith('/jobs'))return reply(url.searchParams.has('id')?state.job:state.job?[state.job]:[])
   return reply([])
  })
- await mockJobDirectory(page)
+ await mockJobDirectory(page,()=>state.job?[{...state.job,active_appointment:state.job.scheduled_start?{id:P,status:'confirmed',starts_at:state.job.scheduled_start,ends_at:state.job.scheduled_end}:null,invoice:null}]:[],zone)
  return state
 }
 const scheduleWork=page=>page.getByRole('group',{name:'Needs Attention categories'}).getByRole('button',{name:/^Needs scheduling/})

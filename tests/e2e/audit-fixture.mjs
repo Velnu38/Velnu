@@ -86,7 +86,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/jobs'))return reply([])
   return reply([])
  })
- await mockJobDirectory(page)
+ await mockJobDirectory(page,()=>[])
  return state
 }
 

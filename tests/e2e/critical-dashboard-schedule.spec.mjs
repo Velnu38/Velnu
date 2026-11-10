@@ -293,7 +293,10 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/messages')) return reply([])
     return reply([])
   })
- await mockJobDirectory(page)
+ await mockJobDirectory(page,()=>state.jobs.map(job=>{
+  const current=state.appointments.find(row=>row.job_id===job.id&&['scheduled','confirmed','in_progress'].includes(row.status))
+  return {...job,active_appointment:current||(['scheduled','in_progress'].includes(job.status)&&job.scheduled_start?{id:job.id,starts_at:job.scheduled_start,ends_at:job.scheduled_end||null,status:job.status==='in_progress'?'in_progress':'scheduled'}:null),invoice:state.invoices.find(row=>row.job_id===job.id)||null}
+ }),options.businessProfile?.timezone||'America/New_York')
   return state
 }
 

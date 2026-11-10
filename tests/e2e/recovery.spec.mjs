@@ -37,7 +37,7 @@ async function setup(page,options={}){
   return json([])
  })
  await page.goto('/?view=dashboard')
- await mockJobDirectory(page)
+ await mockJobDirectory(page,()=>s.jobs.map(job=>({...job,active_appointment:null,invoice:null})))
  return s
 }
 async function setupFin(page,options={}){

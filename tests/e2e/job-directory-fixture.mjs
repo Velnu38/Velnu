@@ -22,27 +22,12 @@ export function jobDirectoryPage(jobs,params,zone='America/New_York',now=Date.no
  return {items:rows.slice(page*25,(page+1)*25).map(r=>r.item),total:rows.length,page,page_size:25,counts,checked_at:new Date(now).toISOString()}
 }
 
-// Reuse each journey's existing mocked jobs/workflow sources, including its
-// mutations and explicit failures. Every request is fixed to the fake API host.
-export async function mockJobDirectory(page){
- await page.route('https://example.supabase.co/rest/v1/rpc/get_job_directory_page',async route=>{
+// Fixtures supply current in-memory rows directly. Avoid nested page.evaluate/fetch
+// inside an intercepted route: an unrelated refresh can outlive a finished test.
+export async function mockJobDirectory(page,readRows,zone='America/New_York'){
+ await page.route('https://example.supabase.co/rest/v1/rpc/get_job_directory_page',route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'},body:''})
   const params=route.request().postDataJSON()
-  const result=await page.evaluate(async params=>{
-   const url=new URL('https://example.supabase.co/rest/v1/jobs')
-   url.searchParams.set('select','*,customers(*),properties(*)');url.searchParams.set('business_id','eq.'+params.p_business)
-   if(params.p_customer)url.searchParams.set('customer_id','eq.'+params.p_customer)
-   const response=await fetch(url)
-   const rows=await response.json()
-   if(!response.ok)return {error:rows,status:response.status}
-   if(!Array.isArray(rows))throw Error('Directory fixture requires an array of jobs')
-   const contexts=[]
-   for(let i=0;i<rows.length;i+=200){
-    const r=await fetch('https://example.supabase.co/rest/v1/rpc/get_job_workflow_context',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({p_business:params.p_business,p_jobs:rows.slice(i,i+200).map(j=>j.id)})})
-    const data=await r.json();if(!r.ok)return {error:data,status:r.status};contexts.push(...data)
-   }
-   return {rows:rows.map(j=>({...j,...contexts.find(c=>c.job_id===j.id)})),now:Date.now()}
-  },params)
-  await route.fulfill({headers:{'access-control-allow-origin':'*'},...(result.error?{status:result.status,json:result.error}:{json:jobDirectoryPage(result.rows,params,'America/New_York',result.now)})})
+  return route.fulfill({headers:{'access-control-allow-origin':'*'},json:jobDirectoryPage(readRows(params),params,zone)})
  })
 }
