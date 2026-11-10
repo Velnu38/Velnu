@@ -1,11 +1,12 @@
 import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import pg from 'pg'
 import { verifyReminderReplay } from './reminder-replay.mjs'
+import { verifyQueueCatchup } from './queue-catchup.mjs'
 import { verifyAuthStorageReplay } from './auth-storage-replay.mjs'
 import { verifySyntheticRestore, cleanupSyntheticFixture } from './synthetic-restore.mjs'
 
@@ -146,9 +147,12 @@ export async function main({capacity=false}={}) {
       (select count(*) from public.payments)::int as payments,
       (select count(*) from storage.objects)::int as files`)
     if (Object.values(cleanup).some(value => value !== 0)) throw new Error('Synthetic replay smoke did not roll back completely')
+    const queueCatchup=await verifyQueueCatchup(client,localDatabaseUrl(status.DB_URL),{projectId})
+    mkdirSync(join(root,'tmp/queue-results'),{recursive:true})
+    writeFileSync(join(root,'tmp/queue-results/result.json'),JSON.stringify({sourceCommit:process.env.GITHUB_SHA||null,...queueCatchup},null,2)+'\n')
     const capacityResult=capacity?await (await import('./local-capacity.mjs')).verifyLocalCapacity(client,status,{projectId}):undefined
     console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION,
-      cronLaunchActiveJobs: false, reminderSmoke, authStorageSmoke, capacity:capacityResult,
+      cronLaunchActiveJobs: false, reminderSmoke, authStorageSmoke, queueCatchup, capacity:capacityResult,
       smoke: { file: 'tests/migrations/release-smoke.sql', sha256: createHash('sha256').update(smokeSql).digest('hex'), passed: true, rolledBackCounts: cleanup },
       migrations: result.applied.length, ...result }, null, 2))
   } finally {

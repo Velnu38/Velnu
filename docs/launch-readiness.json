@@ -354,6 +354,12 @@
       "detail": "The November 10 19:57 UTC beta review found 50 unindexed FK notices, 66 unused indexes, four multiple-permissive-policy notices and Auth connection allocation fixed at ten. No identity InitPlan or health findings remain; security returned no ERROR findings. Reviewed the five missing-FK notices on Jobs, invoices and appointments against actual index definitions; existing partial/unique coverage and missing broader coverage are documented without blindly adding/removing indexes. Aggregate serverless/transaction-pooler/TLS configuration and representative plan/capacity acceptance remain open.",
       "evidence": "docs/PERFORMANCE_ADVISOR_REVIEW_2026-11-10.md",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Isolated reminder queue catch-up prepared",
+      "detail": "A review candidate adds 300 synthetic workspace reminders with four overlapping PostgreSQL service-role dispatcher loops to the disposable full-schema replay. It checks bounded preparation/list batches, single dispatch and allowance reservation, simulated accepted receipts, one uncertain outcome retained for reconciliation, backlog drainage and complete fixture cleanup. No provider requests or hosted workers run. Real execution metrics and CI are pending; hosted worker cadence and full PERF-02 acceptance remain open.",
+      "evidence": "docs/QUEUE_CATCHUP_2026-11-10.md; scripts/qa/queue-catchup.mjs; tests/deployment/queue-catchup.test.mjs",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
