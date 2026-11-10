@@ -300,6 +300,12 @@
       "detail": "Adds owner-only create, bounded keyset list/history and pause/resume controls on the existing draft engine; Individual remains draft-only and Pro may plan internal roster visits. Server rejects deposit and deposit-adjusted templates. Local DOM/build checks pass; full real-Auth/SQL and browser acceptance is required before beta deployment. Skip/reschedule exceptions, progress allocation, opt-in sending and merchant autopay remain separate open scope. No automatic sending, charging, field logins or Fin usage is introduced.",
       "evidence": "docs/RECURRING_OWNER_CONTROLS_2026-11-10.md",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Financial read controls preserved through background refresh",
+      "detail": "PR81 browser trace exposed a refresh that disabled the expense metric between pointer-down and click after receipt upload retry. The same workspace/role/date snapshot now remains visible with an explicit refreshing status, preserving the metric and expanded receipt. Failed reads and workspace/range changes still hide prior balances. Deterministic DOM checks pass for preservation, failed-read recovery and workspace separation; complete browser validation is required before deployment.",
+      "evidence": "tests/settings/financial-refresh-dom.mjs; PR81 Actions job 129993932091 trace; tests/e2e/critical-dashboard-schedule.spec.mjs",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [

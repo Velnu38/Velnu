@@ -60,7 +60,11 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   const [search, setSearch] = useState(''), [source, setSource] = useState('all'), [page, setPage] = useState(0)
   const range = restricted?{from:DateTime.fromISO(day,{zone}).minus({days:29}).toISODate()!,to:DateTime.fromISO(day,{zone}).plus({days:1}).toISODate()!,timezone:zone,label:'Last 30 days'}:financialRange(period, day, zone)
   const requestKey = [business.id, business.role, business.access_modules?.join(','), range.from, range.to, zone].join(':')
-  const ready = !loading && !error && result?.key === requestKey
+  // A background refresh must not disable a pressed read-only control or unmount
+  // its open receipt while the pointer event is in progress. Retain only the last
+  // successful snapshot for this exact workspace, role and date range, and label
+  // it while refreshing. A failed read still removes the snapshot below.
+  const ready = !error && result?.key === requestKey
   const rows = useMemo(() => result?.key === requestKey ? result.rows.filter(row => row.currency === 'USD' && row.entry_date >= range.from && row.entry_date < range.to) : [], [result, requestKey, range.from, range.to])
   useBusinessRefresh(business.id, () => { setDay(DateTime.now().setZone(zone).toISODate()!); setVersion(value => value + 1) })
   useEffect(() => {
@@ -85,6 +89,7 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
     <div className="performance-heading"><div><p className="eyebrow">Business insights</p><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><h2 className="dashboard-tile-title" id="financial-performance-title">Financial Performance</h2>{!hideEntryAction&&canAccess(business,"finances")&&<button type="button" className="calendar-add" onClick={()=>setNewEntry(true)}>{compact?'Add transaction':'+ Add Entry'}</button>}</div><p>{range.label} · USD</p></div><div className="view-switch financial-range" role="group" aria-label="Financial period">{([1,3,6,12] as const).map(months => <button key={months} type="button" disabled={restricted} aria-pressed={period === months} aria-label={`${months} ${months === 1 ? 'month' : 'months'}`} onClick={() => { setPeriod(months); setSelected(null); setDetail(null); resetFilters() }}>{months}<span>{compact ? 'M' : months === 1 ? ' month' : ' months'}</span></button>)}</div></div>
     {restricted&&<p className="quiet">Free includes the last 30 days. <a href="/?view=settings&section=plans">Individual includes full financial history.</a> Your original records remain available for viewing and export.</p>}
     {notice&&<p role="status" className="form-message">{notice}</p>}
+    {loading&&ready&&<p role="status" className="quiet">Refreshing financial transactions. Showing the last successful update.</p>}
     {newEntry&&<FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction,payment)=>{setNewEntry(false);setSelected(null);resetFilters();setNotice(`${payment?'Payment recorded':direction==='income'?'Income saved':'Expense saved'}.${date<range.from||date>=range.to?' This transaction is outside the selected period. View all income & expenses to find it.':' Totals are refreshing.'}`);setVersion(v=>v+1)}}/>}
     <FinancialInsights business={business} refreshVersion={refreshVersion+version} compact={compact} rows={ready?scopeRows:[]}/>
     <div className="insight-section-heading"><div><h3>Cash activity</h3><p className="quiet">Recorded income and expenses · {scopeLabel}</p></div></div>
