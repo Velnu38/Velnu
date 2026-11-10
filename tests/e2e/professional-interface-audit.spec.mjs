@@ -100,8 +100,10 @@ test('job adds a customer inline while retaining entered work',async({page})=>{
  await dialog.getByLabel('Name',{exact:true}).fill('New garden customer')
  await dialog.getByRole('button',{name:'Add & select customer',exact:true}).click()
  await expect(dialog.getByLabel('Job title',{exact:true})).toHaveValue('Keep the service scope')
+ await expect.poll(()=>state.customers.length).toBe(2)
+ const created=state.customers[1];expect(created.id).toBeTruthy()
+ await expect.poll(()=>state.calls.some(c=>c.path.endsWith('/rpc/search_job_customers')&&c.body?.p_selected===created.id)).toBe(true)
  await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('New garden customer')
- expect(state.customers).toHaveLength(2)
 })
 for(const width of [1440,390])test(`public and account-entry route audit at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page,{signedIn:false});const errors=[];page.on('pageerror',e=>errors.push(e.message))

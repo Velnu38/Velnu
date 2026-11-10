@@ -3,7 +3,7 @@ import {mock,B,C,customer} from './audit-fixture.mjs'
 import {customerSearchResponse} from './job-customer-fixture.mjs'
 for(const width of [390,1440])test(`Jobs defers customer reads until a bounded draft search and recovers at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1000});await mock(page,{ai:true});let customerScans=0,failed=false;const calls=[];
- const extra={...customer,id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',first_name:'José',last_name:'Muñoz',phone:'7575559876'},rows=[customer,extra];
+ const extra={...customer,id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',first_name:'José',last_name:'Muñoz',email:'jose@example.invalid',phone:'7575559876'},rows=[customer,extra];
  page.on('request',r=>{if(new URL(r.url()).pathname==='/rest/v1/customers')customerScans++});
  await page.route('**/rpc/search_job_customers',r=>{const p=r.request().postDataJSON();calls.push(p);expect(p.p_business).toBe(B);return r.fulfill({json:failed?{}:customerSearchResponse(rows,p)})});
  await page.goto('/?view=work');await expect(page.getByRole('button',{name:'Create job',exact:true})).toBeVisible();expect(calls).toHaveLength(0);expect(customerScans).toBe(0);
