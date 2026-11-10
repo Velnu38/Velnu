@@ -67,7 +67,7 @@ jobs:
       # Every test still runs. Independent shards expose the whole suite even if
       # a focused check fails and avoid exhausting one shared 20-minute budget.
       - name: Full browser regression
-        run: npx playwright test --workers=2 --shard=${{ matrix.shard }}/6
+        run: npx playwright test --fully-parallel --workers=2 --shard=${{ matrix.shard }}/6
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
