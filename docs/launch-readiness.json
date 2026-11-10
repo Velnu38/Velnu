@@ -222,6 +222,12 @@
       "detail": "Two WebKit dependency installations timed out on Ubuntu Azure mirror downloads in run 42811129759; the aggregate Release validation check correctly blocked promotion. One affected shard passed after rerun while another remained in setup. WebKit CI now uses the official prebuilt Playwright 1.63.0 Noble image, matched to the locked test package, retaining every Safari shard and assertion. A version-match regression check prevents incompatible image/package revisions. This changes isolated test infrastructure only; no paid runner, provider activation or hosted security setting was introduced.",
       "evidence": ".github/workflows/full-test-checks.yml; tests/deployment/release-gate.test.mjs; timeout jobs 129812711348 and 129812711404; docs/RELEASE_MIGRATION_REPLAY.md",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Customer reminder defaults: isolated review branch",
+      "detail": "Reconstructed customer invoice defaults (2 days overdue, repeat 7, maximum 3) and owner-enabled appointment defaults (48 elapsed hours, email or SMS), per-record overrides, separate customer/internal settings, purpose-specific SMS consent and durable occurrence suppression. Local synthetic checks pass; no migration, worker deployment, activation or provider send has occurred. Full-chain PostgreSQL concurrency and controlled provider/mobile acceptance remain unverified. PR69 multi-visit design was inspected but not merged.",
+      "evidence": "docs/CUSTOMER_REMINDER_DEFAULTS_2026-11-09.md; docs/evidence/2026-11-09-customer-reminders-validation.json",
+      "verifiedAt": "2026-11-09"
     }
   ],
   "tasks": [
@@ -265,7 +271,7 @@
       "status": "open",
       "title": "Complete release validation and staged promotion enforcement",
       "owner": "Developer",
-      "why": "PR71 and PR69 have green final-application CI receipts. A fresh real Supabase/PostgreSQL 17.11 replay now passes all 78 source files, including an exact ledger-matched recovered recurring migration, plus rollback-only financial/two-identity permission smoke. The combined Release validation check includes every desktop/mobile/browser, financial/security/PDF/DOM/Deno and replay suite and rejects failed/canceled/skipped results. Node 22 is retained for PGlite/database checks and Node 24 for builds/browser checks. Enforced required-check settings and staged promotion remain unverified; database JWT-claim simulation and mocked browsers do not replace genuine hosted tenant/device acceptance. Follow-up release-gate review found that an entirely absent suite could pass the aggregate check. The isolated next-steps branch now enumerates required jobs, rejects absent jobs and tests parity with workflow dependencies. See docs/RELEASE_GATE_REVIEW_2026-11-10.md. Required-check enforcement and promotion remain open.",
+      "why": "PR71 and PR69 have green final-application CI receipts. A fresh real Supabase/PostgreSQL 17.11 replay now passes all 78 source files, including an exact ledger-matched recovered recurring migration, plus rollback-only financial/two-identity permission smoke. The combined Release validation check includes every desktop/mobile/browser, financial/security/PDF/DOM/Deno and replay suite and rejects failed/canceled/skipped results. Node 22 is retained for PGlite/database checks and Node 24 for builds/browser checks. Enforced required-check settings and staged promotion remain unverified; database JWT-claim simulation and mocked browsers do not replace genuine hosted tenant/device acceptance. Follow-up release-gate review found that an entirely absent suite could pass the aggregate check. The isolated next-steps branch now enumerates required jobs, rejects absent jobs and tests parity with workflow dependencies. See docs/RELEASE_GATE_REVIEW_2026-11-10.md. Required-check enforcement and promotion remain open. The final reminder browser run exposed a dropped refresh when a save completed before its editor cleanup. Two deterministic regression tests fail before the repair; the coordinator now retains the invalidation until all editing ends, preserving unsaved-form protection. This repair must pass the full browser suite before promotion.",
       "acceptance": "Update obsolete fixtures without weakening functional assertions; pass complete current build, financial/tenant/voice/storage/calendar and authenticated browser journeys for the same immutable release commit. Enforce required checks and staged deployment/promotion before domain release; unify supported Node versions and include the actual release branch in CI.",
       "evidence": []
     },
@@ -474,9 +480,11 @@
       "status": "open",
       "title": "Extend owner-controlled follow-up automation",
       "owner": "Developer",
-      "why": "Scheduled email/overdue invoice reminders already exist; broader estimate/appointment automation is optional expansion.",
+      "why": "Customer reminder defaults and appointment outbox are implemented on an isolated review branch; full-chain deployment, concurrency and controlled provider acceptance remain unverified.",
       "acceptance": "Add only needed follow-up rules with owner enablement, reviewed timing, response/payment suppression and retry safety; do not advertise unimplemented rules.",
-      "evidence": []
+      "evidence": [
+        "docs/evidence/2026-11-09-customer-reminders-validation.json (synthetic only; gate remains open)"
+      ]
     },
     {
       "id": "EXPORT-01",

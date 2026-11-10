@@ -30,15 +30,20 @@ export function createBusinessRefreshCoordinator(environment: Environment) {
       if (!hub) {
         const listeners = new Map<Refresh, { busy: boolean; pending: boolean }>()
         let stopped = false
+        let deferred = false
         let timer: number | undefined
         const flush = () => {
           timer = undefined
-          if (stopped || environment.document.hidden || environment.isEditing()) return
+          if (stopped) return
+          if (environment.document.hidden || environment.isEditing()) { deferred = true; return }
+          deferred = false
           for (const [listener, state] of listeners) {
             if (state.busy) { state.pending = true; continue }
             state.busy = true; state.pending = false
             void Promise.resolve().then(() => {
-              if (!stopped && listeners.has(listener) && !environment.document.hidden && !environment.isEditing()) return listener()
+              if (stopped || !listeners.has(listener)) return
+              if (environment.document.hidden || environment.isEditing()) { deferred = true; return }
+              return listener()
             }).catch(() => { /* The read view owns its visible error state. Polling can retry. */ })
               .finally(() => {
                 state.busy = false
@@ -53,10 +58,12 @@ export function createBusinessRefreshCoordinator(environment: Environment) {
           const changedBusiness = (event as CustomEvent<{ businessId?: string }>).detail?.businessId
           if (!changedBusiness || changedBusiness === businessId) notify()
         }
+        const onEditingIdle = () => { if (deferred) notify() }
         const stopRealtime = environment.listen(businessId, notify)
         const poll = environment.window.setInterval(notify, 30000)
         environment.window.addEventListener('focus', notify)
         environment.window.addEventListener('finviant-work-changed', onLocal)
+        environment.window.addEventListener('finviant-editing-idle', onEditingIdle)
         environment.document.addEventListener('visibilitychange', notify)
         hub = {
           add(listener) {
@@ -71,6 +78,7 @@ export function createBusinessRefreshCoordinator(environment: Environment) {
             environment.window.clearInterval(poll)
             environment.window.removeEventListener('focus', notify)
             environment.window.removeEventListener('finviant-work-changed', onLocal)
+            environment.window.removeEventListener('finviant-editing-idle', onEditingIdle)
             environment.document.removeEventListener('visibilitychange', notify)
             listeners.clear()
           },

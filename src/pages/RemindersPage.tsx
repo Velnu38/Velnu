@@ -115,10 +115,11 @@ export default function RemindersPage({ business, initialJob }: { business: Curr
   }
 
   return <div className="page-stack"><WorkspaceBack />
-    <div className="page-heading split-heading"><div><p className="eyebrow">Reminders</p><h1>Keep the next step in sight.</h1></div><div className="work-heading-actions">
+    <div className="page-heading split-heading"><div><p className="eyebrow">Internal follow-ups</p><h1>Keep the next step in sight.</h1></div><div className="work-heading-actions">
       <RefreshButton busy={loading} disabled={busy || !!completing} onClick={() => void refresh()}/>
       {canWrite(business.role) && <button type="button" className="primary-button compact" disabled={showForm} onClick={() => { setShowForm(true); setSuccess('') }}>+ New reminder</button>}
     </div></div>
+    <p className="quiet">These reminders are for your team. They do not send messages to customers. The primary owner manages defaults in <a href="/?view=settings&section=customer_reminders">Settings → Customer Reminders</a>.</p>
     {success && <p className="reminder-success" role="status">{success}</p>}
     {showForm && <section className="reminder-composer" aria-labelledby="new-reminder-title">
       <h3 id="new-reminder-title">Create a reminder</h3><p className="quiet">Set a follow-up for your workspace, with an optional link to a job.</p>

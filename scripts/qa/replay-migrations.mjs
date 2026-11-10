@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import pg from 'pg'
+import { verifyReminderReplay } from './reminder-replay.mjs'
 
 export const CLI_VERSION = '3.1.0'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -131,6 +132,7 @@ export async function main() {
       console.error(JSON.stringify({ phase: 'fresh-schema-financial-tenant-smoke', error: safeDatabaseError(error) }))
       throw new Error('Fresh-schema financial/tenant smoke failed')
     }
+    const reminderSmoke = await verifyReminderReplay(client, localDatabaseUrl(status.DB_URL))
     const { rows: [cleanup] } = await client.query(`select
       (select count(*) from auth.users)::int as users,
       (select count(*) from public.businesses)::int as businesses,
@@ -138,7 +140,7 @@ export async function main() {
       (select count(*) from storage.objects)::int as files`)
     if (Object.values(cleanup).some(value => value !== 0)) throw new Error('Synthetic replay smoke did not roll back completely')
     console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION,
-      cronLaunchActiveJobs: false,
+      cronLaunchActiveJobs: false, reminderSmoke,
       smoke: { file: 'tests/migrations/release-smoke.sql', sha256: createHash('sha256').update(smokeSql).digest('hex'), passed: true, rolledBackCounts: cleanup },
       migrations: result.applied.length, ...result }, null, 2))
   } finally {
