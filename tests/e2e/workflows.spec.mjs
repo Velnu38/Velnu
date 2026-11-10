@@ -1,3 +1,6 @@
+import {readFile} from 'node:fs/promises'
+import {generateDocumentPdf} from '../../shared/documentPdf.ts'
+import {pdfHeaders} from './document-pdf-fixture.mjs'
 import { openWorkArea, createWork } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 
@@ -28,6 +31,7 @@ async function mockWorkspace(page, seed = {}) {
     payments: [],
     changeOrders: [...(seed.changeOrders || [])],
     requests: [],
+    artifacts: new Map(),
   }
   await installSession(page)
   await page.route('https://example.supabase.co/**', async route => {
@@ -44,7 +48,25 @@ async function mockWorkspace(page, seed = {}) {
       body: JSON.stringify(obj),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if(path.endsWith('/functions/v1/document-pdf')){
+      const kind=body.document_kind, id=body.document_id, key=kind+':'+id
+      const rows=kind==='invoice'?state.invoices:kind==='estimate'?state.estimates:state.changeOrders
+      const record=rows.find(row=>row.id===id)
+      if(!record)return fulfill({error:'Document missing'},404)
+      if(!state.artifacts.has(key)){
+        const items=record.items||seed.invoiceItems||[{description:'Faucet repair',quantity:1,unit_price:150,line_total:150,tax_rate:0}]
+        const snapshot={...record,kind,number:record[kind+'_number'],company:record.issuer_snapshot||company,customer,items,issue_date:record.issue_date||'2026-10-26',subtotal:record.subtotal??record.total,tax_amount:record.tax_amount??0}
+        state.artifacts.set(key,{snapshot,bytes:Buffer.from(await generateDocumentPdf(snapshot))})
+      }
+      return route.fulfill({status:200,headers:pdfHeaders,body:state.artifacts.get(key).bytes})
+    }
+    if(path.endsWith('/rpc/get_estimate_workflow_context'))return fulfill(body.p_estimates.map(estimate_id=>({estimate_id,job:null,appointment:null,schedule:null,invitation:null,final_invoice_id:state.estimates.find(row=>row.id===estimate_id)?.status==='converted'?invoiceId:null})))
+    if(path.endsWith('/rpc/get_financial_overview')){
+      const open=state.invoices.filter(i=>Number(i.balance_due||0)>0&&!['draft','void'].includes(i.status))
+      return fulfill({currency_supported:true,as_of:'2026-11-10',receivables:{invoices:open.length,outstanding:open.reduce((sum,i)=>sum+Number(i.balance_due),0),overdue:0,overdue_count:0},aging:[],customers:[],oldest:[]})
+    }
     if (path.endsWith('/user')) return fulfill(user)
+    if (path.endsWith('/rpc/get_private_beta_access')) return fulfill({allowed:true,reason:'approved'})
     if (path.endsWith('/user_plan_preferences')) return fulfill({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return fulfill({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
     if (path.endsWith('/business_members')) return fulfill({ role: seed.role || 'owner', business_id: businessId, access_modules: ['calendar','jobs','billing','finances'], businesses: company })
@@ -65,7 +87,7 @@ async function mockWorkspace(page, seed = {}) {
       const next = {
         id: isInvoice ? invoiceId : estimateId, business_id: businessId, customer_id: body.payload.customer_id,
         invoice_number: isInvoice ? 'INV-1001' : undefined, estimate_number: isInvoice ? undefined : 'EST-1001',
-        status: 'draft', issue_date: '2026-10-26', due_date: body.payload.due_date || null,
+        status: 'draft', issue_date: body.payload.issue_date, items:items.map(item=>({...item,line_total:Math.round(item.quantity*item.unit_price*100)/100})), due_date: body.payload.due_date || null,
         expires_on: body.payload.expires_on || null, subtotal, tax_amount, total: subtotal + tax_amount,
         amount_paid: 0, balance_due: subtotal + tax_amount,
         notes: body.payload.notes || null, customer_message: null, customers: customer,
@@ -107,12 +129,32 @@ async function mockWorkspace(page, seed = {}) {
         if (row) row.status = body.status
         return fulfill(row || null)
       }
-      return fulfill(state.changeOrders)
+      return fulfill(url.searchParams.has('id')?state.changeOrders.find(row=>row.id===url.searchParams.get('id').replace(/^eq\./,'')):state.changeOrders)
     }
     if (path.endsWith('/messages') || path.endsWith('/jobs') || path.endsWith('/appointments') || path.endsWith('/reminders')) return fulfill([])
     return fulfill([])
   })
   return state
+}
+
+async function recordMore(scope){
+ const summary=scope.getByRole('region',{name:'Record actions',exact:true}).locator('summary').filter({hasText:'More'})
+ if(!await summary.evaluate(el=>el.parentElement.open))await summary.click()
+}
+async function downloadedArtifact(page,state,kind,id){
+ const region=page.getByRole('region',{name:kind==='invoice'?'Issued invoice PDF':'Estimate PDF',exact:true})
+ const button=region.getByRole('button',{name:'Download PDF',exact:true})
+ await expect(button).toBeEnabled();await region.getByRole('button',{name:'View PDF',exact:true}).click();await expect(region.locator('iframe')).toHaveAttribute('src',/^blob:/)
+ const pending=page.waitForEvent('download');await button.click();const file=await pending
+ const artifact=state.artifacts.get(kind+':'+id);expect(artifact).toBeTruthy()
+ expect(await readFile(await file.path())).toEqual(artifact.bytes)
+ return artifact.snapshot
+}
+async function publishAndOpen(page){
+ const form=page.getByRole('dialog',{name:/^Create an (invoice|estimate)$/})
+ await form.getByRole('button',{name:'Preview',exact:true}).click()
+ await expect(form.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled()
+ await form.getByRole('button',{name:'Open saved draft',exact:true}).click()
 }
 
 test('owner creates a branded invoice atomically and it remains a draft until manually sent', async ({ page }) => {
@@ -122,13 +164,14 @@ test('owner creates a branded invoice atomically and it remains a draft until ma
   await createWork(page, 'invoice')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
-  await page.getByPlaceholder('Description').fill('Faucet repair')
+  await page.getByPlaceholder('Description', {exact:true}).fill('Faucet repair')
   await page.getByPlaceholder('Unit price').fill('150')
-  await page.getByPlaceholder('Tax %').fill('5')
-  await page.getByRole('button', { name: 'Save draft invoice' }).click()
+  await page.locator('summary').filter({hasText:/^Tax options/}).click()
+  await page.getByPlaceholder('Tax %',{exact:true}).fill('5')
+  await publishAndOpen(page)
   await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
-  await expect(page.locator('.invoice-document .letterhead-company')).toHaveText('Test Plumbing')
-  await expect(page.getByText('100 Main Street')).toBeVisible()
+  const snapshot=await downloadedArtifact(page,state,'invoice',invoiceId)
+  expect(snapshot.company).toMatchObject({name:'Test Plumbing',address_line1:'100 Main Street'})
   const created = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
   expect(created).toHaveLength(1)
   expect(created[0].body.document_kind).toBe('invoice')
@@ -147,16 +190,19 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   await createWork(page, 'estimate')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
-  await page.getByPlaceholder('Description').fill('Faucet repair')
+  await page.getByPlaceholder('Description', {exact:true}).fill('Faucet repair')
   await page.getByPlaceholder('Unit price').fill('150')
-  await page.getByRole('button', { name: 'Save draft estimate' }).click()
+  await publishAndOpen(page)
+  await recordMore(page)
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Create invoice' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Mark sent manually' }).click()
+  await recordMore(page)
   await page.getByRole('button', { name: 'Record acceptance' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Close scheduling', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Create invoice' })).toBeVisible()
-  await page.getByRole('button', { name: 'Create invoice' }).click()
+  await recordMore(page)
+  await expect(page.getByRole('button', { name: 'Create final invoice now' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Create final invoice now' }).click()
   await expect(page.getByRole('heading', { name: 'Create the invoice' })).toBeVisible()
   await page.getByRole('dialog', { name: 'Create the invoice', exact: true }).getByRole('button', { name: 'Save draft invoice', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
@@ -172,14 +218,13 @@ test('payments exclude draft invoices and use retry-safe server recording', asyn
   const sent = { id: invoiceId, invoice_number: 'INV-SENT', status: 'sent', total: 150, balance_due: 150, amount_paid: 0, customers: customer }
   const state = await mockWorkspace(page, { invoices: [draft, sent] })
   page.on('dialog', async dialog => { await dialog.accept() })
-  await page.goto('/?view=dashboard')
-  await page.getByRole('button', { name: 'Payments', exact: true }).click()
+  await page.goto('/?view=payments')
   await page.getByRole('button', { name: '+ Record payment' }).click()
-  await expect(page.getByLabel('Invoice', { exact: true }).locator('option', { hasText: /INV-SENT/ })).toHaveCount(1)
-  const options = await page.getByLabel('Invoice', { exact: true }).locator('option').allTextContents()
+  await expect(page.getByRole('combobox', {name:'Invoice',exact:true}).locator('option', { hasText: /INV-SENT/ })).toHaveCount(1)
+  const options = await page.getByRole('combobox', {name:'Invoice',exact:true}).locator('option').allTextContents()
   expect(options.join(' ')).toContain('INV-SENT')
   expect(options.join(' ')).not.toContain('INV-DRAFT')
-  await page.getByLabel('Invoice', { exact: true }).selectOption(invoiceId)
+  await page.getByRole('combobox', {name:'Invoice',exact:true}).selectOption(invoiceId)
   await page.getByRole('button', { name: 'Record payment', exact: true }).last().click()
   const requests = state.requests.filter(x => x.path.endsWith('/rpc/record_manual_payment'))
   expect(requests).toHaveLength(1)
@@ -212,14 +257,14 @@ test('issued invoice preserves original company letterhead after profile changes
       document_footer: 'Original invoice terms',
     },
   }
-  await mockWorkspace(page, { invoices: [issued] })
+  const state=await mockWorkspace(page, { invoices: [issued] })
   await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Invoices')
   await page.getByRole('button', { name: /INV-HISTORIC/ }).click()
-  await expect(page.locator('.invoice-document .letterhead-company')).toHaveText('Original Plumbing Co')
-  await expect(page.locator('.invoice-document')).toContainText('55 Historic Road')
-  await expect(page.locator('.invoice-document')).toContainText('Original invoice terms')
-  await expect(page.locator('.invoice-document')).not.toContainText('100 Main Street')
+  const snapshot=await downloadedArtifact(page,state,'invoice',invoiceId)
+  expect(snapshot.company).toMatchObject({name:'Original Plumbing Co',address_line1:'55 Historic Road',document_footer:'Original invoice terms'})
+  expect(snapshot.company.address_line1).not.toBe(company.address_line1)
+  expect(state.requests.filter(r=>r.method!=='GET'&&!r.path.endsWith('/functions/v1/document-pdf')&&/create_document|update_draft|send-/.test(r.path))).toHaveLength(0)
 })
 
 test('issued estimate preview shows original issuer and saved footer, not current company profile', async ({ page }) => {
@@ -234,15 +279,14 @@ test('issued estimate preview shows original issuer and saved footer, not curren
       document_accent: '#113355', document_footer: 'Original estimate terms',
     },
   }
-  await mockWorkspace(page, { estimates: [issued] })
+  const state=await mockWorkspace(page, { estimates: [issued] })
   await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Estimates')
-  await page.getByRole('button', { name: 'Preview / Print' }).click()
-  const document = page.locator('.estimate-preview-document')
-  await expect(document.locator('.letterhead-company')).toHaveText('Original Estimate Co')
-  await expect(document).toContainText('75 Old Street')
-  await expect(document).toContainText('Original estimate terms')
-  await expect(document).not.toContainText('100 Main Street')
+  await page.getByRole('button',{name:/EST-HISTORIC/}).click()
+  const snapshot=await downloadedArtifact(page,state,'estimate',estimateId)
+  expect(snapshot.company).toMatchObject({name:'Original Estimate Co',address_line1:'75 Old Street',document_footer:'Original estimate terms'})
+  expect(snapshot.company.address_line1).not.toBe(company.address_line1)
+  expect(state.requests.filter(r=>/create_document|update_draft|send-/.test(r.path))).toHaveLength(0)
 })
 
 
@@ -252,7 +296,7 @@ test('technician keeps field navigation but cannot edit invoices, estimates or p
   await openWorkArea(page, 'Jobs')
   await expect(page.getByRole('button', { name: '+ New job' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Home', exact: true }).click()
-  await page.getByRole('button', { name: 'Create new', exact: true }).click()
+  await page.getByRole('button', { name: 'Quick Links', exact: true }).click()
   await expect(page.getByRole('link', { name: '+ New job', exact: true })).toBeVisible()
   for (const view of ['invoices', 'estimates', 'payments']) {
     await page.goto('/?view=' + view)
@@ -283,6 +327,7 @@ test('issued change order cannot be reverted to draft and voiding requires confi
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toHaveCount(0)
   await expect(page.locator('.change-order-row select')).toHaveCount(0)
   await page.getByRole('button', { name: 'Open change order CO-TEST', exact: true }).click()
+  await page.getByRole('dialog',{name:'Review change order'}).locator('summary').filter({hasText:'More actions'}).click()
   await page.getByRole('button', { name: 'Void', exact: true }).click()
   await page.getByRole('button', { name: 'Close review' }).click()
   await expect(page.getByRole('region', { name: 'Linked change orders' }).locator('.status-chip')).toHaveText('Void')
@@ -300,10 +345,11 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
     ],
   })
   await page.goto('/?view=dashboard')
-  await expect(page.locator('.billing-outstanding')).toContainText('$125.00')
+  await expect(page.getByRole('region',{name:'Financial Performance',exact:true}).getByRole('link',{name:/^Outstanding/})).toContainText('$125.00')
   const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
   expect(aggregates).toHaveLength(1)
   expect(aggregates[0].body.target_business_id).toBe(businessId)
+  const financial=state.requests.filter(r=>r.path.endsWith('/rpc/get_financial_overview'));expect(financial).toHaveLength(1);expect(financial[0].body.p_business).toBe(businessId)
   const unbounded = state.requests.filter(r => r.path.endsWith('/invoices') &&
     new URL(r.url).searchParams.get('select') === 'balance_due')
   expect(unbounded).toHaveLength(0)
@@ -317,19 +363,18 @@ test('fractional invoice preview and saved draft retain database per-line roundi
   await createWork(page, 'invoice')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
-  await page.getByPlaceholder('Description').fill('First fractional service')
+  await page.getByPlaceholder('Description', {exact:true}).fill('First fractional service')
   await page.getByPlaceholder('Qty').fill('1.5')
   await page.getByPlaceholder('Unit price').fill('0.01')
   await page.getByRole('button', { name: '+ Add line' }).click()
-  await page.getByPlaceholder('Description').nth(1).fill('Second fractional service')
+  await page.getByPlaceholder('Description', {exact:true}).nth(1).fill('Second fractional service')
   await page.getByPlaceholder('Qty').nth(1).fill('1.5')
   await page.getByPlaceholder('Unit price').nth(1).fill('0.01')
   await expect(page.locator('.estimate-total strong')).toHaveText('$0.04')
-  await page.getByRole('button', { name: 'Save draft invoice', exact: true }).click()
+  await publishAndOpen(page)
   await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
-  await expect(page.locator('.invoice-document')).toContainText('$0.04')
-  await expect(page.locator('.invoice-document')).toContainText('First fractional service')
-  await expect(page.locator('.invoice-document')).toContainText('Second fractional service')
+  const snapshot=await downloadedArtifact(page,state,'invoice',invoiceId)
+  expect(snapshot.total).toBe(.04);expect(snapshot.items.map(item=>item.description)).toEqual(['First fractional service','Second fractional service']);expect(snapshot.items.map(item=>item.line_total)).toEqual([.02,.02])
   const writes = state.requests.filter(x => x.path.endsWith('/rpc/create_document'))
   expect(writes).toHaveLength(1)
   expect(writes[0].body.payload.items).toHaveLength(2)

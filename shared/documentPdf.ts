@@ -1,8 +1,9 @@
 import { PDFDocument, PDFFont, PDFImage, PDFPage, rgb, type RGB } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
+import { documentFooter } from './documentAppearance.ts'
 import { documentPdfFonts } from './fonts/dejavuSans.ts'
 
-export const DOCUMENT_PDF_TEMPLATE_VERSION = 'finviant-document-1'
+export const DOCUMENT_PDF_TEMPLATE_VERSION = 'finviant-document-3'
 export type DocumentPdfAmount = number | string
 export type DocumentPdfParty = {
   name?: string | null; first_name?: string | null; last_name?: string | null
@@ -123,6 +124,8 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
     catch { throw new Error('The saved company logo is not a supported PNG or JPEG. Review it before sending.') }
   }
   const accent = accentColor(snapshot.company.document_accent)
+  // A light brand tint stays readable even with very pale customer accent colors.
+  const brandTint = rgb(0.94 + accent.red * 0.06, 0.94 + accent.green * 0.06, 0.94 + accent.blue * 0.06)
   const pages: PDFPage[] = []
   let page!: PDFPage
   let y = 0
@@ -216,7 +219,7 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
   }
   y = (page === identityPage ? Math.min(identityY, contactY, y - (logo ? 64 : 26)) : identityY) - 18
   ensure(68)
-  page.drawRectangle({ x: MARGIN, y: y - 51, width: CONTENT_WIDTH, height: 51, color: pale })
+  page.drawRectangle({ x: MARGIN, y: y - 51, width: CONTENT_WIDTH, height: 51, color: brandTint })
   const metadata = [[`${label} number`, number], ['Issued', documentDate(snapshot.issue_date)], snapshot.kind === 'change_order' ? ['Revision', String(snapshot.revision_number || 1)] : [snapshot.kind === 'invoice' ? 'Due date' : 'Valid until', documentDate(snapshot.kind === 'invoice' ? snapshot.due_date : snapshot.expires_on) || 'Not specified']]
   metadata.forEach(([caption, value], index) => {
     const x = MARGIN + 12 + index * (CONTENT_WIDTH / 3)
@@ -270,7 +273,7 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
     const itemRate = revisionSubtotal != null ? revisionSubtotal : item.unit_price
     const itemTotal = revisionSubtotal != null ? revisionSubtotal : item.line_total
     const description = wrap(text(item.description), 280, 9.5)
-    if (amount(item.tax_rate) !== 0) description.push(`Tax ${amount(item.tax_rate)}%`)
+    if (amount(snapshot.tax_amount) !== 0 && amount(item.tax_rate) !== 0) description.push(`Tax ${amount(item.tax_rate)}%`)
     let consumed = 0
     while (consumed < description.length) {
       if (y - 34 < BOTTOM) { newPage(true); tableHeader() }
@@ -300,7 +303,8 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
     const paid = amount(amounts.deposit_paid) + amount(amounts.other_paid)
     if (paid > 0) { const remaining = amount(amounts.revised_total) - paid; totals.push({ label: remaining < 0 ? 'Credit or refund to review' : 'Remaining if approved', value: money(Math.abs(remaining)) }) }
   } else {
-    totals.push({ label: 'Subtotal', value: money(snapshot.subtotal) }, { label: 'Tax', value: money(snapshot.tax_amount) })
+    totals.push({ label: 'Subtotal', value: money(snapshot.subtotal) })
+    if (amount(snapshot.tax_amount) !== 0) totals.push({ label: 'Tax', value: money(snapshot.tax_amount) })
     if (snapshot.kind === 'invoice' && amount(snapshot.deposit_credit) > 0) totals.push({ label: 'Deposit credited', value: `-${money(snapshot.deposit_credit)}` })
     if (snapshot.kind === 'invoice') {
       totals.push({ label: 'Invoice total', value: money(snapshot.total) })
@@ -312,9 +316,12 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
   const summaryPage = page
   const summaryTop = y
   for (const total of totals) {
-    if (total.grand) page.drawRectangle({ x: 302, y: y - 25, width: 266, height: 28, color: pale })
-    draw(total.label, 312, y - 5, total.grand ? 10 : 9, total.grand ? bold : regular, total.grand ? ink : muted)
-    right(total.value, 556, y - 5, total.grand ? 12 : 10, bold, ink, 107)
+    if (total.grand) {
+      page.drawRectangle({ x: 302, y: y - 25, width: 266, height: 28, color: ink })
+      page.drawRectangle({ x: 302, y: y - 25, width: 3, height: 28, color: accent })
+    }
+    draw(total.label, 312, y - 5, total.grand ? 10 : 9, total.grand ? bold : regular, total.grand ? white : muted)
+    right(total.value, 556, y - 5, total.grand ? 12 : 10, bold, total.grand ? white : ink, 107)
     y -= 26
   }
   const totalsBottom = y
@@ -326,7 +333,23 @@ export async function generateDocumentPdf(snapshot: CanonicalDocumentSnapshot, o
     // A frozen PDF must not retain a stale, amount-prefilled provider URL.
   }
   if (page === summaryPage) y = Math.min(y, totalsBottom)
-  section('Notes', text(snapshot.company.document_footer))
+  // Keep custom wording intact, but place it as an actual centered closing footnote.
+  // Long custom footers flow safely rather than colliding with totals or pagination.
+  if (snapshot.kind === 'change_order') section('Notes', text(snapshot.company.document_footer))
+  const footer = snapshot.kind === 'change_order' ? '' : text(documentFooter(snapshot.company.document_footer))
+  if (footer) {
+    const footerLines = wrap(footer, CONTENT_WIDTH - 48, 9)
+    const maximumLines = Math.floor((PAGE_HEIGHT - MARGIN - 64 - BOTTOM - 24) / 13)
+    for (let offset = 0; offset < footerLines.length; offset += maximumLines) {
+      const lines = footerLines.slice(offset, offset + maximumLines)
+      const height = lines.length * 13 + 24
+      ensure(height)
+      const top = BOTTOM + lines.length * 13
+      page.drawLine({ start: { x: MARGIN, y: top + 12 }, end: { x: PAGE_WIDTH - MARGIN, y: top + 12 }, thickness: 0.5, color: lineColor })
+      lines.forEach((line, index) => draw(line, (PAGE_WIDTH - width(line, 9)) / 2, top - index * 13, 9, regular, muted))
+      if (offset + maximumLines < footerLines.length) newPage(true)
+    }
+  }
   for (let index = 0; index < pages.length; index++) {
     page = pages[index]
     page.drawLine({ start: { x: MARGIN, y: 46 }, end: { x: PAGE_WIDTH - MARGIN, y: 46 }, thickness: 0.5, color: lineColor })

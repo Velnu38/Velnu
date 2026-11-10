@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test'
+import {fulfillPdf,PDF_REVISION} from './document-pdf-fixture.mjs'
+async function openDelivery(page){
+ await page.getByRole('button',{name:'Send invoice',exact:true}).click()
+ const dialog=page.getByRole('dialog',{name:'Send invoice',exact:true})
+ await expect(dialog.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+ return dialog
+}
 
 const businessId = '11111111-1111-4111-8111-111111111111'
 const invoiceId = '22222222-2222-4222-8222-222222222222'
@@ -22,6 +29,12 @@ async function mockApi(page, options = {}) {
     requests.push({ path: url.pathname, query: url.searchParams, method: request.method(), body })
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
     const json = (data, status = 200) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(data) })
+    if (url.pathname.endsWith('/functions/v1/document-pdf')) return fulfillPdf(route)
+    if (url.pathname.endsWith('/rpc/get_plan_usage')) return json({plan:'pro',ai_limit:0,voice_limit:0})
+    if (url.pathname.endsWith('/rpc/get_delivery_setup')) return json({plan:'pro',personal_email_ready:false,personal_sms_ready:false,managed_email_ready:true,managed_sms_ready:false,acknowledged:true,email:user.email,phone:null})
+    if (url.pathname.endsWith('/rpc/get_delivery_automation')) return json({plan:'pro',ready:true,rule:{enabled:false,after_days:3,repeat_days:7,max_reminders:3},tasks:[]})
+    if (url.pathname.endsWith('/rpc/get_invoice_payment_operations')) return json({state:'clear',refunds:[]})
+    if (url.pathname.endsWith('/rpc/get_document_change_context')) return json({can_change:false,work_status:'unscheduled'})
     if (url.pathname.endsWith('/recover')) return json({})
     if (url.pathname.endsWith('/user')) return json(user)
     if (url.pathname.endsWith('/logout')) return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' }, body: '' })
@@ -89,13 +102,15 @@ test('invoice resolves object customer relation and sends directly from the revi
   const requests = await mockApi(page)
   await page.goto('/tests/invoice.html')
   await expect(page.getByText('Trial Customer · customer@example.test')).toBeVisible()
-  await page.getByRole('button', { name: 'Send Email', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('accepted for delivery')
+  const delivery=await openDelivery(page)
+  await delivery.getByRole('button', { name: 'Send Email', exact: true }).click()
+  await expect(delivery.getByRole('status')).toContainText('accepted for delivery')
   const sends = requests.filter(item => item.path.endsWith('/send-invoice-email') && item.method === 'POST')
   expect(sends).toHaveLength(1)
   expect(sends[0].body.business_id).toBe(businessId)
   expect(sends[0].body.invoice_id).toBe(invoiceId)
   expect(sends[0].body.expected_recipient).toBe(customer.email)
+  expect(sends[0].body.expected_revision_id).toBe(PDF_REVISION)
   expect(sends[0].body).not.toHaveProperty('recipient')
   expect(sends[0].body).not.toHaveProperty('notes')
 })
@@ -104,10 +119,11 @@ test('failed email retries reuse the request identifier', async ({ page }) => {
   await signedIn(page)
   const requests = await mockApi(page, { failFirst: true, customerArray: true })
   await page.goto('/tests/invoice.html')
-  await page.getByRole('button', { name: 'Send Email', exact: true }).click()
-  await expect(page.getByRole('alert')).toContainText('Provider unavailable')
-  await page.getByRole('button', { name: 'Retry email', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('accepted for delivery')
+  const delivery=await openDelivery(page)
+  await delivery.getByRole('button', { name: 'Send Email', exact: true }).click()
+  await expect(delivery.getByRole('alert')).toContainText('Provider unavailable')
+  await delivery.getByRole('button', { name: 'Retry email', exact: true }).click()
+  await expect(delivery.getByRole('status')).toContainText('accepted for delivery')
   const sends = requests.filter(item => item.path.endsWith('/send-invoice-email') && item.method === 'POST')
   expect(sends).toHaveLength(2)
   expect(sends[0].body.request_id).toBe(sends[1].body.request_id)
@@ -117,7 +133,8 @@ test('reviewing the saved invoice without pressing send never sends a message', 
   await signedIn(page)
   const requests = await mockApi(page)
   await page.goto('/tests/invoice.html')
-  await expect(page.getByRole('button', { name: 'Send Email', exact: true })).toBeEnabled()
+  const delivery=await openDelivery(page)
+  await expect(delivery.getByRole('button', { name: 'Send Email', exact: true })).toBeEnabled()
   expect(requests.filter(item => item.path.endsWith('/send-invoice-email'))).toHaveLength(0)
 })
 
@@ -157,6 +174,7 @@ test('repeat signup response does not imply a new account or require waiting for
   await page.goto('/auth?mode=signup')
   await page.getByLabel('Email', { exact: true }).fill('existing@example.test')
   await page.getByLabel('Password', { exact: true }).fill('NotARealPassword123!')
+  await page.getByLabel('Confirm password', {exact:true}).fill('NotARealPassword123!')
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('If you registered before')
   await expect(page.getByRole('button', {name:'Already registered? Sign in'})).toBeVisible()

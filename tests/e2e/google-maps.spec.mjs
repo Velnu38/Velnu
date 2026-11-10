@@ -1,4 +1,4 @@
-import { openWorkArea } from './navigation.mjs'
+import { openWorkArea, createWork } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 
 const businessId = '11111111-1111-4111-8111-111111111111'
@@ -34,6 +34,8 @@ async function mockBusinessData(page) {
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, body: '' })
     if (path.endsWith('/get_dashboard_invoice_totals')) return json({open_invoices:0,outstanding_balance:0})
+    if (path.endsWith('/rpc/get_private_beta_access')) return json({allowed:true})
+    if (path.endsWith('/rpc/business_onboarding_status')) return json({required:false,completed:true})
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json({ id: '88888888-8888-4888-8888-888888888888', agreement_version: '2026-10-27-v3' })
@@ -59,9 +61,10 @@ async function mockBusinessData(page) {
 test('service location opens a valid Google Maps view and driving directions without revealing access notes', async ({ page }) => {
   await mockBusinessData(page)
   await page.goto('/?view=dashboard')
-  await page.locator('.sidebar').getByRole('button', { name: 'Customers', exact: true }).click()
+  await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog',{name:'More navigation',exact:true}).getByRole('link',{name:/^Customers/}).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()
-  await expect(page.getByRole('region',{name:'Customer contact'}).getByRole('heading', { name: 'Address',exact:true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Address',exact:true })).toBeVisible()
   await expect(page.getByText('123 Example Street', { exact: true })).toBeVisible()
   const map = page.getByRole('link', { name: /View 123 Example Street.*Google Maps/ })
   const directions = page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })
@@ -83,8 +86,7 @@ test('service location opens a valid Google Maps view and driving directions wit
 test('owner assigns a matching customer property when creating a job', async ({ page }) => {
   const requests = await mockBusinessData(page)
   await page.goto('/?view=dashboard')
-  await page.getByRole('button', { name: 'Create new', exact: true }).click()
-  await page.getByRole('link', { name: '+ New job', exact: true }).click()
+  await createWork(page,'job')
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
   await expect(page.getByLabel('Service location').locator('option[value="' + propertyId + '"]')).toHaveCount(1)
   await page.getByLabel('Service location').selectOption(propertyId)
@@ -113,7 +115,7 @@ test('mobile Customers contains service locations and route links without horizo
   await mockBusinessData(page)
   await page.goto('/?view=dashboard')
   await page.locator('.mobile-nav').getByRole('button', { name: 'More', exact: true }).click()
-  await page.locator('.mobile-more-grid').getByRole('button', { name: 'Customers', exact: true }).click()
+  await page.getByRole('dialog',{name:'More navigation',exact:true}).getByRole('link', { name: /^Customers/ }).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()
   await expect(page.getByRole('link', { name: /Get driving directions to 123 Example Street/ })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)

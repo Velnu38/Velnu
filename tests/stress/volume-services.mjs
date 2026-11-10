@@ -12,18 +12,18 @@ for(const [key,path] of Object.entries(modules)){
 }
 const results=[]
 async function group(name,n,fn){let pass=0,fail=0,errors=[];const start=performance.now();for(let i=0;i<n;i++){try{await fn(i);pass++}catch(e){fail++;if(errors.length<3)errors.push({input:i,error:e.message})}}results.push({name,inputs:n,pass,fail,elapsed_ms:Math.round(performance.now()-start),errors});console.log(name,pass,fail)}
-let total=1100,mode='normal';const calls=[]
+let total=1100,mode='normal';const calls=[],workflowBatches=[]
 globalThis.fetch=async(resource,init)=>{
  const req=new Request(resource,init),u=new URL(req.url);assert.equal(u.hostname,'qa.invalid');calls.push(u)
  const offset=Number(u.searchParams.get('offset')??0),limit=Number(u.searchParams.get('limit')??500)
- if(u.pathname.includes('/rpc/')){const p=await req.json();assert.equal(p.target_business_id,'workspace-test');if(p.payload){assert.equal(p.payload.customer_id,'customer-test');return Response.json({id:'saved',...p.payload,total:100})}return Response.json({id:'saved',amount:p.payment_amount})}
+ if(u.pathname.includes('/rpc/')){const p=await req.json();if(u.pathname.endsWith('/get_job_workflow_context')){assert.equal(p.p_business,'workspace-test');assert.ok(Array.isArray(p.p_jobs)&&p.p_jobs.length>0&&p.p_jobs.length<=200);workflowBatches.push(p.p_jobs);return Response.json(p.p_jobs.map(job_id=>({job_id,active_appointment:null,invoice:null})))}assert.equal(p.target_business_id,'workspace-test');if(p.payload){assert.equal(p.payload.customer_id,'customer-test');return Response.json({id:'saved',...p.payload,total:100})}return Response.json({id:'saved',amount:p.payment_amount})}
  assert.equal(u.searchParams.get('business_id'),'eq.workspace-test')
  const rows=Array.from({length:Math.min(limit,total-offset)},(_,j)=>({id:String(offset+j).padStart(6,'0'),issue_date:'2026-01-01',scheduled_start:'2026-01-01',first_name:'QA',last_name:String(offset+j),customers:null,invoices:null}))
  const headers={'content-type':'application/json'};if(mode!=='missing-count')headers['content-range']=`${offset}-${offset+rows.length-1}/${total}`
  return new Response(JSON.stringify(rows),{headers})
 }
 for(const [key,name] of [['invoices','listInvoices'],['estimates','listEstimates'],['jobs','listJobs'],['customers','listCustomers'],['payments','listPayments'],['payments','listOpenInvoices']]){
- await group(name,100,async i=>{total=1001+i;mode='normal';calls.length=0;const rows=await app[key][name]('workspace-test');assert.equal(rows.length,total);assert.equal(new Set(rows.map(r=>r.id)).size,total);assert.equal(calls.length,3)})
+ await group(name,100,async i=>{total=1001+i;mode='normal';calls.length=0;workflowBatches.length=0;const rows=await app[key][name]('workspace-test');assert.equal(rows.length,total);assert.equal(new Set(rows.map(r=>r.id)).size,total);assert.equal(calls.filter(u=>!u.pathname.includes('/rpc/')).length,3,'collection still uses exactly three pages');if(name==='listJobs'){assert.equal(workflowBatches.length,Math.ceil(total/200));assert.deepEqual(workflowBatches.flat(),rows.map(r=>r.id));assert.ok(rows.every(r=>r.active_appointment===null&&r.invoice===null))}else assert.equal(calls.length,3)})
  await group(name+'_missing_count',100,async()=>{mode='missing-count';await assert.rejects(()=>app[key][name]('workspace-test'),/complete record/)})
 }
 mode='normal'

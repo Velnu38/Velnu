@@ -1,3 +1,4 @@
+import {createWork} from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
@@ -18,6 +19,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   const reply=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-expose-headers':'content-range','content-range':Array.isArray(value)?`0-${Math.max(0,value.length-1)}/${value.length}`:'0-0/0'},body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,DELETE'},body:''})
   if(path.endsWith('/auth/v1/user'))return reply(user)
+  if(path.endsWith('/rpc/get_private_beta_access'))return reply({allowed:true,reason:'approved'})
   if(path.endsWith('/rpc/get_membership_entry'))return reply(B)
   if(path.endsWith('/user_plan_preferences'))return reply({selected_tier:'pro'})
   if(path.endsWith('/user_agreement_acceptances'))return reply({id:E,agreement_version:'2026-10-26-v2'})
@@ -78,8 +80,7 @@ for(const width of [1440,390])test(`workspace route and button audit at ${width}
 for(const width of [1440,390])for(const kind of ['invoice','estimate','job'])test(`dashboard opens ${kind} creation from the Home chooser without reloading at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page);await page.goto('/?view=dashboard');await expect(page.getByRole('region',{name:'Work calendar'})).toBeVisible()
  const origin=await page.evaluate(()=>performance.timeOrigin)
- await page.getByRole('button',{name:'Create new',exact:true}).click()
- await page.getByRole('navigation',{name:'Create work'}).getByRole('link',{name:'+ New '+kind,exact:true}).click()
+ await createWork(page,kind)
  await expect(page.getByRole('dialog')).toBeVisible()
  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin)
  expect(await page.getByRole('dialog').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)

@@ -1,5 +1,5 @@
 import {workflow,start,save,review,step,cors} from './fin-workflow-fixture.mjs'
-import { openWorkArea } from './navigation.mjs'
+import { createWork } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 const B='11111111-1111-4111-8111-111111111111', U='33333333-3333-4333-8333-333333333333', C='44444444-4444-4444-8444-444444444444', A='55555555-5555-4555-8555-555555555555'
 const user={id:U,email:'qa@example.test',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-01-01T00:00:00Z'}
@@ -14,6 +14,9 @@ async function setup(page,options={}){
   s.requests.push({path,method,body})
   const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': Array.isArray(value) ? `0-${Math.max(0,value.length-1)}/${value.length}` : '0-0/1' },body:JSON.stringify(value)})
   if(method==='OPTIONS')return route.fulfill({status:200,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:''})
+  if(path.endsWith('/rpc/get_private_beta_access'))return json({allowed:true})
+  if(path.endsWith('/rpc/business_onboarding_status'))return json({required:false,completed:true})
+  if(path.endsWith('/rpc/get_job_workflow_context'))return json((body.p_jobs||[]).map(id=>({job_id:id,active_appointment:null,invoice:null})))
   if(path.endsWith('/user'))return json(user)
   if(path.endsWith('/user_plan_preferences'))return json({user_id:U,selected_tier:'pro'})
   if(path.endsWith('/user_agreement_acceptances'))return json({id:A,agreement_version:'2026-10-27-v3'})
@@ -21,7 +24,7 @@ async function setup(page,options={}){
   if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',ai_limit:50,voice_limit:50,logo_bytes_limit:131072})
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return json({open_invoices:0,outstanding_balance:0})
   if(path.endsWith('/customers'))return json([customer])
-  if(path.endsWith('/jobs'))return json(s.jobs)
+  if(path.endsWith('/jobs'))return json(new URL(r.url()).searchParams.has('id')?s.jobs.find(job=>job.id===new URL(r.url()).searchParams.get('id')?.replace('eq.','')):s.jobs)
   if(path.endsWith('/rpc/create_job_atomic')){
    s.jobAttempts++
    if(!s.jobs.length)s.jobs.push({id:A,title:body.payload.title,status:'lead',customers:customer,scheduled_start:null})
@@ -88,8 +91,7 @@ test('recorded payment is described as a payment, not a newly created invoice',a
 })
 test('job creation preserves request identity after a lost response',async({page})=>{
  const s=await setup(page,{jobLost:true})
- await page.getByRole('button',{name:'Create new',exact:true}).click()
- await page.getByRole('link',{name:'+ New job',exact:true}).click()
+ await createWork(page,'job')
  await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+C+'"]').click()
  await page.getByLabel('Job title',{exact:true}).fill('Recovery demonstration')
  await page.getByRole('button',{name:'Save job',exact:true}).click()
@@ -102,10 +104,12 @@ test('job creation preserves request identity after a lost response',async({page
  expect(s.jobs).toHaveLength(1);expect(s.errors).toEqual([])
 })
 test('job status failure remains visible and makes no separate appointment write',async({page})=>{
- const s=await setup(page,{jobs:[{id:A,title:'Existing job',status:'lead',customers:customer,scheduled_start:null}]})
- await openWorkArea(page, 'Jobs')
- page.once('dialog',d=>d.accept());await page.locator('.job-row select').selectOption('completed')
- await expect(page.getByRole('alert')).toBeVisible()
+ const s=await setup(page,{jobs:[{id:A,customer_id:C,title:'Existing job',status:'in_progress',customers:customer,scheduled_start:null}]})
+ await page.goto('/?view=work&document='+A)
+ const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
+ page.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'Mark complete',exact:true}).click()
+ await expect(dialog.getByRole('alert')).toContainText('Unable to update linked appointment')
+ expect(s.requests.filter(r=>r.path.endsWith('/functions/v1/work-scheduling')&&r.body?.action==='complete')).toHaveLength(1)
  expect(s.requests.filter(r=>r.path.endsWith('/appointments')&&r.method==='PATCH')).toHaveLength(0)
- expect(s.jobs[0].status).toBe('lead');expect(s.errors).toEqual([])
+ expect(s.jobs[0].status).toBe('in_progress');expect(s.errors).toEqual([])
 })

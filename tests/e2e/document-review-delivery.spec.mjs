@@ -1,4 +1,5 @@
 import {workflow,start,save,docStep,item} from './fin-workflow-fixture.mjs'
+import {PDF_REVISION,PDF_BYTES,pdfHeaders,fulfillPdf} from './document-pdf-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {mock,B,C,E,P,customer} from './audit-fixture.mjs'
 test.setTimeout(60000)
@@ -18,6 +19,10 @@ async function openReview(page,kind){
  await page.goto('/?view='+(kind==='change_order'?'invoices':kind+'s')+'&document='+E)
  if(kind==='change_order'){
   await page.getByRole('button',{name:'Open change order CO-QA'}).click()
+ } else {
+  const review=kind==='estimate'?page.getByRole('dialog',{name:'Estimate preview',exact:true}):page
+  await expect(review.getByRole('region',{name:'Send to customer',exact:true})).toHaveCount(0)
+  await review.getByRole('button',{name:'Send '+kind,exact:true}).click()
  }
  return page.getByRole('region',{name:'Send to customer',exact:true})
 }
@@ -32,9 +37,11 @@ for(const kind of ['invoice','estimate','change_order'])for(const [scenario,cont
  await expect(delivery).toBeVisible()
  await expect(delivery.getByRole('button',{name:'Send Email',exact:true})).toHaveCount(1)
  await expect(delivery.getByRole('button',{name:'Send Text',exact:true})).toHaveCount(1)
+ await expect(page.getByRole('dialog',{name:kind==='change_order'?'Review change order':'Send '+kind,exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeVisible()
  if(hasEmail)await expect(delivery.getByRole('button',{name:'Send Email'})).toBeEnabled()
  else await expect(delivery.getByRole('button',{name:'Send Email'})).toBeDisabled()
- if(hasSms){await expect(delivery.getByRole('button',{name:'Send Text'})).toBeDisabled();await expect(delivery).toContainText('pending sender activation')}
+ await expect(delivery.getByRole('button',{name:'Send Text'})).toBeDisabled()
+ if(hasSms)await expect(delivery).toContainText('pending sender activation')
  if(scenario==='neither')await expect(delivery.getByRole('button',{name:'Add email or phone'})).toBeVisible()
  expect(state.calls.some(call=>call.path.includes('/send-'))).toBe(false)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
@@ -46,10 +53,10 @@ for(const kind of ['invoice','estimate','change_order'])test(`${kind} sends once
   if(route.request().method()==='OPTIONS')return reply(route,{},200)
   sends.push(route.request().postDataJSON());await new Promise(r=>setTimeout(r,100));return reply(route,{status:'accepted',email_id:'receipt-1',recipient:'customer@example.test'})
  })
- const delivery=await openReview(page,kind);await delivery.getByRole('button',{name:'Send Email',exact:true}).dblclick()
+ const delivery=await openReview(page,kind);await expect(delivery.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled();await delivery.getByRole('button',{name:'Send Email',exact:true}).dblclick()
  await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery'})).toBeVisible()
  await expect(delivery).toHaveCount(1)
- expect(sends).toHaveLength(1);expect(sends[0].expected_recipient).toBe('customer@example.test');expect(sends[0].business_id).toBe(B)
+ expect(sends).toHaveLength(1);expect(sends[0].expected_recipient).toBe('customer@example.test');expect(sends[0].business_id).toBe(B);expect(sends[0].expected_revision_id).toBe(PDF_REVISION)
  expect(sends[0].invoice_id||sends[0].document_id).toBe(kind==='change_order'?P:E)
  if(kind!=='invoice')expect(sends[0].document_type).toBe(kind)
  await expect(delivery.getByRole('button',{name:'Email accepted',exact:true})).toBeDisabled()
@@ -61,7 +68,8 @@ test('uncertain email uses the same request after closing and reopening the save
   sends.push(route.request().postDataJSON());return reply(route,sends.length===1?{error:'Outcome uncertain. Retry the same send.'}:{status:'accepted',email_id:'receipt-1',recipient:'customer@example.test'},sends.length===1?503:200)
  })
  let delivery=await openReview(page,'invoice');await delivery.getByRole('button',{name:'Send Email',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Outcome uncertain')
- await page.getByRole('button',{name:'← Invoices',exact:true}).click();await page.getByRole('button',{name:/^Open invoice INV-QA/}).click()
+ await page.getByRole('button',{name:'Close delivery',exact:true}).click()
+ await page.getByRole('complementary',{name:'Delivery needs review'}).getByRole('button',{name:'Review delivery',exact:true}).click()
  delivery=page.getByRole('region',{name:'Send to customer'});await delivery.getByRole('button',{name:'Send Email',exact:true}).click()
  await expect(page.getByRole('status').filter({hasText:'Email accepted for delivery'})).toBeVisible();expect(sends).toHaveLength(2);expect(sends[0]).toEqual(sends[1])
 })
@@ -74,7 +82,7 @@ for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls imm
   await form.getByRole('button',{name:'Preview',exact:true}).click()
   await expect(form.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
   await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeVisible()
-  await form.getByRole('button',{name:'Save Draft',exact:true}).click()
+  await form.getByRole('button',{name:'Open saved draft',exact:true}).click()
   await expect.poll(()=>state.documents.length).toBe(1)
   expect(state.calls.some(call=>call.path.includes('/send-'))).toBe(false)
   return
@@ -86,33 +94,60 @@ for(const kind of ['invoice','estimate'])test(`Fin retains delivery controls imm
  expect(state.calls.some(call=>call.path.includes('/send-'))).toBe(false)
 })
 test('creating a change order opens its review and delivery controls automatically',async({page})=>{
- const {state}=await setup(page);await page.goto('/?view=invoices&document='+E);await page.getByRole('button',{name:'+ New change order',exact:true}).click()
+ const {state}=await setup(page);await page.goto('/?view=invoices&document='+E)
+ const actions=page.getByRole('region',{name:'Record actions',exact:true})
+ await actions.locator('summary').filter({hasText:'More'}).click()
+ await actions.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'New change order',exact:true}).click()
  const form=page.getByRole('dialog',{name:'Create change order'});await form.getByLabel('Line 1 description').fill('Two fixtures');await form.getByLabel('Line 1 unit price').fill('50')
  await form.getByRole('button',{name:'Save and review',exact:true}).click()
- const review=page.getByRole('dialog',{name:'Review change order'});await expect(review).toBeVisible();await expect(review.getByRole('button',{name:'Send Email'})).toBeEnabled();await expect(review.getByText('Two fixtures',{exact:true})).toBeVisible();expect(state.changes).toHaveLength(1)
+ const review=page.getByRole('dialog',{name:'Review change order'});await expect(review).toBeVisible();await expect(review.getByRole('button',{name:'Send Email'})).toBeEnabled();await expect(review.getByRole('button',{name:'Download PDF',exact:true})).toBeVisible();expect(state.changes).toHaveLength(1);expect(state.changes[0].p_input.items[0]).toMatchObject({description:'Two fixtures',unit_price:50});expect(state.calls.filter(call=>call.path.endsWith('/document-pdf')&&call.method==='POST').at(-1).body).toEqual({business_id:B,document_kind:'change_order',document_id:P})
 })
-test('switching change orders ignores a late line-item response from the previous review',async({page})=>{
- const {order}=await setup(page);const otherId='77777777-7777-4777-8777-777777777777';let releaseFirst
+test('switching change orders ignores a late PDF from the previous review and sends only the current revision',async({page})=>{
+ const {order}=await setup(page)
+ const otherId='77777777-7777-4777-8777-777777777777'
+ const otherRevision='99999999-9999-4999-8999-999999999999'
+ let releaseFirst,firstStarted=false
  const firstReleased=new Promise(resolve=>{releaseFirst=resolve})
+ let finishFirst
+ const firstFinished=new Promise(resolve=>{finishFirst=resolve})
  const other={...order,id:otherId,change_order_number:'CO-OTHER',title:'Different work'}
  await page.route('**/rest/v1/change_orders?*',route=>reply(route,[order,other]))
- let firstStarted=false
- await page.route('**/rest/v1/change_order_items?*',async route=>{
-  const first=new URL(route.request().url()).searchParams.get('change_order_id')==='eq.'+P
+ await page.route('**/functions/v1/document-pdf',async route=>{
+  if(route.request().method()==='OPTIONS')return reply(route,{},200)
+  const body=route.request().postDataJSON()
+  if(body.document_kind!=='change_order')return fulfillPdf(route)
+  const first=body.document_id===P
   if(first){firstStarted=true;await firstReleased}
-  return reply(route,[{id:E,description:first?'First order lines':'Second order lines',quantity:1,unit_price:100,line_total:100,tax_rate:5}])
+  try {
+   await route.fulfill({status:200,headers:{...pdfHeaders,'x-finviant-revision-id':first?PDF_REVISION:otherRevision,'content-disposition':`attachment; filename="${first?'CO-QA':'CO-OTHER'}.pdf"`},body:PDF_BYTES})
+  } finally {if(first)finishFirst()}
+ })
+ const sends=[]
+ await page.route('**/functions/v1/send-document-email',route=>{
+  if(route.request().method()==='OPTIONS')return reply(route,{},200)
+  sends.push(route.request().postDataJSON())
+  return reply(route,{status:'accepted',email_id:'receipt-2',recipient:'customer@example.test'})
  })
  await page.goto('/?view=invoices&document='+E)
- await page.getByRole('button',{name:'Open change order CO-QA'}).click();await expect.poll(()=>firstStarted).toBe(true)
- await page.getByRole('button',{name:'Close review',exact:true}).click();await page.getByRole('button',{name:'Open change order CO-OTHER'}).click()
- const review=page.getByRole('dialog',{name:'Review change order'});await expect(review.getByText('Second order lines',{exact:true})).toBeVisible()
- const lateResponse=page.waitForResponse(response=>response.url().includes('/change_order_items')&&new URL(response.url()).searchParams.get('change_order_id')==='eq.'+P)
- releaseFirst();await lateResponse
- await expect(review.getByText('Second order lines',{exact:true})).toBeVisible();await expect(review.getByText('First order lines',{exact:true})).toHaveCount(0)
+ await page.getByRole('button',{name:'Open change order CO-QA'}).click()
+ await expect.poll(()=>firstStarted).toBe(true)
+ const review=page.getByRole('dialog',{name:'Review change order',exact:true})
+ await expect(review.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled()
+ await review.getByRole('button',{name:'Close review',exact:true}).click()
+ await page.getByRole('button',{name:'Open change order CO-OTHER'}).click()
+ await expect(review.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
+ releaseFirst();await firstFinished
+ const downloaded=page.waitForEvent('download')
+ await review.getByRole('button',{name:'Download PDF',exact:true}).click()
+ expect((await downloaded).suggestedFilename()).toBe('CO-OTHER.pdf')
+ await review.getByRole('button',{name:'Send Email',exact:true}).click()
+ await expect(review.getByRole('status').filter({hasText:'Email accepted for delivery'})).toBeVisible()
+ expect(sends).toHaveLength(1)
+ expect(sends[0]).toMatchObject({business_id:B,document_type:'change_order',document_id:otherId,expected_revision_id:otherRevision})
 })
 
 test('the estimate shows the exact pending, approved, and declined changes without changing the quoted total', async ({ page }) => {
- const { order } = await setup(page)
+ const { order,state } = await setup(page)
  const matching = { ...order, source_invoice_id: null, estimate_id: E, status: 'sent', total: 20,
    change_totals: { current_total: 105, change_amount: 20, revised_total: 125, deposit_paid: 0, other_paid: 0 } }
  const unrelated = { ...order, id: '77777777-7777-4777-8777-777777777777', estimate_id: E, title: 'Invoice-only change' }
@@ -128,12 +163,16 @@ test('the estimate shows the exact pending, approved, and declined changes witho
  await expect(summary).not.toContainText('Invoice-only change')
  await expect(page.getByRole('dialog', { name: 'Create change order' })).toHaveCount(0)
  await summary.getByRole('button', { name: 'Open change order CO-QA' }).click()
- await expect(page.getByRole('dialog', { name: 'Review change order' })).toContainText('CO-QA')
+ const changeReview=page.getByRole('dialog', { name: 'Review change order',exact:true })
+ await expect(changeReview.getByRole('button',{name:'Download PDF',exact:true})).toBeVisible()
+ expect(state.calls.filter(call=>call.path.endsWith('/document-pdf')&&call.method==='POST').at(-1).body).toEqual({business_id:B,document_kind:'change_order',document_id:P})
  matching.status = 'approved'
  await page.getByRole('button', { name: 'Close review' }).click()
  await expect(summary).toContainText('Approved project total $125.00')
  await expect(summary).toContainText('Will be included on the final invoice')
- await expect(page.getByRole('dialog', { name: 'Estimate preview' }).locator('.document-paper')).toContainText('$105.00')
+ const estimateReview=page.getByRole('dialog', { name: 'Estimate preview', exact:true })
+ await expect(estimateReview.locator('.record-detail-header')).toContainText('$105.00')
+ await expect(estimateReview.getByRole('region',{name:'Estimate PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeVisible()
 
  matching.status = 'declined'
  await page.evaluate(() => dispatchEvent(new Event('focus')))
@@ -170,4 +209,33 @@ test('the original issued invoice shows the approved project total and the separ
  await expect(summary).toContainText('Added to draft invoice · INV-CHANGE')
  await expect(summary.getByRole('link', { name: 'Open linked invoice' })).toHaveAttribute('href', '/?view=invoices&document=' + changeInvoice)
  await expect(page.locator('.invoice-hero-balance')).toContainText('Total $105.00')
+})
+
+for (const kind of ['invoice','estimate','change_order']) for (const failure of ['unavailable','unverified revision']) test(`${kind}: ${failure} PDF blocks sending until an explicit successful retry`, async ({page}) => {
+ const {state}=await setup(page)
+ let recovered=false
+ const requests=[]
+ await page.route('**/functions/v1/document-pdf',route=>{
+  if(route.request().method()==='OPTIONS')return reply(route,{},200)
+  requests.push(route.request().postDataJSON())
+  if(recovered)return fulfillPdf(route)
+  if(failure==='unavailable')return reply(route,{error:'The saved PDF is temporarily unavailable.'},503)
+  const headers={...pdfHeaders};delete headers['x-finviant-revision-id']
+  return route.fulfill({status:200,headers,body:PDF_BYTES})
+ })
+ const delivery=await openReview(page,kind)
+ const dialog=page.getByRole('dialog',{name:kind==='change_order'?'Review change order':'Send '+kind,exact:true})
+ await expect(dialog.getByRole('alert')).toContainText(failure==='unavailable'?'temporarily unavailable':'PDF version could not be verified')
+ await expect(delivery.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled()
+ await expect(delivery.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled()
+ await expect(dialog.getByRole('button',{name:'Download PDF',exact:true})).toHaveCount(0)
+ expect(state.calls.filter(call=>call.path.includes('/send-'))).toHaveLength(0)
+ recovered=true
+ await dialog.getByRole('button',{name:'Retry PDF',exact:true}).click()
+ await expect(dialog.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+ await expect(delivery.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
+ await expect(dialog.getByRole('alert')).toHaveCount(0)
+ expect(requests.at(-1)).toEqual({business_id:B,document_kind:kind,document_id:kind==='change_order'?P:E})
+ expect(state.calls.filter(call=>call.path.includes('/send-'))).toHaveLength(0)
+ expect(state.documents).toHaveLength(0)
 })

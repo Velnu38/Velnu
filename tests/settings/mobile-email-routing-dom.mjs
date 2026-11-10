@@ -116,6 +116,8 @@ try{
   assert.equal(personalCalls(),0,'Pending draft is not reopened automatically')
   await click(/Review (?:earlier|previous).*app draft/i)
   await click('I did not send it')
+  assert.match(document.body.textContent,/available to share again/,'resolved draft keeps its receipt visible')
+  await click('Use Finviant sending')
   await click('Send Email')
   assert.equal(managedCalls(),1);assert.equal(nativeNavigations,0)
 
@@ -138,9 +140,32 @@ try{
   assert.equal(nativeNavigations,0)
   await click(/Review (?:earlier|previous).*app draft/i)
   await click('I did not send it')
+  assert.match(document.body.textContent,/available to share again/,'Reminder cancellation receipt stays visible')
+  assert.equal(calls.filter(c=>c.name==='send-invoice-reminder').length,0,'Resolving personal state never sends a managed reminder')
+  await click('Use Finviant sending')
   await click(button('Send Email')?'Send Email':'Send Email with Finviant')
   assert.equal(calls.filter(c=>c.name==='send-invoice-reminder').length,1)
   assert.equal(nativeNavigations,0,'Resolving an earlier draft returns to Finviant sending')
+
+  // Confirming a reminder sent externally clears pending state without unmounting its receipt.
+  reset();plan='pro';let reminderSentCallbacks=0
+  const sentReminderKey=['finviant-send',U,B,'invoice','sent-reminder'].join(':')
+  sessionStorage.setItem(sentReminderKey,JSON.stringify({token:'c'.repeat(64),channel:'email'}))
+  await mount(InvoiceReminderDialog,{business,invoiceId:'sent-reminder',onClose:()=>{},onSent:()=>{reminderSentCallbacks++}},'sent-reminder')
+  await click(/Review (?:earlier|previous).*app draft/i)
+  await click('Confirm sent')
+  assert.match(document.body.textContent,/Recorded as sent through your app/,'Successful personal reminder receipt stays mounted')
+  assert.equal(sessionStorage.getItem(sentReminderKey),null,'Confirmed pending draft is cleared')
+  assert.equal(calls.filter(c=>c.name==='confirm_personal_document_sent').length,1)
+  assert.equal(reminderSentCallbacks,1)
+  assert.equal(calls.filter(c=>c.name==='send-invoice-reminder').length,0)
+  assert.equal(nativeNavigations,0)
+  await tick()
+  assert.match(document.body.textContent,/Recorded as sent through your app/,'Receipt remains after parent rerender')
+  await click('Use Finviant sending')
+  assert.doesNotMatch(document.body.textContent,/Recorded as sent through your app/)
+  assert.ok(button('Send Email with Finviant'),'Managed route returns only after explicit choice')
+  assert.equal(calls.filter(c=>c.name==='send-invoice-reminder').length,0,'Returning to managed route does not resend')
 
   // Personal sending is still available after an explicit, clearly named Pro choice.
   reset();plan='pro';await mount(DocumentDelivery,savedProps('explicit-personal'),'explicit-personal')

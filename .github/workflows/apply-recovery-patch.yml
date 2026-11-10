@@ -48,7 +48,7 @@ jobs:
           git push origin HEAD:refs/heads/feature/velnu-stage1
           git archive --format=zip HEAD -o finviant-verified-recovery-source.zip
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: reviewed-recovery-browser-results
           path: test-results/

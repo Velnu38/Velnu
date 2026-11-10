@@ -16,8 +16,9 @@ const tick=()=>act(()=>new Promise(r=>setTimeout(r,30)))
 const button=(name,scope=document)=>[...scope.querySelectorAll('button')].find(b=>b.textContent.trim()===name)
 async function click(b){assert.ok(b,'Button exists');await act(async()=>b.click());await tick()}
 async function amount(value){const input=document.querySelector('dialog input[type=number]');await act(async()=>{Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));input.dispatchEvent(new dom.window.Event('change',{bubbles:true}))})}
+let invoiceRoot
 try{
- await act(async()=>{await server.ssrLoadModule('/tests/billing-ui/harness.tsx')});await tick()
+ await act(async()=>{({root:invoiceRoot}=await server.ssrLoadModule('/tests/billing-ui/harness.tsx'))});await tick()
  assert.match(document.body.textContent,/Deposit credited/)
  await click(button('Mark Paid'))
  await amount('25');await click(button('Record partial payment',document.querySelector('dialog')))
@@ -26,10 +27,13 @@ try{
  await click(button('Mark Paid',document.querySelector('dialog')))
  assert.equal(window.calls.filter(c=>c.name==='record_manual_payment').reduce((sum,c)=>sum+c.input.payment_amount,0),75)
  assert.equal(button('Mark Paid'),undefined)
+ // Unmount before the deposit harness replaces the shared service fixture.
+ // Otherwise its empty invoice result can refresh the still-mounted invoice detail.
+ await act(async()=>invoiceRoot.unmount());invoiceRoot=null
  // Mount the estimate billing action using the same React and service instance.
  await act(async()=>{await server.ssrLoadModule('/tests/billing-ui/deposit-harness.tsx')});await tick()
  await click(button('Create deposit invoice'));await amount('30');await click(button('Create draft deposit invoice'))
  assert.equal(window.calls.at(-1).input.p_amount,30);assert.match(location.search,/view=invoices&document=/)
  console.log('PASS: rendered deposit credit, partial payment, full remaining settlement, paid action removal, deposit creation and invoice navigation')
-}finally{const {supabase}=await server.ssrLoadModule('/src/lib/supabase.ts');await supabase.auth.stopAutoRefresh();await server.close();dom.window.close()}
+}finally{if(invoiceRoot)await act(async()=>invoiceRoot.unmount());const {supabase}=await server.ssrLoadModule('/src/lib/supabase.ts');await supabase.auth.stopAutoRefresh();await server.close();dom.window.close()}
 process.exit(0)

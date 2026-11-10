@@ -1,0 +1,1855 @@
+{
+  "schema_version": 1,
+  "checked_date": "2026-11-09",
+  "timezone": "America/New_York",
+  "scope": "Read-only source, deployment, schema metadata reconciliation. No hosted writes or provider tests.",
+  "repository": "Velnu38/Velnu",
+  "release_branch": "ux/private-testing-20261029",
+  "release_commit": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "deployment": {
+    "id": "dpl_2ZZ8fPGmhCg8af9K3b94NzUzSNkb",
+    "state": "READY",
+    "target": null,
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "backend_ref": "xvybcmyoblfgzokaifsx",
+    "backend_evidence": "Preview environment has staging/project-ref labels; actual browser URL is encrypted and was not decrypted. Deployment source and prior source guard agree.",
+    "private_boundary": "Vercel project SSO enabled for all; custom aliases have preexisting protection overrides. App-level private-beta admission retained; no external registration/device acceptance claimed."
+  },
+  "sources": [
+    {
+      "area": "documents",
+      "pr": 70,
+      "head": "c2c717eee70843e20a53f2b0bd246b906f6b66b7",
+      "branch": "ux/document-design-20261109",
+      "source_state": "open",
+      "integration": "included"
+    },
+    {
+      "area": "job_execution",
+      "pr": 69,
+      "head": "373fba610a6ef46770e2e06cebeff4e39643ea98",
+      "branch": "feature/job-execution-20261109",
+      "source_state": "draft_open",
+      "integration": "held: manager roster correction and applied-schema reconciliation"
+    },
+    {
+      "area": "fin_product_guide",
+      "pr": 68,
+      "head": "b4363acd7ac28457b058eac11f4f0e035d49d39b",
+      "branch": "review/fin-product-knowledge-20261109",
+      "source_state": "draft_open",
+      "integration": "included; manager guidance updated locally, Edge Function not deployed"
+    },
+    {
+      "area": "customer_reminders",
+      "head": "125211cf5e40391878810135e8dbdc2e0180fa18",
+      "branch": "ux/customer-reminder-defaults-20261109",
+      "integration": "held: full-chain replay/concurrency and multi-visit reconciliation"
+    },
+    {
+      "area": "worker_availability",
+      "head": "deb00364db985b1ea1398d0208772b6384c2d72d",
+      "branch": "ux/worker-availability-calendar-20261110",
+      "integration": "included; shared Refresh control used"
+    }
+  ],
+  "environments": [
+    {
+      "ref": "xvybcmyoblfgzokaifsx",
+      "role": "private_beta",
+      "migrations": [
+        {
+          "version": "20260912194607",
+          "name": "owedly_test_foundation"
+        },
+        {
+          "version": "20260912195202",
+          "name": "harden_edge_cases"
+        },
+        {
+          "version": "20260912195451",
+          "name": "mirror_private_rls_helpers"
+        },
+        {
+          "version": "20260912195544",
+          "name": "fix_business_creation_returning"
+        },
+        {
+          "version": "20260912195759",
+          "name": "enforce_viewer_read_only"
+        },
+        {
+          "version": "20260912204149",
+          "name": "add_estimate_invoice_conversion"
+        },
+        {
+          "version": "20260912213127",
+          "name": "add_change_orders"
+        },
+        {
+          "version": "20260912214304",
+          "name": "add_customer_approvals"
+        },
+        {
+          "version": "20260912214348",
+          "name": "make_customer_approvals_idempotent"
+        },
+        {
+          "version": "20260912233713",
+          "name": "add_change_order_message_link"
+        },
+        {
+          "version": "20260912233731",
+          "name": "normalize_customer_company_column"
+        },
+        {
+          "version": "20260915000732",
+          "name": "commerce_plans_and_payment_settings"
+        },
+        {
+          "version": "20260915001443",
+          "name": "commerce_calculations_and_limits"
+        },
+        {
+          "version": "20260915001530",
+          "name": "commerce_atomic_document_and_payment_operations"
+        },
+        {
+          "version": "20260915002448",
+          "name": "commerce_ai_transaction_security"
+        },
+        {
+          "version": "20260915003150",
+          "name": "commerce_draft_editing_and_posted_payment_guards"
+        },
+        {
+          "version": "20260915003453",
+          "name": "commerce_request_identity_and_issued_document_protection"
+        },
+        {
+          "version": "20260915004207",
+          "name": "commerce_ai_payment_customer_match"
+        },
+        {
+          "version": "20260915004542",
+          "name": "commerce_atomic_change_order_creation"
+        },
+        {
+          "version": "20260915011833",
+          "name": "commerce_private_usage_boundary"
+        },
+        {
+          "version": "20261026193430",
+          "name": "velnu_business_profile_and_public_logo_storage"
+        },
+        {
+          "version": "20261026210440",
+          "name": "enforce_explicit_estimate_terms_acceptance"
+        },
+        {
+          "version": "20261026210540",
+          "name": "velnu_versioned_user_agreement_acceptance"
+        },
+        {
+          "version": "20261027001757",
+          "name": "velnu_nonbillable_ala_carte_service_interests"
+        },
+        {
+          "version": "20261027004130",
+          "name": "velnu_service_tier_preference_before_unified_agreement_v2"
+        },
+        {
+          "version": "20261027010051",
+          "name": "velnu_exclude_customer_approvals_and_logo_uploads_from_free"
+        },
+        {
+          "version": "20261027013202",
+          "name": "velnu_allow_optional_ai_credit_and_storage_addon_interests"
+        },
+        {
+          "version": "20261027013611",
+          "name": "velnu_free_ten_combined_invoices_estimates_monthly_limit"
+        },
+        {
+          "version": "20261027121459",
+          "name": "velnu_dashboard_invoice_summary"
+        },
+        {
+          "version": "20261027131517",
+          "name": "velnu_strict_positive_appointment_duration"
+        },
+        {
+          "version": "20261027133917",
+          "name": "velnu_atomic_scheduled_job"
+        },
+        {
+          "version": "20261027152903",
+          "name": "finviant_office_agreement_version_v3"
+        },
+        {
+          "version": "20261027160034",
+          "name": "finviant_ai_atomic_mutations_and_protected_confirmation"
+        },
+        {
+          "version": "20261027161132",
+          "name": "finviant_ai_receipt_membership_guard"
+        },
+        {
+          "version": "20261027161248",
+          "name": "finviant_ai_fix_uuid_aggregate_in_transaction"
+        },
+        {
+          "version": "20261027172639",
+          "name": "finviant_recovery_phase1"
+        },
+        {
+          "version": "20261027173430",
+          "name": "finviant_ai_receipt_current_role_guard"
+        },
+        {
+          "version": "20261027175736",
+          "name": "finviant_atomic_ai_attempt_budget"
+        },
+        {
+          "version": "20261027180800",
+          "name": "finviant_unscheduled_job_retry_identity"
+        },
+        {
+          "version": "20261027180846",
+          "name": "finviant_cover_missing_foreign_key_lookups"
+        },
+        {
+          "version": "20261027183424",
+          "name": "finviant_recovery_index_consolidation"
+        },
+        {
+          "version": "20261027184310",
+          "name": "finviant_durable_delivery_outbox"
+        },
+        {
+          "version": "20261027184513",
+          "name": "finviant_delivery_receipt_and_authorization_hardening"
+        },
+        {
+          "version": "20261027184731",
+          "name": "finviant_sandbox_payment_event_inbox"
+        },
+        {
+          "version": "20261027185341",
+          "name": "finviant_correlate_signed_delivery_receipts"
+        },
+        {
+          "version": "20261027190125",
+          "name": "finviant_delivery_worker_and_ops_health"
+        },
+        {
+          "version": "20261027190239",
+          "name": "finviant_estimate_outbox_schema_compatibility"
+        },
+        {
+          "version": "20261027190645",
+          "name": "finviant_quarantine_revoked_email_operations"
+        },
+        {
+          "version": "20261027191828",
+          "name": "finviant_server_authored_delivery_receipts"
+        },
+        {
+          "version": "20261028205932",
+          "name": "finviant_synthetic_qa_profiles"
+        },
+        {
+          "version": "20261028233858",
+          "name": "seed_finviant_qa_remaining_profiles"
+        },
+        {
+          "version": "20261029010322",
+          "name": "verify_voice_subscriber_isolation_rollback"
+        },
+        {
+          "version": "20261029012001",
+          "name": "guard_document_supported_financial_totals"
+        },
+        {
+          "version": "20261102150939",
+          "name": "calendar_sync_dashboard"
+        },
+        {
+          "version": "20261102153948",
+          "name": "record_photos_expenses"
+        },
+        {
+          "version": "20261102173056",
+          "name": "owner_team_document_settings"
+        },
+        {
+          "version": "20261102173646",
+          "name": "private_team_preview"
+        },
+        {
+          "version": "20261102194609",
+          "name": "historical_document_dates"
+        },
+        {
+          "version": "20261102201557",
+          "name": "private_volume_preview"
+        },
+        {
+          "version": "20261102221000",
+          "name": "guided_scheduling_workflow"
+        },
+        {
+          "version": "20261102231643",
+          "name": "document_workflow_and_contact_import"
+        },
+        {
+          "version": "20261103001002",
+          "name": "recurring_invoices_and_next_steps"
+        },
+        {
+          "version": "20261103004720",
+          "name": "dashboard_attention_calendar_sync"
+        },
+        {
+          "version": "20261103131046",
+          "name": "invoice_job_handoff"
+        },
+        {
+          "version": "20261103142249",
+          "name": "dashboard_attention_paging"
+        },
+        {
+          "version": "20261103182409",
+          "name": "audit_flow_recovery"
+        },
+        {
+          "version": "20261103195502",
+          "name": "private_integration_testing"
+        },
+        {
+          "version": "20261103213627",
+          "name": "ten_pro_test_accounts"
+        },
+        {
+          "version": "20261103220132",
+          "name": "platform_admin_support"
+        },
+        {
+          "version": "20261104002548",
+          "name": "require_sms_owner_mobile"
+        },
+        {
+          "version": "20261104150757",
+          "name": "review_email_recipient_guard"
+        },
+        {
+          "version": "20261104164758",
+          "name": "change_order_review_recipient"
+        },
+        {
+          "version": "20261104180920",
+          "name": "customer_with_service_address"
+        },
+        {
+          "version": "20261104203418",
+          "name": "fin_contextual_workflows"
+        },
+        {
+          "version": "20261104203831",
+          "name": "fin_reminder_review_snapshot"
+        },
+        {
+          "version": "20261104213217",
+          "name": "fin_account_coverage"
+        },
+        {
+          "version": "20261104213955",
+          "name": "fin_support_reporter_scope"
+        },
+        {
+          "version": "20261104214408",
+          "name": "fin_completed_work_guard"
+        },
+        {
+          "version": "20261105141858",
+          "name": "attention_queue_rebalance"
+        },
+        {
+          "version": "20261105162233",
+          "name": "invoice_payment_reminders"
+        },
+        {
+          "version": "20261105164945",
+          "name": "centralized_payment_defaults"
+        },
+        {
+          "version": "20261106115832",
+          "name": "attention_category_filters"
+        },
+        {
+          "version": "20261106131110",
+          "name": "estimate_deposit_final_balance"
+        },
+        {
+          "version": "20261106141538",
+          "name": "business_storage_limits"
+        },
+        {
+          "version": "20261106154148",
+          "name": "tier_entitlements_and_personal_delivery"
+        },
+        {
+          "version": "20261106154201",
+          "name": "managed_messaging_and_reminders"
+        },
+        {
+          "version": "20261106154209",
+          "name": "tier_scheduler_activation"
+        },
+        {
+          "version": "20261106154433",
+          "name": "included_tier_access"
+        },
+        {
+          "version": "20261106155432",
+          "name": "revalidate_queued_delivery"
+        },
+        {
+          "version": "20261106183334",
+          "name": "deduplicate_inbound_sms"
+        },
+        {
+          "version": "20261106214350",
+          "name": "approval_document_branding"
+        },
+        {
+          "version": "20261106221552",
+          "name": "business_pro_scheduling"
+        },
+        {
+          "version": "20261106221553",
+          "name": "business_pro_recurring_visits"
+        },
+        {
+          "version": "20261106224016",
+          "name": "separate_job_appointment_and_crew"
+        },
+        {
+          "version": "20261106231353",
+          "name": "receipt_scans_and_google_review_links"
+        },
+        {
+          "version": "20261107001036",
+          "name": "linked_change_order_lines"
+        },
+        {
+          "version": "20261107001103",
+          "name": "change_order_billing_handoff"
+        },
+        {
+          "version": "20261107001132",
+          "name": "reviewed_change_order_totals"
+        },
+        {
+          "version": "20261107023520",
+          "name": "streamlined_workflow_handoffs"
+        },
+        {
+          "version": "20261107030048",
+          "name": "change_order_attention"
+        },
+        {
+          "version": "20261107213625",
+          "name": "calendar_service_setup"
+        },
+        {
+          "version": "20261107225351",
+          "name": "private_beta_email_delivery"
+        },
+        {
+          "version": "20261107225751",
+          "name": "stop_private_beta_email"
+        },
+        {
+          "version": "20261108003332",
+          "name": "canonical_customer_document_revisions"
+        },
+        {
+          "version": "20261108003619",
+          "name": "canonical_pdf_delivery_artifacts"
+        },
+        {
+          "version": "20261108003620",
+          "name": "verified_customer_invoice_payments"
+        },
+        {
+          "version": "20261108003621",
+          "name": "private_beta_customer_access"
+        },
+        {
+          "version": "20261108004234",
+          "name": "legacy_document_snapshot_privacy"
+        },
+        {
+          "version": "20261108004316",
+          "name": "live_customer_scheduling"
+        },
+        {
+          "version": "20261108013518",
+          "name": "record_action_consistency"
+        },
+        {
+          "version": "20261108132233",
+          "name": "team_management_workers"
+        },
+        {
+          "version": "20261108155833",
+          "name": "pro_value_workflow_release"
+        },
+        {
+          "version": "20261108165736",
+          "name": "e_business_card"
+        },
+        {
+          "version": "20261108172645",
+          "name": "business_card_links"
+        },
+        {
+          "version": "20261108203449",
+          "name": "streamlined_business_onboarding"
+        },
+        {
+          "version": "20261108203709",
+          "name": "onboarding_owner_role_guard"
+        },
+        {
+          "version": "20261108214014",
+          "name": "beta_business_only_access"
+        },
+        {
+          "version": "20261109165725",
+          "name": "financial_job_workspace"
+        },
+        {
+          "version": "20261109165731",
+          "name": "square_payment_workflow"
+        },
+        {
+          "version": "20261109171432",
+          "name": "operations_recovery_polish"
+        },
+        {
+          "version": "20261109171931",
+          "name": "operations_foreign_key_indexes"
+        },
+        {
+          "version": "20261109181418",
+          "name": "job_plan_summaries"
+        },
+        {
+          "version": "20261109191008",
+          "name": "job_management_workspace"
+        },
+        {
+          "version": "20261109195911",
+          "name": "approved_job_management_handoff"
+        },
+        {
+          "version": "20261109200116",
+          "name": "job_management_foreign_key_indexes"
+        },
+        {
+          "version": "20261110002708",
+          "name": "planned_job_visits"
+        },
+        {
+          "version": "20261110002741",
+          "name": "assigned_field_workspace"
+        },
+        {
+          "version": "20261110002751",
+          "name": "job_cost_review_completion_reports"
+        },
+        {
+          "version": "20261110003505",
+          "name": "job_execution_access_hardening"
+        }
+      ],
+      "functions": [
+        {
+          "name": "transcribe-voice",
+          "version": 21,
+          "status": "ACTIVE",
+          "sha256": "065a527157d24956e0ba1fb7834d6b1a744f44467c66ede0d3be9a8168f4a746"
+        },
+        {
+          "name": "ai-command",
+          "version": 23,
+          "status": "ACTIVE",
+          "sha256": "1e563fd74d88f39603dfa875e51d283383752a2f6883c27ba5fb111a498d8129"
+        },
+        {
+          "name": "execute-ai-action",
+          "version": 14,
+          "status": "ACTIVE",
+          "sha256": "5a6a0055106dd324dc2e8c5b8d5e6875449b93f04bf9ba1884b83387bfe5b73c"
+        },
+        {
+          "name": "create-approval-link",
+          "version": 16,
+          "status": "ACTIVE",
+          "sha256": "cf43a816ca4071cda8c84d179b4e0d75edfd17c385626c98ce4ca671e9370b28"
+        },
+        {
+          "name": "customer-approval",
+          "version": 17,
+          "status": "ACTIVE",
+          "sha256": "9b798c845f00eafcbd71e948af7312d3a540199b1b2764870d1b03919ef6766d"
+        },
+        {
+          "name": "send-document-email",
+          "version": 18,
+          "status": "ACTIVE",
+          "sha256": "1540f4652835f987d66371169eed7068ae9dc942ff0bdd6385d2ffb79f91a8c8"
+        },
+        {
+          "name": "send-invoice-email",
+          "version": 17,
+          "status": "ACTIVE",
+          "sha256": "0127fa79d5c8344926fa5d9da0c48e06568adbf4e0c1a9c430d84b2f51fe1b69"
+        },
+        {
+          "name": "quickbooks",
+          "version": 16,
+          "status": "ACTIVE",
+          "sha256": "56fb7b2284a2daa39b16b392429f97fe5e040466a908fac91d3da69a5d3114e3"
+        },
+        {
+          "name": "resend-events",
+          "version": 11,
+          "status": "ACTIVE",
+          "sha256": "a5f52b6c5a16aecb4bdf19046434b9aaa47e85bcb91fd4be3bf71e32428ac7fe"
+        },
+        {
+          "name": "stripe-events",
+          "version": 11,
+          "status": "ACTIVE",
+          "sha256": "2f3634af7e47668fe9ae00e895b6e8992be823a962f99cf15596fbba72956712"
+        },
+        {
+          "name": "email-recovery-worker",
+          "version": 14,
+          "status": "ACTIVE",
+          "sha256": "ab849bd467b20f87abd1158f94372621cc4813155b703206c06643376e37eceb"
+        },
+        {
+          "name": "reliability-health",
+          "version": 14,
+          "status": "ACTIVE",
+          "sha256": "3b970cb578c2729f4661e970fa3dc46a31fbc487994d680b02ce8cea41b2110a"
+        },
+        {
+          "name": "team-management",
+          "version": 10,
+          "status": "ACTIVE",
+          "sha256": "4b58929da112e0d2f39a4d7dc8f8c3591bdc519dcd5ecd82944a217920d28647"
+        },
+        {
+          "name": "subscription-management",
+          "version": 10,
+          "status": "ACTIVE",
+          "sha256": "c084a799245a6b1cc98b2850a182fa9d299796d14f873d5837041c30ae10417d"
+        },
+        {
+          "name": "work-scheduling",
+          "version": 12,
+          "status": "ACTIVE",
+          "sha256": "e07c80b85fddf6eabf24e7a5304411c0d7a31648dfd233fd10f185cd09348839"
+        },
+        {
+          "name": "private-integration-testing",
+          "version": 11,
+          "status": "ACTIVE",
+          "sha256": "8e9dd8757bd5510a5e259b76f65b55aea6b622ea3a924304863e8b4e3eb52f8d"
+        },
+        {
+          "name": "stripe-test-events",
+          "version": 10,
+          "status": "ACTIVE",
+          "sha256": "1ae5ab1525aa04cfa8d1fc1af8544a43c3c471e248dd9f5375782d755243f3dc"
+        },
+        {
+          "name": "twilio-test-events",
+          "version": 10,
+          "status": "ACTIVE",
+          "sha256": "ac52bb7c9ed8e080a772914366d47e60aa6e1d0da028c2d293b164adfaba8a88"
+        },
+        {
+          "name": "fin-assistant",
+          "version": 13,
+          "status": "ACTIVE",
+          "sha256": "28347efda94170f6e6643008776cf85c3199eabe5454fa02a8c12ed33c4c005a"
+        },
+        {
+          "name": "fin-workflow",
+          "version": 13,
+          "status": "ACTIVE",
+          "sha256": "c90553d78be2b66984327feaf4be56e21324ed6636e55352b0cdc36bd776fc5a"
+        },
+        {
+          "name": "send-invoice-reminder",
+          "version": 11,
+          "status": "ACTIVE",
+          "sha256": "e99e53d78232d9957fbda3af2302e83931f93001649af6ade5f3ddad0a1017f2"
+        },
+        {
+          "name": "upload-attachment",
+          "version": 9,
+          "status": "ACTIVE",
+          "sha256": "616f68c30574c5ea511c82ac2353d857e95985a9ac90eb540662badd96f533b5"
+        },
+        {
+          "name": "send-document-sms",
+          "version": 9,
+          "status": "ACTIVE",
+          "sha256": "e3b8053b7396e623a3bf7bf8dbdf63ee4463806a7b05294884b54b9a89413af3"
+        },
+        {
+          "name": "managed-sms-events",
+          "version": 10,
+          "status": "ACTIVE",
+          "sha256": "aad9ce45ea007ee63b873fe13aa72a68c2b55ff8ceaf5089bc674800403b110d"
+        },
+        {
+          "name": "tier-delivery-worker",
+          "version": 11,
+          "status": "ACTIVE",
+          "sha256": "d3d1d1b9b5e7842b54669c4ed80e7e130b0d4f7d5319b9f6c0b9bbb9feff9203"
+        },
+        {
+          "name": "receipt-scan",
+          "version": 5,
+          "status": "ACTIVE",
+          "sha256": "61d35a699f62a69c0f7aa88cded624adb7c4c2a051c5cb79214f558005a9c8d9"
+        },
+        {
+          "name": "document-pdf",
+          "version": 1,
+          "status": "ACTIVE",
+          "sha256": "194c413360da57ca2ee96bce7c48eadcb7467e48f17aa43ecf253f44264a2022"
+        },
+        {
+          "name": "customer-invoice-checkout",
+          "version": 1,
+          "status": "ACTIVE",
+          "sha256": "da06365f9967f76e8aa24194d16f19727d5b189c503828928e10f8c6c060e403"
+        },
+        {
+          "name": "customer-payment-events",
+          "version": 1,
+          "status": "ACTIVE",
+          "sha256": "41f513f9c0023ddb32c9f5cbcbb0948a83ca45ac47b430802d6da360542a7072"
+        },
+        {
+          "name": "send-business-card",
+          "version": 1,
+          "status": "ACTIVE",
+          "sha256": "f6ffc9fc6979b9c6f0ad38a1ea0fb8771a167c53c4f1330594b0aad42780ab92"
+        },
+        {
+          "name": "business-card-delivery",
+          "version": 1,
+          "status": "ACTIVE",
+          "sha256": "73a1d6d5e3b3b42eddf9f64a504cf7155416f2582920acca525fe48930cb419b"
+        },
+        {
+          "name": "square-payments",
+          "version": 1,
+          "status": "ACTIVE",
+          "sha256": "09e7ce2914238db3531e7a36b0b8c03f8d254232dab6ad3c9d9a9c0191ab7fae"
+        },
+        {
+          "name": "square-payment-events",
+          "version": 1,
+          "status": "ACTIVE",
+          "sha256": "131d2aa3b03fccb3f460d2596db2f84ae13a98f801d2b7e06803292451583cf3"
+        }
+      ]
+    },
+    {
+      "ref": "ocmlvzkackufwpwnnsdb",
+      "role": "isolated_qa",
+      "migrations": [
+        {
+          "version": "20260912194607",
+          "name": "owedly_test_foundation"
+        },
+        {
+          "version": "20260912195202",
+          "name": "harden_edge_cases"
+        },
+        {
+          "version": "20260912195451",
+          "name": "mirror_private_rls_helpers"
+        },
+        {
+          "version": "20260912195544",
+          "name": "fix_business_creation_returning"
+        },
+        {
+          "version": "20260912195759",
+          "name": "enforce_viewer_read_only"
+        },
+        {
+          "version": "20260912204149",
+          "name": "add_estimate_invoice_conversion"
+        },
+        {
+          "version": "20260912213127",
+          "name": "add_change_orders"
+        },
+        {
+          "version": "20260912214304",
+          "name": "add_customer_approvals"
+        },
+        {
+          "version": "20260912214348",
+          "name": "make_customer_approvals_idempotent"
+        },
+        {
+          "version": "20260912233713",
+          "name": "add_change_order_message_link"
+        },
+        {
+          "version": "20260912233731",
+          "name": "normalize_customer_company_column"
+        },
+        {
+          "version": "20260915000732",
+          "name": "commerce_plans_and_payment_settings"
+        },
+        {
+          "version": "20260915001443",
+          "name": "commerce_calculations_and_limits"
+        },
+        {
+          "version": "20260915001530",
+          "name": "commerce_atomic_document_and_payment_operations"
+        },
+        {
+          "version": "20260915002448",
+          "name": "commerce_ai_transaction_security"
+        },
+        {
+          "version": "20260915003150",
+          "name": "commerce_draft_editing_and_posted_payment_guards"
+        },
+        {
+          "version": "20260915003453",
+          "name": "commerce_request_identity_and_issued_document_protection"
+        },
+        {
+          "version": "20260915004207",
+          "name": "commerce_ai_payment_customer_match"
+        },
+        {
+          "version": "20260915004542",
+          "name": "commerce_atomic_change_order_creation"
+        },
+        {
+          "version": "20260915011833",
+          "name": "commerce_private_usage_boundary"
+        },
+        {
+          "version": "20261026193430",
+          "name": "velnu_business_profile_and_public_logo_storage"
+        },
+        {
+          "version": "20261026210440",
+          "name": "enforce_explicit_estimate_terms_acceptance"
+        },
+        {
+          "version": "20261026210540",
+          "name": "velnu_versioned_user_agreement_acceptance"
+        },
+        {
+          "version": "20261027001757",
+          "name": "velnu_nonbillable_ala_carte_service_interests"
+        },
+        {
+          "version": "20261027004130",
+          "name": "velnu_service_tier_preference_before_unified_agreement_v2"
+        },
+        {
+          "version": "20261027010051",
+          "name": "velnu_exclude_customer_approvals_and_logo_uploads_from_free"
+        },
+        {
+          "version": "20261027013202",
+          "name": "velnu_allow_optional_ai_credit_and_storage_addon_interests"
+        },
+        {
+          "version": "20261027013611",
+          "name": "velnu_free_ten_combined_invoices_estimates_monthly_limit"
+        },
+        {
+          "version": "20261027121459",
+          "name": "velnu_dashboard_invoice_summary"
+        },
+        {
+          "version": "20261027131517",
+          "name": "velnu_strict_positive_appointment_duration"
+        },
+        {
+          "version": "20261027133917",
+          "name": "velnu_atomic_scheduled_job"
+        },
+        {
+          "version": "20261027152903",
+          "name": "finviant_office_agreement_version_v3"
+        },
+        {
+          "version": "20261027160034",
+          "name": "finviant_ai_atomic_mutations_and_protected_confirmation"
+        },
+        {
+          "version": "20261027161132",
+          "name": "finviant_ai_receipt_membership_guard"
+        },
+        {
+          "version": "20261027161248",
+          "name": "finviant_ai_fix_uuid_aggregate_in_transaction"
+        },
+        {
+          "version": "20261027172639",
+          "name": "finviant_recovery_phase1"
+        },
+        {
+          "version": "20261027173430",
+          "name": "finviant_ai_receipt_current_role_guard"
+        },
+        {
+          "version": "20261027175736",
+          "name": "finviant_atomic_ai_attempt_budget"
+        },
+        {
+          "version": "20261027180800",
+          "name": "finviant_unscheduled_job_retry_identity"
+        },
+        {
+          "version": "20261027180846",
+          "name": "finviant_cover_missing_foreign_key_lookups"
+        },
+        {
+          "version": "20261027183424",
+          "name": "finviant_recovery_index_consolidation"
+        },
+        {
+          "version": "20261027184310",
+          "name": "finviant_durable_delivery_outbox"
+        },
+        {
+          "version": "20261027184513",
+          "name": "finviant_delivery_receipt_and_authorization_hardening"
+        },
+        {
+          "version": "20261027184731",
+          "name": "finviant_sandbox_payment_event_inbox"
+        },
+        {
+          "version": "20261027185341",
+          "name": "finviant_correlate_signed_delivery_receipts"
+        },
+        {
+          "version": "20261027190125",
+          "name": "finviant_delivery_worker_and_ops_health"
+        },
+        {
+          "version": "20261027190239",
+          "name": "finviant_estimate_outbox_schema_compatibility"
+        },
+        {
+          "version": "20261027190645",
+          "name": "finviant_quarantine_revoked_email_operations"
+        },
+        {
+          "version": "20261027191828",
+          "name": "finviant_server_authored_delivery_receipts"
+        },
+        {
+          "version": "20261028205932",
+          "name": "finviant_synthetic_qa_profiles"
+        },
+        {
+          "version": "20261028233858",
+          "name": "seed_finviant_qa_remaining_profiles"
+        },
+        {
+          "version": "20261106194350",
+          "name": "guard_document_supported_financial_totals"
+        },
+        {
+          "version": "20261106194351",
+          "name": "calendar_sync_dashboard"
+        },
+        {
+          "version": "20261106194448",
+          "name": "restore_baseline_bookkeeping_entries_for_qa"
+        },
+        {
+          "version": "20261106194449",
+          "name": "record_photos_expenses"
+        },
+        {
+          "version": "20261106194450",
+          "name": "owner_team_document_settings"
+        },
+        {
+          "version": "20261106194451",
+          "name": "private_team_preview"
+        },
+        {
+          "version": "20261106194452",
+          "name": "historical_document_dates"
+        },
+        {
+          "version": "20261106194541",
+          "name": "private_volume_preview"
+        },
+        {
+          "version": "20261106194609",
+          "name": "guided_scheduling_workflow"
+        },
+        {
+          "version": "20261106194611",
+          "name": "document_workflow_and_contact_import"
+        },
+        {
+          "version": "20261106194613",
+          "name": "dashboard_attention_calendar_sync"
+        },
+        {
+          "version": "20261106194636",
+          "name": "invoice_job_handoff"
+        },
+        {
+          "version": "20261106194638",
+          "name": "dashboard_attention_paging"
+        },
+        {
+          "version": "20261106194701",
+          "name": "audit_flow_recovery"
+        },
+        {
+          "version": "20261106194703",
+          "name": "private_integration_testing"
+        },
+        {
+          "version": "20261106194705",
+          "name": "ten_pro_test_accounts"
+        },
+        {
+          "version": "20261106194707",
+          "name": "platform_admin_support"
+        },
+        {
+          "version": "20261106194710",
+          "name": "require_sms_owner_mobile"
+        },
+        {
+          "version": "20261106194712",
+          "name": "review_email_recipient_guard"
+        },
+        {
+          "version": "20261106194714",
+          "name": "change_order_review_recipient"
+        },
+        {
+          "version": "20261106194716",
+          "name": "customer_with_service_address"
+        },
+        {
+          "version": "20261106194718",
+          "name": "fin_contextual_workflows"
+        },
+        {
+          "version": "20261106194720",
+          "name": "fin_reminder_review_snapshot"
+        },
+        {
+          "version": "20261106194744",
+          "name": "fin_account_coverage"
+        },
+        {
+          "version": "20261106194746",
+          "name": "fin_support_reporter_scope"
+        },
+        {
+          "version": "20261106194818",
+          "name": "fin_completed_work_guard"
+        },
+        {
+          "version": "20261106194820",
+          "name": "attention_queue_rebalance"
+        },
+        {
+          "version": "20261106194822",
+          "name": "invoice_payment_reminders"
+        },
+        {
+          "version": "20261106194824",
+          "name": "centralized_payment_defaults"
+        },
+        {
+          "version": "20261106194826",
+          "name": "attention_category_filters"
+        },
+        {
+          "version": "20261106194828",
+          "name": "estimate_deposit_final_balance"
+        },
+        {
+          "version": "20261106194854",
+          "name": "business_storage_limits"
+        },
+        {
+          "version": "20261106194919",
+          "name": "tier_entitlements_and_personal_delivery"
+        },
+        {
+          "version": "20261106194921",
+          "name": "managed_messaging_and_reminders"
+        },
+        {
+          "version": "20261106195022",
+          "name": "tier_scheduler_activation"
+        },
+        {
+          "version": "20261106195148",
+          "name": "restore_recurring_invoice_schema_for_qa"
+        },
+        {
+          "version": "20261106195213",
+          "name": "included_tier_access"
+        },
+        {
+          "version": "20261106195215",
+          "name": "revalidate_queued_delivery"
+        },
+        {
+          "version": "20261106195217",
+          "name": "deduplicate_inbound_sms"
+        },
+        {
+          "version": "20261106195453",
+          "name": "restore_matching_rls_table_grants_for_qa"
+        },
+        {
+          "version": "20261106195508",
+          "name": "restore_business_agreement_gate_and_grants_for_qa"
+        },
+        {
+          "version": "20261106195527",
+          "name": "restore_baseline_quickbooks_schema_for_qa"
+        },
+        {
+          "version": "20261106195821",
+          "name": "restore_issued_document_identity_for_qa"
+        },
+        {
+          "version": "20261106202945",
+          "name": "business_pro_scheduling"
+        },
+        {
+          "version": "20261106202946",
+          "name": "customer_appointment_reminders"
+        },
+        {
+          "version": "20261106202947",
+          "name": "business_pro_recurring_visits"
+        },
+        {
+          "version": "20261106203158",
+          "name": "qa_align_appointment_reminder_queue"
+        },
+        {
+          "version": "20261106214302",
+          "name": "approval_document_branding"
+        },
+        {
+          "version": "20261106220124",
+          "name": "linked_change_order_lines"
+        },
+        {
+          "version": "20261106220220",
+          "name": "change_order_billing_handoff"
+        },
+        {
+          "version": "20261106220427",
+          "name": "qa_align_change_order_lineage"
+        },
+        {
+          "version": "20261106220522",
+          "name": "qa_align_legacy_change_line_protection"
+        },
+        {
+          "version": "20261106220627",
+          "name": "qa_align_estimate_line_tenant_key"
+        },
+        {
+          "version": "20261106223634",
+          "name": "separate_job_appointment_and_crew"
+        },
+        {
+          "version": "20261106230755",
+          "name": "receipt_scans_and_google_review_links"
+        },
+        {
+          "version": "20261107000706",
+          "name": "reviewed_change_order_totals"
+        },
+        {
+          "version": "20261107000922",
+          "name": "include_existing_final_invoice_lines_in_reviewed_change_totals"
+        },
+        {
+          "version": "20261107022559",
+          "name": "streamlined_workflow_handoffs"
+        }
+      ],
+      "functions": [
+        {
+          "name": "transcribe-voice",
+          "version": 18,
+          "status": "ACTIVE",
+          "sha256": "065a527157d24956e0ba1fb7834d6b1a744f44467c66ede0d3be9a8168f4a746"
+        },
+        {
+          "name": "ai-command",
+          "version": 20,
+          "status": "ACTIVE",
+          "sha256": "1e563fd74d88f39603dfa875e51d283383752a2f6883c27ba5fb111a498d8129"
+        },
+        {
+          "name": "execute-ai-action",
+          "version": 11,
+          "status": "ACTIVE",
+          "sha256": "5a6a0055106dd324dc2e8c5b8d5e6875449b93f04bf9ba1884b83387bfe5b73c"
+        },
+        {
+          "name": "create-approval-link",
+          "version": 12,
+          "status": "ACTIVE",
+          "sha256": "7f8834147692de44f551648a87c0438bb8d80b42cdf04c7cddb5fd056d1356dc"
+        },
+        {
+          "name": "customer-approval",
+          "version": 12,
+          "status": "ACTIVE",
+          "sha256": "6440fa7193b31e03040ec6cf316f8c79b6b14f286aadf2a24516aa994c9afc1f"
+        },
+        {
+          "name": "send-document-email",
+          "version": 13,
+          "status": "ACTIVE",
+          "sha256": "17429ffc6af6924665f6323fa969f9a31b74254dd02f620ed3f7a69cf19509fc"
+        },
+        {
+          "name": "send-invoice-email",
+          "version": 12,
+          "status": "ACTIVE",
+          "sha256": "d215007f83460a6319d54799ba684119673aedfc72b52711bc48d113d5ffaff7"
+        },
+        {
+          "name": "quickbooks",
+          "version": 13,
+          "status": "ACTIVE",
+          "sha256": "56fb7b2284a2daa39b16b392429f97fe5e040466a908fac91d3da69a5d3114e3"
+        },
+        {
+          "name": "resend-events",
+          "version": 8,
+          "status": "ACTIVE",
+          "sha256": "a5f52b6c5a16aecb4bdf19046434b9aaa47e85bcb91fd4be3bf71e32428ac7fe"
+        },
+        {
+          "name": "stripe-events",
+          "version": 8,
+          "status": "ACTIVE",
+          "sha256": "2f3634af7e47668fe9ae00e895b6e8992be823a962f99cf15596fbba72956712"
+        },
+        {
+          "name": "email-recovery-worker",
+          "version": 9,
+          "status": "ACTIVE",
+          "sha256": "6d7148a83e277004f67d00827ba5d203d83387b41a27f1dde839c6c0515896bb"
+        },
+        {
+          "name": "reliability-health",
+          "version": 9,
+          "status": "ACTIVE",
+          "sha256": "c9914eae0649149c35c8e32a8bf82dd0b3d47e735471a85636986ab27e7206cb"
+        },
+        {
+          "name": "team-management",
+          "version": 7,
+          "status": "ACTIVE",
+          "sha256": "4b58929da112e0d2f39a4d7dc8f8c3591bdc519dcd5ecd82944a217920d28647"
+        },
+        {
+          "name": "subscription-management",
+          "version": 7,
+          "status": "ACTIVE",
+          "sha256": "c084a799245a6b1cc98b2850a182fa9d299796d14f873d5837041c30ae10417d"
+        },
+        {
+          "name": "work-scheduling",
+          "version": 7,
+          "status": "ACTIVE",
+          "sha256": "d107d4360b0f98f6a1464face08195e41b1f10ec6a0f45b13dfbf9fb60645b55"
+        },
+        {
+          "name": "private-integration-testing",
+          "version": 8,
+          "status": "ACTIVE",
+          "sha256": "8e9dd8757bd5510a5e259b76f65b55aea6b622ea3a924304863e8b4e3eb52f8d"
+        },
+        {
+          "name": "stripe-test-events",
+          "version": 7,
+          "status": "ACTIVE",
+          "sha256": "1ae5ab1525aa04cfa8d1fc1af8544a43c3c471e248dd9f5375782d755243f3dc"
+        },
+        {
+          "name": "twilio-test-events",
+          "version": 7,
+          "status": "ACTIVE",
+          "sha256": "ac52bb7c9ed8e080a772914366d47e60aa6e1d0da028c2d293b164adfaba8a88"
+        },
+        {
+          "name": "fin-assistant",
+          "version": 10,
+          "status": "ACTIVE",
+          "sha256": "28347efda94170f6e6643008776cf85c3199eabe5454fa02a8c12ed33c4c005a"
+        },
+        {
+          "name": "fin-workflow",
+          "version": 12,
+          "status": "ACTIVE",
+          "sha256": "b8f1c4e77322c805ebb346d112dbdc117f246b7b2e5354d770f87695ff89230a"
+        },
+        {
+          "name": "send-invoice-reminder",
+          "version": 6,
+          "status": "ACTIVE",
+          "sha256": "e86c948fb2aca2b677f7118a0df287c89109ce18c0bd69b792463784a5db01bf"
+        },
+        {
+          "name": "upload-attachment",
+          "version": 6,
+          "status": "ACTIVE",
+          "sha256": "616f68c30574c5ea511c82ac2353d857e95985a9ac90eb540662badd96f533b5"
+        },
+        {
+          "name": "send-document-sms",
+          "version": 6,
+          "status": "ACTIVE",
+          "sha256": "e3b8053b7396e623a3bf7bf8dbdf63ee4463806a7b05294884b54b9a89413af3"
+        },
+        {
+          "name": "managed-sms-events",
+          "version": 7,
+          "status": "ACTIVE",
+          "sha256": "aad9ce45ea007ee63b873fe13aa72a68c2b55ff8ceaf5089bc674800403b110d"
+        },
+        {
+          "name": "tier-delivery-worker",
+          "version": 6,
+          "status": "ACTIVE",
+          "sha256": "c00ba90a9e9b1c9b22eab7faa256f188f4eaffb3d4d2a67fc08277ea6c8b2e17"
+        },
+        {
+          "name": "receipt-scan",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "61d35a699f62a69c0f7aa88cded624adb7c4c2a051c5cb79214f558005a9c8d9"
+        }
+      ]
+    },
+    {
+      "ref": "qusmeexjbwphoezlcmie",
+      "role": "separate_production",
+      "migrations": [
+        {
+          "version": "20261028173902",
+          "name": "finviant_complete_application_bootstrap"
+        }
+      ],
+      "functions": [
+        {
+          "name": "transcribe-voice",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "01b5d626d4ccb5048c99adc536f0af88b6087d06c63781365ec932d9e786f97c"
+        },
+        {
+          "name": "ai-command",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "b55023a2892a263262b941d16c94429c68278eca351de5a41a82a2f2ecdd07c6"
+        },
+        {
+          "name": "execute-ai-action",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "1402ccd2187639f8bad4327b3e47e3e2b1070dfe749f280b0dee27329ebb9bf7"
+        },
+        {
+          "name": "create-approval-link",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "ddb87342ee3d180582ed3d04f62d95ff5fe6b3bf4e2fcd26df7dc51b1e4bde06"
+        },
+        {
+          "name": "customer-approval",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "f9cbcb111ca2e7195837d4283cb2f5dac4c731267a9f4dbd54360e99ee0fe018"
+        },
+        {
+          "name": "resend-events",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "d5524e15d2ae21c797e02eb65decacb3f795baa2f5086d4ae49a1d4f291a483d"
+        },
+        {
+          "name": "stripe-events",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "90f8f4af8318ee93ff8f443fc8736f9cb7427c9a78b2eb8967d0cfdbd6d739ca"
+        },
+        {
+          "name": "send-document-email",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "4c876dc0653df1ad77dab6bfe559a1296fefd99dfd1b6bb3948b208c0591a1e2"
+        },
+        {
+          "name": "send-invoice-email",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "22ea1907598e816af1b5c789a63b1de2294170c8e29483a86dc5d5cb5d1bb5b9"
+        },
+        {
+          "name": "quickbooks",
+          "version": 4,
+          "status": "ACTIVE",
+          "sha256": "1b803f529d6a238079967389c89b24fa3d9fb03fb96d7633a294faa4c1602852"
+        },
+        {
+          "name": "email-recovery-worker",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "25f2c801a4b5ddf8aa755468fa96bdea2385d1086473cbe11aacb97b5bf1a63a"
+        },
+        {
+          "name": "reliability-health",
+          "version": 2,
+          "status": "ACTIVE",
+          "sha256": "ef568a737129cfad04143947bb3d2ec9ef0bb863dcbdd54c2de2f175c1c3c673"
+        }
+      ]
+    }
+  ],
+  "execution_catalog": [
+    {
+      "schema_name": "private",
+      "proname": "clear_field_account",
+      "signature": "private.clear_field_account(uuid,uuid,integer)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "019a702654b9f12b29b684f726ec42d1",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "field_active",
+      "signature": "private.field_active(uuid)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "4614ac775d980dbfbba4aedf74e826da",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "field_job_access",
+      "signature": "private.field_job_access(uuid,uuid)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "cc1cbbada047bdd3b5961ac378868380",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "field_mode",
+      "signature": "private.field_mode(uuid,uuid)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "fbd2415ec1898449c63335a930271d42",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "finish_job_visit",
+      "signature": "private.finish_job_visit(uuid,uuid,uuid)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "dc16c5f129a2226e55688dee4c6f6d44",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "get_field_access_context",
+      "signature": "private.get_field_access_context(uuid)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "bb3484a6ff95a1f759fcc48a6f74fc34",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "get_field_accounts",
+      "signature": "private.get_field_accounts(uuid)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "d4f4aa4c2a5af1dd0e9877193d712d72",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "get_field_jobs",
+      "signature": "private.get_field_jobs(uuid,uuid,integer)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "7a9fc4789d9d0347c903eb2e33f30da9",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "get_job_cost_review",
+      "signature": "private.get_job_cost_review(uuid,uuid)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "7efb59de3cd0bc74366abc7ea7cd5bd0",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "guard_field_account_role",
+      "signature": "private.guard_field_account_role()",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "af4cb3be206f8164221c1e7b5cce7a8d",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema_name": "private",
+      "proname": "manage_field_job",
+      "signature": "private.manage_field_job(uuid,uuid,text,jsonb)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "f50c533f8f5baee46e3d43db1d806c92",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "manage_job_cost_review",
+      "signature": "private.manage_job_cost_review(uuid,uuid,text,jsonb)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "a1449fa5f87baeec305c991474c1dbf6",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "manage_job_visit",
+      "signature": "private.manage_job_visit(uuid,uuid,text,jsonb)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "f7eeba960a21d69494bc0f20b5b3fd1a",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "prepare_field_photo",
+      "signature": "private.prepare_field_photo(uuid,uuid,uuid,text,integer)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "72a02ad4e29dc582a89dd394a70cdd04",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "return_removed_field_time",
+      "signature": "private.return_removed_field_time()",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "ddb9fee00c391cdbc7ce4e238f5b4f6d",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema_name": "private",
+      "proname": "set_field_account",
+      "signature": "private.set_field_account(uuid,uuid,uuid,integer)",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "e9907eb98af352c34fc0c302c74dc5cf",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "private",
+      "proname": "sync_job_visit_cache",
+      "signature": "private.sync_job_visit_cache()",
+      "security_definer": true,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "4e554f107a82308046ca9d284749972c",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema_name": "public",
+      "proname": "clear_field_account",
+      "signature": "clear_field_account(uuid,uuid,integer)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "8a8b4f311890f46741adfcd590adceb4",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "finish_job_visit",
+      "signature": "finish_job_visit(uuid,uuid,uuid)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "5d0728a39115542b479706eaea43b055",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "get_field_access_context",
+      "signature": "get_field_access_context(uuid)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "43f2a983287df9f0dc77479b13a083bd",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "get_field_accounts",
+      "signature": "get_field_accounts(uuid)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "71ebb023778ab60121d8c600fba520e2",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "get_field_jobs",
+      "signature": "get_field_jobs(uuid,uuid,integer)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "01be3b7c3045f753449219c00cebcca6",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "get_job_cost_review",
+      "signature": "get_job_cost_review(uuid,uuid)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "86fc3599f816704cb37423a40793cbc0",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "manage_field_job",
+      "signature": "manage_field_job(uuid,uuid,text,jsonb)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "0c985e8b6d5db541825a59a8bcf08948",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "manage_job_cost_review",
+      "signature": "manage_job_cost_review(uuid,uuid,text,jsonb)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "d592ada8a408f9c0ed35933cce6955da",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "manage_job_visit",
+      "signature": "manage_job_visit(uuid,uuid,text,jsonb)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "c67e4415feb16e4bb1dfcc56f213f95b",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "prepare_field_photo",
+      "signature": "prepare_field_photo(uuid,uuid,uuid,text,integer)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "0be6377172c11db7099cc30d9ed151ea",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema_name": "public",
+      "proname": "set_field_account",
+      "signature": "set_field_account(uuid,uuid,uuid,integer)",
+      "security_definer": false,
+      "proconfig": [
+        "search_path=\"\""
+      ],
+      "definition_md5": "ec221f67569b14c808309f6c92a86164",
+      "anon_execute": false,
+      "authenticated_execute": true
+    }
+  ],
+  "beta_schema": {
+    "server_version": "17.6",
+    "execution_migrations": [
+      {
+        "name": "planned_job_visits",
+        "version": "20261110002708"
+      },
+      {
+        "name": "assigned_field_workspace",
+        "version": "20261110002741"
+      },
+      {
+        "name": "job_cost_review_completion_reports",
+        "version": "20261110002751"
+      },
+      {
+        "name": "job_execution_access_hardening",
+        "version": "20261110003505"
+      }
+    ],
+    "field_account_tables": [
+      "field_accounts",
+      "field_time_submissions"
+    ],
+    "pending_reminder_rpcs": 0
+  },
+  "beta_field_counts": {
+    "restricted_field_accounts": 0,
+    "field_time_submissions": 0
+  },
+  "qa": {
+    "sql_reachable": true,
+    "postgres_version": "17.11",
+    "migration_count": 109,
+    "worker_roster_exists": false,
+    "execution_reports_exist": false,
+    "management_project_lookup": "NotFound; branch is not a top-level project in list_projects. Do not infer SQL availability from management lookup."
+  },
+  "candidate": {
+    "branch": "review/finviant-integration-20261109",
+    "automatic_deployment": false,
+    "new_migrations": [],
+    "field_self_service": false
+  },
+  "evidence_limits": [
+    "Metadata and SQL definitions are not functional tenant/provider acceptance.",
+    "No production cutover, schema write, public access expansion, message, payment or fee activation.",
+    "The database already contains newer Job Execution migrations. Do not reapply from stale handoff.",
+    "GitHub Actions quota is not exposed by this connector; no new remote test run is dispatched."
+  ]
+}

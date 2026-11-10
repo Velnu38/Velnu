@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-10",
+  "baseCommit": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "scope": "Isolated manager-operated normal-hours and time-off UI; no backend mutation or permission expansion",
+  "compatibility": {
+    "pr69Head": "373fba610a6ef46770e2e06cebeff4e39643ea98",
+    "pr69Merged": false,
+    "directFeatureFileOverlap": false
+  },
+  "checks": {
+    "baselineScheduling": {
+      "passed": 72,
+      "failed": 0
+    },
+    "settings": {
+      "passed": 116,
+      "failed": 0
+    },
+    "assessment": {
+      "passed": 7,
+      "failed": 0
+    },
+    "newAvailabilityLogic": {
+      "passed": 5,
+      "failed": 0
+    },
+    "availabilityDom": "passed, independently rerun",
+    "typescriptBuild": "TypeScript and Vite passed",
+    "workerApi": {
+      "passed": 3,
+      "failed": 0
+    },
+    "startup": {
+      "passed": 56,
+      "failed": 0
+    },
+    "finalScheduling": {
+      "passed": 77,
+      "failed": 0
+    }
+  },
+  "browserLayout": {
+    "status": "blocked",
+    "reason": "Installed Chromium failed at launch: process singleton socket Operation not permitted. No screenshot or layout assertion completed.",
+    "preparedTest": "tests/scheduling/worker-availability-browser.mjs"
+  },
+  "notVerified": [
+    "signed-in live acceptance",
+    "physical mobile devices",
+    "native iOS/Android wrapper"
+  ],
+  "hostedWrites": false,
+  "liveDeployment": false,
+  "paidServicesAdded": false,
+  "baselineKnownFailure": {
+    "test": "tests/settings/team-management-dom.mjs:39",
+    "reason": "Unchanged assertion expects View plans while unchanged UpgradeLink renders Explore plan name. Reproduced on untouched release6cacfe7 in separate baseline checkout."
+  },
+  "existingLimitation": "Business-wide preferences API has no optimistic revision check; worker edits retain existing updated_at protection."
+}

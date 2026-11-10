@@ -1,5 +1,6 @@
 // Local/CI-only rendering fixture. Synthetic data; no real session or provider calls.
 import React,{useState} from 'react'
+import {DateTime} from 'luxon'
 import {createRoot} from 'react-dom/client'
 import '../../src/styles.css'
 import '../../src/modules.css'
@@ -7,6 +8,7 @@ import '../../src/workspace-consistency.css'
 import '../../src/office-dashboard.css'
 import '../../src/dashboard-redesign.css'
 import '../../src/home-screen.css'
+import '../../src/workspace-tabs.css'
 import '../../src/bookkeeping.css'
 import '../../src/components/dashboard-interactive.css'
 import '../../src/components/dashboard-tiles.css'
@@ -22,7 +24,7 @@ const B='11111111-1111-4111-8111-111111111111',U='22222222-2222-4222-8222-222222
 const business:any={id:B,name:'Harbor Home Services',legal_name:'Harbor Home Services',role:'owner',primary_owner:true,created_by_user_id:U,access_modules:['jobs','billing','finances','calendar'],timezone:'America/New_York',currency:'USD',email:'office@example.test',phone:'+17575550123',profile_completed_at:'2026-11-01T12:00:00Z'}
 const customer={id:C,first_name:'Taylor',last_name:'Morgan',company:null,email:'customer@example.test',phone:'+17575550100'}
 const team=[{id:U,label:'Mike · Owner',role:'owner',is_you:true,active:true},{id:'55555555-5555-4555-8555-555555555555',label:'Jordan Williams',role:'worker',is_you:false,active:true}]
-const now=new Date(),day=now.toISOString().slice(0,10),job={id:J,business_id:B,customer_id:C,title:'Kitchen renovation',status:'in_progress',description:'Install cabinetry, finish trim and review the completed work with the customer.',source_estimate_id:'99999999-9999-4999-8999-999999999999',created_at:'2026-11-01T12:00:00Z',updated_at:'2026-11-01T12:00:00Z',assigned_user_ids:[U,team[1].id],customers:[customer],properties:[],scheduled_start:day+'T14:00:00Z',scheduled_end:day+'T17:00:00Z'}
+const now=new Date(),day=DateTime.fromJSDate(now,{zone:business.timezone}).toISODate(),job={id:J,business_id:B,customer_id:C,title:'Kitchen renovation',status:'in_progress',description:'Install cabinetry, finish trim and review the completed work with the customer.',source_estimate_id:'99999999-9999-4999-8999-999999999999',created_at:'2026-11-01T12:00:00Z',updated_at:'2026-11-01T12:00:00Z',assigned_user_ids:[U,team[1].id],customers:[customer],properties:[],scheduled_start:day+'T14:00:00Z',scheduled_end:day+'T17:00:00Z'}
 const jobs=[job,{...job,id:'66666666-6666-4666-8666-666666666666',title:'Exterior trim repair',status:'lead',assigned_user_ids:[],scheduled_start:null,scheduled_end:null},{...job,id:'77777777-7777-4777-8777-777777777777',title:'Bathroom finish work',status:'scheduled',scheduled_start:day+'T19:00:00Z',scheduled_end:day+'T21:00:00Z'}]
 const scenario=new URLSearchParams(location.search).get('scenario');if(scenario==='empty')jobs.splice(0);if(scenario==='history')jobs.splice(0,jobs.length,{...job,status:'completed',title:'Completed kitchen job'},{...job,id:'88888888-8888-4888-8888-888888888888',status:'canceled',title:'Canceled trim job'});if(scenario==='restricted'){business.role='viewer';business.primary_owner=false;business.access_modules=['jobs']}
 let work:any={tasks:[{id:'t1',title:'Confirm materials and site access',completed:true,version:1,worker_id:U,due_on:day},{id:'t2',title:'Install cabinet doors and hardware',completed:false,version:1,worker_id:team[1].id,due_on:day}],activity:[{id:1,event:'Job created',created_at:'2026-11-01T12:00:00Z'}],financial_access:true,budget:{revenue:12000,cost:6500,hours:40,version:1},time:[{id:'time1',worked_on:day,minutes:240,hourly_cost:30,worker_id:U,note:'Cabinet preparation'}],recorded_expenses:2450,invoiced:12000,collected:4000,invoices:[{id:J,number:'INV-1040',status:'partial',total:12000,balance_due:8000}]}
@@ -51,6 +53,6 @@ function query(value:any,table=''){let single=false;let filters:any={};let from=
 ;(supabase as any).channel=()=>({on(){return this},subscribe(){return this}})
 ;(supabase as any).removeChannel=async()=>{}
 ;(supabase as any).auth.getSession=async()=>({data:{session:null},error:null})
-function Preview(){const[view,setView]=useState(new URLSearchParams(location.search).get('screen')||'finance');const mobile=new URLSearchParams(location.search).get('phone')==='1';return <div style={{maxWidth:1240,margin:'0 auto',padding:mobile?12:28}}><div style={{marginBottom:24,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}><strong style={{color:'#257f73'}}>Finviant QA · synthetic data</strong>{['finance','jobs','payments'].map(v=><button type="button" key={v} className="secondary-button compact" onClick={()=>setView(v)}>{v==='finance'?'Financial dashboard':v==='jobs'?'Jobs dashboard':'Payment setup'}</button>)}<a href={'?screen='+view+'&phone=1'}>Phone layout</a></div>{view==='finance'?<FinancialPerformance business={business}/>:view==='jobs'?<JobsPage business={business}/>:<PaymentSettings business={business}/>}</div>}
+function Preview(){const[view,setView]=useState(new URLSearchParams(location.search).get('screen')||'finance');const mobile=new URLSearchParams(location.search).get('phone')==='1';return <div className="finviant-workspace" style={{maxWidth:1240,margin:'0 auto',padding:mobile?12:28}}><div style={{marginBottom:24,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}><strong style={{color:'#257f73'}}>Finviant QA · synthetic data</strong>{['finance','jobs','payments'].map(v=><button type="button" key={v} className="secondary-button compact" onClick={()=>setView(v)}>{v==='finance'?'Financial dashboard':v==='jobs'?'Jobs dashboard':'Payment setup'}</button>)}<a href={'?screen='+view+'&phone=1'}>Phone layout</a></div>{view==='finance'?<FinancialPerformance business={business}/>:view==='jobs'?<JobsPage business={business}/>:<PaymentSettings business={business}/>}</div>}
 const params=new URLSearchParams(location.search)
 if(params.get('phone')==='1'&&self===top){const child=new URL(location.href);child.searchParams.set('embedded','1');createRoot(document.getElementById('root')!).render(<div style={{display:'grid',placeItems:'start center',padding:24,background:'#e8eef1',minHeight:'100vh'}}><iframe src={child.href} title="Finviant phone layout" style={{width:390,height:900,border:'1px solid #c7d3db',borderRadius:20,background:'white'}}/></div>)}else createRoot(document.getElementById('root')!).render(<Preview/>);
