@@ -22,5 +22,5 @@ export async function updateAppointmentStatus(appointmentId: string, status: 'sc
   const { data, error } = await supabase.rpc('update_appointment_workflow', { p_appointment: appointmentId, p_status: status })
   if (error) throw error
   announceCalendarChange()
-  return data as { job_id?: string; invoice_id?: string | null; invoice_status?: string | null; invoice_ready?: boolean; needs_pricing?: boolean; needs_review?: boolean }
+  return data as { job_id?: string; visit_only?: boolean; invoice_id?: string | null; invoice_status?: string | null; invoice_ready?: boolean; needs_pricing?: boolean; needs_review?: boolean }
 }

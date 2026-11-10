@@ -21,7 +21,6 @@ import {
 import { completeJob, type Worker } from "../services/schedulingWorkflow";
 import { manageJobWorkspace, type JobTask } from "../services/operations";
 import {
-  finishJobVisit,
   getJobManagement,
   manageJobManagement,
   type JobManagementData,
@@ -47,6 +46,9 @@ import {
 } from "./JobManagementEditors";
 import { RecordTabs, RecordMoreMenu } from "./RecordDetail";
 import JobWorkPlan from "./JobWorkPlan";
+import JobVisits from "./JobVisits";
+import JobCostReview from "./JobCostReview";
+import JobCompletionReports from "./JobCompletionReports";
 import RecordResources from "./RecordResources";
 import DocumentChangeOrders from "./DocumentChangeOrders";
 import DispatchJobDialog, {
@@ -71,7 +73,8 @@ type Section =
   | "photos"
   | "changes"
   | "billing"
-  | "activity";
+  | "activity"
+  | "reports";
 const sectionLabels: Record<Section, string> = {
   overview: "Overview",
   tasks: "Tasks",
@@ -81,12 +84,16 @@ const sectionLabels: Record<Section, string> = {
   changes: "Changes",
   billing: "Billing",
   activity: "Activity",
+  reports: "Completion Report",
 };
 const reviewSignature = (data: JobManagementData) =>
   JSON.stringify([
     data.tasks.map((t) => [t.id, t.version]),
     data.budget?.version,
+    data.visits.map((v) => [v.id, v.version, v.status]),
     data.recorded_expenses,
+    data.pending_time_minutes,
+    data.uncalculated_expenses,
     data.time?.map((t) => [t.id, t.minutes, t.hourly_cost]),
     data.materials.map((m) => [m.id, m.version]),
     data.changes?.map((c) => [c.id, c.status, c.total]),
@@ -329,11 +336,19 @@ export default function JobManagementWorkspace({
         ].includes(c.billing_action || ""),
     ) || [];
 
+  const openVisits =
+    data?.visits.filter((v) =>
+      ["scheduled", "confirmed", "in_progress"].includes(v.status),
+    ) || [];
+  const remainingVisits =
+    openVisits.length > 1 ||
+    openVisits.some((v) => Date.parse(v.starts_at) > Date.now());
   const completeWarnings =
     outstandingTasks.length +
     missingMaterials.length +
     pendingChanges.length +
-    unbilledChanges.length;
+    unbilledChanges.length +
+    Number(Number(data?.pending_time_minutes) > 0);
   const currentReview = useRef("");
   function reviewCompletion() {
     if (!data || !job || !confirmNavigation()) return;
@@ -923,78 +938,28 @@ export default function JobManagementWorkspace({
                         onClick={() => setDispatch("appointment")}
                       >
                         {booked
-                          ? "Reschedule appointment"
+                          ? "Reschedule next visit"
                           : "Schedule next visit"}
                       </button>
                     </div>
                   )}
                 </header>
-                <p>
-                  <strong>Crew:</strong>{" "}
-                  {job.assigned_user_ids
-                    ?.map(
-                      (worker: string) =>
-                        team.find((w) => w.id === worker)?.label ||
-                        "Worker unavailable",
-                    )
-                    .join(", ") || "Not assigned"}
-                </p>
-                <p className="quiet">
-                  Worker profiles do not grant account access. Saving a visit
-                  does not send a customer message.
-                </p>
                 {data.calendar_access ? (
-                  <ul className="jm-lines">
-                    {data.visits.map((v) => (
-                      <li key={v.id}>
-                        <div>
-                          <strong>{date(v.starts_at)}</strong>
-                          <small>
-                            {v.ends_at
-                              ? "Until " +
-                                DateTime.fromISO(v.ends_at)
-                                  .setZone(zone)
-                                  .toFormat("h:mm a")
-                              : ""}{" "}
-                            · {v.status.replaceAll("_", " ")}
-                          </small>
-                        </div>
-                        {canSchedule &&
-                          !closed &&
-                          booked &&
-                          v.id === job.active_appointment?.id &&
-                          Date.parse(v.starts_at) <= Date.now() && (
-                            <button
-                              type="button"
-                              className="secondary-button compact"
-                              disabled={busy}
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    "Finish this visit and keep the job open? Schedule the next visit afterward.",
-                                  )
-                                )
-                                  void run(
-                                    () =>
-                                      finishJobVisit(business.id, jobId, v.id),
-                                    "Visit finished. The job remains open; schedule its next visit when ready.",
-                                  );
-                              }}
-                            >
-                              Finish visit
-                            </button>
-                          )}
-                      </li>
-                    ))}
-                  </ul>
+                  <JobVisits
+                    business={business}
+                    jobId={jobId}
+                    visits={data.visits}
+                    tasks={data.tasks}
+                    team={team}
+                    canEdit={canSchedule}
+                    closed={closed}
+                    onSaved={changed}
+                  />
                 ) : (
-                  <p className="quiet">
-                    Calendar access is required to view full visit history. Ask
-                    your account owner.
+                  <p>
+                    Calendar access is required to view visits. Contact the
+                    business owner.
                   </p>
-                )}
-                {!data.visits.length && data.calendar_access && (
-                  <p>No visits recorded yet.</p>
                 )}
               </div>
               <div
@@ -1306,17 +1271,42 @@ export default function JobManagementWorkspace({
                     </p>
                   )}
                   {data.financial_access && costsOpened && (
-                    <JobWorkPlan
-                      business={business}
-                      jobId={jobId}
-                      team={team}
-                      canEdit={canEdit}
-                      closed={closed}
-                      section="costs"
-                    />
+                    <>
+                      <JobWorkPlan
+                        business={business}
+                        jobId={jobId}
+                        team={team}
+                        canEdit={canEdit}
+                        closed={closed}
+                        section="costs"
+                      />
+                      <JobCostReview
+                        business={business}
+                        jobId={jobId}
+                        team={team}
+                        onSaved={changed}
+                      />
+                    </>
                   )}
                 </div>
               )}
+              <div
+                role="tabpanel"
+                id={tab("reports") + "-panel"}
+                aria-labelledby={tab("reports") + "-tab"}
+                hidden={section !== "reports"}
+                className="jm-panel"
+              >
+                {section === "reports" && (
+                  <JobCompletionReports
+                    business={business}
+                    jobId={jobId}
+                    completed={job.status === "completed"}
+                    canEdit={canEdit && canSchedule}
+                    onSaved={changed}
+                  />
+                )}
+              </div>
               <div
                 role="tabpanel"
                 id={tab("activity") + "-panel"}
@@ -1383,6 +1373,7 @@ export default function JobManagementWorkspace({
           business={business}
           jobId={jobId}
           task={taskEditor === "new" ? undefined : taskEditor}
+          visits={data?.visits || []}
           team={team}
           onSaved={changed}
           onClose={() => setTaskEditor(null)}
@@ -1466,6 +1457,12 @@ export default function JobManagementWorkspace({
               {error}
             </p>
           )}
+          {remainingVisits && (
+            <p role="alert" className="provider-status-note">
+              Finish or cancel the remaining visits in Schedule &amp; Crew
+              before completing this job.
+            </p>
+          )}
           <ul className="jm-completion-list">
             <li>{outstandingTasks.length} unfinished tasks</li>
             <li>
@@ -1483,6 +1480,12 @@ export default function JobManagementWorkspace({
                   " recorded costs; confirm all receipts and labor are entered."
                 : "Ask the office to check recorded costs and billing."}
             </li>
+            {Number(data.pending_time_minutes) > 0 && (
+              <li>
+                {(Number(data.pending_time_minutes) / 60).toFixed(2)} field
+                hours await office review and are excluded from actual costs.
+              </li>
+            )}
             {uncostedHours > 0 && (
               <li>{uncostedHours.toFixed(2)} labor hours have no cost rate.</li>
             )}
@@ -1518,7 +1521,9 @@ export default function JobManagementWorkspace({
             <button
               type="button"
               className="primary-button"
-              disabled={busy || (completeWarnings > 0 && !reviewed)}
+              disabled={
+                busy || remainingVisits || (completeWarnings > 0 && !reviewed)
+              }
               onClick={() => void complete()}
             >
               Complete job

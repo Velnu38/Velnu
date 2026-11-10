@@ -198,6 +198,12 @@
       "detail": "Owner explicitly requested finishing and deploying the existing candidate. Repairs address phone pagination containment, preserved legacy payment-provider labels, deterministic browser readiness/error assertions and review-only CI artifact suppression. All existing tests remain enabled. GitHub confirms the repository is public; standard Ubuntu runners are free, and artifact uploads are suppressed for this review branch to avoid new artifact storage. Full browser CI is being rerun; no general-launch/provider/device acceptance is inferred. PR69 field-access UI and customer-reminder activation remain outside this candidate. Final review isolated a Jobs panel grid sizing defect and native external-app focus contention in concurrent browser workers. The layout is constrained, handoff journeys run serially with unchanged assertions, and Edge packages are reproducibly prepared with source typechecks required before release. Runtime dependency review expanded PDF packaging to all nine document-rendering entry points, retaining beta sending gates and each existing JWT mode. Native handoff checks use pinned Chromium because stable headless Chrome suppresses SMS confirmation pointer events. WebKit now serves the same built assets as the primary browser suite.",
       "evidence": "PR71; current explicit deployment instruction; docs/evidence/2026-11-09-candidate-release.json",
       "verifiedAt": "2026-11-09"
+    },
+    {
+      "title": "Manager Job Management execution activation",
+      "detail": "Integrated visits, office costs and immutable completion reports with the newer beta document/availability release. The user approved retry; three execution migrations and access hardening are applied and a real-schema synthetic rollback flow passed approval-to-single-job, three-visit/calendar, deposit/change/final invoice, costs, report replay and protected/unknown-actor access. All fixtures rolled back. Public RPCs are invokers with anonymous execution denied; new private tables deny direct reads; new foreign keys have covering indexes. Canonical source filenames match the actual applied ledger versions without rewriting/reapplying history. Manager roster direction is preserved: field self-service pages/controls, mandatory sign-in context RPC and new employee invitations are excluded; existing account management and 1/5/25 profile limits remain. Targeted manager DOM/database/PDF/build checks passed after merging the newer beta source. Private-beta deployment is the next step; actual browser sign-in, physical-device/provider and load acceptance remain open. Optional further cleanup was canceled, confirmed unapplied and removed from source.",
+      "evidence": "docs/evidence/2026-11-09-job-execution-validation.json; tests/operations/job-execution-live-rollback.sql",
+      "verifiedAt": "2026-11-09"
     }
   ],
   "tasks": [
@@ -571,7 +577,7 @@
       "status": "open",
       "title": "Extend and certify the Jobs workspaces",
       "owner": "Developer + owner",
-      "why": "The released Jobs | Job Management core is implemented. Planned multi-visit functions are already applied in beta, but the matching PR69 UI is unmerged and its employee self-service controls conflict with the manager roster direction. Server pagination, saved filters, full-chain concurrency and device acceptance remain open.",
+      "why": "Manager execution now has planned multiple visits with separate crews/tasks, version/conflict checks and one calendar source. The schema is applied and real-beta rollback verification passed; matching manager UI is ready for private-beta release. Full directory server paging, saved filters, measured concurrency and physical-device acceptance remain open.",
       "acceptance": "Use Finviant Job Management Widget to define parent jobs/visits/tasks, recurring-service boundaries, unchanged work states and billing transitions. Implement only after scope selection; preserve customer/site, estimate, invoice/deposit, crew, notes/photo, reminder and deep links. Reuse one calendar/authorized scheduling source; provide accessible mobile List/Board/Schedule views, one next action, saved filters and server pagination/rollups. Verify legacy migration, required-item overrides, concurrent scheduling, cancellation/skip/reopen, partial failures and idempotent estimate-to-job/visit creation. No automatic send/payment or added customer portal.",
       "evidence": []
     },
@@ -582,7 +588,7 @@
       "status": "open",
       "title": "Certify job costs, recurrence and progress-to-final billing",
       "owner": "Developer + finance reviewer",
-      "why": "Released manual time/budgets/materials and provisional contribution exist. PR69 reviewed costs and immutable completion-report SQL is already applied, but matching UI is unmerged and functional acceptance remains open. Recurring exceptions and progress-to-final billing need further implementation/certification; do not describe all job costing as unbuilt.",
+      "why": "Office time/rate snapshots, budgets, canonical expense allocation and duplicate-cost exclusions, missing-cost indicators and immutable completion PDFs are implemented. Three-visit deposit/approved-change/final-invoice and cost/report replay passed on the real schema with rolled-back synthetic data. Manager UI is ready for release. Recurrence exceptions, progress billing, actual uploads/providers and certified accounting profit remain open.",
       "acceptance": "After JOB-01 scope selection, add permission-controlled approved time/rate snapshots, budgets, material/direct-cost allocations, missing-cost indicators and separate actual/forecast margin. Reconcile taxes/credits/refunds/deposits/progress quantities to final invoicing and deduplicate receipts/labor. Extend existing recurrence with service-series exceptions and bounded generation without duplicate invoice/job creation; test DST/month-end, changed rates/crews, skips and cancellations. Preserve owner invoice review, signed-event payment verification, existing financial reports and no-Fin-charge deterministic rules. Certify scoped completion PDFs and failed-automation recovery; use actual provider receipts under existing gates where applicable.",
       "evidence": []
     },
@@ -593,7 +599,7 @@
       "status": "deferred",
       "title": "Decide and certify restricted field-worker access separately from profiles",
       "owner": "Owner + developer",
-      "why": "Latest owner direction selects a manager-operated roster with no mandatory employee login, invitation, notification or self-service. PR69 field-access UI is excluded from the candidate. Some restricted-access SQL is already applied, with zero linked field accounts observed; its existence is not authorization to activate it.",
+      "why": "Latest owner direction remains a manager-operated roster with no employee login, invitation, notification or self-service requirement. Already-applied restricted-access SQL was retained and regression tested, with no persistent field accounts or field submissions. Its frontend pages/controls and sign-in dependency are excluded from this manager release. Existing authorized account management is preserved.",
       "acceptance": "Explicitly decide scope/seats and costs before enabling a field role; preserve 5/25 internal profiles, existing account-seat entitlements and beta/admin exceptions. Pilot within authorized seats first. If selected, use verified revocable worker identities, assigned-job-only server/file/realtime permissions and office approval of protected actions. Prove workers cannot read financial/pay rates, other jobs/customers, billing/admin/export modules or revoked assignments; test identity/profile mapping, session expiry, notification quotas and bounded offline outbox conflict/tenant clearing on real supported devices. Do not treat bearer links or hidden UI as access control.",
       "evidence": []
     },
@@ -692,7 +698,7 @@
       "status": "open",
       "title": "Verify Job Management on physical devices and authenticated live workflows",
       "owner": "Owner + developer",
-      "why": "The selected implementation passed synthetic desktop/390px browser inspection, DOM journeys, database regressions and live rollback storage/approval checks. No authenticated physical iPhone session or real provider sending/payment was exercised in this change.",
+      "why": "The manager implementation passed targeted DOM/SQL/PDF checks and a real-beta rollback workflow, plus synthetic 390px phone visit entry in shared Chrome. It retains the newer beta document/availability source. Authenticated real-tenant browser sessions, physical iPhone camera/touch, actual file upload/providers and measured load remain unverified.",
       "acceptance": "In an authorized signed-in beta account, verify Jobs filters and history, Manage opening the exact job, approved-work single-job creation, task/template edits and retry recovery, mobile materials/photos/receipt capture, sequential visit finish and rebooking, crew conflicts, all linked change scopes, deposit/invoice balances and completion override/reopen. Verify owner versus restricted staff and physical iPhone touch/keyboard/layout. Exercise actual external providers only under their existing authorization and acceptance gates; retain private beta isolation and recorded evidence.",
       "evidence": []
     }

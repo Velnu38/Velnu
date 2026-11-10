@@ -1,9 +1,9 @@
 import {supabase} from '../lib/supabase'
 import {announceCalendarChange} from '../lib/workEvents'
-export type JobTask={id:string;title:string;completed:boolean;due_on:string|null;worker_id:string|null;version:number;priority?:'low'|'normal'|'high'}
-export type JobTime={id:string;worked_on:string;worker_id:string|null;minutes:number;hourly_cost:number;note:string}
+export type JobTask={id:string;title:string;completed:boolean;due_on:string|null;worker_id:string|null;version:number;visit_id?:string|null;priority?:'low'|'normal'|'high'}
+export type JobTime={id:string;worked_on:string;worker_id:string|null;minutes:number;hourly_cost:number;note:string;version?:number}
 export type JobBudget={revenue:number;cost:number;hours:number;version:number}
-export type JobWorkspace={tasks:JobTask[];activity:{id:number;event:string;created_at:string}[];financial_access:boolean;budget?:JobBudget|null;time?:JobTime[];recorded_expenses?:number;invoiced?:number;collected?:number;invoices?:{id:string;number:string|null;status:string;total:number;balance_due:number}[]}
+export type JobWorkspace={tasks:JobTask[];activity:{id:number;event:string;created_at:string}[];financial_access:boolean;budget?:JobBudget|null;time?:JobTime[];recorded_expenses?:number;pending_time_minutes?:number;uncalculated_expenses?:number;invoiced?:number;collected?:number;invoices?:{id:string;number:string|null;status:string;total:number;balance_due:number}[]}
 export type FinanceOverview={currency_supported:boolean;as_of:string;receivables:{invoices:number;outstanding:number;overdue:number;overdue_count:number};aging:{bucket:string;count:number;amount:number}[];customers:{customer_id:string;customer:string;balance:number;invoices:number}[];oldest:{id:string;invoice_number:string;due_date:string;balance_due:number}[]}
 export async function getJobWorkspace(business:string,job:string):Promise<JobWorkspace>{const{data,error}=await supabase.rpc('get_job_workspace',{p_business:business,p_job:job});if(error)throw error;if(!data||!Array.isArray(data.tasks)||!Array.isArray(data.activity)||typeof data.financial_access!=='boolean')throw Error('Work plan response could not be verified.');return data}
 export async function manageJobWorkspace(business:string,job:string,action:string,payload:Record<string,unknown>):Promise<JobWorkspace>{const{data,error}=await supabase.rpc('manage_job_workspace',{p_business:business,p_job:job,p_action:action,p_payload:payload});if(error)throw error;announceCalendarChange();return data}

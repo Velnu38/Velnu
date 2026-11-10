@@ -1,0 +1,172 @@
+{
+  "date": "2026-11-09",
+  "verified_at": "2026-11-10T07:12:47.707693+00:00",
+  "baseline_commit": "b2fe20ce0b9d36806b7e94231eed962322eb6f55",
+  "scope": "Manager-operated Job Management activation: planned visits, office costing and completion reports; employee self-service UI deferred per current owner roster direction",
+  "branch": "feature/job-execution-20261109",
+  "checks": [
+    {
+      "command": "npm run test:job-execution",
+      "database_cases": 8,
+      "pdf_cases": 1,
+      "dom_journeys": 4,
+      "failed": 0,
+      "includes": "Realistic linked-appointment lifecycle, three visits, deposit/change/final balance and retry, scoped backend permissions, office costs and completion snapshots. The browser fixture uses business-local dates and a current past start so completion tests remain valid overnight."
+    },
+    {
+      "command": "npm run test:job-management",
+      "database_cases": 7,
+      "dom_journeys": 5,
+      "failed": 0
+    },
+    {
+      "command": "npm run build",
+      "startup_checks": 58,
+      "failed": 0,
+      "includes": "Merged current beta source, TypeScript, Vite and preview isolation."
+    }
+  ],
+  "visual": {
+    "pdf": "Synthetic completion PDF rendered and visually inspected; long/Unicode/photo pagination test passed. Legacy WebP metadata with normalized PNG/JPEG bytes is accepted without changing the retained source.",
+    "browser": "Shared Chrome inspected the 390px phone fixture and native date controls. Saving a future visit with its own crew visibly produced two open visits. This is synthetic browser acceptance, not an authenticated tenant or physical iPhone test."
+  },
+  "database": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "state": "applied_and_rollback_verified",
+    "ledger": [
+      {
+        "version": "20261110002708",
+        "name": "planned_job_visits",
+        "statement_md5": "9da146d2ab1afcb29f75a4b4543f3caf"
+      },
+      {
+        "version": "20261110002741",
+        "name": "assigned_field_workspace",
+        "statement_md5": "e929689153ab18ed0e06ae1efc824aac"
+      },
+      {
+        "version": "20261110002751",
+        "name": "job_cost_review_completion_reports",
+        "statement_md5": "95ff722b52a5768cf22e40ef15b38368"
+      },
+      {
+        "version": "20261110003505",
+        "name": "job_execution_access_hardening",
+        "statement_md5": "dd57ffb79444c16e9c3018f620239545"
+      }
+    ],
+    "source_history": "Canonical migration filenames now use the actual already-applied ledger versions; statements and hosted ledger were not edited or reapplied to align timestamps.",
+    "rollback_script": "tests/operations/job-execution-live-rollback.sql",
+    "rollback_checks": {
+      "approval_single_job": true,
+      "visits_and_calendar": true,
+      "field_backend_scoping": true,
+      "field_pause": true,
+      "photo_metadata": true,
+      "reviewed_time_replay": true,
+      "cost_exclusion": true,
+      "deposit_and_approved_change_balance": true,
+      "invoice_retry": true,
+      "completion_report_replay": true,
+      "unknown_user_denied": true,
+      "rolled_back": true
+    },
+    "final_balance": {
+      "approved_scope": 125,
+      "credited_deposit": 30,
+      "final_invoice_total": 95,
+      "balance_due": 95,
+      "final_invoice_count": 1
+    },
+    "retained_fixtures": 0,
+    "public_rpc_contract": {
+      "count": 12,
+      "security_invoker": true,
+      "anonymous_execute": false,
+      "authenticated_execute": true,
+      "calendar_security_invoker": true
+    },
+    "private_tables": {
+      "count": 5,
+      "rls": true,
+      "direct_anon_select": false,
+      "direct_authenticated_select": false
+    },
+    "security_advisors": {
+      "extension_in_public": 1,
+      "anon_security_definer_function_executable": 5,
+      "authenticated_security_definer_function_executable": 40,
+      "note": "WARN counts returned to the previous baseline after privileged implementations moved behind private invoker-wrapped APIs. Five additional private deny-direct tables account for INFO-only RLS-no-policy entries."
+    },
+    "performance_advisors": {
+      "unindexed_foreign_keys": 49,
+      "new_execution_foreign_keys_unindexed": 0,
+      "auth_rls_initplan": 23,
+      "multiple_permissive_policies": 4,
+      "note": "The separate ordinary-staff/field allow policies remain intentionally combined by PostgreSQL OR semantics and restrictive module/receipt rules. Optional consolidation was canceled and not applied. No load/capacity certificate is claimed."
+    },
+    "optional_followups": "Policy consolidation and additional pending-field-account scope requests were canceled and confirmed unapplied. Their uncommitted source was removed. Existing linked-field protections are retained; employee UI/accounts are not activated."
+  },
+  "cost": {
+    "new_paid_services": false,
+    "additional_account_seats": false,
+    "note": "Reuses current Supabase storage/upload quotas and existing PDF dependencies. Pro five total account seats and separate worker-profile limits retained. Hosting, database, storage and bandwidth remain subject to existing usage charges."
+  },
+  "limits": [
+    "Owner-selected manager roster requires no worker login, invitation or notification; employee self-service remains deferred and no field accounts were retained.",
+    "The permission test simulates database authenticated roles against the real beta schema; it does not certify actual account sign-in, physical devices or external services.",
+    "Actual Storage upload/camera, provider delivery/payment, two-tenant browser sessions and measured concurrency/load remain under their open acceptance gates.",
+    "No customer message, real card charge/refund, new paid service, new account seat, or production-backend promotion was performed."
+  ],
+  "source_sha256": {
+    "shared/jobCompletionPdf.ts": "1eaced5445a6d10df51c4628e9b34ff75d6905d653f0d83791409203f549ea12",
+    "src/services/jobExecution.ts": "e8b797e87a1dd842031012e2099a298df799ee018d231d74ca03f03236f5a2b3",
+    "src/components/JobManagementWorkspace.tsx": "f8d42ca5a32fd6dea8057cd9f93d5ca7ef13886fb78fa2d1ded7749405c12ef2",
+    "src/components/JobVisits.tsx": "1c75c76cfa1818e3b2762078c1722a9317a96d242555a609e7530af09a089654",
+    "src/components/JobCostReview.tsx": "5320ddaa8abead338545e6d21da44b4f7ae864fc876bdc9a26f2beda3f4e2c47",
+    "src/components/JobCompletionReports.tsx": "dea974f0c67ead875619a7d096a77e6164bd704c958fcd22eb7830f3ec953771",
+    "tests/operations/execution-fixture.ts": "269724ca2d92cd18ba99f4df6dc076f4dbdb275abe8497a0e1015dcedf6628dd",
+    "tests/operations/job-execution.test.ts": "df5f0667c5d0c1f05ffefa42ed9238baa4ea8009c85348777630a5b4aa1efa55",
+    "tests/operations/job-execution-dom.mjs": "466761cbc367337b338866e40805fe00750649f550efba7b71a5adff1ead1477",
+    "tests/operations/job-execution-live-rollback.sql": "a1b9b2e5e8aa5bdf5eaa6c54fd7b4baa09fdbe079fd64132f232e7204616fc38",
+    "tests/documents/jobCompletionPdf.test.ts": "165f4a1a5a4e08fe43f1af81e3c08adc037913594e71beefd827b4139d91b2ea",
+    "supabase/migrations/20261110002751_job_cost_review_completion_reports.sql": "5367857aaab97ff3dbac9731bbc12980097070d34358f6a118930166e54b2680",
+    "supabase/migrations/20261110002741_assigned_field_workspace.sql": "bb1ca4d959e8412341e14f4aee15c8bb1a36cdc487a19edb414dd95b6231287f",
+    "supabase/migrations/20261110003505_job_execution_access_hardening.sql": "19d4bec46637967d97a9336b8833c965e99389a7a362c93f3d696b732fcba56e",
+    "supabase/migrations/20261110002708_planned_job_visits.sql": "2355476c54c51629f88863335b87d3fcacf147844364989ecf3e8bf3278013c0",
+    "tests/e2e/critical-dashboard-schedule.spec.mjs": "5bb43d6b50bc992b1672c925ab662e95722b278ce35187a9a9cde99e722ee97d"
+  },
+  "preparation": {
+    "original_head": "373fba610a6ef46770e2e06cebeff4e39643ea98",
+    "original_database_state": "First approval expired and second was canceled; no migrations had applied then. The user subsequently approved retry/activation.",
+    "employee_frontend": "Original field self-service source remains recoverable at the original head. Current manager release excludes its pages, controls, mandatory sign-in RPC and new field invitations."
+  },
+  "retained_regressions": {
+    "scheduling": 72,
+    "records": 21,
+    "settings_serial": 116,
+    "note": "Passed in the prepared implementation before the later beta integration; current upstream full-suite acceptance remains recorded separately in PR71. Do not infer that the full upstream browser suite was rerun for this change."
+  },
+  "release": {
+    "state": "ready_for_private_beta_merge",
+    "base": "b2fe20ce0b9d36806b7e94231eed962322eb6f55",
+    "pr": 69,
+    "worker_model": "manager-operated roster; field frontend excluded"
+  },
+  "ci_followup": {
+    "initial_head": "3aac06bab1aa27327b4a20cf6c0ea300e546c3af",
+    "finding": "Desktop and simulated iPhone reminder management expected an 8 a.m. same-day reminder to be overdue before 8 a.m. The shared fixture now uses the business-day start so it remains due today at any hour; production attention semantics are unchanged.",
+    "initial_failing_jobs": [
+      129687769342,
+      129687765575
+    ],
+    "state": "rerun_pending",
+    "safari_journey": {
+      "run": 42774770626,
+      "failed_job": 129690700313,
+      "retry_job": 129694136458,
+      "finding": "The same long estimate PDF/dialog/history journey exhausted its 30-second overall budget on two runs, first at its final Activity tab and next at its final Close preview step. The test also captures a full-page 3x WebKit image. Only this journey receives a bounded 60-second Safari budget; every interaction, assertion and production file is unchanged.",
+      "state": "rerun_pending"
+    }
+  }
+}

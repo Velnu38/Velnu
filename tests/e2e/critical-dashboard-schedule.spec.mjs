@@ -297,7 +297,8 @@ async function mockWorkspace(page, options = {}) {
 // Management scenarios model conditional writes and complete calendar-range reads.
 async function managedReminders(page, options = {}) {
   const zone='America/New_York'
-  const row={...reminder(9901),business_id:BID,due_at:DateTime.now().setZone(zone).startOf('day').plus({hours:8}).toUTC().toISO(),note:'Check supply order',...options.row}
+  // Keep the reminder due today even when the suite runs before business hours.
+  const row={...reminder(9901),business_id:BID,due_at:DateTime.now().setZone(zone).startOf('day').toUTC().toISO(),note:'Check supply order',...options.row}
   const state=await mockWorkspace(page,{...options,reminders:[row],businessProfile:{timezone:zone}})
   state.patchFailure=false;state.lostResponse=false;state.patchDelay=0
   await page.route('**/rest/v1/reminders?**',async route=>{
@@ -1535,7 +1536,10 @@ for(const width of [1440,390])test(`invoice review has accessible ordered action
  await page.emulateMedia({media:'print'})
  await expect(resourcesTab).toBeHidden();await expect(actions).toBeHidden()
 })
-for(const width of [1440,390])test(`estimate review has accessible actions, a canonical PDF and document history at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`estimate review has accessible actions, a canonical PDF and document history at ${width}px`,async({page},testInfo)=>{
+ // This full PDF/dialog/history journey also captures a full-page 3x WebKit image.
+ // Bound the whole Safari journey at 60s; retain every action and assertion.
+ if(testInfo.project.name==='iphone-webkit')test.setTimeout(60000)
  await page.setViewportSize({width,height:1000})
  const est={...reviewDocument(4002),sent_at:undefined,expires_on:'2099-11-30'};await mockWorkspace(page,{plan:'pro',estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
  await page.goto('/?view=estimates&document='+est.id)

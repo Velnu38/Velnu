@@ -20,6 +20,7 @@ export function TaskEditor({
   jobId,
   task,
   team,
+  visits = [],
   onSaved,
   onClose,
 }: {
@@ -27,11 +28,13 @@ export function TaskEditor({
   jobId: string;
   task?: JobTask;
   team: Worker[];
+  visits?: import("../services/jobExecution").JobVisit[];
   onSaved: () => void;
   onClose: () => void;
 }) {
   const [form, setForm] = useState({
       title: task?.title || "",
+      visit_id: task?.visit_id || "",
       worker_id: task?.worker_id || "",
       due_on: task?.due_on || "",
       priority: task?.priority || "normal",
@@ -109,6 +112,22 @@ export function TaskEditor({
                   {w.active === false ? " (inactive)" : ""}
                 </option>
               ))}
+          </select>
+        </label>
+        <label>
+          Visit (optional)
+          <select
+            value={form.visit_id}
+            onChange={(e) => setForm({ ...form, visit_id: e.target.value })}
+          >
+            <option value="">Whole job</option>
+            {visits.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.title || "Visit"} ·{" "}
+                {DateTime.fromISO(v.starts_at).toFormat("MMM d")} ·{" "}
+                {v.status.replaceAll("_", " ")}
+              </option>
+            ))}
           </select>
         </label>
         <label>
