@@ -55,9 +55,8 @@ export async function requireEmptyPlatform(client) {
 
 export async function replay(client, manifest) {
   await requireEmptyPlatform(client)
-  // The lab contains no live configuration. Also stop cron before adding any app jobs.
-  await client.query("alter system set cron.launch_active_jobs = 'off'")
-  await client.query('select pg_reload_conf()')
+  const { rows: [cron] } = await client.query('show cron.launch_active_jobs')
+  if (cron['cron.launch_active_jobs'] !== 'off') throw new Error('Replay requires local cron execution to be disabled before migrations')
   const applied = []
   for (const migration of manifest) {
     try {
@@ -111,6 +110,13 @@ export async function main() {
     console.log(`Starting disposable Supabase with CLI ${CLI_VERSION}; no hosted credentials or source migrations at startup`)
     started = true
     cli(['start', '--exclude', 'realtime,imgproxy,studio,postgres-meta,edge-runtime,logflare,vector,supavisor'], 720_000)
+    // The managed postgres role cannot ALTER SYSTEM. Use only our uniquely named
+    // disposable container's local administrator, never a hosted administrator.
+    const configure = spawnSync('docker', ['exec', `supabase_db_${projectId}`, 'psql', '-U', 'supabase_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
+      '-c', "alter system set cron.launch_active_jobs = 'off'", '-c', 'select pg_reload_conf()'], {
+      encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024,
+    })
+    if (configure.status !== 0) throw new Error('Could not disable cron in the owned disposable container')
     const status = JSON.parse(cli(['status', '-o', 'json']))
     if (!status.DB_URL) throw new Error('Local Supabase status did not return a database URL')
     client = new pg.Client({ connectionString: localDatabaseUrl(status.DB_URL), application_name: 'finviant-disposable-replay' })
