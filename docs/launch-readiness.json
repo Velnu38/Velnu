@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "bd70eef70b4ee09eafd387843df417a34cbbf02d",
+  "auditedCommit": "b19f89f278eeed0bf09b32123cfaed83c47db565",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -14,9 +14,9 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Verified release baseline before PR72",
-      "detail": "Private-beta source verified before this integration was bd70eef70b4ee09eafd387843df417a34cbbf02d, READY preview dpl_GskVn9r863C93pax4hTb7YhRocDM on both custom domains. It follows PR69 application merge c3dcddaaf650784f2ce59b15f6e7972b98b1f592 and documentation receipts. All seven PR69 workflows passed at final application head 36fcf3599c18741567b7a414003a2d1b7ed6b3f8. Manager-operated workers, stationery, availability, Fin guidance and private admission remain. Beta database xvybcmyoblfgzokaifsx has 129 migration ledger entries through 20261110003505; no migrations were reapplied for this reconciliation. Provider, actual-device and load acceptance remain separate open gates.",
-      "evidence": "PR69 workflow/API receipts; Vercel alias/deployment read; read-only beta migration/extension aggregate on 2026-11-10; docs/evidence/2026-11-09-job-execution-validation.json",
+      "title": "Current audited release baseline",
+      "detail": "Current private-beta merge b19f89f278eeed0bf09b32123cfaed83c47db565 is READY at dpl_ABypKt34wEfTbirtodshytiNnz5Y on finviant.com and www.finviant.com. PR83 archive and PR84 Jobs Overview passed every final PR workflow, including complete validation runs 42875112089 and 42876650472. Hosted migration grants, matching archive/worker sources and unauthorized access were checked. This release does not certify hosted load, provider sending, merchant payments, physical devices or public cutover.",
+      "evidence": "docs/evidence/2026-11-10-archive-overview-rollout.json",
       "verifiedAt": "2026-11-10"
     },
     {
@@ -39,9 +39,9 @@
     },
     {
       "title": "Integrations",
-      "detail": "1 activated email sender and 4 delivered outbox records; beta recipient approval remains enforced. 0 active SMS senders; 0 configured/live verified payment merchants. 1 Outlook integration marked connected, no Google connection. A connected row is not refresh/sync certification. Preview environment metadata contains Outlook configuration names and no Google configuration names; values were not retrieved.",
-      "evidence": "Aggregate delivery/merchant/calendar SQL and encrypted-only Vercel environment metadata",
-      "verifiedAt": "2026-11-08"
+      "detail": "Read-only beta aggregates show 3 activated email senders, 0 active SMS senders and 0 enabled/live/verified Stripe merchants. These counts do not prove inbox receipt, delivery policy, sender authentication or merchant acceptance. One Outlook integration remains connected, with last successful sync 2026-11-10T13:36:00.513614Z; no Google integration. Preview environment names include Outlook and no Google configuration; values were not decrypted or retained. Full EMAIL/SMS/PAY/CAL acceptance remains open.",
+      "evidence": "2026-11-10 read-only private.managed_delivery_accounts, private.customer_payment_merchants and private.calendar_integrations aggregates; Vercel encrypted-only environment metadata; audit source 18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af",
+      "verifiedAt": "2026-11-10"
     },
     {
       "title": "Database/security",
@@ -57,9 +57,9 @@
     },
     {
       "title": "Workers and queues",
-      "detail": "Three cron jobs are active: calendar each minute, tier delivery each 5 minutes, recurring invoice drafts each 15 minutes. Last-24-hour scheduler records: calendar 1,168 runs, tier delivery 288, recurring drafts 96, zero scheduler failures. Calendar queue currently empty. SQL cron success can merely mean an HTTP job was dispatched; verify worker response/completion and end-to-end lag separately.",
-      "evidence": "cron.job / cron.job_run_details and aggregate calendar queue SQL; commands/credentials were not retrieved",
-      "verifiedAt": "2026-11-08"
+      "detail": "Four cron jobs are active: calendar each minute, tier delivery every five minutes, recurring drafts every fifteen minutes and limiter pruning hourly at minute 17. Calendar queue, dead tasks and expired leases are all zero at review. Outlook's recorded sync advanced to November 10 following the documented repair. Scheduler configuration and an empty queue do not establish worker responses, outage recovery, customer delivery or sustained reliability.",
+      "evidence": "2026-11-10 read-only cron schedule and private.calendar_sync_queue aggregates; docs/evidence/2026-11-10-reminders-calendar-rollout.json at 18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af",
+      "verifiedAt": "2026-11-10"
     },
     {
       "title": "Storage and telemetry",
@@ -69,9 +69,9 @@
     },
     {
       "title": "Validation limits",
-      "detail": "Latest feature evidence: 152 tier/handler/database checks, 55 startup/build checks and card DOM journeys passed in the preceding release. Current audit: npm production and full dependency audits each report 0 advisories. Fresh GitHub checks confirm Calendar integration checks failed at 5963cd5 and Pricing tier checks failed at 6e3f1a4; detailed triage and a complete green release remain CI-01. The old eight-hour campaign is historical and did not exercise hundreds of authenticated tenants concurrently.",
-      "evidence": "Previous release receipts; fresh npm audit --omit=dev / npm audit; CI definitions and preserved historical logs; https://github.com/Velnu38/Velnu/actions/runs/42505556501 and https://github.com/Velnu38/Velnu/actions/runs/42505357331",
-      "verifiedAt": "2026-11-08"
+      "detail": "The preceding release merge 85abc5466db21ae8c0faeda5de8ac8bc790da5e4 has a successful 21-job complete validation, including full browser shards, WebKit, DOM, Deno and migration replay (run 42862992414). Current release HEAD is already domain-bound while run 42869888587 is unfinished. No new complete dependency audit, physical-device, hosted multi-tenant, load or full hosted restore certificate was obtained. Repository rulesets list is empty; classic branch-protection inspection returned HTTP 403 Resource not accessible by integration, so required-check enforcement is unknown.",
+      "evidence": "2026-11-10 GitHub Actions jobs and rulesets/branch-protection reads; https://github.com/Velnu38/Velnu/actions/runs/42862992414; https://github.com/Velnu38/Velnu/actions/runs/42869888587; source 18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af",
+      "verifiedAt": "2026-11-10"
     },
     {
       "title": "Administrator enrollment usability",
@@ -379,7 +379,7 @@
       "status": "open",
       "title": "Complete release validation and staged promotion enforcement",
       "owner": "Developer",
-      "why": "PR71 and PR69 have green final-application CI receipts. A fresh real Supabase/PostgreSQL 17.11 replay now passes all 78 source files, including an exact ledger-matched recovered recurring migration, plus rollback-only financial/two-identity permission smoke. The combined Release validation check includes every desktop/mobile/browser, financial/security/PDF/DOM/Deno and replay suite and rejects failed/canceled/skipped results. Node 22 is retained for PGlite/database checks and Node 24 for builds/browser checks. Enforced required-check settings and staged promotion remain unverified; database JWT-claim simulation and mocked browsers do not replace genuine hosted tenant/device acceptance. Follow-up release-gate review found that an entirely absent suite could pass the aggregate check. The isolated next-steps branch now enumerates required jobs, rejects absent jobs and tests parity with workflow dependencies. See docs/RELEASE_GATE_REVIEW_2026-11-10.md. Required-check enforcement and promotion remain open. The final reminder browser run exposed a dropped refresh when a save completed before its editor cleanup. Two deterministic regression tests fail before the repair; the coordinator now retains the invalidation until all editing ends, preserving unsaved-form protection. This repair must pass the full browser suite before promotion.",
+      "why": "The previous release merge 85abc5466db21ae8c0faeda5de8ac8bc790da5e4 passed complete 21-job validation (42862992414). Current HEAD 18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af is already domain-bound at READY deployment dpl_Htcp9Cot1hUNcRRqxPNQ9jq57Wur while full validation 42869888587 is unfinished. Same-commit release validation and enforcement remain open. Rulesets list is empty; classic branch-protection read returned HTTP 403 Resource not accessible by integration on 2026-11-10. This does not establish that classic protection is absent. No hosted setting was altered.",
       "acceptance": "Update obsolete fixtures without weakening functional assertions; pass complete current build, financial/tenant/voice/storage/calendar and authenticated browser journeys for the same immutable release commit. Enforce required checks and staged deployment/promotion before domain release; unify supported Node versions and include the actual release branch in CI.",
       "evidence": []
     },
@@ -401,7 +401,7 @@
       "status": "not_verified",
       "title": "Finish independent tenant, RPC and storage security review",
       "owner": "Developer / security reviewer",
-      "why": "RLS presence and zero ERROR lints do not prove correct policies; public definer/token endpoints intentionally bypass normal login. Genuine password-session/REST/Storage tests are prepared for the owned disposable platform; CI execution remains pending.",
+      "why": "Genuine password-session/REST/private Storage checks passed in owned disposable Supabase at 03a4da9c22ad8406f48227615d0678826883992e (run 42855522132, job 129967585894), with later full replay green at 85abc5466db21ae8c0faeda5de8ac8bc790da5e4. Hosted multi-tenant sessions, complete grant/token/webhook/CSP review and independent certification remain unverified. RLS presence and advisor counts alone do not establish security.",
       "acceptance": "Review all anon/authenticated definer grants and fixed search paths, operator functions, AI/tool authorization, customer token expiry/revocation, storage isolation, webhook signatures/replay and CSP. Test at least two real tenant sessions across role changes and expired sessions; clear exploitable high findings and record intentional exceptions. Never add permissive policies to internal deny-by-default tables.",
       "evidence": []
     },
@@ -412,7 +412,7 @@
       "status": "open",
       "title": "Add distributed abuse limits and backpressure",
       "owner": "Developer",
-      "why": "Monthly quotas, one calendar OAuth limiter and client buttons are not complete per-minute abuse protection.",
+      "why": "Shared atomic account/business/global provider burst controls are present in source and beta migration ledger (20261110171057 shared_provider_burst_limits); preceding full validation passed at 85abc5466db21ae8c0faeda5de8ac8bc790da5e4. Exact deployed handler behavior and all remaining public-link/IP/signup/send protections, quota races and provider dollar ceilings are not certified by this read-only audit.",
       "acceptance": "Enforce account/business/IP burst limits on public token reads, signup, AI/voice, PDF, OCR, uploads and sends; verify retry-after behavior, concurrent quota races, upload/content bounds and global provider-cost ceilings. Use a shared store or atomic database counters, not per-instance memory alone.",
       "evidence": []
     },
