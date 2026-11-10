@@ -34,3 +34,19 @@ test('failed, canceled, skipped or missing results block the aggregate release c
     }
   }
 })
+
+// Missing whole jobs must fail, just as missing result properties do.
+test('release gate rejects each entirely absent required suite', () => {
+  for (const suite of suites) {
+    const results = successes()
+    delete results[suite]
+    const receipt = run(results)
+    assert.notEqual(receipt.status, 0, `${suite} must not disappear from the release gate`)
+    assert.match(receipt.stderr, new RegExp(`${suite}=missing`))
+  }
+})
+
+test('release gate required jobs match the workflow dependency list', () => {
+  const required = /const required = (\[[^\n]+\])/.exec(gate)[1]
+  assert.deepEqual(JSON.parse(required.replaceAll("'", '"')), suites)
+})
