@@ -305,7 +305,8 @@
       "review/reminders-release-20261110": false,
       "review/rls-initplans-20261110": false,
       "review/worker-health-20261110": false,
-      "review/document-conveniences-20261110": false
+      "review/document-conveniences-20261110": false,
+      "review/auth-storage-acceptance-20261110": false
     }
   }
 }

@@ -41,6 +41,7 @@ const cases = [
   ['next steps review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/next-steps-20261110' }],
   ['reminders review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/reminders-release-20261110' }],
   ['identity policy review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/rls-initplans-20261110' }],
+  ['authenticated acceptance review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/auth-storage-acceptance-20261110' }],
   ['document convenience review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/document-conveniences-20261110' }],
   ['worker health review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/worker-health-20261110' }],
   ['migration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: MIGRATION_REVIEW_GIT_REF }],
@@ -95,6 +96,7 @@ test('integration review disables automatic deployment without changing the beta
   assert.equal(config.git.deploymentEnabled['review/rls-initplans-20261110'], false)
   assert.equal(config.git.deploymentEnabled['review/worker-health-20261110'], false)
   assert.equal(config.git.deploymentEnabled['review/document-conveniences-20261110'], false)
+  assert.equal(config.git.deploymentEnabled['review/auth-storage-acceptance-20261110'], false)
   assert.notEqual(config.git.deploymentEnabled[PRIVATE_BETA_GIT_REF], false)
   assert.equal(validateDeploymentEnvironment({ VERCEL_GIT_COMMIT_REF: INTEGRATION_REVIEW_GIT_REF }).checked, false)
 })

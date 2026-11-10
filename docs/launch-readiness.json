@@ -252,6 +252,18 @@
       "detail": "Added explicit reusable multi-line service packages with server validation, billing access controls, archived-name reuse and no modification of existing document lines. Added customer-visible PO/reference to atomic invoice/estimate create and draft edit, request fingerprints, linked invoice inheritance and PDF snapshots. Issued references cannot be changed; generic copy drafts reset the reference. Existing snapshots without a reference retain their prior shape. Local package/PO/PDF tests and package DOM interaction checks pass; rendered PDF inspected. Complete migration replay and deployed frontend/renderer verification remain pending.",
       "evidence": "supabase/migrations/20261110140000_reusable_service_packages.sql; supabase/migrations/20261110140500_customer_document_references.sql; tests/records/service-packages.test.ts; tests/records/customer-reference.test.ts; tests/settings/service-packages-dom.mjs; tests/documents/documentPdf.test.ts; docs/DOCUMENT_CONVENIENCES_2026-11-10.md",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Reminders and calendar repair deployed to private beta",
+      "detail": "PR74 passed all eight triggered workflows including the 21-job complete validation; merged as 9a73a09f4862c9456f2e2de6af11f89c63b5bdba. Reminder migrations applied; tier-delivery-worker v13 and fin-workflow v15 match prepared source bytes and retain authentication modes. Unauthorized worker POST and Fin GET/POST return 401. Invoice and appointment master rules remain disabled, appointment queue/override rows zero and no client grants on new private tables. PR75 passed all eight workflows, merged as 54ccfe796e12f6f15f48dca4f5eb2d0e312e1931, deployed READY with both finviant.com/www aliases. Applied narrow calendar grant and 23 identity policy optimization. Outlook completed a real sync at 2026-11-10T13:36:00.513614Z and cleared its queue; four scheduler completions and zero failures since the grant. Google configuration and broader provider certification remain open.",
+      "evidence": "docs/evidence/2026-11-10-reminders-calendar-rollout.json; https://github.com/Velnu38/Velnu/actions/runs/42823052069; https://github.com/Velnu38/Velnu/actions/runs/42823063659",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Genuine local Auth and Storage acceptance prepared",
+      "detail": "The disposable full-schema replay now prepares three genuine local password sessions, REST invoice retries and tenant denials, actual private PNG upload/download integrity, foreign signing denial and immediate module/membership revocation checks. Local URL guards pass; Docker is unavailable in this workspace, so actual end-to-end execution awaits mandatory GitHub replay. No hosted credentials, records or real delivery are used. This remains partial security acceptance and does not claim physical-device testing or a full backup restore.",
+      "evidence": "scripts/qa/auth-storage-replay.mjs; tests/deployment/migration-replay.test.mjs; docs/AUTH_STORAGE_ACCEPTANCE_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
@@ -317,7 +329,7 @@
       "status": "not_verified",
       "title": "Finish independent tenant, RPC and storage security review",
       "owner": "Developer / security reviewer",
-      "why": "RLS presence and zero ERROR lints do not prove correct policies; public definer/token endpoints intentionally bypass normal login.",
+      "why": "RLS presence and zero ERROR lints do not prove correct policies; public definer/token endpoints intentionally bypass normal login. Genuine password-session/REST/Storage tests are prepared for the owned disposable platform; CI execution remains pending.",
       "acceptance": "Review all anon/authenticated definer grants and fixed search paths, operator functions, AI/tool authorization, customer token expiry/revocation, storage isolation, webhook signatures/replay and CSP. Test at least two real tenant sessions across role changes and expired sessions; clear exploitable high findings and record intentional exceptions. Never add permissive policies to internal deny-by-default tables.",
       "evidence": []
     },
@@ -372,7 +384,7 @@
       "status": "open",
       "title": "Tune RLS, queries and connection budgets",
       "owner": "Developer",
-      "why": "Fresh beta review confirms 23 RLS identity-evaluation warnings and 49 unindexed FKs. The separate identity-initplan candidate preserves policy semantics and passes local authorization/plan checks; it is not deployed yet. Representative hosted query plans, valuable FK/order indexes, connection budgets and measured capacity remain open.",
+      "why": "Fresh beta review confirms 23 RLS identity-evaluation warnings and 49 unindexed FKs. The separate identity-initplan candidate preserves policy semantics and passes local authorization/plan checks; it is not deployed yet. Representative hosted query plans, valuable FK/order indexes, connection budgets and measured capacity remain open. The 23-policy identity InitPlan migration is applied to beta; no remaining auth_rls_initplan advisory group was returned. This is not measured hosted load capacity.",
       "acceptance": "Review plans on representative tenant sizes; fix applicable auth initplan patterns and high-value FK/filter/order indexes, then rerun tenant authorization tests. Verify transaction pooler/TLS/dedicated calendar role, aggregate serverless pool limits (calendar pool max=3 per instance), Auth reserve, timeouts and pagination. Measure before/after; do not blindly drop 39 unused indexes.",
       "evidence": []
     },
@@ -438,7 +450,7 @@
       "status": "blocked_external",
       "title": "Finish Google setup and multi-account calendar certification",
       "owner": "Owner + developer",
-      "why": "No Google connection/configuration names observed; one connected Outlook row does not prove multi-tenant refresh reliability. November 10 review confirmed a visit_worker_ids column-grant regression in the live calendar worker. A narrow repair and full-schema dependency guard are prepared; successful backend recovery remains to be observed.",
+      "why": "No Google connection/configuration names observed; one connected Outlook row does not prove multi-tenant refresh reliability. November 10 review confirmed a visit_worker_ids column-grant regression in the live calendar worker. A narrow repair and full-schema dependency guard are prepared; successful backend recovery remains to be observed. November 10 deployed repair: Outlook completed sync at 13:36 UTC and the queue cleared after restoring the missing visit column grant. Google OAuth and multi-account lifecycle acceptance remain open.",
       "acceptance": "Finish the Google external OAuth app/verification as required, scopes/redirects, publishing and token refresh; verify Google and Outlook connections, refresh/reconnect/revoke, background sync, conflicts, duplicates, time zones/DST and job/calendar consistency with separate accounts.",
       "evidence": []
     },
