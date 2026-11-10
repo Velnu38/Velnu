@@ -160,10 +160,10 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           const results = JSON.parse(process.env.SUITE_RESULTS)
-          if (!Object.keys(results).length) throw new Error('No release suite results were supplied')
-          const failed = Object.entries(results).filter(([, value]) => value.result !== 'success')
+          const required = ['migrations', 'desktop-and-scheduling', 'node-tests', 'pure-deno-tests', 'dom-tests', 'private-beta-email', 'native-app-handoffs', 'iphone-webkit']
+          const failed = required.filter(name => results?.[name]?.result !== 'success')
           if (failed.length) {
-            console.error('Release blocked:', failed.map(([name, value]) => `${name}=${value.result}`).join(', '))
+            console.error('Release blocked:', failed.map(name => `${name}=${results?.[name]?.result ?? 'missing'}`).join(', '))
             process.exit(1)
           }
           console.log('All required release suites passed on this commit')
