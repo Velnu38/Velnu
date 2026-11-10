@@ -2,6 +2,21 @@
 -- Real managed Auth/Storage and final application definitions; no helper stubs.
 -- Database role/JWT-claim simulation, not hosted Auth sessions or provider tests.
 begin;
+-- View dependencies evolve with Job Management. Check the actual final view,
+-- not a copied fixture, against the dedicated worker's column privileges.
+do $$begin
+ if exists(
+  select 1 from pg_rewrite r join pg_depend d on d.classid='pg_rewrite'::regclass and d.objid=r.oid and d.refclassid='pg_class'::regclass
+  join pg_attribute a on a.attrelid=d.refobjid and a.attnum=d.refobjsubid
+  where r.ev_class='public.calendar_work'::regclass and d.refobjid<>r.ev_class and d.refobjsubid>0
+  and not has_column_privilege('calendar_worker',a.attrelid,a.attnum,'SELECT')
+ ) then raise exception 'Calendar projection has an unreadable dependency' using errcode='23514',constraint='replay_calendar_column_grants';end if;
+ if has_table_privilege('calendar_worker','public.appointments','SELECT')
+  or has_column_privilege('calendar_worker','public.invoices','total','SELECT')
+  or has_table_privilege('calendar_worker','public.appointments','UPDATE') then
+  raise exception 'Calendar worker has broader access than its projection requires' using errcode='23514',constraint='replay_calendar_narrow_grants';
+ end if;
+end $$;
 do $$
 declare
  owner_a uuid:=gen_random_uuid(); owner_b uuid:=gen_random_uuid();

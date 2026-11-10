@@ -9,7 +9,7 @@ export const MIGRATION_REVIEW_GIT_REF = 'review/release-replay-20261110'
 export function validateDeploymentEnvironment(env) {
   const target = env.VERCEL_ENV
   if (!target && env.VERCEL !== '1') return { target: 'local', checked: false }
-  if ([INTEGRATION_REVIEW_GIT_REF, MIGRATION_REVIEW_GIT_REF, 'review/next-steps-20261110', 'review/reminders-release-20261110'].includes(env.VERCEL_GIT_COMMIT_REF)) {
+  if ([INTEGRATION_REVIEW_GIT_REF, MIGRATION_REVIEW_GIT_REF, 'review/next-steps-20261110', 'review/reminders-release-20261110', 'review/rls-initplans-20261110'].includes(env.VERCEL_GIT_COMMIT_REF)) {
     throw new Error('This review branch is not approved for hosted deployment')
   }
   if (!['production', 'preview', 'development'].includes(target)) {

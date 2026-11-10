@@ -39,6 +39,8 @@ test('private beta email can be enabled on its registered staging preview branch
 const cases = [
   ['integration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: INTEGRATION_REVIEW_GIT_REF }],
   ['next steps review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/next-steps-20261110' }],
+  ['reminders review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/reminders-release-20261110' }],
+  ['identity policy review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/rls-initplans-20261110' }],
   ['migration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: MIGRATION_REVIEW_GIT_REF }],
   ['missing hosted target', { ...staging, VERCEL_ENV: undefined }],
   ['unknown hosted target', { ...staging, VERCEL_ENV: 'custom' }],
@@ -87,6 +89,8 @@ test('integration review disables automatic deployment without changing the beta
   assert.equal(config.git.deploymentEnabled[INTEGRATION_REVIEW_GIT_REF], false)
   assert.equal(config.git.deploymentEnabled[MIGRATION_REVIEW_GIT_REF], false)
   assert.equal(config.git.deploymentEnabled['review/next-steps-20261110'], false)
+  assert.equal(config.git.deploymentEnabled['review/reminders-release-20261110'], false)
+  assert.equal(config.git.deploymentEnabled['review/rls-initplans-20261110'], false)
   assert.notEqual(config.git.deploymentEnabled[PRIVATE_BETA_GIT_REF], false)
   assert.equal(validateDeploymentEnvironment({ VERCEL_GIT_COMMIT_REF: INTEGRATION_REVIEW_GIT_REF }).checked, false)
 })

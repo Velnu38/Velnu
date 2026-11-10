@@ -47,6 +47,30 @@ async function provisionSyntheticSecrets(db: PGlite) {
     ('finviant_vercel_protection_bypass','fake-bypass-secret');`);
 }
 
+test('visit-aware calendar projection requires only the new crew column grant', async () => {
+  const db = await setup();
+  try {
+    await db.exec('alter table public.appointments add column visit_worker_ids uuid[];');
+    const source = await readFile(new URL('../../supabase/migrations/20261110002708_planned_job_visits.sql', import.meta.url), 'utf8');
+    const start = source.indexOf('create or replace view public.calendar_work');
+    const end = source.indexOf('create or replace function public.get_job_workflow_context', start);
+    assert.ok(start >= 0 && end > start);
+    await db.exec(source.slice(start, end));
+    await db.exec('set role calendar_worker');
+    await assert.rejects(db.query('select * from public.calendar_work limit 0'), { code: '42501' });
+    await db.exec('reset role');
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261110131500_calendar_visit_column_access.sql', import.meta.url), 'utf8'));
+    await db.exec('set role calendar_worker');
+    await db.query('select * from public.calendar_work limit 0');
+    await assert.rejects(db.query('select customer_id,total from public.invoices limit 0'), { code: '42501' });
+    await assert.rejects(db.query('update public.appointments set visit_worker_ids=null where false'), { code: '42501' });
+    await assert.rejects(db.query('select * from vault.decrypted_secrets'), { code: '42501' });
+    await db.exec('reset role');
+    const grants = (await db.query<{ column: boolean; table: boolean }>("select has_column_privilege('calendar_worker','public.appointments','visit_worker_ids','SELECT') as column,has_table_privilege('calendar_worker','public.appointments','SELECT') as table")).rows[0];
+    assert.deepEqual(grants, { column: true, table: false });
+  } finally { await db.close(); }
+});
+
 test('calendar setup starts with NOLOGIN, narrowly grants dependencies, and passes rollback-only verification', async () => {
   const db = await setup();
   try {
