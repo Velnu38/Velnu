@@ -70,6 +70,8 @@ export class GoogleCalendarService implements CalendarService {
     return this.run(async () => {
       const items: Array<{ id: string; name: string }> = [];
       let pageToken: string | undefined;
+      const seen = new Set<string>();
+      let pages = 0;
       do {
         const { data } = await this.api.calendarList.list(
           { minAccessRole: "writer", maxResults: 250, pageToken },
@@ -78,6 +80,12 @@ export class GoogleCalendarService implements CalendarService {
         for (const c of data.items || [])
           if (c.id) items.push({ id: c.id, name: c.summary || c.id });
         pageToken = data.nextPageToken || undefined;
+        pages++;
+        if (pageToken && seen.has(pageToken))
+          throw new CalendarError("invalid_provider_pagination");
+        if (pageToken && pages >= 20)
+          throw new CalendarError("too_many_calendars");
+        if (pageToken) seen.add(pageToken);
         if (items.length > 2000) throw new CalendarError("too_many_calendars");
       } while (pageToken);
       return items;

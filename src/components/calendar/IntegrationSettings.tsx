@@ -292,6 +292,7 @@ export default function IntegrationSettings({
         These connections belong to your account in this business. Changes
         publish from Finviant. Events from your selected calendars appear in your
         schedule for reference; external edits do not change jobs or invoices.
+        Personal events do not block customer booking times. Check them before offering appointments.
       </p>
       {connectionResult === 'declined' && (
         <p role="status" className="form-message">

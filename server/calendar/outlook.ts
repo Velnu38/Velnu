@@ -119,6 +119,8 @@ export class OutlookCalendarService implements CalendarService {
   }
   async calendars() {
     const items: Array<{ id: string; name: string }> = [];
+    const seen = new Set<string>();
+    let pages = 0;
     let path: string | undefined =
       "/me/calendars?$select=id,name,canEdit&$top=100";
     try {
@@ -127,13 +129,17 @@ export class OutlookCalendarService implements CalendarService {
         for (const c of page.value || [])
           if (c.canEdit) items.push({ id: c.id, name: c.name || c.id });
         const next = page["@odata.nextLink"] as string | undefined;
+        pages++;
         if (next) {
           const u = new URL(next);
           if (
             u.origin !== "https://graph.microsoft.com" ||
-            !u.pathname.startsWith("/v1.0/me/calendars")
+            u.pathname !== "/v1.0/me/calendars" ||
+            u.username || u.password || u.hash || seen.has(next)
           )
             throw new CalendarError("invalid_provider_pagination");
+          if (pages >= 20) throw new CalendarError("too_many_calendars");
+          seen.add(next);
           path = u.pathname.replace("/v1.0", "") + u.search;
         } else path = undefined;
         if (items.length > 2000) throw new CalendarError("too_many_calendars");

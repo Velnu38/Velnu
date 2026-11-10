@@ -15,6 +15,7 @@ export function classify(error: unknown): CalendarError {
     statusCode?: number;
     code?: string | number;
     errorCode?: string;
+    headers?: Headers;
     response?: {
       status?: number;
       data?: { error?: string | { errors?: Array<{ reason?: string }> } };
@@ -40,7 +41,8 @@ export function classify(error: unknown): CalendarError {
       ["rateLimitExceeded", "userRateLimitExceeded"].includes(x.reason || ""),
     );
   if (status === 429 || quota) {
-    const h = e.response?.headers;
+    // GraphError carries response headers at the top level; Google uses response.headers.
+    const h = e.headers ?? e.response?.headers;
     const value =
       h instanceof Headers ? h.get("retry-after") : h?.["retry-after"];
     const seconds = value ? Number(value) : 0;
