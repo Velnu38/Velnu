@@ -16,7 +16,7 @@ async function scenario(name,verify){
  try{await until(()=>button('List')&&doc.querySelector('.jobs-record-list')&&!doc.querySelector('.jobs-record-list').textContent.includes('Loading jobs'));await verify({doc,until,click,button,tab,fill,dialog,window:dom.window});assert.deepEqual(errors,[]);process.stdout.write('PASS job management DOM: '+name+'\n')}finally{dom.window.close()}
 }
 await scenario('mixed',async({doc,until,click,button,tab,fill,dialog})=>{
- assert.equal(tab('Jobs').getAttribute('aria-selected'),'true');await fill(doc.querySelector('input[type=search]'),'Kitchen')
+ assert.equal(tab('Jobs').getAttribute('aria-selected'),'true');await fill(doc.querySelector('input[type=search]'),'Kitchen');await until(()=>[...doc.querySelectorAll('.jobs-record-list button')].filter(b=>b.textContent.trim()==='Manage').length===1&&doc.querySelector('.jobs-record-list').textContent.includes('Kitchen'))
  await click(button('Manage'));await until(()=>doc.querySelector('.jm-workspace h2'))
  assert.equal(tab('Job Management').getAttribute('aria-selected'),'true');assert.match(doc.querySelector('.jm-workspace').textContent,/Kitchen renovation/)
  await click(tab('Materials'));await click(button('+ Add material'));await until(()=>dialog()?.querySelector('input'))
