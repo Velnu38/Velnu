@@ -10,6 +10,30 @@ export function ownedReplayContainer(projectId) {
 const quote = value => '"' + value.replaceAll('"', '""') + '"'
 const digest = value => createHash('sha256').update(value).digest('hex')
 
+export async function cleanupSyntheticFixture(db, { projectId, expectedUsers, expectedBusinesses }) {
+  const container = ownedReplayContainer(projectId)
+  assert.equal(db.connectionParameters.host, '127.0.0.1')
+  assert.equal(Number(db.connectionParameters.port), 54322)
+  const state = (await db.query(`select
+    (select array_agg(id::text order by id) from auth.users) users,
+    (select array_agg(id::text order by id) from public.businesses) businesses,
+    (select count(*)::int from storage.objects) files,
+    not exists(select 1 from vault.secrets) empty_vault,
+    current_setting('cron.launch_active_jobs') cron`)).rows[0]
+  assert.ok((state.users ?? []).every(id => expectedUsers.includes(id)), 'Teardown refuses an identity outside the owned fixture')
+  assert.ok((state.businesses ?? []).every(id => expectedBusinesses.includes(id)), 'Teardown refuses a workspace outside the owned fixture')
+  assert.equal(state.files, 0)
+  assert.equal(state.empty_vault, true)
+  assert.equal(state.cron, 'off')
+  const tables = (await db.query(`select format('%I.%I',n.nspname,c.relname) name from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where c.relkind in('r','p') and not c.relispartition and (n.nspname in('public','private') or (n.nspname='auth' and c.relname in('users','identities'))) order by 1`)).rows
+  // Payment deletion is intentionally forbidden in the application. Teardown
+  // empties the entire owned test fixture instead of weakening that safeguard.
+  const result = spawnSync('docker', ['exec', container, 'psql','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',
+    'TRUNCATE '+tables.map(t=>t.name).join(',')+' RESTART IDENTITY CASCADE'], { timeout: 30000, maxBuffer: 1024*1024 })
+  if(result.status!==0)throw Error('Owned synthetic fixture teardown failed; output withheld')
+}
+
 // Deliberately not a hosted recovery command. The caller has just created the
 // empty local platform and its synthetic identities. Backups stay in memory.
 export async function verifySyntheticRestore(db, { projectId, expectedUsers, expectedBusinesses, removeFile, restoreFile, verifyFile }) {

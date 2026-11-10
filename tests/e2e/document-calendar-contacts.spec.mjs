@@ -125,6 +125,7 @@ for(const width of [1440,390])test(`selected-day agenda shows every job, local r
  await page.setViewportSize({width,height:1050});await mock(page)
  const day=DateTime.now().setZone(zone).startOf('day'),tomorrow=day.plus({days:1})
  let notes='Bring cedar boards, screws, and the approved plan',externalCalls=0,trackingRequests=0
+ const externalRanges=[]
  await page.route('https://calendar-tracker.invalid/**',route=>{trackingRequests++;return route.abort()})
  const jobs=Array.from({length:5},(_,n)=>({source_key:'job:day-'+n,title:'Day job '+n,job_id:J,starts_at:day.plus({hours:9+n}).toISO(),ends_at:day.plus({hours:10+n}).toISO(),status:'scheduled',document_kind:'work',document_id:J,assigned_user_ids:[U]}))
  jobs.push({source_key:'job:tomorrow',title:'Tomorrow job',job_id:J,starts_at:tomorrow.plus({hours:9}).toISO(),ends_at:tomorrow.plus({hours:10}).toISO(),status:'scheduled',document_kind:'work',document_id:J,assigned_user_ids:[U]})
@@ -136,7 +137,7 @@ for(const width of [1440,390])test(`selected-day agenda shows every job, local r
  await page.route('**/rest/v1/reminders?**',route=>{if(route.request().method()==='PATCH'){const r=reminders.find(row=>new URL(route.request().url()).searchParams.get('id')==='eq.'+row.id);r.status='completed';return reply(route,{id:r.id})}return reply(route,reminders)})
  await page.route('**/rest/v1/jobs?**',route=>{if(route.request().method()==='PATCH'){notes=route.request().postDataJSON().description;return reply(route,{id:J})}const job={id:J,title:'Day job 0',description:notes,status:'scheduled',scheduled_start:jobs[0].starts_at,scheduled_end:jobs[0].ends_at,assigned_user_ids:[U],customers:customer,properties:[{address_line1:'1 Test Street',city:'Chesapeake',state:'VA',postal_code:'23322'}]};return reply(route,route.request().headers().accept?.includes('vnd.pgrst.object')?job:[job])})
  await page.route('**/rest/v1/rpc/get_job_workflow_context',route=>reply(route,[{job_id:J,active_appointment:{id:P,status:'scheduled',starts_at:jobs[0].starts_at,ends_at:jobs[0].ends_at},invoice:null}]))
- await page.route('**/api/calendar?**',route=>{externalCalls++;return reply(route,{events,issues:[],connections:2})})
+ await page.route('**/api/calendar?**',route=>{externalCalls++;const params=new URL(route.request().url()).searchParams;externalRanges.push({startDay:params.get('startDay'),endDay:params.get('endDay')});return reply(route,{events,issues:[],connections:2})})
  await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.locator('a.calendar-event')).toHaveCount(5)
  await expect(calendar).toContainText('1 Test Street, Chesapeake, VA 23322');await expect(calendar).toContainText(notes)
@@ -150,7 +151,10 @@ for(const width of [1440,390])test(`selected-day agenda shows every job, local r
  await calendar.getByRole('button',{name:'Month',exact:true}).click();await expect(calendar.getByText('Supplier appointment',{exact:true})).toBeVisible()
  const before=externalCalls;await calendar.getByRole('button',{name:new RegExp(tomorrow.toLocaleString(DateTime.DATE_FULL))}).click()
  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.locator('a.calendar-event')).toHaveCount(1);await expect(calendar.getByText('Tomorrow job',{exact:true})).toBeVisible();await expect(calendar.getByText('Next-day reminder',{exact:true})).toBeVisible();await expect(calendar.getByText('Tomorrow external meeting',{exact:true})).toBeVisible();await expect(calendar.getByText('Trade show',{exact:true})).toHaveCount(0);await expect(calendar.getByText('Order cedar',{exact:true})).toHaveCount(0)
- expect(externalCalls).toBe(before)
+ // Parallel browser contexts can legitimately focus this window and refresh it.
+ // Day selection must retain the loaded month range. Exact no-refetch behavior
+ // and the separate focus refresh are asserted in home-layout-dom.mjs.
+ for(const requested of externalRanges.slice(before))expect(requested).toEqual({startDay:day.startOf('month').startOf('week').toISODate(),endDay:day.endOf('month').startOf('week').plus({weeks:1}).toISODate()})
  await calendar.getByRole('button',{name:new RegExp(day.toLocaleString(DateTime.DATE_FULL))}).click();await calendar.getByRole('button',{name:'Week',exact:true}).click()
  await expect(calendar.getByText('Supplier appointment',{exact:true})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)

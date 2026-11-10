@@ -9,7 +9,7 @@ export function localApiOrigin(value){
 
 // Only receives keys produced by the newly started disposable Supabase CLI.
 // Never returns/logs identities, passwords, JWTs, signed URLs or object contents.
-export async function verifyAuthStorageReplay(db,status,restoreDrill){
+export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixture){
  const origin=localApiOrigin(status.API_URL)
  assert.equal(db.connectionParameters.host,'127.0.0.1')
  assert.equal(Number(db.connectionParameters.port),54322)
@@ -171,11 +171,15 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill){
   // Keep the real application ownership-transfer guard fully enabled.
   await db.query("select set_config('request.jwt.claim.sub','',false),set_config('request.jwt.claims','{}',false)")
   if(photoPath){const removed=await api('/storage/v1/object/finviant-record-photos',status.SERVICE_ROLE_KEY,{method:'DELETE',body:{prefixes:[photoPath]}});if(!removed.ok)throw Error('Disposable Storage cleanup failed')}
+  if(cleanupFixture){
+   await cleanupFixture({expectedUsers:actors.map(a=>a.id),expectedBusinesses:[businessA,businessB]})
+  }else{
   for(const business of [businessA,businessB]){
    for(const table of ['record_photos','payments','invoice_items','invoices','appointments','estimate_items','estimates','jobs','customers'])await db.query('delete from public.'+table+' where business_id=$1',[business])
    await db.query('delete from public.businesses where id=$1',[business])
   }
   await db.query('delete from private.provider_burst_buckets') // Only the owned empty-start disposable platform.
   for(const actor of actors){const removed=await api('/auth/v1/admin/users/'+actor.id,status.SERVICE_ROLE_KEY,{method:'DELETE'});if(!removed.ok)throw Error('Disposable Auth cleanup failed')}
+  }
  }
 }
