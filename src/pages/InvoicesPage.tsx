@@ -21,7 +21,7 @@ import { adjustedPrice } from '../lib/paymentLinks'
 import { isPrimaryOwner } from '../lib/workspaceAccess'
 import { getDocumentSettings } from '../services/settings'
 import { previewDocumentTotal } from '../lib/financialValidation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy,Suspense,useEffect,useMemo,useRef,useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listCustomers } from '../services/customers'
 import { createInvoice, listInvoices } from '../services/invoices'
@@ -41,11 +41,14 @@ type Invoice = DocumentDates & { customer_id: string; id: string; invoice_number
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type InvoiceFilter = 'all' | 'open' | 'draft' | 'sent' | 'paid' | 'overdue'
 
+const RecurringSchedulesDialog=lazy(()=>import('../components/RecurringInvoices').then(module=>({default:module.RecurringSchedulesDialog})))
+
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
 const invoiceMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export default function InvoicesPage({ business, finDraft }: { business: CurrentBusiness; finDraft?: FinInvoiceDraft }) {
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
+  const [showRecurring,setShowRecurring]=useState(()=>new URLSearchParams(location.search).get('recurring')==='1')
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [customerLoad, setCustomerLoad] = useState<'loading' | 'ready' | 'failed'>('loading')
@@ -251,7 +254,8 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   if (selectedInvoiceId) return <InvoiceDetail initialEdit={editCreatedInvoice} business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);setEditCreatedInvoice(false);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />
 
   return <div className="page-stack workspace-module invoice-module"><WorkspaceBack />
-    <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div><div className="related-page-actions">{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create invoice</button>}</div></div>
+    <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div><div className="related-page-actions">{isPrimaryOwner(business)&&<button type="button" className="secondary-button" onClick={()=>setShowRecurring(true)}>Recurring invoices</button>}{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create invoice</button>}</div></div>
+    {showRecurring&&isPrimaryOwner(business)&&<Suspense fallback={<p role="status">Opening recurring schedules…</p>}><RecurringSchedulesDialog key={business.id} business={business} onClose={()=>{setShowRecurring(false);const url=new URL(location.href);url.searchParams.delete("recurring");history.replaceState(history.state,"",url.pathname+url.search)}}/></Suspense>}
     <CustomerRecordScope customerId={customerScope} customers={customers} view="invoices"/>
     <section className="module-summary-grid" aria-label="Invoice summary">
       <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'open'} onClick={() => chooseFilter('open')}><span>Total Outstanding</span><strong>{invoiceMoney.format(openInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))}</strong><small>{openInvoices.length} unpaid {openInvoices.length === 1 ? 'invoice' : 'invoices'} · includes overdue</small></button>

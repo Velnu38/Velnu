@@ -1,0 +1,11 @@
+# Recurring invoice owner controls
+
+The primary owner opens a regular invoice → More → Repeat invoice. Individual supports recurring invoice drafts. Business Pro can also plan future visits with internal roster profiles. Invoices → Recurring invoices lists active, paused or ended schedules with counts, 25-row keyset pages and the 12 most recent occurrences per schedule. Owner reads remain available without a paid plan; Free owners may pause an existing schedule but cannot create or resume one.
+
+Creation snapshots saved source lines, prices and instructions. Later invoice edits do not silently change the template. The request UUID is retained for retries with the same settings; the server checks the fingerprint and prevents a second active plan for the source. Double clicks are suppressed. Deposits and final invoices with deposit credits are rejected server-side to prevent repeated deposit billing. The source invoice must be nonvoid and its customer active. Dates use the saved business timezone; the existing worker handles month ends and refuses ambiguous DST visit times.
+
+Pause/resume requires confirmation. Pausing stops future generation and does not cancel already created invoices or booked visits. Resuming skips missed dates and can create due drafts or eligible future visits. Generated drafts require owner review. There are no sends, charges, employee invitations, extra account seats or routine Fin requests. Office users cannot use these owner controls or read the owner page RPC; server permissions are authoritative.
+
+Validation: local production build, deployment refusal checks and owner DOM checks pass. Mandatory isolated replay adds genuine-session create/retry, owner/office/foreign access, pause/resume, deposit exclusion and 27 schedules with equal-timestamp keyset boundaries. Desktop and mobile browser tests cover invoice entry, creation, list, confirmation and navigation. These new SQL/browser checks remain pending until the final candidate CI run succeeds.
+
+This is a stage of package 20, not completion of REC-01/JOB-02. Per-occurrence skip/reschedule, revised template versions, progress quantity/cost allocations, refund acceptance, opted-in dispatch, stored-method autopay and physical-device acceptance remain open. Sending and autopay need their separate readiness and authorization gates.
