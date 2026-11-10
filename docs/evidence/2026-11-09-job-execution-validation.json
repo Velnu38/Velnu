@@ -1,6 +1,6 @@
 {
   "date": "2026-11-09",
-  "verified_at": "2026-11-10T07:12:47.707693+00:00",
+  "verified_at": "2026-11-10T07:47:40.802Z",
   "baseline_commit": "b2fe20ce0b9d36806b7e94231eed962322eb6f55",
   "scope": "Manager-operated Job Management activation: planned visits, office costing and completion reports; employee self-service UI deferred per current owner roster direction",
   "branch": "feature/job-execution-20261109",
@@ -145,13 +145,49 @@
     "scheduling": 72,
     "records": 21,
     "settings_serial": 116,
-    "note": "Passed in the prepared implementation before the later beta integration; current upstream full-suite acceptance remains recorded separately in PR71. Do not infer that the full upstream browser suite was rerun for this change."
+    "note": "Original targeted counts are retained as preparation history. The final seven PR workflows were rerun and all passed at the tested_head above, including the complete 535-case TypeScript/SQL/PDF suite, desktop and simulated iPhone browser groups, all DOM groups and build/startup checks. Real-provider, real-account and physical-device gates remain open."
   },
   "release": {
-    "state": "ready_for_private_beta_merge",
+    "state": "deployed_private_beta_verified_assets",
     "base": "b2fe20ce0b9d36806b7e94231eed962322eb6f55",
     "pr": 69,
-    "worker_model": "manager-operated roster; field frontend excluded"
+    "tested_head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8",
+    "tested_tree": "bce8b964118cb6bb37382c108d242bda04c854a8",
+    "merged_commit": "c3dcddaaf650784f2ce59b15f6e7972b98b1f592",
+    "deployment": {
+      "id": "dpl_FE8NoHpgBrpnjVUYvkY34dSmXKCj",
+      "state": "READY",
+      "url": "finviant-office-pnr5ty36u-mbarone5-1747.vercel.app",
+      "target": null,
+      "branch": "ux/private-testing-20261029",
+      "aliases": [
+        "finviant.com",
+        "www.finviant.com",
+        "finviant-office-git-ux-private-testing-20261029-mbarone5-1747.vercel.app"
+      ]
+    },
+    "assets": {
+      "url": "https://finviant.com/?view=work",
+      "http": 200,
+      "entry": "/assets/index-BbTS5Ge9.js",
+      "app": "App-C1Su5J6m.js",
+      "jobs": "JobsPage-B6C0OpP9.js",
+      "jobs_http": 200,
+      "planned_visits": true,
+      "cost_review": true,
+      "completion_report": true,
+      "pdf_lazy": "jobCompletionPdf-C0cPLD-4.js",
+      "employee_ui_absent": true,
+      "cache_control": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    },
+    "verified_at": "2026-11-10T07:47:40.802Z",
+    "worker_model": "manager-operated roster; field frontend excluded",
+    "prior_compatible_frontend": {
+      "commit": "b2fe20ce0b9d36806b7e94231eed962322eb6f55",
+      "deployment": "dpl_FR471eC4y8xzy3PQGiSDBytcJFiq"
+    },
+    "rollback": "Restore the prior compatible frontend if required; do not remove already-applied execution SQL or rewrite its ledger."
   },
   "ci_followup": {
     "initial_head": "3aac06bab1aa27327b4a20cf6c0ea300e546c3af",
@@ -160,13 +196,85 @@
       129687769342,
       129687765575
     ],
-    "state": "rerun_pending",
+    "state": "passed_on_final_revision",
     "safari_journey": {
       "run": 42774770626,
       "failed_job": 129690700313,
       "retry_job": 129694136458,
       "finding": "The same long estimate PDF/dialog/history journey exhausted its 30-second overall budget on two runs, first at its final Activity tab and next at its final Close preview step. The test also captures a full-page 3x WebKit image. Only this journey receives a bounded 60-second Safari budget; every interaction, assertion and production file is unchanged.",
-      "state": "rerun_pending"
-    }
+      "state": "passed_on_final_revision",
+      "wide_journey_seconds": 35.0,
+      "phone_journey_seconds": 17.8,
+      "shard_passed": 23
+    },
+    "final_head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+  },
+  "ci": {
+    "tested_head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8",
+    "tested_tree": "bce8b964118cb6bb37382c108d242bda04c854a8",
+    "workflows": [
+      {
+        "id": 42776559325,
+        "name": "Document design checks",
+        "conclusion": "success",
+        "attempt": 1,
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/42776559325",
+        "head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+      },
+      {
+        "id": 42776559569,
+        "name": "Pricing tier checks",
+        "conclusion": "success",
+        "attempt": 1,
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/42776559569",
+        "head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+      },
+      {
+        "id": 42776559577,
+        "name": "Calendar integration checks",
+        "conclusion": "success",
+        "attempt": 1,
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/42776559577",
+        "head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+      },
+      {
+        "id": 42776559331,
+        "name": "Finviant authentication access checks",
+        "conclusion": "success",
+        "attempt": 1,
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/42776559331",
+        "head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+      },
+      {
+        "id": 42776559601,
+        "name": "Finviant assessment maintenance",
+        "conclusion": "success",
+        "attempt": 1,
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/42776559601",
+        "head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+      },
+      {
+        "id": 42776559619,
+        "name": "Guided scheduling workflow",
+        "conclusion": "success",
+        "attempt": 1,
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/42776559619",
+        "head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+      },
+      {
+        "id": 42776559334,
+        "name": "Complete automated test checks",
+        "conclusion": "success",
+        "attempt": 1,
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/42776559334",
+        "head": "36fcf3599c18741567b7a414003a2d1b7ed6b3f8"
+      }
+    ],
+    "node_typescript_cases": 535,
+    "node_typescript_failed": 0,
+    "startup_checks": 58,
+    "recovery_checks": 56,
+    "javascript_cases": 159,
+    "note": "All seven final PR workflows passed. Every browser assertion remains enabled. Safari estimate PDF/history journey uses a scoped 60-second total budget; its 1440px run completed in 35 seconds."
   }
 }

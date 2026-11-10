@@ -25,4 +25,10 @@ Canonical source filenames use the actual hosted ledger versions: `2026111000270
 
 Shared Chrome inspected the 390px fixture and native date input; a future visit with its own crew saved and appeared as a second open visit. PDF layout was rendered and inspected. These checks are synthetic. Authenticated real-tenant browser sessions, physical iPhone camera/touch, actual uploads/calendar delivery/payments, two-tenant browser sessions and measured concurrency/capacity remain open. No new provider or physical-device certification is claimed.
 
-The deployment receipt will identify the actual merged private-beta commit, READY deployment and domain/asset checks after publication. The existing separate QA and older production backend are not promotion targets.
+## Activated private beta
+
+PR69 merged as `c3dcddaaf650784f2ce59b15f6e7972b98b1f592` with the exact tree tested at `36fcf3599c18741567b7a414003a2d1b7ed6b3f8`. All seven final PR workflows passed, including the complete 535-case TypeScript/SQL/PDF suite, desktop browser groups, four simulated iPhone Safari groups and all DOM checks. The long Safari PDF/history journey retained every interaction/assertion and passed in 35 seconds with a scoped 60-second total budget.
+
+READY deployment `dpl_FE8NoHpgBrpnjVUYvkY34dSmXKCj` serves both `finviant.com` and `www.finviant.com` on the existing private-beta branch and beta backend. On 2026-11-10T07:47:40.802Z, `/?view=work` and its entry, App and Jobs assets returned HTTP 200. The live Jobs chunk contains visit planning, cost review and completion reports, with PDF generation lazy-loaded. Employee self-service chunks are absent. HTML retains private no-store caching and noindex; shared Chrome observed the sign-in boundary, not an authenticated tenant session.
+
+This is activation of the manager UI and verified database workflow. Signed-in real-account, physical-device, actual upload/provider and load acceptance remain open. The separate QA and older production backend were not promoted. Restore the preceding compatible frontend at `b2fe20c` / `dpl_FR471eC4y8xzy3PQGiSDBytcJFiq` if required; do not remove applied SQL or rewrite its ledger.
