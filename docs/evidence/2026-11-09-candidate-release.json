@@ -12,7 +12,11 @@
     "Browser navigation waits for authenticated workspace readiness",
     "Photo-outage test persists until explicit recovery and checks expense reads do not repeat",
     "Cash error selector identifies the intended alert among independent data sources",
-    "Failed native-send tests print controlled fixture diagnostics instead of losing evidence"
+    "Failed native-send tests print controlled fixture diagnostics instead of losing evidence",
+    "Jobs workspace constrains its implicit grid track and tab panels so board contents cannot widen phone pagination",
+    "Native email/SMS handoff journeys run with one worker, retaining real pointer input and all send assertions",
+    "Schedule setup uses its supported deep link; delayed-dashboard navigation uses the real More/Schedule action",
+    "Twenty-page attention traversal has a bounded 60-second journey budget"
   ],
   "ci_budget": {
     "repository_visibility": "public",
@@ -45,5 +49,24 @@
     "frontend_deployment": "dpl_2ZZ8fPGmhCg8af9K3b94NzUzSNkb",
     "edge_sources": "Pre-deployment native function source retained for rollback; previous released source 6cacfe7",
     "schema": "No migration write; do not remove already-applied execution schema"
+  },
+  "browser_layout_receipt": {
+    "environment": "Shared Chrome desktop with 390px synthetic phone iframe",
+    "board_and_work_plan": {
+      "client_width": 373,
+      "scroll_width": 373
+    },
+    "physical_device": false
+  },
+  "edge_packaging": {
+    "script": "scripts/build-beta-edge.mjs",
+    "functions": [
+      "document-pdf",
+      "fin-workflow"
+    ],
+    "provider_requests": false,
+    "credentials": false,
+    "pinned_runtime_imports": true,
+    "source_typecheck": "Required hosted Deno check; local Deno dependency resolution unavailable despite successful npm/curl registry access"
   }
 }

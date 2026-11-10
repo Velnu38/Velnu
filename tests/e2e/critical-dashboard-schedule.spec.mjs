@@ -421,8 +421,6 @@ const openDashboard = async (page, options) => {
 }
 const openSchedule = async (page, options) => {
   const state = await mockWorkspace(page, options)
-  await page.goto('/?view=dashboard')
-  await expect(page.getByRole('heading', { level: 1, name: options?.businessProfile?.name || 'Velnu QA', exact: true })).toBeVisible()
   await page.goto('/?view=schedule')
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   return state
@@ -502,8 +500,9 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
   const errors = noRuntimeErrors(page)
   await mockWorkspace(page, { aggregateDelay: 850 })
   await page.goto('/?view=dashboard')
-  await expect(page.getByRole('heading', { level: 1, name: options?.businessProfile?.name || 'Velnu QA', exact: true })).toBeVisible()
-  await page.goto('/?view=schedule')
+  await expect(page.getByRole('heading', { level: 1, name: 'Velnu QA', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Schedule/ }).click()
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   await page.waitForTimeout(950)
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
@@ -1407,6 +1406,7 @@ test('lost invoice scheduling response reuses the job and reports its saved sche
 })
 
 for(const width of [1440,390])test(`attention pages reach the entire mixed queue and approval list at ${width}px`,async({page})=>{
+ test.setTimeout(60000) // This journey traverses all 20 pages, then verifies navigation.
  await page.setViewportSize({width,height:1000})
  const workflow={approved:Array.from({length:23},(_,n)=>({id:id(2000+n),estimate_number:`AP-${n}`,customer_name:'Customer',offer:null})),completed:Array.from({length:22},(_,n)=>({id:id(2100+n),title:`JOB-${n}`,invoice_id:id(2200+n),invoice_status:'draft'}))}
  const reminders=Array.from({length:12},(_,n)=>({...reminder(2300+n),note:`REM-${n}`}))

@@ -33,6 +33,7 @@ jobs:
       # Actual service modules with synthetic HTTP, not live-provider or load acceptance.
       - run: node tests/stress/volume-services.mjs
       - run: npm run typecheck:calendar && npm run assessment:check
+      - run: node scripts/build-beta-edge.mjs
   pure-deno-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -45,6 +46,8 @@ jobs:
           deno-version: v2.9.8
       - run: deno test tests/unit/
       - run: deno test --unstable-sloppy-imports tests/stress/velnu-1500-inputs_test.ts
+      - name: Typecheck the two candidate Edge functions with pinned Deno imports
+        run: deno check --node-modules-dir=none --config supabase/functions/deno.json supabase/functions/document-pdf/index.ts supabase/functions/fin-workflow/index.ts
   dom-tests:
     name: DOM checks (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -95,6 +98,22 @@ jobs:
           name: private-beta-email-browser
           path: test-results/
           retention-days: 7
+  native-app-handoffs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      # Real pointer input after synthetic sms/mailto handoff; no actual message is sent.
+      # A single worker owns browser focus for the full handoff/confirmation journey.
+      - run: npx playwright test --grep @native-handoff --workers=1
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
   iphone-webkit:
     name: iPhone WebKit (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest

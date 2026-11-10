@@ -68,7 +68,7 @@ jobs:
       # a focused check fails and avoid exhausting one shared 20-minute budget.
       - run: sudo apt-get update && sudo apt-get install -y poppler-utils
       - name: Full browser regression
-        run: npx playwright test --fully-parallel --workers=2 --shard=${{ matrix.shard }}/6
+        run: npx playwright test --grep-invert @native-handoff --fully-parallel --workers=2 --shard=${{ matrix.shard }}/6
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

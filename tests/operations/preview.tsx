@@ -8,6 +8,7 @@ import '../../src/workspace-consistency.css'
 import '../../src/office-dashboard.css'
 import '../../src/dashboard-redesign.css'
 import '../../src/home-screen.css'
+import '../../src/workspace-tabs.css'
 import '../../src/bookkeeping.css'
 import '../../src/components/dashboard-interactive.css'
 import '../../src/components/dashboard-tiles.css'
@@ -52,6 +53,6 @@ function query(value:any,table=''){let single=false;let filters:any={};let from=
 ;(supabase as any).channel=()=>({on(){return this},subscribe(){return this}})
 ;(supabase as any).removeChannel=async()=>{}
 ;(supabase as any).auth.getSession=async()=>({data:{session:null},error:null})
-function Preview(){const[view,setView]=useState(new URLSearchParams(location.search).get('screen')||'finance');const mobile=new URLSearchParams(location.search).get('phone')==='1';return <div style={{maxWidth:1240,margin:'0 auto',padding:mobile?12:28}}><div style={{marginBottom:24,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}><strong style={{color:'#257f73'}}>Finviant QA · synthetic data</strong>{['finance','jobs','payments'].map(v=><button type="button" key={v} className="secondary-button compact" onClick={()=>setView(v)}>{v==='finance'?'Financial dashboard':v==='jobs'?'Jobs dashboard':'Payment setup'}</button>)}<a href={'?screen='+view+'&phone=1'}>Phone layout</a></div>{view==='finance'?<FinancialPerformance business={business}/>:view==='jobs'?<JobsPage business={business}/>:<PaymentSettings business={business}/>}</div>}
+function Preview(){const[view,setView]=useState(new URLSearchParams(location.search).get('screen')||'finance');const mobile=new URLSearchParams(location.search).get('phone')==='1';return <div className="finviant-workspace" style={{maxWidth:1240,margin:'0 auto',padding:mobile?12:28}}><div style={{marginBottom:24,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}><strong style={{color:'#257f73'}}>Finviant QA · synthetic data</strong>{['finance','jobs','payments'].map(v=><button type="button" key={v} className="secondary-button compact" onClick={()=>setView(v)}>{v==='finance'?'Financial dashboard':v==='jobs'?'Jobs dashboard':'Payment setup'}</button>)}<a href={'?screen='+view+'&phone=1'}>Phone layout</a></div>{view==='finance'?<FinancialPerformance business={business}/>:view==='jobs'?<JobsPage business={business}/>:<PaymentSettings business={business}/>}</div>}
 const params=new URLSearchParams(location.search)
 if(params.get('phone')==='1'&&self===top){const child=new URL(location.href);child.searchParams.set('embedded','1');createRoot(document.getElementById('root')!).render(<div style={{display:'grid',placeItems:'start center',padding:24,background:'#e8eef1',minHeight:'100vh'}}><iframe src={child.href} title="Finviant phone layout" style={{width:390,height:900,border:'1px solid #c7d3db',borderRadius:20,background:'white'}}/></div>)}else createRoot(document.getElementById('root')!).render(<Preview/>);

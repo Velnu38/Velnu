@@ -31,7 +31,12 @@ jobs:
           FINVIANT_TEST_CHANNEL: chrome
       - run: sudo apt-get update && sudo apt-get install -y poppler-utils
       - name: Full browser regression
-        run: npx playwright test --workers=2
+        run: npx playwright test --grep-invert @native-handoff --workers=2
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      # Native app handoffs share desktop focus and must run without competing workers.
+      - name: Native app handoff regression
+        run: npx playwright test --grep @native-handoff --workers=1
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
