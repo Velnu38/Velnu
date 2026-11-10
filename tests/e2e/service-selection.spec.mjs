@@ -55,6 +55,7 @@ async function openServicePreferences(page) {
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: {'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'' })
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/rpc/get_private_beta_access')) return json({allowed:true,reason:'approved'})
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) return json(agreement)
     if (path.endsWith('/business_members')) return json({business_id:businessId,role:'owner',businesses:company})

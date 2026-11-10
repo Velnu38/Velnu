@@ -38,7 +38,9 @@ test('dictation opens the invoice editor with saved customer and charges before 
  expect(f.state.documents).toHaveLength(0)
  await editor.getByRole('button',{name:'Preview',exact:true}).click()
  await expect(editor.getByRole('heading',{name:'Invoice preview'})).toBeVisible()
- await editor.getByRole('button',{name:'Save Draft',exact:true}).click()
+ // Preview persists exactly one draft before loading its canonical PDF.
+ await expect(editor.getByRole('region',{name:'Invoice PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+ await expect(editor.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled()
  await expect.poll(() => f.state.documents.length).toBe(1)
  expect(f.state.documents[0].payload.items.map(line => line.description)).toEqual(['labor','materials'])
  expect(f.requests).toHaveLength(0)
