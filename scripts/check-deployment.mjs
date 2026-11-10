@@ -4,12 +4,13 @@ import { pathToFileURL } from 'node:url'
 export const STAGING_PROJECT_REF = 'xvybcmyoblfgzokaifsx'
 export const PRIVATE_BETA_GIT_REF = 'ux/private-testing-20261029'
 export const INTEGRATION_REVIEW_GIT_REF = 'review/finviant-integration-20261109'
+export const MIGRATION_REVIEW_GIT_REF = 'review/release-replay-20261110'
 
 export function validateDeploymentEnvironment(env) {
   const target = env.VERCEL_ENV
   if (!target && env.VERCEL !== '1') return { target: 'local', checked: false }
-  if (env.VERCEL_GIT_COMMIT_REF === INTEGRATION_REVIEW_GIT_REF) {
-    throw new Error('The integration review branch is not approved for hosted deployment')
+  if ([INTEGRATION_REVIEW_GIT_REF, MIGRATION_REVIEW_GIT_REF].includes(env.VERCEL_GIT_COMMIT_REF)) {
+    throw new Error('This review branch is not approved for hosted deployment')
   }
   if (!['production', 'preview', 'development'].includes(target)) {
     throw new Error('A recognized VERCEL_ENV is required for hosted builds')

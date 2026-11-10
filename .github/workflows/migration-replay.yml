@@ -1,0 +1,29 @@
+name: Full Supabase migration replay
+on:
+  push:
+    branches: [review/release-replay-20261110]
+  pull_request:
+    branches: [ux/private-testing-20261029]
+    paths: ['supabase/migrations/**', 'scripts/qa/replay-migrations.mjs', 'tests/deployment/migration-replay.test.mjs', '.github/workflows/migration-replay.yml']
+permissions:
+  contents: read
+concurrency:
+  group: migration-replay-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  postgres-17:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/deployment/migration-replay.test.mjs
+      # Public Ubuntu runner, fresh local Docker volumes, no hosted secrets or sends.
+      # Output is sanitized by the runner; do not upload raw CLI logs/status artifacts.
+      - run: node scripts/qa/replay-migrations.mjs
