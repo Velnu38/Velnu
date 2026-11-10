@@ -213,8 +213,8 @@
     },
     {
       "title": "Remaining PR70 mobile regression repairs",
-      "detail": "Retained the approved shared editable full/partial-payment form and corrected its obsolete standalone browser expectations. The test checks default/open balances, editable amount bounds, partial then remaining settlement, deposit credit display, deposit creation and navigation. Integrated PR70\u2019s constrained Jobs grid with a 390px assertion that the board retains its own horizontal scrolling while the page fits the viewport. These prepared repairs are included in the combined same-source Release validation workflow; no customer sending or payment capture is performed.",
-      "evidence": "PR72; tests/billing-ui/run.mjs; tests/e2e/operations-workspaces.spec.mjs; src/components/jobs-overview.css; initial obsolete-assertion receipt job 129807759957",
+      "detail": "Retained the approved shared editable full/partial-payment form and corrected its obsolete standalone browser expectations. The test checks default/open balances, editable amount bounds, partial then remaining settlement, deposit credit display, deposit creation and navigation. Integrated PR70\u2019s constrained Jobs grid with a 390px assertion that the board retains its own horizontal scrolling while the page fits the viewport. These prepared repairs are included in the combined same-source Release validation workflow; no customer sending or payment capture is performed. Mobile settlement/deposit browser validation passed at db5498b, job 129810453672. A separate customer-archive fixture now waits for the actual PATCH response before checking its single archived-write and stale-version invariants; no functional assertion or retained-history check was removed.",
+      "evidence": "PR72; tests/billing-ui/run.mjs; tests/e2e/operations-workspaces.spec.mjs; src/components/jobs-overview.css; initial obsolete-assertion receipt job 129807759957; tests/e2e/customer-workspace.spec.mjs; mobile billing pass job 129810453672",
       "verifiedAt": "2026-11-10"
     }
   ],
