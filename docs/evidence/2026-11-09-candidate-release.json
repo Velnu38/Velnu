@@ -16,7 +16,9 @@
     "Jobs workspace constrains its implicit grid track and tab panels so board contents cannot widen phone pagination",
     "Native email/SMS handoff journeys run with one worker, retaining real pointer input and all send assertions",
     "Schedule setup uses its supported deep link; delayed-dashboard navigation uses the real More/Schedule action",
-    "Twenty-page attention traversal has a bounded 60-second journey budget"
+    "Twenty-page attention traversal has a bounded 60-second journey budget",
+    "WebKit serves built application assets instead of a development server that can reload active dialogs",
+    "Native SMS/email tests use pinned Playwright Chromium; stable headless Chrome suppresses pointer events behind its OS external-protocol prompt even with one worker"
   ],
   "ci_budget": {
     "repository_visibility": "public",
@@ -31,14 +33,24 @@
     "new_migrations": [],
     "required_edge_functions": [
       "document-pdf",
+      "send-document-email",
+      "send-invoice-email",
+      "send-invoice-reminder",
+      "email-recovery-worker",
+      "tier-delivery-worker",
+      "work-scheduling",
+      "business-card-delivery",
+      "send-business-card",
       "fin-workflow"
     ],
     "unapplied_source_not_promoted": [
       "PR69 manager reconciliation",
       "customer reminders"
-    ]
+    ],
+    "renderer_consumers": "Update all nine PDF-generating entry points together. Reliability health has an unreachable worker import and does not dispatch or render documents in health mode.",
+    "deployed_source_reconciliation": "Five recovered sending/worker bundles match the released source after source-label normalization. Three legacy document senders predate the optional business-card branch; its flag defaults false and their entry points remain unchanged. Existing beta recipient, readiness and idempotency gates are preserved."
   },
-  "validation_state": "Local build/startup passed; complete hosted tests pending on resulting source commit",
+  "validation_state": "Local 417 TypeScript tests and build/startup passed on e2ee102. At fd8e382, 21 document/availability checks, all six Chromium browser shards, four hosted DOM shards, Deno unit/stress/source checks, and document/auth/contact/Home/More/pricing workflows passed; full Node job remained in progress when this receipt was prepared. Native headless Chrome protocol focus and development-server WebKit instability are corrected for the final run; complete hosted acceptance remains pending.",
   "activation_limits": [
     "No public launch or App Store release",
     "No new paid service or fee/subscription activation",
@@ -62,11 +74,19 @@
     "script": "scripts/build-beta-edge.mjs",
     "functions": [
       "document-pdf",
+      "send-document-email",
+      "send-invoice-email",
+      "send-invoice-reminder",
+      "email-recovery-worker",
+      "tier-delivery-worker",
+      "work-scheduling",
+      "business-card-delivery",
+      "send-business-card",
       "fin-workflow"
     ],
     "provider_requests": false,
     "credentials": false,
     "pinned_runtime_imports": true,
-    "source_typecheck": "Required hosted Deno check; local Deno dependency resolution unavailable despite successful npm/curl registry access"
+    "source_typecheck": "Hosted Deno source check passed at fd8e382; packaging-only extension retains the same renderer and entry-point authentication modes."
   }
 }

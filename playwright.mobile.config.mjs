@@ -19,10 +19,13 @@ export default defineConfig({
     },
   }],
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
+    // Match the deployed assets; dev dependency discovery can reload active forms.
+    command: 'npm run build && npm run build:browser-fixtures && npm run preview -- --host 127.0.0.1 --port 4173',
+    timeout: 120000,
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     env: {
+      FINVIANT_BROWSER_TEST: 'true',
       VITE_SUPABASE_URL: 'https://example.supabase.co',
       VITE_SUPABASE_PUBLISHABLE_KEY: 'trial-test-key',
       VITE_ENABLE_CUSTOMER_ACTIONS: 'true',
