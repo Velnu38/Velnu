@@ -95,7 +95,9 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
   await form.getByRole('button',{name:'Confirm sent'}).click()
   await expect.poll(()=>state.sent.length).toBe(1)
  } finally {
-  await test.info().attach('personal-send-input-events',{body:Buffer.from(JSON.stringify(await page.evaluate(()=>window.__personalSendInput),null,2)),contentType:'application/json'})
+  const events=await page.evaluate(()=>window.__personalSendInput)
+  if(state.sent.length!==1)console.log('Personal send confirmation diagnostics',JSON.stringify({events,ui:await form.innerText(),calls:state.calls.filter(c=>/confirm_personal|prepare_personal|release_personal/.test(c.path)).map(c=>({path:c.path,method:c.method}))}))
+  await test.info().attach('personal-send-input-events',{body:Buffer.from(JSON.stringify(events,null,2)),contentType:'application/json'})
  }
  expect(state.sent[0].p_channel).toBe(kind==='invoice'?'email':'sms')
  expect(state.documents).toHaveLength(1)

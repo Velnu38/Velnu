@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-09",
+  "timezone": "America/New_York",
+  "prior_candidate": "8099ee5f43183f365be47bf7fe076533f6a431f9",
+  "release_before": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "deployment_before": "dpl_2ZZ8fPGmhCg8af9K3b94NzUzSNkb",
+  "scope": "Finish and deploy existing PR71 candidate to existing private beta only",
+  "authorization": "Explicit current user instruction: Finish last work on candidate. Deploy",
+  "fixes": [
+    "Phone record pagination wraps without hiding controls or body overflow",
+    "Historical payment labels remain Venmo/PayPal/Cash App; new choices remain Stripe/Square",
+    "Browser navigation waits for authenticated workspace readiness",
+    "Photo-outage test persists until explicit recovery and checks expense reads do not repeat",
+    "Cash error selector identifies the intended alert among independent data sources",
+    "Failed native-send tests print controlled fixture diagnostics instead of losing evidence"
+  ],
+  "ci_budget": {
+    "repository_visibility": "public",
+    "runner": "standard ubuntu-latest",
+    "runner_cost_evidence": "https://docs.github.com/en/billing/concepts/product-billing/github-actions",
+    "review_artifact_uploads": false,
+    "tests_removed": false
+  },
+  "backend": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "migrations": 129,
+    "new_migrations": [],
+    "required_edge_functions": [
+      "document-pdf",
+      "fin-workflow"
+    ],
+    "unapplied_source_not_promoted": [
+      "PR69 manager reconciliation",
+      "customer reminders"
+    ]
+  },
+  "validation_state": "Local build/startup passed; complete hosted tests pending on resulting source commit",
+  "activation_limits": [
+    "No public launch or App Store release",
+    "No new paid service or fee/subscription activation",
+    "No real customer messages or charges/refunds",
+    "No new field accounts, invitations or self-service"
+  ],
+  "rollback": {
+    "frontend_deployment": "dpl_2ZZ8fPGmhCg8af9K3b94NzUzSNkb",
+    "edge_sources": "Pre-deployment native function source retained for rollback; previous released source 6cacfe7",
+    "schema": "No migration write; do not remove already-applied execution schema"
+  }
+}

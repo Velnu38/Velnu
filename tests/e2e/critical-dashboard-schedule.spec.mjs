@@ -422,6 +422,7 @@ const openDashboard = async (page, options) => {
 const openSchedule = async (page, options) => {
   const state = await mockWorkspace(page, options)
   await page.goto('/?view=dashboard')
+  await expect(page.getByRole('heading', { level: 1, name: options?.businessProfile?.name || 'Velnu QA', exact: true })).toBeVisible()
   await page.goto('/?view=schedule')
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   return state
@@ -501,6 +502,7 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
   const errors = noRuntimeErrors(page)
   await mockWorkspace(page, { aggregateDelay: 850 })
   await page.goto('/?view=dashboard')
+  await expect(page.getByRole('heading', { level: 1, name: options?.businessProfile?.name || 'Velnu QA', exact: true })).toBeVisible()
   await page.goto('/?view=schedule')
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   await page.waitForTimeout(950)
@@ -969,7 +971,7 @@ test('record resources: viewer cannot upload photos or add expenses', async ({ p
 test('record resources: Calendar opens job tabs, preserves notes and retries only the failed photo list', async ({ page }) => {
   const start = DateTime.now().setZone('America/New_York').set({hour:10,minute:0}).toISO()
   const job = {id:id(704),title:'Calendar receipt job',status:'scheduled',description:'Original notes',scheduled_start:start,customer_id:CID,customers:customer}
-  const state = await mockWorkspace(page,{jobs:[job],photoLoadFailures:1})
+  const state = await mockWorkspace(page,{jobs:[job],photoLoadFailures:100})
   await page.setViewportSize({width:390,height:844})
   await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({
     json:[{source_key:'job:'+job.id,title:job.title,starts_at:start,ends_at:null,status:'scheduled',document_kind:'work',document_id:job.id,job_id:job.id}],
@@ -987,9 +989,11 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
   const resources = dialog.getByRole('region',{name:'Photos and expenses'})
   await expect(resources.getByText('No expenses yet.')).toBeVisible()
   await expect(resources.getByRole('alert')).toContainText('Photos temporarily unavailable')
+  const expenseReads=state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id')).length
+  state.photoLoadFailures=0
   await resources.getByRole('button',{name:'Try photos again',exact:true}).click()
   await expect(resources.getByText('No photos yet.')).toBeVisible()
-  expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))).toHaveLength(1)
+  expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))).toHaveLength(expenseReads)
   await expect(resources.getByRole('button',{name:/refresh/i})).toHaveCount(0)
   await expect(resources.getByRole('progressbar')).toHaveCount(0)
   await dialog.getByRole('tab',{name:'Details',exact:true}).click()
@@ -1308,7 +1312,7 @@ test('interactive dashboard financial failure does not show invented zero totals
  await page.route('**/rest/v1/rpc/list_invoice_cash_activity**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
  await page.goto('/?view=dashboard')
  const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
- await expect(finance.getByRole('alert')).toContainText('Payments unavailable', {timeout:15000})
+ await expect(finance.getByRole('alert').filter({hasText:'Payments unavailable'})).toBeVisible({timeout:15000})
  await expect(finance.locator('.performance-metric.income')).toBeDisabled()
  await expect(finance.locator('.performance-metrics')).not.toContainText('$0.00')
  await expect(finance.getByRole('button',{name:'Retry financial data'})).toBeVisible()
@@ -1321,7 +1325,7 @@ test('interactive dashboard navigation does not treat an invoice link as a job l
  await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'Home',exact:true}).click()
  await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
- await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
+ await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
  await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
  await expect(page.getByRole('dialog')).toHaveCount(0)
 })

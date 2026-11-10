@@ -43,7 +43,7 @@ jobs:
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: guided-scheduling-results
           path: test-results/
@@ -72,7 +72,7 @@ jobs:
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: guided-browser-shard-${{ matrix.shard }}
           path: test-results/

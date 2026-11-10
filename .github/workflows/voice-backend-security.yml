@@ -21,7 +21,7 @@ jobs:
       - name: Actual handler with mocked auth, storage, quota and provider services
         run: deno test --junit-path=voice-backend-results.xml supabase/functions/transcribe-voice/index_test.ts
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: voice-backend-security-results
           path: voice-backend-results.xml

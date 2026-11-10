@@ -3,6 +3,10 @@ export const paymentProviders = [
   {id:'stripe',name:'Stripe',example:'https://buy.stripe.com/your-link'},
   {id:'square',name:'Square',example:'https://square.link/u/your-link'},
 ] as const;
+/** Historical issued instructions retain their original provider labels. */
+export function paymentProviderName(provider: string) {
+  return ({stripe:'Stripe',square:'Square',venmo:'Venmo',paypal:'PayPal',cashapp:'Cash App'} as Record<string,string>)[provider] || provider;
+}
 const hosts: Record<string, string[]> = {
   square: ["square.link", "invoice.squareup.com"],
   venmo: ["venmo.com", "www.venmo.com", "account.venmo.com"],

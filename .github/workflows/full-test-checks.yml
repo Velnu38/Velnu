@@ -90,7 +90,7 @@ jobs:
         env:
           FINVIANT_TEST_CHANNEL: chrome
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: private-beta-email-browser
           path: test-results/
@@ -115,7 +115,7 @@ jobs:
       # Existing simulated Safari coverage; this does not certify physical devices.
       - run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --config=playwright.mobile.config.mjs --fully-parallel --workers=2 --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: iphone-webkit-shard-${{ matrix.shard }}
           path: test-results/

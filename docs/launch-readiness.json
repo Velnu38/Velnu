@@ -192,6 +192,12 @@
       "detail": "Worker profiles require no login, invitation, notification or account seat. Free: owner only and one login. Individual: five workers and one login. Business Pro: 25 workers and five authorized account users total, including owner. Existing beta/admin exceptions remain. Employee self-service and optional field-access controls are excluded from this candidate; already-applied restricted-access SQL is recorded without changing its grants.",
       "evidence": "Latest user handoff decision; existing worker/seat services and tests; docs/RELEASE_INTEGRATION_2026-11-09.md",
       "verifiedAt": "2026-11-09"
+    },
+    {
+      "title": "Authorized candidate beta finalization",
+      "detail": "Owner explicitly requested finishing and deploying the existing candidate. Repairs address phone pagination containment, preserved legacy payment-provider labels, deterministic browser readiness/error assertions and review-only CI artifact suppression. All existing tests remain enabled. GitHub confirms the repository is public; standard Ubuntu runners are free, and artifact uploads are suppressed for this review branch to avoid new artifact storage. Full browser CI is being rerun; no general-launch/provider/device acceptance is inferred. PR69 field-access UI and customer-reminder activation remain outside this candidate.",
+      "evidence": "PR71; current explicit deployment instruction; docs/evidence/2026-11-09-candidate-release.json",
+      "verifiedAt": "2026-11-09"
     }
   ],
   "tasks": [

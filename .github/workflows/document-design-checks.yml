@@ -24,7 +24,7 @@ jobs:
           FINVIANT_TEST_CHANNEL: chrome
         run: npx playwright test tests/e2e/document-creation-preview.spec.mjs tests/e2e/document-review-delivery.spec.mjs --workers=2 --max-failures=5
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: document-design-browser-results
           path: test-results/

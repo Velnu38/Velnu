@@ -140,8 +140,9 @@
   .workspace-module .record-list-controls { align-items: stretch; padding: 12px; }
   .workspace-module .record-list-controls > label { min-width: 100%; }
   .workspace-module .record-list-controls nav { justify-content: space-between; width: 100%; }
-  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) { padding: 12px; }
-  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) > div { flex: 1; justify-content: flex-end; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) { padding: 12px; width: 100%; max-width: 100%; min-width: 0; flex-wrap: wrap; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) > span { flex: 1 1 100%; min-width: 0; white-space: normal; }
+  :is(.invoice-bottom-pagination, .estimate-bottom-pagination, .jobs-bottom-pagination) > div { flex: 1 1 100%; min-width: 0; justify-content: flex-end; flex-wrap: wrap; }
   .module-record-card { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 13px; border-radius: 14px; }
   .module-record-open strong { font-size: 14px; }
   .module-record-main > span { font-size: 11px; }

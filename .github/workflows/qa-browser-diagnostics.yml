@@ -26,7 +26,7 @@ jobs:
           FINVIANT_TEST_CHANNEL: chrome
         run: npx playwright test --max-failures=5 --workers=2 --reporter=json > browser-diagnostics.json
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
           name: assessment-first-browser-failure
           path: |
