@@ -1,13 +1,29 @@
 # Controlled email and SMS acceptance
 
-Step 15 of the approved implementation attachment requires exact recipients/numbers and a testing budget before real sends. No messages were sent during this review, and general beta recipient restrictions remain unchanged.
+Step 15's controlled email checks ran on November 10, 2026 against the existing private-beta release `c47fbe69f3ec00ef94b6b1070c9853d82a4dcfdd`, READY deployment `dpl_F8MUArgNDqmxUYkqqhh4GmTsifdJ`. The owner supplied one controlled email address and mobile number and authorized three emails, two SMS messages, a $1 total ceiling and no new subscriptions. Private contact details and share tokens are excluded from repository evidence.
 
-Read-only review on November 10 found the connected Resend domain `finviant.com` verified with sending enabled and open/click tracking disabled. DKIM, the sending SPF TXT/MX records and the provider CNAME were reported verified. The enabled webhook targets the beta `resend-events` function and subscribes to sent, delivered, bounced, complained, failed, suppressed and delayed events. Public DNS returned `v=DMARC1; p=none; adkim=r; aspf=r`: monitoring policy, not quarantine/reject enforcement. These are configuration observations, not proof of inbox placement, reply routing or signed callback acceptance for a new send.
+## Observed result
 
-The concrete next delivery check uses synthetic documents and one owner-controlled email address and mobile number. The proposed ceiling is three email messages (invoice with canonical PDF, estimate with approval link, E-Business Card) and two SMS messages (E-Business Card and appointment reminder). No bulk campaign, automatic repeated reminder, real customer invoice, payment collection or public activation is included. Auth recovery email is a separate acceptance flow and is not silently triggered by this test.
+| Check | Result |
+| --- | --- |
+| Invoice email | Delivered once; canonical $0 test PDF attached; signed sent/delivered callbacks recorded. |
+| Estimate email | Delivered once; canonical $0 test PDF attached; signed sent/delivered callbacks recorded. |
+| E-Business Card email | Delivered once; valid vCard attachment matches the existing immutable card preview. |
+| Customer document links | Both anonymous share reads returned HTTP 200; both PDF downloads exactly match emailed attachment bytes and immutable stored SHA-256. |
+| Estimate decision availability | Share reports the decision available with an approval token. No approval or work order was submitted. |
+| SMS card and appointment | Not sent: workspace SMS inactive, with no sender or reply route; registration/balance unverified. No activation or paid setup attempted. |
+| Usage and cost | Daily usage advanced from 0 to 3 of 100; monthly from 5 to 8 of 3,000. All three fit the included allowance, for $0 incremental sending cost. |
 
-Before sending, obtain the exact email address, an opted-in E.164 mobile number and an approved maximum provider cost. Verify the configured SMS sender/registration and available account balance first; if these cannot be verified, keep SMS blocked while completing authorized email checks. Confirm recipients are allowed by the controlled beta policy and review actual payloads and links. Do not broaden general delivery access.
+The natural five-minute delivery cron processed the three application outbox requests at approximately 23:25 UTC. Each had exactly one approved recipient, no CC/BCC and one dispatch attempt. The provider independently reports all three delivered, and the application has the corresponding six signed sent/delivered receipts. No retry, direct-provider duplicate or unrelated recipient send was introduced. Safe receipt references, timestamps, hashes and checks are in `docs/evidence/2026-11-10-controlled-email-delivery.json`.
 
-For each authorized send, record the application request ID, provider acceptance/event IDs, final delivery state, attachment/link correctness and redacted aggregate result. The owner verifies actual inbox/phone receipt and reply behavior. A provider accepted/delivered event alone does not establish inbox placement or a usable phone experience. An uncertain result remains for reconciliation and is not automatically resent. Test invalid signatures, replay, suppression, quota exhaustion and provider errors with the existing isolated fixtures; do not send intentionally abusive or repeated messages to a real recipient.
+The synthetic invoice and estimate explicitly state that no goods or services were ordered. The invoice requires no payment and contains no payment links; the estimate says not to approve it as real work. Both PDFs were rendered and visually inspected: one page each, readable layout, zero totals, no clipping/overlap, and centered Thank You footers. The synthetic customer/documents remain for owner inspection and audit evidence. Saved card details were not edited; its preview expires after the existing 90-day period, while the vCard can be saved permanently.
 
-EMAIL-01 and SMS-01 remain open until their complete acceptance criteria have evidence. Domain ownership transfers, DNS policy changes and sender activation are separate changes; none were made here.
+## Method and limits
+
+This was backend-assisted acceptance using existing privileged preparation RPCs for the authorized owner's workspace. Normal membership, plan/quota, beta-recipient, immutable-version, leased-dispatch and signed-webhook controls remained in place. No active browser login was available. This establishes the live backend delivery path and public link/PDF API behavior, not the owner-side browser Send journey or physical-device acceptance.
+
+The owner subsequently confirmed receipt of the emails in this conversation. Provider delivery alone would not establish that result. Attachment usability in the owner's phone mail app, reply routing and phone contact import remain unconfirmed. The estimate decision was inspected read-only; no customer decision, booking, payment or real work was authorized by this test. Auth signup/recovery email is a separate acceptance flow and was not triggered.
+
+The connected Resend domain reports sending enabled, verified DKIM/SPF/MX/CNAME and open/click tracking disabled. Public DMARC is `v=DMARC1; p=none; adkim=r; aspf=r`, a monitoring policy. Domain transfer, DNS policy changes, general beta-recipient expansion and SMS activation were not part of this test.
+
+EMAIL-01 remains open for remaining reply/auth/inbox/error/quota and broader acceptance criteria. SMS-01 remains blocked by sender setup and subsequent controlled live acceptance. Existing isolated invalid-signature/replay/suppression/error/quota fixtures remain separate evidence; no intentionally failing messages were sent to a real recipient. Do not resend an uncertain delivery without reconciling existing request/provider receipts first.
