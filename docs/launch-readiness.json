@@ -366,6 +366,18 @@
       "detail": "The measured baseline preparation time of 37,208 ms fell to 7,083 ms (81.0%) in the final-head isolated replay. The deployed function uses the existing unique occurrence index to exclude every durably queued state before rebuilding recipient/consent snapshots, retaining uncertain outcomes, claim-time eligibility, rescheduled occurrences and the 50-row batch. Final CI passed; hosted migration 20261110205954 matches source and remains service-only. No cron or customer delivery was activated.",
       "evidence": "docs/evidence/2026-11-10-queue-baseline.json; docs/evidence/2026-11-10-queue-optimized.json; docs/evidence/2026-11-10-performance-rollout.json",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Concurrent booking and payment acceptance prepared",
+      "detail": "A disposable full-schema PostgreSQL test uses twenty separate authenticated-role connections across twenty synthetic workspaces. Explicit database locks hold competing booking and manual payment requests until all twenty connections overlap, then verify one slot winner, rejection of excess payments, retry idempotency, exact invoice balances and complete cleanup. Actual CI execution is pending. No merchant provider, hosted workspace or live customer is touched; hosted capacity and customer payment callback acceptance remain separate.",
+      "evidence": "scripts/qa/commerce-concurrency.mjs; .github/workflows/migration-replay.yml",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "PDF and simulated Fin/OCR concurrency prepared",
+      "detail": "A bounded workload uses the actual PDF renderer and Fin/OCR HTTP handlers for 300 unique synthetic business contexts at 10/50/100 logical clients. Local execution produced 300 parseable PDFs, 300 isolated Fin replies and 300 receipt drafts with zero unexpected failures or external network requests. Real authorization, quotas and provider latency are explicitly outside this in-process test. CI execution and immutable aggregate receipt are pending; hosted capacity acceptance stays open.",
+      "evidence": "scripts/qa/provider-workload.ts; .github/workflows/full-test-checks.yml",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [

@@ -6,6 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import pg from 'pg'
 import { verifyReminderReplay } from './reminder-replay.mjs'
+import { verifyCommerceConcurrency } from './commerce-concurrency.mjs'
 import { verifyQueueCatchup } from './queue-catchup.mjs'
 import { verifyAuthStorageReplay } from './auth-storage-replay.mjs'
 import { verifySyntheticRestore, cleanupSyntheticFixture } from './synthetic-restore.mjs'
@@ -150,6 +151,9 @@ export async function main({capacity=false}={}) {
     const queueCatchup=await verifyQueueCatchup(client,localDatabaseUrl(status.DB_URL),{projectId})
     mkdirSync(join(root,'tmp/queue-results'),{recursive:true})
     writeFileSync(join(root,'tmp/queue-results/result.json'),JSON.stringify({sourceCommit:process.env.GITHUB_SHA||null,...queueCatchup},null,2)+'\n')
+    const commerceConcurrency=await verifyCommerceConcurrency(client,localDatabaseUrl(status.DB_URL),{projectId})
+    mkdirSync(join(root,'tmp/commerce-results'),{recursive:true})
+    writeFileSync(join(root,'tmp/commerce-results/result.json'),JSON.stringify({sourceCommit:process.env.GITHUB_SHA||null,...commerceConcurrency},null,2)+'\n')
     const capacityResult=capacity?await (await import('./local-capacity.mjs')).verifyLocalCapacity(client,status,{projectId}):undefined
     console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION,
       cronLaunchActiveJobs: false, reminderSmoke, authStorageSmoke, queueCatchup, capacity:capacityResult,

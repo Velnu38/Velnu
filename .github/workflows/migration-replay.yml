@@ -30,3 +30,9 @@ jobs:
           path: tmp/queue-results/result.json
           if-no-files-found: error
           retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolated-commerce-concurrency-results
+          path: tmp/commerce-results/result.json
+          if-no-files-found: error
+          retention-days: 7

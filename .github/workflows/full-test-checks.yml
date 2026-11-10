@@ -150,7 +150,7 @@ jobs:
   release-validation:
     name: Release validation
     if: always()
-    needs: [migrations, desktop-and-scheduling, node-tests, pure-deno-tests, dom-tests, private-beta-email, native-app-handoffs, iphone-webkit]
+    needs: [migrations, desktop-and-scheduling, node-tests, pure-deno-tests, dom-tests, private-beta-email, native-app-handoffs, iphone-webkit, isolated-provider-workload]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -160,7 +160,7 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           const results = JSON.parse(process.env.SUITE_RESULTS)
-          const required = ['migrations', 'desktop-and-scheduling', 'node-tests', 'pure-deno-tests', 'dom-tests', 'private-beta-email', 'native-app-handoffs', 'iphone-webkit']
+          const required = ['migrations', 'desktop-and-scheduling', 'node-tests', 'pure-deno-tests', 'dom-tests', 'private-beta-email', 'native-app-handoffs', 'iphone-webkit', 'isolated-provider-workload']
           const failed = required.filter(name => results?.[name]?.result !== 'success')
           if (failed.length) {
             console.error('Release blocked:', failed.map(name => `${name}=${results?.[name]?.result ?? 'missing'}`).join(', '))
@@ -168,3 +168,22 @@ jobs:
           }
           console.log('All required release suites passed on this commit')
           JS
+  isolated-provider-workload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --import tsx scripts/qa/provider-workload.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolated-provider-workload-results
+          path: tmp/provider-workload/result.json
+          if-no-files-found: error
+          retention-days: 7
