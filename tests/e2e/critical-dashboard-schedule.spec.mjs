@@ -1219,7 +1219,9 @@ test('owner settings invitation acceptance bypasses company creation and separat
 })
 
 
-for (const width of [1440,390]) test(`interactive dashboard week and month calendar selects work at ${width}px`,async({page})=>{
+for (const width of [1440,390]) test(`interactive dashboard week and month calendar selects work at ${width}px`,async({page,browserName})=>{
+ // Retain every real month-navigation click through leap day on touch WebKit.
+ if(browserName==='webkit')test.setTimeout(60_000)
  await page.setViewportSize({width,height:900});await mockWorkspace(page)
  const day=DateTime.now().setZone('America/New_York').startOf('day')
  const items=[0,1,2].map((offset)=>({source_key:`job:interactive-${offset}`,title:['Kitchen installation','Oak Street repair','HVAC maintenance'][offset],description:'',starts_at:day.plus({days:offset,hours:9}).toISO(),ends_at:day.plus({days:offset,hours:11}).toISO(),status:'scheduled',document_kind:'work',document_id:id(980+offset)}))

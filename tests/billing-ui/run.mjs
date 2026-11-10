@@ -9,7 +9,7 @@ try{
  await page.route('https://test.supabase.co/**',route=>route.request().url().endsWith('/functions/v1/document-pdf')?route.fulfill({headers:pdfHeaders,body:PDF_BYTES}):route.fulfill({json:{}}))
  const errors=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto('http://127.0.0.1:4178/tests/billing-ui/index.html')
- await expect(page.getByText('Deposit credited',{exact:true})).toBeVisible()
+ await expect(page.getByText('Deposit credited: $30.00 · Open deposit invoice',{exact:true})).toBeVisible()
  await page.getByRole('button',{name:'Mark Paid',exact:true}).click()
  await expect(page.getByLabel('Amount',{exact:true})).toHaveValue('75')
  await expect(page.getByLabel('Amount',{exact:true})).toBeEditable()
