@@ -30,6 +30,8 @@ jobs:
           node-version: '24'
       - run: npm run build && npm run test:recovery
       - run: node --test --test-concurrency=2 $(find tests -name '*.test.mjs' | sort)
+      # Actual service modules with synthetic HTTP, not live-provider or load acceptance.
+      - run: node tests/stress/volume-services.mjs
       - run: npm run typecheck:calendar && npm run assessment:check
   pure-deno-tests:
     runs-on: ubuntu-latest

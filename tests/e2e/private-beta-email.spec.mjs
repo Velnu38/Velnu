@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test'
 import {mock,B,C,E,customer} from './audit-fixture.mjs'
 
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,OPTIONS'}
-const reply=(route,json,status=200)=>route.fulfill({status,headers:cors,json})
+const reply=(route,json,status=200)=>route.fulfill({status,headers:{...cors,...(Array.isArray(json)?{'access-control-expose-headers':'content-range','content-range':`0-${Math.max(0,json.length-1)}/${json.length}`}:{})},json})
 async function setup(page,kind='invoice'){
   const state=await mock(page,{ai:true})
   const person={...customer,email:'delivered@resend.dev',phone:'+17575550100'}

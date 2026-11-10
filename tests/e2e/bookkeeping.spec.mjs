@@ -40,6 +40,11 @@ async function mockFinance(page, opts={}) {
       if (body.action === 'sync') return json({ success: true, rows_processed: 2, last_sync_at: '2026-10-26T18:00:00Z', limited: false, since: '2026-07-28' })
       if (body.action === 'disconnect') { state.connected = false; return json({ disconnected: true }) }
     }
+    if (path.endsWith('/rpc/list_invoice_cash_activity')) {
+      expect(body.p_business).toBe(businessId)
+      const rows=[{id:payment.id,invoice_id:'77777777-7777-4777-8777-777777777777',invoice_number:payment.invoices.invoice_number,amount:payment.amount,direction:'income',currency:'USD',method:payment.method,occurred_at:payment.paid_at}].filter(row=>(!body.p_from||row.occurred_at>=body.p_from)&&(!body.p_to||row.occurred_at<body.p_to))
+      return json(rows)
+    }
     if (path.endsWith('/payments')) return json([payment])
     if (path.endsWith('/bookkeeping_entries')) {
       if (method === 'POST') { state.manualRows.push({ ...body, id: body.id, currency: 'USD' }); return json([], 201) }
@@ -79,7 +84,7 @@ test('workbook totals and CSV include entries beyond the first API page', async 
   const state = await mockFinance(page,{manualRows:rows})
   await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
-  await page.getByLabel('Period').selectOption('all')
+  await page.getByRole('combobox',{name:/^Period/}).selectOption('all')
   await expect(page.locator('.bookkeeping-overview article').nth(1).locator('strong')).toHaveText('$1,001.00')
   await expect(page.getByText('QA expense 1000',{exact:true})).toBeVisible()
   const downloaded = page.waitForEvent('download')

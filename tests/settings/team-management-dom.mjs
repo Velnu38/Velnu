@@ -36,7 +36,7 @@ try{
  assert.equal(calls.filter(c=>c.name==='save_worker_profile').length,1)
  await click('Availability');assert.ok(button('Block time'));assert.equal(document.querySelectorAll('select option').length,2)
  await click('Account Access');assert.match(document.body.textContent,/one account user/);assert.equal(button('Send invitation'),undefined)
- assert.ok([...document.querySelectorAll('a')].some(a=>a.textContent==='View plans'))
+ assert.ok([...document.querySelectorAll('a')].some(a=>a.textContent==='Explore Business Pro'&&a.getAttribute('href')==='/?view=settings&section=plans&tier=pro'))
  plan='pro';await mount('pro');assert.match(document.body.textContent,/2 of 25 active workers/);await click('Account Access');assert.match(document.body.textContent,/1 of 5 seats/);assert.ok(button('Send invitation'))
  plan='free';workers=workers.slice(0,1);await mount('free');assert.match(document.body.textContent,/1 of 1 active workers/);assert.equal(button('Add worker').disabled,true)
  await mount('office',{business:{...business,primary_owner:false,role:'office'}});assert.equal(button('Account Access'),undefined)

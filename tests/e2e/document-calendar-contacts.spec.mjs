@@ -2,7 +2,10 @@ import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
-import {fulfillPdf} from './document-pdf-fixture.mjs'
+import {fulfillPdf,pdfHeaders,PDF_REVISION} from './document-pdf-fixture.mjs'
+import {generateDocumentPdf} from '../../shared/documentPdf.ts'
+import {readFile} from 'node:fs/promises'
+import {execFileSync} from 'node:child_process'
 
 // Browser fixtures only: all authentication, database and delivery calls are intercepted.
 const B='11111111-1111-4111-8111-111111111111',U='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',E='44444444-4444-4444-8444-444444444444',P='55555555-5555-4555-8555-555555555555',J='66666666-6666-4666-8666-666666666666'
@@ -194,28 +197,47 @@ for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-
 }
 
 test('a customer sees and approves the same revised total shown in the change order', async ({ page }) => {
- await mock(page, { signedIn: false })
- let approved = false
- await page.route('**/functions/v1/customer-approval', async route => {
-  const request = route.request().postDataJSON()
-  if (request.mode === 'approved') {
-   expect(request.typed_name).toBe('Test Customer')
-   approved = true
-  }
-  await route.fulfill({ json: {
-   document_type: 'change_order', business_name: 'Scheduling QA', customer: { name: 'Test Customer' },
-   document: { change_order_number: 'CO-QA', title: 'Reduce original scope', schedule_impact_days: 0,
-    change_totals: { current_total: 105, change_amount: -52.50, revised_total: 52.50, deposit_paid: 25, other_paid: 0, revision_subtotal: -50, revision_tax: -2.50 } },
-   items: [{ description: 'Original work → Revised work', quantity: 1, unit_price: 0, line_total: 0, tax_rate: 5 }],
-   completed: approved ? { action: 'approved', typed_name: 'Test Customer', created_at: new Date().toISOString() } : null,
-  } })
+ const state=await mock(page, { signedIn: false })
+ const token='a'.repeat(64),decisions=[]
+ const snapshot={kind:'change_order',number:'CO-QA',status:'sent',issue_date:'2026-11-07',revision_id:PDF_REVISION,revision_number:1,revision_created_at:'2026-11-07T12:00:00Z',customer:{name:'Test Customer'},company:{name:'Scheduling QA'},title:'Reduce original scope',schedule_impact_days:0,subtotal:-50,tax_amount:-2.50,total:-52.50,
+  change_totals:{current_total:105,change_amount:-52.50,revised_total:52.50,deposit_paid:25,other_paid:0,revision_subtotal:-50,revision_tax:-2.50},
+  items:[{description:'Original work → Revised work',quantity:1,unit_price:0,line_total:0,tax_rate:5}]}
+ const bytes=Buffer.from(await generateDocumentPdf(snapshot))
+ await page.route('**/functions/v1/document-pdf',route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({headers:pdfHeaders,body:''})
+  expect(route.request().postDataJSON()).toEqual({token,token_type:'approval'})
+  expect(route.request().headers().authorization).toBeUndefined()
+  return route.fulfill({status:200,headers:pdfHeaders,body:bytes})
  })
- await page.goto('/?approval=' + 'a'.repeat(64))
- const totals = page.locator('.change-order-totals')
- await expect(totals.locator('dd')).toHaveText(['$105.00', '-$52.50', '$52.50', '$25.00', '$27.50'])
- await expect(page.locator('.approval-row').last()).toContainText('-$50.00')
- await page.getByLabel('Full name', { exact: true }).fill('Test Customer')
- await page.getByRole('button', { name: 'Approve change order', exact: true }).click()
- await expect(page.getByRole('heading', { name: 'Document approved' })).toBeVisible()
- await expect(totals.locator('dd')).toHaveText(['$105.00', '-$52.50', '$52.50', '$25.00', '$27.50'])
+ await page.route('**/functions/v1/customer-approval', async route => {
+  if(route.request().method()==='OPTIONS')return route.fulfill({headers:pdfHeaders,body:''})
+  const request=route.request().postDataJSON()
+  if(request.mode==='approved'){
+   expect(request).toMatchObject({token,typed_name:'Test Customer',terms_agreed:true,expected_revision_id:PDF_REVISION})
+   decisions.push(request)
+  }
+  await route.fulfill({json:{document_type:'change_order',business_name:'Scheduling QA',customer:{first_name:'Test',last_name:'Customer'},document:{change_order_number:snapshot.number,change_totals:snapshot.change_totals},action_state:'available',
+   completed:decisions.length?{action:'approved',typed_name:'Test Customer',amount:52.50,created_at:new Date().toISOString()}:null}})
+ })
+ await page.goto('/?approval='+token)
+ const pdf=page.getByRole('region',{name:'Change order CO-QA',exact:true})
+ await expect(pdf.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+ await expect(pdf.locator('iframe')).toHaveAttribute('src',/^blob:/)
+ async function verifyIssuedCopy(){
+  const downloading=page.waitForEvent('download');await pdf.getByRole('button',{name:'Download PDF',exact:true}).click()
+  const file=await (await downloading).path();expect(await readFile(file)).toEqual(bytes)
+  const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8'})
+  for(const amount of ['$105.00','-$52.50','$52.50','$25.00','$27.50','-$50.00'])expect(text).toContain(amount)
+  for(const label of ['Current total','This change','Revised total','Deposit paid','Remaining if approved'])expect(text).toContain(label)
+ }
+ await verifyIssuedCopy()
+ const approve=page.getByRole('button',{name:'Approve change order and agree to terms',exact:true})
+ await expect(approve).toBeDisabled()
+ await page.getByLabel('Full name',{exact:true}).fill('Test Customer')
+ await page.getByRole('checkbox',{name:/I reviewed the displayed change order/}).check()
+ await approve.click()
+ await expect(page.getByRole('heading',{name:'Change order approved',exact:true})).toBeVisible()
+ expect(decisions).toHaveLength(1)
+ await verifyIssuedCopy()
+ expect(state.calls.some(call=>call.path.includes('/auth/v1/'))).toBe(false)
 })

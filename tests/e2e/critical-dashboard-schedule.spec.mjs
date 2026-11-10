@@ -1,4 +1,4 @@
-import { createWork } from './navigation.mjs'
+import { createWork, openWorkArea } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import { test, expect } from '@playwright/test'
 import { DateTime } from 'luxon'
@@ -911,12 +911,11 @@ for (const kind of ['job', 'estimate', 'invoice']) {
       issue_date: todayISO(), due_date: todayISO(), subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100 }
     const state = await mockWorkspace(page, { jobs: [record], estimates: [record], invoices: [record] })
     const openRecord = async () => {
-      await page.goto(kind === 'invoice' ? `/?view=invoices&document=${recordId}` : `/?view=${kind === 'job' ? 'work' : 'estimates'}`)
+      await page.goto(kind === 'job' ? '/?view=work' : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
       if (kind === 'job') {
         await page.getByRole('button', { name: 'Open job', exact: true }).click()
         await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
       } else if (kind === 'estimate') {
-        await page.getByRole('button', { name: 'Open estimate EST-701 for Jane Doe', exact:true }).click()
         await page.getByRole('dialog',{name:'Estimate preview'}).getByRole('tab',{name:'Photos & expenses',exact:true}).click()
       } else await page.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
     }
@@ -981,7 +980,9 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
   const dialog = page.getByRole('dialog',{name:'Job details',exact:true})
   const notes = dialog.getByLabel('Job notes and materials needed')
   await notes.fill('Unsaved calendar notes')
-  await dialog.getByRole('tab',{name:'Job details',exact:true}).press('ArrowRight')
+  await dialog.getByRole('tab',{name:'Details',exact:true}).press('ArrowRight')
+  await expect(dialog.getByRole('tab',{name:'Work plan',exact:true})).toHaveAttribute('aria-selected','true')
+  await dialog.getByRole('tab',{name:'Work plan',exact:true}).press('ArrowRight')
   await expect(dialog.getByRole('tab',{name:'Photos & expenses',exact:true})).toHaveAttribute('aria-selected','true')
   const resources = dialog.getByRole('region',{name:'Photos and expenses'})
   await expect(resources.getByText('No expenses yet.')).toBeVisible()
@@ -991,7 +992,7 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
   expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))).toHaveLength(1)
   await expect(resources.getByRole('button',{name:/refresh/i})).toHaveCount(0)
   await expect(resources.getByRole('progressbar')).toHaveCount(0)
-  await dialog.getByRole('tab',{name:'Job details',exact:true}).click()
+  await dialog.getByRole('tab',{name:'Details',exact:true}).click()
   await expect(notes).toHaveValue('Unsaved calendar notes')
 })
 
@@ -1076,7 +1077,7 @@ test('billing hub empty state and finance restrictions stay honest', async ({pag
   state.role='technician';state.aggregate={open_invoices:5,outstanding_balance:98765}
   await page.reload()
   await expect(hub).toHaveCount(0)
-  await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'Financial Performance',exact:true})).toHaveCount(0)
   await expect(page.locator('body')).not.toContainText('$98,765')
 })
 
@@ -1147,11 +1148,12 @@ test('owner settings five-seat capacity blocks a sixth invitation',async({page})
 
 test('owner settings restricted staff cannot open hidden modules or owner controls',async({page})=>{
  const state=await mockWorkspace(page,{role:'office',accessModules:['jobs']});await page.goto('/?view=dashboard')
- await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
+ await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
  await expect(page.getByRole('region',{name:'Work calendar'})).toHaveCount(0)
  await expect(page.getByRole('article',{name:'Needs attention overview'})).toHaveCount(0)
- await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
+ await expect(page.getByRole('heading',{name:'Financial Performance',exact:true})).toHaveCount(0)
  expect(state.requests.some(r=>r.path.endsWith('/rpc/get_dashboard_invoice_totals'))).toBe(false)
+ await openWorkArea(page,'Jobs');await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
  await page.goto('/?view=invoices');await expect(page.getByRole('alert')).toContainText('not included in your access')
  await page.goto('/?view=settings');await expect(page.getByRole('link',{name:/^Team Management/})).toHaveCount(0);await expect(page.getByRole('link',{name:'Subscription',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
 })
@@ -1218,7 +1220,7 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.getByRole('heading',{name:'Weekly Schedule'})).toBeVisible()
  await expect(calendar.getByRole('link',{name:/Kitchen installation/})).toBeVisible()
- await expect(calendar.getByRole('button',{name:'Today',exact:true})).toHaveCount(0)
+ await expect(calendar.getByRole('button',{name:'Today',exact:true})).toBeEnabled()
  await expect(calendar.getByRole('button',{name:/Open (calendar|schedule)/})).toHaveCount(0)
  await calendar.getByRole('button',{name:'Month',exact:true}).click()
  await expect(calendar.getByLabel('Calendar month')).toHaveCount(0)
@@ -1238,7 +1240,8 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  await calendar.getByRole('button',{name:'Next month'}).click();await expect(calendar.getByText('March 2028',{exact:true})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/interactive-calendar-month-${width}.png`,fullPage:true})
- await calendar.getByRole('button',{name:'Week',exact:true}).click();await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
+ await calendar.getByRole('button',{name:'Today',exact:true}).click();await expect(calendar.getByText(day.toFormat('MMMM yyyy'),{exact:true})).toBeVisible()
+ await calendar.getByRole('button',{name:'Week',exact:true}).click();await expect(calendar.getByLabel('Calendar date')).toHaveCount(0);await expect(calendar.getByRole('link',{name:/Kitchen installation/})).toBeVisible()
 })
 
 async function mockInteractiveFinances(page) {
@@ -1249,6 +1252,12 @@ async function mockInteractiveFinances(page) {
  const payments=[{id:id(993),invoice_id:invoice.id,amount:100,paid_at:now.plus({hours:12}).toISO(),status:'succeeded',method:'cash',invoices:{invoice_number:'INV-990'}},{id:id(994),invoice_id:invoice.id,amount:50,paid_at:now.minus({months:2}).plus({hours:12}).toISO(),status:'succeeded',method:'paypal',invoices:{invoice_number:'INV-990'}}]
  const manual=Array.from({length:32},(_,index)=>({id:id(1000+index),amount:1,entry_date:now.toISODate(),direction:'expense',description:index===0?'Copper fittings':`Materials ${index+1}`,category:'Materials',currency:'USD',job_id:index===0?job.id:null,jobs:index===0?{title:job.title}:null,notes:index===0?'Receipt from local hardware store':null}))
  manual.push({id:id(1100),amount:25,entry_date:now.minus({months:5}).toISODate(),direction:'income',description:'Consultation',category:'Service',currency:'USD'},{id:id(1101),amount:10,entry_date:now.minus({months:11}).toISODate(),direction:'expense',description:'Older tools',category:'Tools',currency:'USD'})
+ await page.route('**/rest/v1/rpc/list_invoice_cash_activity**',r=>{
+  const body=r.request().postDataJSON(),q=new URL(r.request().url()).searchParams;expect(body.p_business).toBe(BID)
+  const rows=payments.filter(row=>(!body.p_from||Date.parse(row.paid_at)>=Date.parse(body.p_from))&&(!body.p_to||Date.parse(row.paid_at)<Date.parse(body.p_to))).map(row=>({id:row.id,invoice_id:row.invoice_id,invoice_number:row.invoices.invoice_number,direction:'income',amount:row.amount,currency:'USD',method:row.method,occurred_at:row.paid_at}))
+  const offset=Number(q.get('offset')||0),limit=Number(q.get('limit')||1000),pageRows=rows.slice(offset,offset+limit)
+  return r.fulfill({json:pageRows,headers:{'access-control-expose-headers':'content-range','content-range':`${offset}-${Math.max(offset,offset+pageRows.length-1)}/${rows.length}`}})
+ })
  for(const [table,rows,dateField] of [['payments',payments,'paid_at'],['bookkeeping_entries',manual,'entry_date']])await page.route(`**/rest/v1/${table}?**`,r=>{
   const q=new URL(r.request().url()).searchParams
   expect(q.get('business_id')).toBe('eq.'+BID)
@@ -1261,7 +1270,7 @@ async function mockInteractiveFinances(page) {
 for (const width of [1440,390]) test(`interactive dashboard financial periods expand complete transactions and sources at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const {now,invoice,job}=await mockInteractiveFinances(page)
  await page.goto('/?view=dashboard')
- const finance=page.getByRole('region',{name:'Financial performance',exact:true})
+ const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
  await expect(finance.getByRole('button',{name:'1 month',exact:true})).toHaveAttribute('aria-pressed','true')
  await finance.getByRole('button',{name:'6 months',exact:true}).click()
  await finance.locator('.home-financial-trend > summary').click()
@@ -1296,9 +1305,9 @@ for (const width of [1440,390]) test(`interactive dashboard financial periods ex
 })
 test('interactive dashboard financial failure does not show invented zero totals',async({page})=>{
  await mockWorkspace(page)
- await page.route('**/rest/v1/payments?**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
+ await page.route('**/rest/v1/rpc/list_invoice_cash_activity**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
  await page.goto('/?view=dashboard')
- const finance=page.getByRole('region',{name:'Financial performance',exact:true})
+ const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
  await expect(finance.getByRole('alert')).toContainText('Payments unavailable', {timeout:15000})
  await expect(finance.locator('.performance-metric.income')).toBeDisabled()
  await expect(finance.locator('.performance-metrics')).not.toContainText('$0.00')
@@ -1312,7 +1321,7 @@ test('interactive dashboard navigation does not treat an invoice link as a job l
  await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'Home',exact:true}).click()
  await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
- await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
+ await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
  await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
  await expect(page.getByRole('dialog')).toHaveCount(0)
 })
@@ -1387,7 +1396,7 @@ test('lost invoice scheduling response reuses the job and reports its saved sche
  await dialog.getByLabel(/Agreed start/).fill('2026-12-07T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
  await expect(dialog.getByRole('alert')).toContainText('Response lost')
  await dialog.getByLabel(/Agreed start/).fill('2026-12-08T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
- await expect(dialog).toHaveCount(0);await expect(page.getByText('This invoice already has a job. Open linked job to review its saved schedule.')).toBeVisible()
+ await expect(dialog).toHaveCount(0);await expect(page.getByText('This invoice already has a job. Open linked job to review its saved appointment.')).toBeVisible()
  expect(state.jobs).toHaveLength(1);expect(state.appointments).toHaveLength(1)
  expect(state.jobs[0].scheduled_start).toBe('2026-12-07T15:00:00.000Z')
  const calls=state.requests.filter(r=>r.path.endsWith('/rpc/book_invoice_job'));expect(calls).toHaveLength(2);expect(calls[0].body.p_request).toBe(calls[1].body.p_request)
@@ -1708,6 +1717,7 @@ test('Google review setup and completed-job handoff use an official link and per
   await page.getByRole('button',{name:'Save company profile'}).click()
   await expect.poll(()=>state.requests.find(r=>r.path.endsWith('/businesses')&&r.method==='PATCH')?.body.google_review_url).toBe(link)
   await page.goto('/?view=work&document='+finishedReviewJob.id)
+  await page.getByRole('dialog',{name:'Job details',exact:true}).getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
   await page.getByRole('button',{name:'Request a Google review'}).click()
   const review=page.getByRole('region',{name:'Google review request'})
   await expect(review.getByLabel('Review request message')).toHaveValue(/Hi Jane.*share your experience/s)
@@ -1720,13 +1730,14 @@ test('Free displays upgrade links for receipt scanning and Google reviews and st
   await mockWorkspace(page,{plan:'free',businessProfile:{google_review_url:'https://g.page/r/Test/review'},jobs:[finishedReviewJob]})
   await page.goto('/?view=work&document='+finishedReviewJob.id)
   const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
+  await dialog.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
   await expect(dialog.getByText('Requesting Google reviews is unavailable on the Free plan.')).toBeVisible()
   await expect(dialog.getByRole('button',{name:'Request a Google review'})).toHaveCount(0)
   await dialog.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel=dialog.getByRole('region',{name:'Photos and expenses'})
   await panel.getByRole('button',{name:'Add expense manually',exact:true}).click()
   await expect(panel.getByText('Receipt scanning is unavailable on the Free plan.')).toBeVisible()
-  await expect(panel.getByRole('link',{name:'View Individual upgrade'})).toHaveAttribute('href','/?view=settings&section=plans&tier=basic')
+  await expect(panel.getByRole('link',{name:'Explore Individual',exact:true})).toHaveAttribute('href','/?view=settings&section=plans&tier=basic')
   await expect(panel.getByRole('button',{name:'Scan receipt',exact:true})).toHaveCount(0)
   await expect(panel.getByLabel('Amount ($)')).toBeEditable()
 })
