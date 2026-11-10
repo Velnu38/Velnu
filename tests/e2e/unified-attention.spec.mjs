@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
@@ -57,6 +58,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   }
   return reply([])
  })
+ await mockJobDirectory(page)
  return state
 }
 

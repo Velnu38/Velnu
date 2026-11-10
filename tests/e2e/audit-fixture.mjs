@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { fulfillPdf } from './document-pdf-fixture.mjs'
 import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
@@ -85,6 +86,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
   if(path.endsWith('/jobs'))return reply([])
   return reply([])
  })
+ await mockJobDirectory(page)
  return state
 }
 

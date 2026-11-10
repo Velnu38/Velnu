@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { createWork, openWorkArea } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import { test, expect } from '@playwright/test'
@@ -292,6 +293,7 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/messages')) return reply([])
     return reply([])
   })
+ await mockJobDirectory(page)
   return state
 }
 

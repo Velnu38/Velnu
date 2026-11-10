@@ -48,6 +48,14 @@ export async function listJobs(businessId: string, customerId?: string) {
   return (data ?? []).map((row: any) => ({ ...row, ...workflow.get(row.id), customers: asList(row.customers), properties: asList(row.properties) }))
 }
 
+export type JobDirectoryFilter = 'all'|'active'|'today'|'unscheduled'|'in_progress'|'billing'|'attention'|'unassigned'|'scheduled'|'completed'|'current'|'upcoming'|'history'
+export async function getJobDirectoryPage(businessId:string,options:{customerId?:string;filter:JobDirectoryFilter;workerId?:string;search:string;page:number}) {
+  const {data,error}=await supabase.rpc('get_job_directory_page',{p_business:businessId,p_customer:options.customerId||null,p_filter:options.filter,p_worker:options.workerId||null,p_search:options.search.trim(),p_page:options.page})
+  if(error)throw error
+  if(!data||!Array.isArray(data.items)||data.items.length>25||!Number.isSafeInteger(data.total)||data.total<0||!Number.isSafeInteger(data.page)||data.page<0||data.page_size!==25||!data.counts||!Number.isSafeInteger(data.counts.all)||data.items.some((j:any)=>!j.id||!Array.isArray(j.customers)||!Array.isArray(j.properties)))throw Error('The job page could not be verified. Refresh to try again.')
+  return data as {items:Awaited<ReturnType<typeof listJobs>>;total:number;page:number;page_size:number;counts:Record<JobDirectoryFilter,number>;checked_at:string}
+}
+
 export async function createJob(businessId: string, input: JobInput) {
   if (!input.customer_id || !input.title.trim()) throw new Error('Choose a customer and enter a job title')
   const { data, error } = await supabase.rpc(input.scheduled_start && input.assigned_user_ids?.length ? 'create_dispatched_job' : input.scheduled_start ? 'create_scheduled_job' : 'create_job_atomic', {

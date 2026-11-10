@@ -306,6 +306,12 @@
       "detail": "PR81 browser trace exposed a refresh that disabled the expense metric between pointer-down and click after receipt upload retry. The same workspace/role/date snapshot now remains visible with an explicit refreshing status, preserving the metric and expanded receipt. Failed reads and workspace/range changes still hide prior balances. Deterministic DOM checks pass for preservation, failed-read recovery and workspace separation; complete browser validation is required before deployment.",
       "evidence": "tests/settings/financial-refresh-dom.mjs; PR81 Actions job 129993932091 trace; tests/e2e/critical-dashboard-schedule.spec.mjs",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Bounded Jobs directory prepared",
+      "detail": "Jobs List/Board now use 25-row server pages with complete filter counts, literal search, stable ordering, request-version protection and preserved search focus. Local tests pass beyond 50,000 jobs and deny unrelated/anonymous identities; jobs-only staff cannot see billing data. Existing Overview/Job Management remain intact with full-list scalability work open. Mandatory real-session SQL and desktop/mobile CI must pass before beta deployment.",
+      "evidence": "docs/JOBS_DIRECTORY_2026-11-10.md; tests/records/job-directory.test.ts; tests/e2e/jobs-directory.spec.mjs",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
