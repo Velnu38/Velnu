@@ -39,7 +39,7 @@ test('worker health reports stalled work, recovers, and retains service-only agg
    await db.exec('reset role')
   }
   await db.exec(`delete from private.calendar_sync_queue;update private.calendar_integrations set state='connected';
-   update private.appointment_reminder_queue set status='sent';update private.recurring_invoice_plans set next_date=current_date+1,last_error=null;`)
+   update private.appointment_reminder_queue set status='accepted';update private.recurring_invoice_plans set next_date=current_date+1,last_error=null;`)
   assert.deepEqual({...await health(),checked_at:empty.checked_at},empty)
  }finally{await db.close()}
 })
