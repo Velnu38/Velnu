@@ -1,3 +1,4 @@
+import {customerSearchResponse} from './job-customer-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { createWork, openWorkArea } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
@@ -148,7 +149,8 @@ async function mockWorkspace(page, options = {}) {
       if (state.aggregateFailures-- > 0) return fail('Dashboard summary temporarily unavailable')
       return reply(state.aggregate)
     }
-    if (path.endsWith('/customers')) return reply(req.headers().accept?.includes('vnd.pgrst.object')?state.customers.find(c=>c.id===url.searchParams.get('id')?.replace('eq.','')):state.customers)
+    if (path.endsWith('/rpc/search_job_customers')) return reply(customerSearchResponse(state.customers,body))
+  if (path.endsWith('/customers')) return reply(req.headers().accept?.includes('vnd.pgrst.object')?state.customers.find(c=>c.id===url.searchParams.get('id')?.replace('eq.','')):state.customers)
     if (path.endsWith('/properties')) return reply([])
     if (path.endsWith('/rpc/get_document_change_context')) return reply({can_change:true})
     if (path.endsWith('/rpc/get_job_workflow_context')) {

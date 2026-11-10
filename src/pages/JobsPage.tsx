@@ -16,7 +16,7 @@ import { DateTime } from 'luxon'
 import RecordListControls, { RecordListPagination, useRecordList } from '../components/RecordListControls'
 import { FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
-import { listCustomers } from '../services/customers'
+import { searchJobCustomers } from '../services/customers'
 import { createJob, getJob, getJobsOverview, getJobDirectoryPage, updateJobStatus, type JobWorkflow } from '../services/jobs'
 import GoogleMapTools from '../components/GoogleMapTools'
 import CustomerPropertySelect from '../components/CustomerPropertySelect'
@@ -29,7 +29,7 @@ import { useTierUsage } from '../lib/useTierUsage'
 import DispatchJobDialog from '../components/scheduling/DispatchJobDialog'
 import { getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
 import { hasActiveJobAppointment, jobInvoiceAction, jobNeedsStatusUpdate, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, linkedJobInvoiceAction, nextJobAction, type JobStatus } from '../lib/jobActions'
-import CustomerPicker from '../components/CustomerPicker'
+import JobCustomerPicker from '../components/JobCustomerPicker'
 
 type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
@@ -73,7 +73,6 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [directoryQuery,setDirectoryQuery]=useState('')
   useEffect(()=>{const timer=window.setTimeout(()=>setDirectoryQuery(directorySearch),200);return()=>window.clearTimeout(timer)},[directorySearch])
   const accessKey=[business.id,business.role,business.access_modules?.join(',')].join(':')
-  const customerCache=useRef<{scope:string;rows:Customer[]}|null>(null)
   const useDirectory=workspace==='jobs'&&layout!=='overview'
   const useOverview=workspace==='jobs'&&layout==='overview'
   const [overviewData,setOverviewData]=useState<Awaited<ReturnType<typeof getJobsOverview>>|null>(null)
@@ -113,11 +112,11 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     setShowForm(true)
   }
 
-  async function refresh(background=false,directoryOnly=false) {
+  async function refresh(background=false,_directoryOnly=false) {
     const request = ++requestId.current
     if(!background)setLoading(true)
     try {
-    const [jobResult, customerRows, linkedJob] = await Promise.all([useDirectory?getJobDirectoryPage(business.id,{customerId:customerScope,filter:quickFilter||group,workerId:teamScheduling&&workerFilter!=='all'?workerFilter:undefined,search:directoryQuery,page:directoryPage}):useOverview?getJobsOverview(business.id,customerScope,teamScheduling&&workerFilter!=='all'?workerFilter:undefined):Promise.resolve(null), directoryOnly&&customerCache.current?.scope===accessKey?Promise.resolve(customerCache.current.rows):listCustomers(business.id), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
+    const [jobResult, customerRows, linkedJob] = await Promise.all([useDirectory?getJobDirectoryPage(business.id,{customerId:customerScope,filter:quickFilter||group,workerId:teamScheduling&&workerFilter!=='all'?workerFilter:undefined,search:directoryQuery,page:directoryPage}):useOverview?getJobsOverview(business.id,customerScope,teamScheduling&&workerFilter!=='all'?workerFilter:undefined):Promise.resolve(null), customerScope?searchJobCustomers(business.id,'',customerScope).then(d=>d.selected?[d.selected]:[]):Promise.resolve([]), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
     if (!mounted.current || request !== requestId.current) return
     if (linkedJob) {
       setDetailsJob({id:linkedJob.id,initialPhotos:query.get('tab')==='photos-expenses',initialSchedule:requestedSchedule.current})
@@ -125,7 +124,6 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       setGroup('all'); setQuickFilter(null); requestedJob.current = null
     }
     if(useDirectory){const page=jobResult as Awaited<ReturnType<typeof getJobDirectoryPage>>;setDirectory(page);setJobs(page.items as Job[])}else if(useOverview){const summary=jobResult as Awaited<ReturnType<typeof getJobsOverview>>;setOverviewData(summary);setJobs([...new Map([...summary.focus,...summary.agenda].map(j=>[j.id,j])).values()] as Job[])}else setJobs([])
-    customerCache.current={scope:accessKey,rows:customerRows as Customer[]}
     setOverviewRevision(v=>v+1)
     setCustomers(customerRows as Customer[])
     setError('')
@@ -275,7 +273,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       {showForm && <FormDialog label={jobFormLabel} busy={busy} onClose={closeJobForm}>
         <div className="modal-head"><div><p className="eyebrow">New job</p><h2>{jobFormLabel}</h2></div><button className="icon-button" onClick={closeJobForm} aria-label="Close" type="button">×</button></div>
         <form className="form-grid" onSubmit={submit}>
-          <CustomerPicker customers={customers} value={form.customer_id} required disabled={busy} onChange={customer_id => setForm(prev => ({ ...prev, customer_id, property_id: '' }))} />
+          <JobCustomerPicker key={accessKey} businessId={business.id} seed={customers.find(c=>c.id===form.customer_id)} value={form.customer_id} disabled={busy} onChange={customer_id => setForm(prev => ({ ...prev, customer_id, property_id: '' }))} />
           <QuickCustomer businessId={business.id} onCreated={customer=>{setCustomers(value=>[...value,customer]);setForm(value=>({...value,customer_id:customer.id,property_id:''}))}}/>
           <CustomerPropertySelect selectSingle businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
           <label className="full">{!requireAppointment&&!form.property_id&&<span><input type="checkbox" checked={noAddress} onChange={e=>setNoAddress(e.target.checked)}/> Continue with no service address (for remote work or an address to confirm)</span>}</label>

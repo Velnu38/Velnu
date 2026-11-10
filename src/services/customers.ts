@@ -103,3 +103,11 @@ export async function createCustomerWithAddress(businessId: string, input: Custo
   if (error) throw error
   return data as { id: string }
 }
+
+export async function searchJobCustomers(businessId:string,query:string,selected='') {
+ const {data,error}=await supabase.rpc('search_job_customers',{p_business:businessId,p_query:query,p_selected:selected||null})
+ if(error)throw error
+ const valid=(c:any)=>c&&typeof c.id==='string'&&['first_name','last_name','company','email','phone'].every(k=>c[k]===null||typeof c[k]==='string')
+ if(!data||!Array.isArray(data.items)||data.items.length>8||data.items.some((c:any)=>!valid(c))||new Set(data.items.map((c:any)=>c.id)).size!==data.items.length||(data.selected!==null&&(!valid(data.selected)||data.selected.id!==selected)))throw Error('Customer suggestions could not load. Retry your search.')
+ return data as {items:import('../lib/customerSuggestions').CustomerOption[];selected:import('../lib/customerSuggestions').CustomerOption|null}
+}
