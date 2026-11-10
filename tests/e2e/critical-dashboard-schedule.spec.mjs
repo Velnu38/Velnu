@@ -1215,8 +1215,10 @@ test('owner settings invitation acceptance bypasses company creation and separat
 
 
 for (const width of [1440,390]) test(`interactive dashboard week and month calendar selects work at ${width}px`,async({page})=>{
+ // Anchor one month before leap day: elapsed navigation must not grow with wall-clock time.
+ const day=DateTime.fromISO('2028-01-15',{zone:'America/New_York'}).startOf('day')
+ await page.clock.setFixedTime(day.plus({hours:12}).toJSDate())
  await page.setViewportSize({width,height:900});await mockWorkspace(page)
- const day=DateTime.now().setZone('America/New_York').startOf('day')
  const items=[0,1,2].map((offset)=>({source_key:`job:interactive-${offset}`,title:['Kitchen installation','Oak Street repair','HVAC maintenance'][offset],description:'',starts_at:day.plus({days:offset,hours:9}).toISO(),ends_at:day.plus({days:offset,hours:11}).toISO(),status:'scheduled',document_kind:'work',document_id:id(980+offset)}))
  const calls=[]
  await page.route('**/rest/v1/calendar_work?**',r=>{calls.push(r.request().url());return r.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'0-2/3'},body:JSON.stringify(items)})})
