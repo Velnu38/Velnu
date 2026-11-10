@@ -1,0 +1,844 @@
+{
+  "recorded_at": "2026-11-10T01:55:52.083Z",
+  "timezone": "America/New_York",
+  "candidate_commit": "0bb6ff2963edea6bfeae97cafefaa8f6836a398e",
+  "candidate_tree": "474c26c57ceec7c6ee46db375be66bb278b95540",
+  "release_branch": "ux/private-testing-20261029",
+  "prior_release": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "prior_deployment": "dpl_2ZZ8fPGmhCg8af9K3b94NzUzSNkb",
+  "project": "finviant-office",
+  "supabase_project": "xvybcmyoblfgzokaifsx",
+  "new_migrations": [],
+  "schema_count_before": 129,
+  "source_reviewed": true,
+  "independent_review": false,
+  "merged": true,
+  "deployed": true,
+  "private_beta": true,
+  "provider_activation_changed": false,
+  "live_provider_acceptance": false,
+  "physical_device_acceptance": false,
+  "full_migration_replay": false,
+  "test_summary": {
+    "typescript": {
+      "runtime": "Node 22.23.4",
+      "local": 526,
+      "hosted": 526,
+      "passed": true
+    },
+    "chromium": {
+      "journeys": 401,
+      "shards": 6,
+      "passed": true
+    },
+    "native_handoffs": {
+      "journeys": 5,
+      "browser": "Pinned Playwright Chromium",
+      "passed": true,
+      "real_messages": false
+    },
+    "startup": {
+      "checks": 58,
+      "passed": true
+    },
+    "recovery": {
+      "checks": 56,
+      "passed": true
+    },
+    "javascript": {
+      "checks": 159,
+      "passed": true,
+      "overlaps_other_suites": true
+    },
+    "deno": {
+      "unit_checks": 60,
+      "stress_scenarios_test": 1,
+      "pdf_and_fin_source_typecheck": true,
+      "passed": true
+    },
+    "dom": {
+      "shards": 4,
+      "passed": true
+    },
+    "webkit": {
+      "shards": 4,
+      "complete": true,
+      "physical_device": false,
+      "passed": true,
+      "jobs": [
+        {
+          "job_id": 129565523045,
+          "passed": 23
+        },
+        {
+          "job_id": 129565523164,
+          "passed": 23
+        },
+        {
+          "job_id": 129565522812,
+          "passed": 23
+        },
+        {
+          "job_id": 129565522978,
+          "passed": 23
+        }
+      ],
+      "journeys": 92
+    }
+  },
+  "rollback": {
+    "archive_commit": "3a1a68cc8b72451f783411b589db82a16da0de1c",
+    "archive_branch": "ops/finviant-beta-rollback-20261110",
+    "frontend": "dpl_2ZZ8fPGmhCg8af9K3b94NzUzSNkb"
+  },
+  "runtime_packages": [
+    {
+      "name": "document-pdf",
+      "verify_jwt": false,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "8fa6e08df6bffc6bbaff9345a8c2e8c372897a068b433a243c1445f540d1c19e"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-document-email",
+      "verify_jwt": true,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "8755cd0d04ccba7d7480a8612e2d8d48ab5c0828abdde43e9659432f3fb6eded"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-invoice-email",
+      "verify_jwt": true,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "e479e6d8d5a7e10e722a45adc864be848534c6f6c56544ac57d4e2e150d0ecb2"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-invoice-reminder",
+      "verify_jwt": true,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "85e047a07c8f894422486a32640eea18d04f285e5233274a5dd1dcc73e3fc377"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "email-recovery-worker",
+      "verify_jwt": false,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "9a31426dafb5e9abe30982e6c7be5ba4ab2bc1a330207afc505ea3eeae071619"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "tier-delivery-worker",
+      "verify_jwt": false,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "cf29310d10804b9e48b29505d7f0bb4daba7658a4afb5ed09b1cbbbbea58e07e"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "work-scheduling",
+      "verify_jwt": false,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "7315a81c79a2335059fd6f2ef4e5c2e2d02b7ab353ffccf3702c575f5eb8295f"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "business-card-delivery",
+      "verify_jwt": true,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "7562a791e652e965e2b3aedb207ae65deae60b9435961a3b5fa36cc82cbfd03c"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-business-card",
+      "verify_jwt": true,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "ff577df6180d7fd7d6c9caddc6c333b0d1520fcff815c603e2d7feb6e6570478"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "fin-workflow",
+      "verify_jwt": true,
+      "entrypoint_path": "functions/fin-workflow/index.ts",
+      "file_hashes": [
+        {
+          "path": "functions/_shared/providerRequest.ts",
+          "sha256": "b469ab40e2d6e652a7c9814bff050e02d5df6b118c7afa43a6e24584d4cd3077"
+        },
+        {
+          "path": "functions/fin-assistant/core.ts",
+          "sha256": "5ba670cb071a4df0842d12964ca725b1532c30e0a9220b4353afa5e09894b4f2"
+        },
+        {
+          "path": "functions/fin-workflow/accountFields.ts",
+          "sha256": "e87568a4a3e5c98a3e57a1d96e223b8ef46f81ad44bdb6fc16714d14e31cd4bf"
+        },
+        {
+          "path": "functions/fin-workflow/catalog.ts",
+          "sha256": "2b6ec211275087ae08ae7cca473266e844c1d7dec63ddae3b512f094fcf7cd32"
+        },
+        {
+          "path": "functions/fin-workflow/handler.ts",
+          "sha256": "aefe905e7ffba138111101fcfde2b8afb8f263675d379e41e800fde10cfa51b7"
+        },
+        {
+          "path": "functions/fin-workflow/index.ts",
+          "sha256": "7a3fe3f1effc42f3020a271f5c923ad2fa6ad8bb167693b04be98ac8d006b7fa"
+        },
+        {
+          "path": "functions/fin-workflow/productKnowledge.ts",
+          "sha256": "ca7b15a3691ebf6ae7ba344cd0e20e9795901a6ed5478d6f6acfe6f132f87d6b"
+        },
+        {
+          "path": "functions/fin-workflow/protocol.ts",
+          "sha256": "2c506593b45ef8e549ef4df82e8d3819904afdc4bb0339e6ae98bbe77dfe5085"
+        }
+      ]
+    }
+  ],
+  "pdf_inspection": [
+    {
+      "name": "invoice",
+      "sha256": "7bc53b7d8f5c5d4af056a851003b6ead66b36ba43be70202a2453a58e2049e15",
+      "template": "finviant-document-3",
+      "visually_inspected": true,
+      "synthetic": true
+    },
+    {
+      "name": "estimate",
+      "sha256": "2e18b536576b5e7007774ac470fae9c93d7c7d9ce403b6e7b8807cc59bba8cee",
+      "template": "finviant-document-3",
+      "visually_inspected": true,
+      "synthetic": true
+    },
+    {
+      "name": "long-zero-tax",
+      "sha256": "18c4970fd6b7906f6e23ad3cd8a2cfba3ec4e841935e4a9a25fa3ee61872ea80",
+      "template": "finviant-document-3",
+      "visually_inspected": true,
+      "synthetic": true
+    }
+  ],
+  "browser_layout": {
+    "jobs_phone": {
+      "client_width": 373,
+      "scroll_width": 373
+    },
+    "availability_phone": {
+      "client_width": 375,
+      "scroll_width": 375,
+      "smallest_day_target": {
+        "width": 343,
+        "height": 110
+      }
+    },
+    "availability_desktop": {
+      "client_width": 1280,
+      "scroll_width": 1280
+    },
+    "synthetic": true
+  },
+  "remaining_gates": [
+    "Clean full PostgreSQL/Supabase migration replay and required-check settings",
+    "Genuine two-tenant hosted session acceptance",
+    "Manager-only PR69 execution reconciliation and prepared customer reminders",
+    "Controlled real-provider and physical-device acceptance",
+    "Public/commercial/App Store cutover authorization"
+  ],
+  "hosted_workflows": [
+    {
+      "id": 42736044529,
+      "name": "Finviant assessment maintenance",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 27,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044529/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044529/logs",
+      "workflow_id": 411347780
+    },
+    {
+      "id": 42736044409,
+      "name": "Finviant authentication access checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 42,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044409/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044409/logs",
+      "workflow_id": 411428425
+    },
+    {
+      "id": 42736044499,
+      "name": "Customer contact checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 15,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044499/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044499/logs",
+      "workflow_id": 409270642
+    },
+    {
+      "id": 42736044787,
+      "name": "More navigation checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 21,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044787/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044787/logs",
+      "workflow_id": 408498985
+    },
+    {
+      "id": 42736044524,
+      "name": "Home screen checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 23,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044524/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044524/logs",
+      "workflow_id": 407682118
+    },
+    {
+      "id": 42736044470,
+      "name": "Document design checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 25,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044470/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044470/logs",
+      "workflow_id": 412649935
+    },
+    {
+      "id": 42736044592,
+      "name": "Pricing tier checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 41,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044592/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044592/logs",
+      "workflow_id": 409491131
+    },
+    {
+      "id": 42736044420,
+      "name": "Guided scheduling workflow",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 169,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044420/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044420/logs",
+      "workflow_id": 405043978
+    },
+    {
+      "id": 42736044661,
+      "name": "Complete automated test checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 13,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044661/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044661/logs",
+      "workflow_id": 412718053
+    },
+    {
+      "id": 42736044482,
+      "name": "Voice review delivery checks",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 72,
+      "jobs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044482/jobs",
+      "logs_url": "https://api.github.com/repos/Velnu38/Velnu/actions/runs/42736044482/logs",
+      "workflow_id": 407053262
+    }
+  ],
+  "release_commit": "b2fe20ce0b9d36806b7e94231eed962322eb6f55",
+  "release_tree": "474c26c57ceec7c6ee46db375be66bb278b95540",
+  "merge_tree_matches_tested_candidate": true,
+  "deployment": {
+    "id": "dpl_FR471eC4y8xzy3PQGiSDBytcJFiq",
+    "url": "https://finviant-office-3bwq2vmpl-mbarone5-1747.vercel.app",
+    "state": "READY",
+    "target": null,
+    "environment_guard": "Environment isolation checked: preview",
+    "startup_checks_passed": 58,
+    "aliases": [
+      {
+        "alias": "finviant.com",
+        "deployment_id": "dpl_FR471eC4y8xzy3PQGiSDBytcJFiq",
+        "existing_protection_override_preserved": true
+      },
+      {
+        "alias": "www.finviant.com",
+        "deployment_id": "dpl_FR471eC4y8xzy3PQGiSDBytcJFiq",
+        "existing_protection_override_preserved": true
+      }
+    ]
+  },
+  "deployed_functions": [
+    {
+      "name": "document-pdf",
+      "version_before": 1,
+      "version_after": 2,
+      "verify_jwt": false,
+      "ezbr_sha256": "86a917ce6abf3e42b032416fa7165bc04c720612dc752be3053efce13a615ea5",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:08.041Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "8fa6e08df6bffc6bbaff9345a8c2e8c372897a068b433a243c1445f540d1c19e"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-document-email",
+      "version_before": 18,
+      "version_after": 19,
+      "verify_jwt": true,
+      "ezbr_sha256": "3773815a8239bbeeb9e50fc4c2141b9c1e79d95e1f3f27f6a9c44d24c2289a70",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:14.339Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "8755cd0d04ccba7d7480a8612e2d8d48ab5c0828abdde43e9659432f3fb6eded"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-invoice-email",
+      "version_before": 17,
+      "version_after": 18,
+      "verify_jwt": true,
+      "ezbr_sha256": "f3e3eda6a02a8daba9ac439197717729f3f9dca206c6f63ef48d1049ba1c5d85",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:20.405Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "e479e6d8d5a7e10e722a45adc864be848534c6f6c56544ac57d4e2e150d0ecb2"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-invoice-reminder",
+      "version_before": 11,
+      "version_after": 12,
+      "verify_jwt": true,
+      "ezbr_sha256": "a6e4e4fbfec2fa447c3efb9ac53c0a0a473f9d1f713198f5491aae57a9375cb4",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:26.228Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "85e047a07c8f894422486a32640eea18d04f285e5233274a5dd1dcc73e3fc377"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "email-recovery-worker",
+      "version_before": 14,
+      "version_after": 15,
+      "verify_jwt": false,
+      "ezbr_sha256": "74459be3f540523d97643e424463d31bb9bee4bf12809e38c3b9655c56d32a0f",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:32.255Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "9a31426dafb5e9abe30982e6c7be5ba4ab2bc1a330207afc505ea3eeae071619"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "tier-delivery-worker",
+      "version_before": 11,
+      "version_after": 12,
+      "verify_jwt": false,
+      "ezbr_sha256": "79ac9122ae7eb0c75bbf626178654df3889df9cd75a90f71ea17b063af7e6486",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:39.319Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "cf29310d10804b9e48b29505d7f0bb4daba7658a4afb5ed09b1cbbbbea58e07e"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "work-scheduling",
+      "version_before": 12,
+      "version_after": 13,
+      "verify_jwt": false,
+      "ezbr_sha256": "50aaa249b04ff6b2225f9e51c256c0b5ec1499ca96067e8fb89386ac835ddd2d",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:46.325Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "7315a81c79a2335059fd6f2ef4e5c2e2d02b7ab353ffccf3702c575f5eb8295f"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "business-card-delivery",
+      "version_before": 1,
+      "version_after": 2,
+      "verify_jwt": true,
+      "ezbr_sha256": "d8d8e2fcd3b6c1197756f2ee1667e854a634b7a78190a2659f4323a47efd2661",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:47:53.130Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "7562a791e652e965e2b3aedb207ae65deae60b9435961a3b5fa36cc82cbfd03c"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "send-business-card",
+      "version_before": 1,
+      "version_after": 2,
+      "verify_jwt": true,
+      "ezbr_sha256": "1e59b46b418a6ac7df178da986c947b8eead33e0b05770feb709267e3ae3c340",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:48:00.474Z",
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "ff577df6180d7fd7d6c9caddc6c333b0d1520fcff815c603e2d7feb6e6570478"
+        },
+        {
+          "path": "font-data.ts",
+          "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ]
+    },
+    {
+      "name": "fin-workflow",
+      "version_before": 13,
+      "version_after": 14,
+      "verify_jwt": true,
+      "ezbr_sha256": "46d7438c197077e0c0770dd2034615c2a2cae965be12e7b57cfbada3cc5904cc",
+      "status": "ACTIVE",
+      "source_roundtrip_verified": true,
+      "deployment_response_error": false,
+      "verified_at": "2026-11-10T01:48:05.926Z",
+      "file_hashes": [
+        {
+          "path": "functions/_shared/providerRequest.ts",
+          "sha256": "b469ab40e2d6e652a7c9814bff050e02d5df6b118c7afa43a6e24584d4cd3077"
+        },
+        {
+          "path": "functions/fin-assistant/core.ts",
+          "sha256": "5ba670cb071a4df0842d12964ca725b1532c30e0a9220b4353afa5e09894b4f2"
+        },
+        {
+          "path": "functions/fin-workflow/accountFields.ts",
+          "sha256": "e87568a4a3e5c98a3e57a1d96e223b8ef46f81ad44bdb6fc16714d14e31cd4bf"
+        },
+        {
+          "path": "functions/fin-workflow/catalog.ts",
+          "sha256": "2b6ec211275087ae08ae7cca473266e844c1d7dec63ddae3b512f094fcf7cd32"
+        },
+        {
+          "path": "functions/fin-workflow/handler.ts",
+          "sha256": "aefe905e7ffba138111101fcfde2b8afb8f263675d379e41e800fde10cfa51b7"
+        },
+        {
+          "path": "functions/fin-workflow/index.ts",
+          "sha256": "7a3fe3f1effc42f3020a271f5c923ad2fa6ad8bb167693b04be98ac8d006b7fa"
+        },
+        {
+          "path": "functions/fin-workflow/productKnowledge.ts",
+          "sha256": "ca7b15a3691ebf6ae7ba344cd0e20e9795901a6ed5478d6f6acfe6f132f87d6b"
+        },
+        {
+          "path": "functions/fin-workflow/protocol.ts",
+          "sha256": "2c506593b45ef8e549ef4df82e8d3819904afdc4bb0339e6ae98bbe77dfe5085"
+        }
+      ]
+    }
+  ],
+  "frontend_http": [
+    {
+      "host": "finviant.com",
+      "status": 200,
+      "url": "https://finviant.com/",
+      "robots": "noindex, nofollow, noarchive",
+      "cache_control": "private, no-store, max-age=0",
+      "scripts": [
+        "/assets/index-Dp7yWN1d.js",
+        "/startup-recovery.js"
+      ]
+    },
+    {
+      "host": "www.finviant.com",
+      "status": 200,
+      "url": "https://www.finviant.com/",
+      "robots": "noindex, nofollow, noarchive",
+      "cache_control": "private, no-store, max-age=0",
+      "scripts": [
+        "/assets/index-Dp7yWN1d.js",
+        "/startup-recovery.js"
+      ]
+    }
+  ],
+  "edge_http": [
+    {
+      "function": "document-pdf",
+      "method": "GET",
+      "status": 405,
+      "allow_origin": null,
+      "cache_control": "private, no-store, max-age=0",
+      "body": "{\"error\":\"Use POST to open a document PDF.\"}"
+    },
+    {
+      "function": "document-pdf",
+      "method": "OPTIONS",
+      "status": 204,
+      "allow_origin": "https://finviant.com",
+      "cache_control": "private, no-store, max-age=0",
+      "body": ""
+    },
+    {
+      "function": "document-pdf",
+      "method": "OPTIONS",
+      "status": 403,
+      "allow_origin": null,
+      "cache_control": "private, no-store, max-age=0",
+      "body": "{\"error\":\"This app address is not authorized.\"}"
+    },
+    {
+      "function": "fin-workflow",
+      "method": "POST",
+      "status": 401,
+      "allow_origin": "*",
+      "cache_control": null,
+      "body": "{\"code\":\"UNAUTHORIZED_NO_AUTH_HEADER\",\"message\":\"Missing authorization header\"}"
+    }
+  ],
+  "fixture_exclusion": [
+    {
+      "path": "/tests/invoice.html",
+      "status": 404,
+      "fixture_markup_exposed": false
+    },
+    {
+      "path": "/tests/operations/preview.html",
+      "status": 404,
+      "fixture_markup_exposed": false
+    },
+    {
+      "path": "/tmp/operations-review/preview.html",
+      "status": 404,
+      "fixture_markup_exposed": false
+    }
+  ],
+  "browser_runtime": {
+    "url": "https://finviant.com/?view=dashboard",
+    "sign_in_screen_verified": true,
+    "private_beta_notice_verified": true,
+    "signed_in_journey_verified": false
+  },
+  "readiness_record_location": "Operational archive; deployed application source remains the exact checked tree.",
+  "schema_count_after": 129
+}
