@@ -38,10 +38,6 @@ jobs:
         run: npx playwright test tests/e2e/platform-admin.spec.mjs --workers=2 --reporter=list
         env:
           FINVIANT_TEST_CHANNEL: chrome
-      - name: Guided flow and existing critical browser regressions
-        run: npx playwright test --workers=2
-        env:
-          FINVIANT_TEST_CHANNEL: chrome
       - name: Private Stripe and Twilio testing controls
         run: npx playwright test --config=playwright.integrations.config.mjs
         env:
@@ -50,5 +46,34 @@ jobs:
         if: always()
         with:
           name: guided-scheduling-results
+          path: test-results/
+          retention-days: 7
+
+  browser-regressions:
+    name: Full browser regression (${{ matrix.shard }}/6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      # Every test still runs. Independent shards expose the whole suite even if
+      # a focused check fails and avoid exhausting one shared 20-minute budget.
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Full browser regression
+        run: npx playwright test --fully-parallel --workers=2 --shard=${{ matrix.shard }}/6
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: guided-browser-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 7

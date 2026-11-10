@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { createWork } from './navigation.mjs'
 import { mock, B, C, E, P, J } from './audit-fixture.mjs'
 const other='99999999-9999-4999-8999-999999999999'
 const version='2026-11-04T15:00:00Z'
@@ -9,6 +10,11 @@ async function setup(page,{conflict=false,failCreate=false,deleteConflict=false}
  const writes=[],reads=[]
  const reply=(r,data,status=200)=>r.fulfill({status,contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':Array.isArray(data)?`0-${Math.max(0,data.length-1)}/${data.length}`:'0-0/1'},body:JSON.stringify(data)})
  const filtered=(data,q)=>data.filter(row=>['id','customer_id'].every(key=>!q.has(key)||q.get(key)==='eq.'+row[key]))
+ await page.route('**/rest/v1/rpc/get_job_workflow_context',r=>{
+  const body=r.request().postDataJSON()
+  expect(body.p_business).toBe(B)
+  return reply(r,body.p_jobs.filter(id=>[J,E,other].includes(id)).map(job_id=>({job_id,active_appointment:null,invoice:null})))
+ })
  await page.route('**/rest/v1/customers?**',r=>{
   const q=new URL(r.request().url()).searchParams
   if(r.request().method()==='PATCH'){
@@ -60,7 +66,7 @@ for(const width of [1440,390])test(`snapshot routes only selected customer recor
  for(const [kind,view] of [['jobs','work'],['estimates','estimates'],['invoices','invoices']]){
   await page.getByRole('link',{name:`View ${kind} for Jane Doe`}).click();await expect(page).toHaveURL(new RegExp(`view=${view}&customer=${C}`))
   await expect(page.getByLabel('Customer filter')).toContainText('Jane Doe')
-  if(kind==='jobs'){await expect(page.getByText('Jane current job',{exact:true})).toBeVisible();await expect(page.getByText('Jane completed job',{exact:true})).toBeVisible();await expect(page.getByText('Other customer job',{exact:true})).toHaveCount(0)}
+  if(kind==='jobs'){await page.locator('.jobs-filter-panel > summary').click();await page.getByRole('navigation',{name:'Job timing'}).getByRole('button',{name:/^All /}).click();await expect(page.getByText('Jane current job',{exact:true})).toBeVisible();await expect(page.getByText('Jane completed job',{exact:true})).toBeVisible();await expect(page.getByText('Other customer job',{exact:true})).toHaveCount(0)}
   else {await expect(page.locator('.module-record-list')).toContainText(kind==='invoices'?'INV-JANE':'EST-JANE');await expect(page.locator('.module-record-list')).not.toContainText('OTHER')}
   const request=reads.filter(r=>r.table===kind).at(-1);expect(request.q.business_id).toBe('eq.'+B);expect(request.q.customer_id).toBe('eq.'+C)
   await page.getByRole('link',{name:'Back to customer',exact:true}).click();await expect(snapshot).toBeVisible()
@@ -89,7 +95,7 @@ test('additional addresses stay with their customer and are available when selec
  await page.getByRole('button',{name:'+ Add address',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add address',exact:true})
  await dialog.getByLabel('Location name (optional)',{exact:true}).fill('Rental');await dialog.getByLabel('Street address',{exact:true}).fill('789 Rental Street');await dialog.getByRole('button',{name:'Save address',exact:true}).click();await expect(dialog).toHaveCount(0)
  await expect(page.getByText('123 Example Street',{exact:true})).toBeVisible();await expect(page.getByText('789 Rental Street',{exact:true})).toBeVisible();expect(locations).toHaveLength(2);expect(writes[0].body.customer_id).toBe(C);expect(writes[0].body.business_id).toBe(B)
- await page.goto('/?view=work&new=1');await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+C+'"]').click();await expect(page.getByLabel('Service location',{exact:true}).getByRole('option',{name:/789 Rental Street/})).toHaveCount(1)
+ await createWork(page,'job');await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+C+'"]').click();await expect(page.getByLabel('Service location',{exact:true}).getByRole('option',{name:/789 Rental Street/})).toHaveCount(1)
 })
 
 for(const width of [390,1440])test(`customer rows have visible dividers, last-name labels and keyboard access at ${width}px`,async({page})=>{

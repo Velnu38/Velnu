@@ -26,6 +26,10 @@ async function mockFinance(page, opts={}) {
     state.requests.push({ path, method, body, query: Object.fromEntries(new URL(request.url()).searchParams) })
     const json = (payload, status=200, total=Array.isArray(payload) ? payload.length : 1) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-range', 'content-range': '0-' + Math.max(0, (Array.isArray(payload) ? payload.length : 1) - 1) + '/' + total }, body: JSON.stringify(payload) })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if (path.endsWith('/rpc/get_private_beta_access')) return json({allowed:true})
+    if (path.endsWith('/rpc/get_membership_entry')) return json(businessId)
+    if (path.endsWith('/rpc/business_onboarding_status')) return json({required:false,completed:true})
+    if (path.endsWith('/rpc/get_plan_usage')) return json({plan:'pro',financial_history:true,ai_limit:0,voice_limit:0})
     if (path.endsWith('/get_dashboard_invoice_totals')) return json({open_invoices:0,outstanding_balance:0})
     if (path.endsWith('/user')) return json(user)
     if (path.endsWith('/user_plan_preferences')) return json({ user_id: '33333333-3333-4333-8333-333333333333', selected_tier: 'free' })
@@ -35,6 +39,11 @@ async function mockFinance(page, opts={}) {
       if (body.action === 'status') return json({ configured: state.configured, connected: state.connected, environment: 'sandbox', company_id: state.connected ? '123456' : null, last_sync_at: null, last_sync_count: 0, callback_url: 'https://example.supabase.co/functions/v1/quickbooks' })
       if (body.action === 'sync') return json({ success: true, rows_processed: 2, last_sync_at: '2026-10-26T18:00:00Z', limited: false, since: '2026-07-28' })
       if (body.action === 'disconnect') { state.connected = false; return json({ disconnected: true }) }
+    }
+    if (path.endsWith('/rpc/list_invoice_cash_activity')) {
+      expect(body.p_business).toBe(businessId)
+      const rows=[{id:payment.id,invoice_id:'77777777-7777-4777-8777-777777777777',invoice_number:payment.invoices.invoice_number,amount:payment.amount,direction:'income',currency:'USD',method:payment.method,occurred_at:payment.paid_at}].filter(row=>(!body.p_from||row.occurred_at>=body.p_from)&&(!body.p_to||row.occurred_at<body.p_to))
+      return json(rows)
     }
     if (path.endsWith('/payments')) return json([payment])
     if (path.endsWith('/bookkeeping_entries')) {
@@ -75,7 +84,7 @@ test('workbook totals and CSV include entries beyond the first API page', async 
   const state = await mockFinance(page,{manualRows:rows})
   await page.goto('/?view=dashboard')
   await openWorkArea(page, 'Bookkeeping')
-  await page.getByLabel('Period').selectOption('all')
+  await page.getByRole('combobox',{name:/^Period/}).selectOption('all')
   await expect(page.locator('.bookkeeping-overview article').nth(1).locator('strong')).toHaveText('$1,001.00')
   await expect(page.getByText('QA expense 1000',{exact:true})).toBeVisible()
   const downloaded = page.waitForEvent('download')

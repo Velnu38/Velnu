@@ -95,16 +95,19 @@ try{
  assert.ok(document.querySelector('iframe'))
  snapshot.payment_links=[{provider:'paypal',url:'https://paypal.me/TestBusiness'}]
  await mount(Customer,{token:T},'customer-manual-current')
- assert.match(document.body.textContent,/Pay with PayPal/,'current lower-tier invoices retain manual payment options')
+ const manualPayment=()=>document.querySelector('a[href^="https://paypal.me/TestBusiness"]')
+ assert.ok(manualPayment(),'current lower-tier invoices retain manual payment options')
+ assert.equal(manualPayment().href,'https://paypal.me/TestBusiness/25.00USD','manual links request only the current outstanding balance')
+ assert.equal(manualPayment().target,'_blank');assert.equal(manualPayment().rel,'noopener noreferrer')
  for(const state of ['superseded','void','unavailable','expired']){
   snapshot.action_state=state
   await mount(Customer,{token:T},'customer-manual-'+state)
-  assert.doesNotMatch(document.body.textContent,/Pay with PayPal/,'historical or unavailable copies cannot invite another payment')
+  assert.equal(manualPayment(),null,'historical or unavailable copies cannot invite another payment')
  }
  snapshot.action_state='read_only'
  snapshot.revision_id=undefined
  await mount(Customer,{token:T},'customer-legacy-history')
- assert.doesNotMatch(document.body.textContent,/Pay with PayPal/,'legacy history with no canonical revision cannot request another payment')
+ assert.equal(manualPayment(),null,'legacy history with no canonical revision cannot request another payment')
  snapshot.revision_id=R
  snapshot.pro_actions_enabled=true
  await mount(Customer,{token:T},'customer-pro')
@@ -112,7 +115,7 @@ try{
  assert.equal(button('Pay invoice'),undefined,'missing merchant setup cannot pretend to accept payments')
  paymentState='review_required'
  await mount(Customer,{token:T},'customer-review-required')
- assert.doesNotMatch(document.body.textContent,/Pay with PayPal/,'reconciliation blocks manual payment shortcuts as well as automatic checkout')
+ assert.equal(manualPayment(),null,'reconciliation blocks manual payment shortcuts as well as automatic checkout')
  paymentState='not_connected'
 
  await mount(Approval,{token:T},'approval')

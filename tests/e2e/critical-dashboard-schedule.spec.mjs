@@ -1,7 +1,8 @@
-import { createWork } from './navigation.mjs'
+import { createWork, openWorkArea } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import { test, expect } from '@playwright/test'
 import { DateTime } from 'luxon'
+import { fulfillPdf, PDF_REVISION } from './document-pdf-fixture.mjs'
 
 // Mock-only integration tests. No production login, email, billing, or database writes.
 // The existing Playwright config supplies the fake Supabase URL.
@@ -53,7 +54,7 @@ async function mockWorkspace(page, options = {}) {
     attentionNow: options.attentionNow,
     workflow: options.workflow || {approved:[],completed:[]}, attentionFailure:false, attentionDelay:0,
     requests: [],
-    photos: [], expenses: [], photoLoadFailures: options.photoLoadFailures || 0, storageWrites: 0, uploadedReceipts: new Set(), receiptUploadFailures: options.receiptUploadFailures || 0,
+    photos: [], expenses: [], photoReadError: Boolean(options.photoReadError), photoLoadFailures: options.photoLoadFailures || 0, storageWrites: 0, uploadedReceipts: new Set(), receiptUploadFailures: options.receiptUploadFailures || 0,
     savedJobs: new Map(),
     aggregate: options.aggregate ?? { open_invoices: 0, outstanding_balance: 0 },
     aggregateFailures: options.aggregateFailures || 0,
@@ -82,7 +83,17 @@ async function mockWorkspace(page, options = {}) {
     })
     if (path.endsWith('/auth/v1/user')) return reply(user)
     if (path.endsWith('/rpc/get_private_beta_access')) return reply({allowed:true})
+    if (path.endsWith('/rpc/business_onboarding_status')) return reply({required:false,completed:true})
+    if (path.endsWith('/functions/v1/document-pdf')) return fulfillPdf(route)
+    if (path.endsWith('/rpc/get_invoice_payment_operations')) return reply({state:'clear',operations:[],refunds:[]})
+    if (path.endsWith('/rpc/get_estimate_workflow_context')) return reply(body.p_estimates.flatMap(estimateId=>{
+      const estimate=state.estimates.find(row=>row.id===estimateId)
+      if(!estimate)return []
+      const job=state.jobs.find(row=>row.id===estimate.job_id)||null
+      return [{estimate_id:estimateId,job,appointment:state.appointments.find(row=>row.job_id===job?.id)||null,schedule:null,invitation:null,final_invoice_id:state.invoices.find(row=>row.estimate_id===estimateId&&!row.deposit_estimate_id)?.id||null}]
+    }))
     if (path.endsWith('/rpc/get_membership_entry')) return reply(BID)
+    if (path.endsWith('/rpc/get_worker_roster')) return reply({workers:[],active_count:0,worker_limit:5,plan:options.plan||'free'})
     if (path.endsWith('/rpc/get_schedule_team')) return reply(state.role==='viewer'?[]:[{id:UID,label:'QA Owner',role:state.role,is_you:true}])
     if (path.endsWith('/rpc/get_dashboard_attention_page')) {
       if(state.attentionFailure)return fail('Attention unavailable')
@@ -121,6 +132,7 @@ async function mockWorkspace(page, options = {}) {
         scheduled_start: body.payload.scheduled_start, scheduled_end: body.payload.scheduled_end,
       }
       state.savedJobs.set(body.request_id, row)
+      state.jobs.push({...row,customers:customer})
       state.appointments.push({
         id: row.appointment_id, job_id: row.id, business_id: row.business_id,
         customer_id: row.customer_id, title: row.title, status: 'scheduled',
@@ -137,7 +149,32 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/customers')) return reply(req.headers().accept?.includes('vnd.pgrst.object')?state.customers.find(c=>c.id===url.searchParams.get('id')?.replace('eq.','')):state.customers)
     if (path.endsWith('/properties')) return reply([])
     if (path.endsWith('/rpc/get_document_change_context')) return reply({can_change:true})
+    if (path.endsWith('/rpc/get_job_workflow_context')) {
+      expect(body.p_business).toBe(BID)
+      return reply(body.p_jobs.flatMap(jobId=>{
+        const job=state.jobs.find(row=>row.id===jobId)
+        if(!job)return []
+        const current=state.appointments.find(row=>row.job_id===jobId&&['scheduled','confirmed','in_progress'].includes(row.status))
+        const active_appointment=current||(['scheduled','in_progress'].includes(job.status)&&job.scheduled_start?{id:job.id,starts_at:job.scheduled_start,ends_at:job.scheduled_end||null,status:job.status==='in_progress'?'in_progress':'scheduled'}:null)
+        return [{job_id:jobId,active_appointment,invoice:state.invoices.find(row=>row.job_id===jobId)||null}]
+      }))
+    }
+    if (path.endsWith('/rpc/update_appointment_workflow')) {
+      if(state.appointmentPatchError)return fail('Unable to update schedule')
+      const row=state.appointments.find(appointment=>appointment.id===body.p_appointment)
+      if(!row)return fail('Appointment no longer available')
+      row.status=body.p_status
+      return reply({appointment_id:row.id,status:row.status,job_id:row.job_id||null})
+    }
     if (path.endsWith('/jobs')) {
+      if(method==='PATCH'){
+        const row=state.jobs.find(job=>job.id===url.searchParams.get('id')?.replace('eq.',''))
+        if(!row)return reply(null)
+        const previous=url.searchParams.get('description')
+        if(previous&&(previous==='is.null'?row.description!=null:row.description!==previous.slice(3)))return reply(null)
+        Object.assign(row,body)
+        return reply({id:row.id})
+      }
       if (req.headers().accept?.includes('vnd.pgrst.object')) return reply(state.jobs.find(job => job.id === url.searchParams.get('id')?.replace('eq.','')))
       if (method === 'POST') {
         if (state.jobError) return fail('Unable to create job')
@@ -165,7 +202,8 @@ async function mockWorkspace(page, options = {}) {
         if (row) Object.assign(row, body)
         return reply([])
       }
-      return reply(state.appointments.filter(a => a.status !== 'canceled'))
+      const rows=state.appointments.filter(a=>a.status!=='canceled'&&(!url.searchParams.has('id')||a.id===url.searchParams.get('id').replace('eq.',''))&&(!url.searchParams.has('job_id')||a.job_id===url.searchParams.get('job_id').replace('eq.','')))
+      return reply(req.headers().accept?.includes('vnd.pgrst.object')?rows[0]||null:rows)
     }
     if (path.endsWith('/reminders')) {
       if (method === 'POST') {
@@ -208,6 +246,7 @@ async function mockWorkspace(page, options = {}) {
       return reply({ path: attachment })
     }
     if (path.endsWith('/record_photos')) {
+      if (method === 'GET' && state.photoReadError) return fail('Photos temporarily unavailable.')
       if (method === 'GET' && state.photoLoadFailures > 0) { state.photoLoadFailures--; return fail('Photos temporarily unavailable.') }
       if (method === 'POST') { state.photos.push({ ...body, created_by: UID, storage_path: `${BID}/${body.id}.jpg`, created_at: new Date().toISOString() }); return reply(null, 201) }
       if (method === 'DELETE') { const target = url.searchParams.get('id')?.replace('eq.', ''); const deleted = state.photos.filter(p => p.id === target); state.photos = state.photos.filter(p => p.id !== target); return reply(deleted) }
@@ -245,6 +284,7 @@ async function mockWorkspace(page, options = {}) {
       return reply(matches.slice(Number(url.searchParams.get('offset') || 0), Number(url.searchParams.get('offset') || 0) + Number(url.searchParams.get('limit') || 10)), 200, matches.length)
     }
     if (path.endsWith('/estimates')) {
+      if(req.headers().accept?.includes('vnd.pgrst.object'))return reply(state.estimates.find(row=>row.id===url.searchParams.get('id')?.replace('eq.','')))
       const matches = url.searchParams.has('customer_id') ? state.estimates.filter(e=>e.customer_id===url.searchParams.get('customer_id').replace('eq.','')) : url.searchParams.has('status') ? state.estimates.filter(e => e.status === url.searchParams.get('status').replace('eq.', '')) : state.estimates
       return reply(matches.slice(Number(url.searchParams.get('offset') || 0), Number(url.searchParams.get('offset') || 0) + Number(url.searchParams.get('limit') || 10)), 200, matches.length)
     }
@@ -299,7 +339,7 @@ for(const width of [1440,390])test(`calendar reminder management edits and resch
   await page.screenshot({path:`test-results/reminder-editor-${width}.png`,fullPage:true})
   await dialog.getByRole('button',{name:'Save changes',exact:true}).click()
   await expect(dialog).toHaveCount(0)
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(attentionCount(page)).toHaveText('0')
   expect(state.reminders).toHaveLength(1);expect(row.due_at).toBe(date.toUTC().toISO());expect(row.note).toBe('Collect materials at the supplier')
   await expect(calendar.getByRole('button',{name:/Open reminder Collect materials/})).toHaveCount(0)
   await calendar.getByRole('button',{name:new RegExp('^'+date.toLocaleString(DateTime.DATE_FULL)+',')}).click()
@@ -312,22 +352,22 @@ for(const width of [1440,390])test(`calendar reminder management edits and resch
 
 test('calendar reminder management completes, reopens and confirms deletion across calendar and attention',async({page})=>{
   const {state,row,calendar,dialog}=await managedReminders(page)
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+  await expect(attentionCount(page)).toHaveText('1')
   await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
   await dialog.getByRole('button',{name:'Mark complete',exact:true}).click()
-  await expect(dialog).toHaveCount(0);await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(dialog).toHaveCount(0);await expect(attentionCount(page)).toHaveText('0')
   await expect(calendar.locator('.calendar-reminders li.completed')).toContainText('Check supply order')
   await calendar.getByRole('button',{name:/Open reminder Check supply order/}).click()
   await expect(dialog.getByLabel('Remind me on',{exact:true})).toBeDisabled()
   await dialog.getByRole('button',{name:'Reopen reminder',exact:true}).click()
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1');expect(row.completed_at).toBeNull()
+  await expect(attentionCount(page)).toHaveText('1');expect(row.completed_at).toBeNull()
   await page.getByRole('region',{name:'Needs Attention',exact:true}).getByRole('button',{name:/Open reminder Check supply order/}).click()
   await dialog.getByRole('button',{name:'Delete reminder',exact:true}).click()
   expect(count(state,'/reminders','PATCH')).toBe(2)
   await dialog.getByRole('button',{name:'Keep reminder',exact:true}).click()
   await dialog.getByRole('button',{name:'Delete reminder',exact:true}).click()
   await dialog.getByRole('group',{name:'Confirm reminder deletion'}).getByRole('button',{name:'Delete reminder',exact:true}).click()
-  await expect(dialog).toHaveCount(0);await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(dialog).toHaveCount(0);await expect(attentionCount(page)).toHaveText('0')
   await expect(calendar.getByRole('button',{name:/Open reminder Check supply order/})).toHaveCount(0)
   expect(row.status).toBe('canceled');expect(count(state,'/reminders','DELETE')).toBe(0)
 })
@@ -372,6 +412,7 @@ test('calendar reminder management rejects DST gaps and duplicate-hour times wit
   }
   expect(count(state,'/reminders','PATCH')).toBe(0)
 })
+const attentionCount = page => page.getByRole('group',{name:'Home work queue'}).getByRole('button',{name:/^Needs Attention /}).locator('span')
 const count = (s, suffix, method) => s.requests.filter(r => r.path.endsWith(suffix) && (!method || r.method === method)).length
 const openDashboard = async (page, options) => {
   const state = await mockWorkspace(page, options)
@@ -381,13 +422,12 @@ const openDashboard = async (page, options) => {
 }
 const openSchedule = async (page, options) => {
   const state = await mockWorkspace(page, options)
-  await page.goto('/?view=dashboard')
   await page.goto('/?view=schedule')
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   return state
 }
 const showForm = async page => {
-  await page.getByRole('button', { name: 'Book existing job', exact: true }).click()
+  await page.getByRole('button', { name: 'Book or reschedule job', exact: true }).click()
   await page.getByRole('link', { name: 'Create scheduled job', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toBeVisible()
 }
@@ -424,7 +464,7 @@ test('02 Strict Mode concurrent initial loads share one invoice summary call', a
 test('03 null aggregate values display zero safely', async ({ page }) => {
   await openDashboard(page, { aggregate: { open_invoices: null, outstanding_balance: null } })
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
-  await expect(page.locator('.dashboard-work-grid')).not.toContainText('NaN')
+  await expect(page.locator('.home-overview')).not.toContainText('NaN')
 })
 
 test('04 large financial summary stays server-side without an unbounded invoice scan', async ({ page }) => {
@@ -484,8 +524,8 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
       due_date: '2020-01-01', issue_date: '2019-12-01', status: 'sent', total: 15, customers: customer,
     }))
     const state = await openDashboard(page, { invoices })
-    const tile = page.getByRole('article', { name: 'Estimates and invoices overview' })
-    await tile.getByRole('button', { name: /Needs Attention 14 Review next steps/ }).click()
+    const tile = page.getByRole('article', { name: 'Needs attention overview' })
+    await tile.getByRole('group',{name:'Home work queue'}).getByRole('button', { name: /^Needs Attention 14$/ }).click()
     await expect(tile.getByRole('region', { name: 'Needs Attention' }).getByRole('listitem')).toHaveCount(5)
     await expect(tile).toContainText('Jane Doe')
     await expect(tile).toContainText('INV-1')
@@ -498,7 +538,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await page.getByRole('button', { name: 'Refresh', exact: true }).click()
     await expect(tile.getByText('No items need attention.')).toBeVisible()
     await expect(tile.locator('.invoice-overdue-badge')).toHaveCount(0)
-    await tile.getByRole('button', { name: /^Invoices/ }).click()
+    await page.getByRole('navigation').getByRole('button', { name:'Invoices',exact:true }).click()
     await expect(page.getByRole('heading', { name: 'Know what’s owed and get paid faster.' })).toBeVisible()
   })
 }
@@ -515,40 +555,40 @@ test('09 completing reminder persists its status and removes it from attention l
 
 test('dashboard attention updates immediately when a calendar reminder is completed', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+  await expect(attentionCount(page)).toHaveText('1')
   const calendar = page.getByRole('region', { name: 'Work calendar' })
   await page.getByRole('region', { name: 'Needs Attention', exact: true }).getByRole('button', { name: 'Complete Call customer 1', exact: true }).click()
   await expect(calendar.getByText('Call customer 1', { exact: true })).toHaveCount(0)
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(attentionCount(page)).toHaveText('0')
   expect(count(state, '/reminders', 'PATCH')).toBe(1)
 })
 
 test('a failed calendar reminder update keeps the attention count and retry action', async ({ page }) => {
   await openDashboard(page, { reminders: [reminder()], reminderError: true })
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+  await expect(attentionCount(page)).toHaveText('1')
   const calendar = page.getByRole('region', { name: 'Work calendar' })
   await page.getByRole('region', { name: 'Needs Attention', exact: true }).getByRole('button', { name: 'Complete Call customer 1', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Needs Attention', exact: true }).getByRole('alert')).toContainText('Unable to complete this reminder')
   await expect(page.getByRole('region', { name: 'Needs Attention', exact: true }).getByText('Call customer 1', { exact: true })).toBeVisible()
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+  await expect(attentionCount(page)).toHaveText('1')
 })
 
 test('returning to the dashboard refreshes attention after another worker resolves a reminder', async ({ page }) => {
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+  await expect(attentionCount(page)).toHaveText('1')
   state.reminders[0].status = 'completed'
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(attentionCount(page)).toHaveText('0')
   await expect(page.getByRole('region', { name: 'Work calendar' }).getByText('Call customer 1', { exact: true })).toHaveCount(0)
 })
 
 test('the visible dashboard refreshes attention in the background without a reload', async ({ page }) => {
   await page.clock.install()
   const state = await openDashboard(page, { reminders: [reminder()] })
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('1')
+  await expect(attentionCount(page)).toHaveText('1')
   state.reminders[0].status = 'completed'
   await page.clock.fastForward('00:31')
-  await expect(page.locator('.billing-metric.overdue strong')).toHaveText('0')
+  await expect(attentionCount(page)).toHaveText('0')
 })
 
 test('10 failing reminder update displays error and does not hide the reminder', async ({ page }) => {
@@ -578,9 +618,9 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
     status: 'sent', total: 50, issue_date: '2026-10-02', customers: customer,
   }))
   const state = await openDashboard(page, { estimates, changeOrders })
-  const tile = page.getByRole('article', { name: 'Estimates and invoices overview' })
-  await tile.getByRole('button', { name: /Awaiting approval 20/ }).click()
-  await expect(tile.getByRole('region', { name: 'Customer approvals' }).getByRole('listitem')).toHaveCount(5)
+  const tile = page.getByRole('article', { name: 'Needs attention overview' })
+  await tile.getByRole('group',{name:'Home work queue'}).getByRole('button', { name: /^Awaiting Customer Approval 20/ }).click()
+  await expect(tile.getByRole('region', { name: 'Awaiting Customer Approval' }).getByRole('listitem')).toHaveCount(5)
   await expect(tile).toContainText('EST-0')
   await expect(tile).toContainText('Jane Doe')
   await expect(tile).toContainText('Showing 1–5 of 20')
@@ -595,7 +635,7 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
   await page.getByRole('button', { name: 'Refresh', exact: true }).click()
   await expect(tile).toContainText('No estimates or change orders are waiting for approval.')
   await expect(tile.locator('.estimate-approval-badge')).toHaveCount(0)
-  await tile.getByRole('button', { name: /^Estimates/ }).click()
+  await page.getByRole('navigation').getByRole('button', { name:'Estimates',exact:true }).click()
   await expect(page.getByRole('heading', { name: 'Quote the work without the paperwork.' })).toBeVisible()
 })
 
@@ -608,7 +648,7 @@ test('13 empty schedule shows its empty state', async ({ page }) => {
 
 test('14 viewers cannot schedule work or update an existing appointment', async ({ page }) => {
   const state = await openSchedule(page, { role: 'viewer', appointments: [appointment()] })
-  await expect(page.getByRole('button', { name: 'Book existing job' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Book or reschedule job' })).toHaveCount(0)
   await expect(page.locator('.appointment-row select')).toBeDisabled()
   expect(count(state, '/appointments', 'PATCH')).toBe(0)
 })
@@ -619,8 +659,9 @@ test('15 missing customer blocks job creation', async ({ page }) => {
   await page.getByLabel('Job title', { exact: true }).fill('No customer')
   await page.getByLabel('Starts').fill(localDatetime())
   await page.getByRole('button', { name: 'Schedule job' }).click()
-  await expect(page.locator('.modal form select').first()).toBeVisible()
+  await expect(page.getByRole('dialog').getByRole('combobox',{name:'Customer',exact:true})).toBeVisible()
   expect(count(state, '/jobs', 'POST')).toBe(0)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
 })
 
 test('16 blank title blocks job creation', async ({ page }) => {
@@ -631,6 +672,7 @@ test('16 blank title blocks job creation', async ({ page }) => {
   await page.getByLabel('Starts').fill(localDatetime())
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
   await expect(page.getByLabel('Job title', { exact: true })).toBeVisible()
 })
 
@@ -642,6 +684,7 @@ test('17 missing start time blocks job creation', async ({ page }) => {
   await page.getByLabel('Job title', { exact: true }).fill('No time')
   await page.getByRole('button', { name: 'Schedule job' }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
 })
 
 test('18 end time before start is rejected without a database write', async ({ page }) => {
@@ -650,6 +693,7 @@ test('18 end time before start is rejected without a database write', async ({ p
   await page.getByRole('button', { name: 'Schedule job' }).click()
   await expect(page.getByText('End time must be after the start time')).toBeVisible()
   expect(count(state, '/jobs', 'POST')).toBe(0)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
 })
 
 test('19 zero-minute appointment is rejected at the equality boundary', async ({ page }) => {
@@ -658,6 +702,7 @@ test('19 zero-minute appointment is rejected at the equality boundary', async ({
   await page.getByRole('button', { name: 'Schedule job' }).click()
   await expect(page.getByText('End time must be after the start time')).toBeVisible()
   expect(count(state, '/jobs', 'POST')).toBe(0)
+  expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
 })
 
 test('20 valid schedule submits local date values as UTC and does not duplicate job creation', async ({ page }) => {
@@ -714,7 +759,8 @@ test('24 successful status change updates the appointment exactly once', async (
   const state = await openSchedule(page, { appointments: [appointment()] })
   await page.locator('.appointment-row select').selectOption('confirmed')
   await expect.poll(() => state.appointments[0].status).toBe('confirmed')
-  expect(count(state, '/appointments', 'PATCH')).toBe(1)
+  expect(count(state, '/rpc/update_appointment_workflow', 'POST')).toBe(1)
+  expect(count(state, '/appointments', 'PATCH')).toBe(0)
 })
 
 test('25 failed status change reports an error and leaves stored status unchanged', async ({ page }) => {
@@ -733,8 +779,10 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
   await openSchedule(page, { jobs, appointments: [appointment()] })
   await expect(page.locator('.appointment-row')).toContainText('Visit 1')
   await page.goto('/?view=work')
-  await expect(page.getByRole('region', { name: 'current jobs' })).toContainText('Current repair')
-  await expect(page.getByRole('region', { name: 'current jobs' })).not.toContainText('Future repair')
+  await expect(page.getByRole('region', { name: 'active jobs' })).toContainText('Current repair')
+  await expect(page.getByRole('region', { name: 'active jobs' })).toContainText('Future repair')
+  await expect(page.getByRole('region', { name: 'active jobs' })).not.toContainText('Completed repair')
+  await page.locator('.jobs-filter-panel>summary').click()
   await page.getByRole('button', { name: /Upcoming/ }).click()
   await expect(page.getByRole('region', { name: 'upcoming jobs' })).toContainText('Future repair')
   await page.getByRole('button', { name: /History/ }).click()
@@ -746,7 +794,8 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
 for (const width of [1280, 390]) test(`Add entry creates reminders from the schedule tile at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 })
   const state = await openDashboard(page, { reminders: Array.from({ length: 18 }, (_, n) => reminder(n)) })
-  await expect(page.locator('.dashboard-work-grid > article')).toHaveCount(2)
+  await expect(page.getByRole('region',{name:'Financial Performance',exact:true})).toBeVisible()
+  await expect(page.getByRole('article',{name:'Needs attention overview',exact:true})).toBeVisible()
   const tile = page.getByRole('region', { name: 'Work calendar' })
   await expect(page.getByRole('heading', { name: 'Reminders due', exact: true })).toHaveCount(0)
   await expect(tile.getByRole('button', { name: '+ Reminder', exact: true })).toHaveCount(0)
@@ -828,24 +877,23 @@ test('calendar widget fits a phone without horizontal overflow', async ({ page }
   const logo=page.locator('.dashboard-business-header').getByRole('img',{name:'Barone Landscaping and Property Maintenance logo'})
   await expect(logo).toBeVisible()
   await expect.poll(()=>logo.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0)
-  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Quick Links',exact:true}).boundingBox()).y)
+  const header=await page.locator('.dashboard-business-header').boundingBox(),quickLinks=await page.getByRole('button',{name:'Quick Links',exact:true}).boundingBox();expect((await heading.boundingBox()).y).toBeGreaterThanOrEqual(header.y);expect(quickLinks.y).toBeGreaterThanOrEqual(header.y);expect(quickLinks.y+quickLinks.height).toBeLessThanOrEqual(header.y+header.height+1)
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 
-test('dashboard layout uses the business name, puts financials and calendar above work, and opens jobs from the tile', async ({ page }) => {
+test('dashboard layout uses the business name, presents calendar and financials together, and opens Jobs through navigation', async ({ page }) => {
   await openDashboard(page)
   const heading=page.getByRole('heading',{level:1,name:'Velnu QA',exact:true})
   await expect(heading).toBeVisible()
   await expect(page.locator('.dashboard-business-header')).not.toContainText(/your attention|caught up|organized/i)
   await expect(page.locator('.dashboard-business-header img')).toHaveCount(0)
-  expect((await heading.boundingBox()).y).toBeLessThan((await page.getByRole('button',{name:'Quick Links',exact:true}).boundingBox()).y)
+  const header=await page.locator('.dashboard-business-header').boundingBox(),quickLinks=await page.getByRole('button',{name:'Quick Links',exact:true}).boundingBox();expect((await heading.boundingBox()).y).toBeGreaterThanOrEqual(header.y);expect(quickLinks.y).toBeGreaterThanOrEqual(header.y);expect(quickLinks.y+quickLinks.height).toBeLessThanOrEqual(header.y+header.height+1)
   const calendar = page.getByRole('region', { name: 'Work calendar' })
-  const workAreas = page.getByRole('region', { name: 'Work areas' })
-  expect((await calendar.boundingBox()).y).toBeLessThan((await workAreas.boundingBox()).y)
-  const jobs = page.getByRole('article', { name: 'Jobs overview' })
-  await expect(jobs).not.toContainText('Reminders')
-  await expect(jobs).not.toContainText('schedule')
-  await jobs.getByRole('button', { name: /Active jobs/ }).click()
+  const financial=page.getByRole('region',{name:'Financial Performance',exact:true}),attention=page.getByRole('article',{name:'Needs attention overview',exact:true})
+  await expect(calendar).toBeVisible();await expect(financial).toBeVisible();await expect(attention).toBeVisible()
+  expect(await calendar.evaluate((el)=>Boolean(el.compareDocumentPosition(document.querySelector('.financial-performance')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
+  await expect(page.getByRole('article',{name:'Jobs overview',exact:true})).toHaveCount(0)
+  await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
   await expect(page.getByRole('heading', { name: 'Jobs', exact:true })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Jobs and schedule views' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '+ New job', exact: true })).toHaveCount(0)
@@ -863,12 +911,13 @@ for (const kind of ['job', 'estimate', 'invoice']) {
       issue_date: todayISO(), due_date: todayISO(), subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100 }
     const state = await mockWorkspace(page, { jobs: [record], estimates: [record], invoices: [record] })
     const openRecord = async () => {
-      await page.goto(kind === 'invoice' ? `/?view=invoices&document=${recordId}` : `/?view=${kind === 'job' ? 'work' : 'estimates'}`)
+      await page.goto(kind === 'job' ? '/?view=work' : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
       if (kind === 'job') {
         await page.getByRole('button', { name: 'Open job', exact: true }).click()
         await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
-      } else if (kind === 'estimate') await page.getByRole('button', { name: 'Photos and expenses for EST-701' }).click()
-      else await page.getByRole('button',{name:'Photos & expenses',exact:true}).click()
+      } else if (kind === 'estimate') {
+        await page.getByRole('dialog',{name:'Estimate preview'}).getByRole('tab',{name:'Photos & expenses',exact:true}).click()
+      } else await page.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
     }
     await openRecord()
     const panel = page.getByRole('region', { name: 'Photos and expenses' })
@@ -920,7 +969,7 @@ test('record resources: viewer cannot upload photos or add expenses', async ({ p
 test('record resources: Calendar opens job tabs, preserves notes and retries only the failed photo list', async ({ page }) => {
   const start = DateTime.now().setZone('America/New_York').set({hour:10,minute:0}).toISO()
   const job = {id:id(704),title:'Calendar receipt job',status:'scheduled',description:'Original notes',scheduled_start:start,customer_id:CID,customers:customer}
-  const state = await mockWorkspace(page,{jobs:[job],photoLoadFailures:1})
+  const state = await mockWorkspace(page,{jobs:[job],photoReadError:true})
   await page.setViewportSize({width:390,height:844})
   await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({
     json:[{source_key:'job:'+job.id,title:job.title,starts_at:start,ends_at:null,status:'scheduled',document_kind:'work',document_id:job.id,job_id:job.id}],
@@ -931,17 +980,27 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
   const dialog = page.getByRole('dialog',{name:'Job details',exact:true})
   const notes = dialog.getByLabel('Job notes and materials needed')
   await notes.fill('Unsaved calendar notes')
-  await dialog.getByRole('tab',{name:'Job details',exact:true}).press('ArrowRight')
+  await dialog.getByRole('tab',{name:'Details',exact:true}).press('ArrowRight')
+  await expect(dialog.getByRole('tab',{name:'Work plan',exact:true})).toHaveAttribute('aria-selected','true')
+  await dialog.getByRole('tab',{name:'Work plan',exact:true}).press('ArrowRight')
   await expect(dialog.getByRole('tab',{name:'Photos & expenses',exact:true})).toHaveAttribute('aria-selected','true')
   const resources = dialog.getByRole('region',{name:'Photos and expenses'})
   await expect(resources.getByText('No expenses yet.')).toBeVisible()
   await expect(resources.getByRole('alert')).toContainText('Photos temporarily unavailable')
+  // Development Strict Mode can repeat initial reads. Only the explicit photo
+  // retry must add one photo request and leave the settled expense list alone.
+  const expenseReads=()=>state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))
+  const photoReads=()=>state.requests.filter(request=>request.path.endsWith('/record_photos')&&request.method==='GET')
+  const expensesBefore=expenseReads().length,photosBefore=photoReads().length
+  expect(expensesBefore).toBeGreaterThan(0);expect(photosBefore).toBeGreaterThan(0)
+  state.photoReadError=false
   await resources.getByRole('button',{name:'Try photos again',exact:true}).click()
   await expect(resources.getByText('No photos yet.')).toBeVisible()
-  expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))).toHaveLength(1)
+  expect(photoReads()).toHaveLength(photosBefore+1)
+  expect(expenseReads()).toHaveLength(expensesBefore)
   await expect(resources.getByRole('button',{name:/refresh/i})).toHaveCount(0)
   await expect(resources.getByRole('progressbar')).toHaveCount(0)
-  await dialog.getByRole('tab',{name:'Job details',exact:true}).click()
+  await dialog.getByRole('tab',{name:'Details',exact:true}).click()
   await expect(notes).toHaveValue('Unsaved calendar notes')
 })
 
@@ -951,8 +1010,8 @@ test('record resources: an invoice links directly to its job photos without copy
   const state = await mockWorkspace(page,{jobs:[job],invoices:[invoice]})
   state.expenses.push({id:id(707),business_id:BID,job_id:job.id,direction:'expense',entry_date:receiptDay(),amount:25,category:'Materials',description:'One job receipt',currency:'USD'})
   await page.goto('/?view=invoices&document='+invoice.id)
-  await page.locator('.invoice-hero').getByRole('button',{name:'Photos & expenses',exact:true}).click()
-  const invoicePanel = page.getByRole('dialog',{name:'INV-706 photos and expenses'})
+  await page.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
+  const invoicePanel = page.getByRole('tabpanel',{name:'Photos & expenses',exact:true})
   await expect(invoicePanel.getByText('No expenses yet.')).toBeVisible()
   await invoicePanel.getByRole('link',{name:'View linked job photos & expenses'}).click()
   const jobDialog = page.getByRole('dialog',{name:'Job details',exact:true})
@@ -973,58 +1032,60 @@ for (const width of [1440, 390]) {
       customers:{first_name:null,last_name:null,company:'Acme Corp'}, jobs:{title:'HVAC installation'} }))
     const jobs = [{id:id(850),title:'Kitchen renovation',status:'in_progress',customers:customer},{id:id(851),title:'Water heater replacement',status:'scheduled',customers:customer},{id:id(852),title:'Plumbing maintenance',status:'lead',customers:customer}]
     await openDashboard(page, { invoices, estimates, jobs, aggregate:{open_invoices:5,outstanding_balance:2250} })
-    const hub = page.getByRole('article', {name:'Estimates and invoices overview'})
-    await expect(hub.getByText('$2,250.00',{exact:true})).toBeVisible()
-    expect(await hub.getByText('$2,250.00',{exact:true}).evaluate(el => el.getBoundingClientRect().height <= Number.parseFloat(getComputedStyle(el).fontSize)*1.5)).toBe(true)
-    await expect(page.locator('.dashboard-work-grid>article')).toHaveCount(2)
-    const attention = hub.getByRole('region',{name:'Needs Attention'})
+    const hub = page.getByRole('article', {name:'Needs attention overview'})
+    const switcher=hub.getByRole('group',{name:'Home work queue'})
+    await expect(switcher.getByRole('button',{name:'Needs Attention 5',exact:true})).toBeVisible()
+    await expect(switcher.getByRole('button',{name:/^Awaiting Customer Approval 2/})).toBeVisible()
+    await expect(page.getByRole('region',{name:'Financial Performance',exact:true})).toBeVisible()
+    const attention=hub.getByRole('region',{name:'Needs Attention',exact:true})
     await expect(attention.getByRole('listitem')).toHaveCount(5)
     await expect(attention).toContainText('Overdue')
-    await expect(attention).toContainText('Awaiting approval')
-    await expect(hub).toContainText('Showing 1–5 of 7')
-    await expect(hub.getByRole('button',{name:'Estimates',exact:true})).toBeVisible()
-    await expect(hub.getByRole('button',{name:'Invoices',exact:true})).toBeVisible()
-    const jobWidget=page.getByRole('article',{name:'Jobs overview'})
-    await expect(jobWidget.locator('.jobs-active-count')).toHaveText('3')
-    const activeBox=jobWidget.getByRole('button',{name:/Active jobs/})
-    await expect(activeBox).toBeEnabled()
-    await expect(jobWidget.getByRole('button')).toHaveCount(1)
-    await expect(jobWidget.getByRole('button',{name:'Open jobs',exact:true})).toHaveCount(0)
-    const activeBounds=await activeBox.boundingBox(),summaryBounds=await jobWidget.locator('.jobs-summary').boundingBox()
-    expect(Math.abs(activeBounds.width-summaryBounds.width)).toBeLessThan(1)
-    await expect(page.locator('.sidebar,.mobile-nav,.mobile-more-grid').getByRole('button',{name:'Jobs',exact:true})).toHaveCount(1)
+    await expect(attention).not.toContainText('INV-805')
+    await expect(hub).toContainText('Showing 1–5 of 5')
+    await switcher.getByRole('button',{name:/^Awaiting Customer Approval 2/}).click()
+    const approvals=hub.getByRole('region',{name:'Awaiting Customer Approval',exact:true})
+    await expect(approvals.getByRole('listitem')).toHaveCount(2)
+    await expect(approvals).not.toContainText('EST-822')
+    await expect(approvals.getByRole('link',{name:'Open estimate EST-820 for Acme Corp'})).toHaveAttribute('href',`/?view=estimates&document=${id(820)}`)
+    await expect(page.getByRole('article',{name:'Jobs overview'})).toHaveCount(0)
+    await expect(page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true})).toHaveCount(1)
     await page.getByRole('button',{name:'Quick Links',exact:true}).click()
-    await expect(page.getByRole('link',{name:'+ New job',exact:true})).toHaveCount(1)
+    await expect(page.getByRole('navigation',{name:'Create work and quick links'}).getByRole('link',{name:'+ New job',exact:true})).toHaveCount(1)
     await page.getByRole('dialog',{name:'Quick Links',exact:true}).getByRole('button',{name:'Close',exact:true}).click()
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
     await expect(page.locator('.financial-transactions')).toHaveCount(0)
     await expect(page.getByRole('heading',{name:'Tell Finviant Office what needs to get done.'})).toHaveCount(0)
     await page.screenshot({path:`test-results/dashboard-billing-${width}.png`,fullPage:true})
-    await hub.getByRole('button',{name:'Recent',exact:true}).click()
-    const recent=hub.getByRole('region',{name:'Recent documents'})
-    await expect(recent.getByRole('listitem')).toHaveCount(5)
-    await expect(recent.getByRole('listitem').first()).toContainText('INV-805')
-    await expect(recent.getByRole('listitem').first()).toContainText('Paid')
-    await expect(recent).toContainText('Draft')
-    await expect(recent).toContainText('HVAC installation')
-    await expect(recent.getByRole('link',{name:'Open estimate EST-822 for Acme Corp'})).toHaveAttribute('href',`/?view=estimates&document=${id(822)}`)
-    await recent.getByRole('link',{name:'Open invoice INV-805 for Jane Doe'}).click()
-    await expect(page.getByRole('heading',{name:'INV-805',exact:true}).first()).toBeVisible()
+    await approvals.getByRole('link',{name:'Open estimate EST-820 for Acme Corp'}).click()
+    await expect(page.getByRole('dialog',{name:'Estimate preview'})).toBeVisible()
+    expect(new URL(page.url()).searchParams.get('document')).toBe(id(820))
+    await page.goto('/?view=estimates')
+    await expect(page.locator('.module-record-list').getByRole('article').filter({hasText:'EST-822'})).toContainText('Draft')
+    await page.goto('/?view=invoices')
+    const outstanding=page.getByRole('button',{name:/Total Outstanding/})
+    await expect(outstanding).toContainText('$2,250.00')
+    expect(await outstanding.locator('strong').evaluate(el=>el.getBoundingClientRect().height<=Number.parseFloat(getComputedStyle(el).fontSize)*1.5)).toBe(true)
+    const paid=page.locator('.module-record-list').getByRole('article').filter({hasText:'INV-805'})
+    await expect(paid).toContainText('Paid')
+    await paid.getByRole('button',{name:'Open invoice INV-805 for Jane Doe',exact:true}).click()
+    await expect(page.getByRole('heading',{name:'INV-805',exact:true})).toBeVisible()
     expect(new URL(page.url()).searchParams.get('document')).toBe(id(805))
+    await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
+    await expect(page.getByRole('region',{name:'active jobs',exact:true}).getByRole('article')).toHaveCount(3)
   })
 }
 
 test('billing hub empty state and finance restrictions stay honest', async ({page})=>{
   const state=await openDashboard(page)
-  const hub=page.getByRole('article',{name:'Estimates and invoices overview'})
+  const hub=page.getByRole('article',{name:'Needs attention overview'})
   await expect(hub.getByText('No items need attention.')).toBeVisible()
   await page.screenshot({path:'test-results/dashboard-billing-empty.png',fullPage:true})
-  await hub.getByRole('button',{name:'Recent',exact:true}).click()
-  await expect(hub).toContainText('No estimates or invoices yet.')
+  await hub.getByRole('group',{name:'Home work queue'}).getByRole('button',{name:/^Awaiting Customer Approval 0/}).click()
+  await expect(hub).toContainText('No estimates or change orders are waiting for approval.')
   state.role='technician';state.aggregate={open_invoices:5,outstanding_balance:98765}
   await page.reload()
   await expect(hub).toHaveCount(0)
-  await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'Financial Performance',exact:true})).toHaveCount(0)
   await expect(page.locator('body')).not.toContainText('$98,765')
 })
 
@@ -1050,7 +1111,7 @@ for (const width of [1440,390]) test(`owner settings navigation is clear at ${wi
  await page.route('**/rest/v1/business_settings?**',r=>{if(r.request().method()==='POST')writes.push(r.request().postDataJSON());return r.fulfill({contentType:'application/json',body:JSON.stringify({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})})})
  await page.route('**/rest/v1/businesses?**',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({...business,...r.request().postDataJSON()})}))
  await page.goto('/?view=settings')
- for(const label of ['Company Profile','Team & Access','Invoice & Estimate Setup','Calendar Connections','Subscription'])await expect(page.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
+ for(const label of ['Company Profile','Team Management','Invoice & Estimate Setup','Calendar Connections','Subscription'])await expect(page.getByRole('link',{name:new RegExp('^'+label)})).toBeVisible()
  await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
  await page.getByRole('link',{name:/^Invoice & Estimate Setup/}).click()
  await page.getByLabel('Default tax rate (%)').fill('5.3')
@@ -1070,7 +1131,7 @@ test('owner settings invites reserve a seat and permissions are editable only th
  await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(team)}))
  await page.route('**/rest/v1/rpc/manage_team_member',r=>{changes.push(r.request().postDataJSON());return r.fulfill({contentType:'application/json',body:'null'})})
  await page.route('**/functions/v1/team-management',r=>{const b=r.request().postDataJSON();changes.push(b);team.invitations.push({id:id(903),email:b.email,role:b.role,access_modules:b.modules,expires_at:'2026-11-09T12:00:00Z'});return r.fulfill({contentType:'application/json',body:JSON.stringify({url:'https://finviant.com/auth?invite='+'a'.repeat(64),email_status:'unconfirmed',expires_at:'2026-11-09'})})})
- await page.goto('/?view=settings');await page.getByRole('link',{name:/^Team & Access/}).click()
+ await page.goto('/?view=settings');await page.getByRole('link',{name:/^Team Management/}).click();await page.getByRole('navigation',{name:'Team management sections'}).getByRole('button',{name:'Account Access',exact:true}).click()
  await expect(page.getByText('2 of 5 seats')).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await page.screenshot({path:'test-results/team-settings-phone.png',fullPage:true})
@@ -1089,19 +1150,20 @@ test('owner settings invites reserve a seat and permissions are editable only th
 test('owner settings five-seat capacity blocks a sixth invitation',async({page})=>{
  await mockWorkspace(page,{plan:'pro'})
  await page.route('**/rest/v1/rpc/get_team_settings',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({seat_limit:5,pro:true,members:Array.from({length:5},(_,n)=>({user_id:id(n),email:`member${n}@example.test`,role:n?'office':'owner',primary_owner:n===0,access_modules:[]})),invitations:[]})}))
- await page.goto('/?view=settings');await page.getByRole('link',{name:/^Team & Access/}).click()
+ await page.goto('/?view=settings');await page.getByRole('link',{name:/^Team Management/}).click();await page.getByRole('navigation',{name:'Team management sections'}).getByRole('button',{name:'Account Access',exact:true}).click()
  await expect(page.getByText('5 of 5 seats')).toBeVisible();await expect(page.getByRole('button',{name:'Send invitation'})).toHaveCount(0)
 })
 
 test('owner settings restricted staff cannot open hidden modules or owner controls',async({page})=>{
  const state=await mockWorkspace(page,{role:'office',accessModules:['jobs']});await page.goto('/?view=dashboard')
- await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
+ await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
  await expect(page.getByRole('region',{name:'Work calendar'})).toHaveCount(0)
- await expect(page.getByRole('article',{name:'Estimates and invoices overview'})).toHaveCount(0)
- await expect(page.getByRole('heading',{name:'Financial performance',exact:true})).toHaveCount(0)
+ await expect(page.getByRole('article',{name:'Needs attention overview'})).toHaveCount(0)
+ await expect(page.getByRole('heading',{name:'Financial Performance',exact:true})).toHaveCount(0)
  expect(state.requests.some(r=>r.path.endsWith('/rpc/get_dashboard_invoice_totals'))).toBe(false)
+ await openWorkArea(page,'Jobs');await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
  await page.goto('/?view=invoices');await expect(page.getByRole('alert')).toContainText('not included in your access')
- await page.goto('/?view=settings');await expect(page.getByRole('link',{name:/^Team & Access/})).toHaveCount(0);await expect(page.getByRole('link',{name:'Subscription',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
+ await page.goto('/?view=settings');await expect(page.getByRole('link',{name:/^Team Management/})).toHaveCount(0);await expect(page.getByRole('link',{name:'Subscription',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
 })
 
 test('owner settings invoice tax defaults and optional cost pricing affect preview and saved lines',async({page})=>{
@@ -1115,16 +1177,32 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await page.getByText('Tax options · 5.3% default',{exact:true}).click();await expect(page.getByLabel('Default tax rate (%)',{exact:true})).toHaveValue('5.3')
  await expect(page.locator('.estimate-total strong')).toHaveText('$105.30')
  await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.estimate-total strong')).toHaveText('$108.46')
- await page.getByRole('button',{name:'Preview',exact:true}).click();await page.getByRole('button',{name:'Save Draft',exact:true}).click();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
+ await page.getByRole('button',{name:'Preview',exact:true}).click();await expect(page.getByRole('region',{name:'Invoice PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
  await page.goto('/?view=estimates');await createWork(page, 'estimate');await page.getByText('Tax options · 5.3% default',{exact:true}).click();await expect(page.getByLabel('Default tax rate (%)',{exact:true})).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
 })
 
-test('owner settings invoice payment buttons use saved links and do not record payments',async({page})=>{
+test('saved invoice payment links appear on the customer copy and do not record payments',async({page})=>{
  const invoice={id:id(920),invoice_number:'INV-920',status:'sent',issue_date:'2026-11-02',total:100,subtotal:100,tax_amount:0,amount_paid:0,balance_due:100,customer_id:CID,customers:customer,payment_links:[{provider:'venmo',url:'https://venmo.com/business'},{provider:'paypal',url:'https://paypal.me/business'},{provider:'stripe',url:'https://buy.stripe.com/example'},{provider:'cashapp',url:'https://cash.app/$Business'}],payment_instructions:'Use invoice number INV-920.'}
  const state=await mockWorkspace(page,{invoices:[invoice]});await page.goto('/?view=invoices&document='+invoice.id)
- for(const name of ['Venmo','PayPal','Stripe','Cash App'])await expect(page.getByRole('link',{name:'Pay with '+name,exact:true})).toBeVisible()
- await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveAttribute('href','https://paypal.me/business')
+ await expect(page.getByRole('region',{name:'Issued invoice PDF'}).getByRole('button',{name:'Download PDF'})).toBeEnabled()
+ await expect(page.getByRole('link',{name:/^Pay with /})).toHaveCount(0)
+ const token='a'.repeat(64)
+ await page.route('**/rest/v1/rpc/get_shared_document',r=>{
+  expect(r.request().postDataJSON()).toEqual({p_token:token})
+  return r.fulfill({json:{...invoice,kind:'invoice',number:invoice.invoice_number,revision_id:PDF_REVISION,action_state:'payment_due',pro_actions_enabled:false,currency:'USD',company:{name:'Velnu QA',email:null,phone:null},customer:{name:'Jane Doe',email:null,phone:null},items:[]}})
+ })
+ await page.goto('/?document_share='+token)
+ const actions=page.getByRole('region',{name:'Document status and actions'})
+ await expect(actions).toContainText('Current balance: $100.00')
+ await expect(actions.getByRole('link',{name:/^Pay with /})).toHaveCount(4)
+ for(const url of ['https://venmo.com/business','https://paypal.me/business/100.00USD','https://buy.stripe.com/example?client_reference_id=INV-920','https://cash.app/$Business']){
+  const link=actions.locator(`a[href="${url}"]`).and(actions.getByRole('link',{name:/^Pay with /}))
+  await expect(link).toBeVisible();await expect(link).toHaveAttribute('href',url)
+  await expect(link).toHaveAttribute('target','_blank');await expect(link).toHaveAttribute('rel','noopener noreferrer')
+ }
+ await expect(actions).toContainText('Use invoice number INV-920.')
  expect(state.requests.some(r=>r.path.endsWith('/payments')&&r.method==='POST')).toBe(false)
+ expect(state.invoices[0].amount_paid).toBe(0);expect(state.invoices[0].balance_due).toBe(100)
 })
 
 test('owner settings cancellation uses explicit confirmation and preserves no-subscription truth',async({page})=>{
@@ -1151,7 +1229,7 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.getByRole('heading',{name:'Weekly Schedule'})).toBeVisible()
  await expect(calendar.getByRole('link',{name:/Kitchen installation/})).toBeVisible()
- await expect(calendar.getByRole('button',{name:'Today',exact:true})).toHaveCount(0)
+ await expect(calendar.getByRole('button',{name:'Today',exact:true})).toBeEnabled()
  await expect(calendar.getByRole('button',{name:/Open (calendar|schedule)/})).toHaveCount(0)
  await calendar.getByRole('button',{name:'Month',exact:true}).click()
  await expect(calendar.getByLabel('Calendar month')).toHaveCount(0)
@@ -1171,17 +1249,24 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  await calendar.getByRole('button',{name:'Next month'}).click();await expect(calendar.getByText('March 2028',{exact:true})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/interactive-calendar-month-${width}.png`,fullPage:true})
- await calendar.getByRole('button',{name:'Week',exact:true}).click();await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
+ await calendar.getByRole('button',{name:'Today',exact:true}).click();await expect(calendar.getByText(day.toFormat('MMMM yyyy'),{exact:true})).toBeVisible()
+ await calendar.getByRole('button',{name:'Week',exact:true}).click();await expect(calendar.getByLabel('Calendar date')).toHaveCount(0);await expect(calendar.getByRole('link',{name:/Kitchen installation/})).toBeVisible()
 })
 
 async function mockInteractiveFinances(page) {
  const now=DateTime.now().setZone('America/New_York').startOf('month')
  const invoice={id:id(990),invoice_number:'INV-990',status:'sent',issue_date:now.toISODate(),total:100,subtotal:100,tax_amount:0,amount_paid:0,balance_due:100,customer_id:CID,customers:customer}
  const job={id:id(991),title:'Kitchen installation',status:'in_progress',scheduled_start:null,customer_id:CID,customers:customer}
- await mockWorkspace(page,{invoices:[invoice],jobs:[job],estimates:[{id:id(992),estimate_number:'EST-992',status:'sent',total:650,issue_date:now.toISODate(),customer_id:CID,customers:customer}]})
+ await mockWorkspace(page,{plan:'pro',invoices:[invoice],jobs:[job],estimates:[{id:id(992),estimate_number:'EST-992',status:'sent',total:650,issue_date:now.toISODate(),customer_id:CID,customers:customer}]})
  const payments=[{id:id(993),invoice_id:invoice.id,amount:100,paid_at:now.plus({hours:12}).toISO(),status:'succeeded',method:'cash',invoices:{invoice_number:'INV-990'}},{id:id(994),invoice_id:invoice.id,amount:50,paid_at:now.minus({months:2}).plus({hours:12}).toISO(),status:'succeeded',method:'paypal',invoices:{invoice_number:'INV-990'}}]
  const manual=Array.from({length:32},(_,index)=>({id:id(1000+index),amount:1,entry_date:now.toISODate(),direction:'expense',description:index===0?'Copper fittings':`Materials ${index+1}`,category:'Materials',currency:'USD',job_id:index===0?job.id:null,jobs:index===0?{title:job.title}:null,notes:index===0?'Receipt from local hardware store':null}))
  manual.push({id:id(1100),amount:25,entry_date:now.minus({months:5}).toISODate(),direction:'income',description:'Consultation',category:'Service',currency:'USD'},{id:id(1101),amount:10,entry_date:now.minus({months:11}).toISODate(),direction:'expense',description:'Older tools',category:'Tools',currency:'USD'})
+ await page.route('**/rest/v1/rpc/list_invoice_cash_activity**',r=>{
+  const body=r.request().postDataJSON(),q=new URL(r.request().url()).searchParams;expect(body.p_business).toBe(BID)
+  const rows=payments.filter(row=>(!body.p_from||Date.parse(row.paid_at)>=Date.parse(body.p_from))&&(!body.p_to||Date.parse(row.paid_at)<Date.parse(body.p_to))).map(row=>({id:row.id,invoice_id:row.invoice_id,invoice_number:row.invoices.invoice_number,direction:'income',amount:row.amount,currency:'USD',method:row.method,occurred_at:row.paid_at}))
+  const offset=Number(q.get('offset')||0),limit=Number(q.get('limit')||1000),pageRows=rows.slice(offset,offset+limit)
+  return r.fulfill({json:pageRows,headers:{'access-control-expose-headers':'content-range','content-range':`${offset}-${Math.max(offset,offset+pageRows.length-1)}/${rows.length}`}})
+ })
  for(const [table,rows,dateField] of [['payments',payments,'paid_at'],['bookkeeping_entries',manual,'entry_date']])await page.route(`**/rest/v1/${table}?**`,r=>{
   const q=new URL(r.request().url()).searchParams
   expect(q.get('business_id')).toBe('eq.'+BID)
@@ -1194,7 +1279,7 @@ async function mockInteractiveFinances(page) {
 for (const width of [1440,390]) test(`interactive dashboard financial periods expand complete transactions and sources at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const {now,invoice,job}=await mockInteractiveFinances(page)
  await page.goto('/?view=dashboard')
- const finance=page.getByRole('region',{name:'Financial performance',exact:true})
+ const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
  await expect(finance.getByRole('button',{name:'1 month',exact:true})).toHaveAttribute('aria-pressed','true')
  await finance.getByRole('button',{name:'6 months',exact:true}).click()
  await finance.locator('.home-financial-trend > summary').click()
@@ -1229,9 +1314,11 @@ for (const width of [1440,390]) test(`interactive dashboard financial periods ex
 })
 test('interactive dashboard financial failure does not show invented zero totals',async({page})=>{
  await mockWorkspace(page)
- await page.route('**/rest/v1/payments?**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
+ // Receivables are a separately verified source; only cash activity fails here.
+ await page.route('**/rest/v1/rpc/get_financial_overview',r=>r.fulfill({json:{currency_supported:true,as_of:todayISO(),receivables:{invoices:0,outstanding:0,overdue:0,overdue_count:0},aging:[],customers:[],oldest:[]}}))
+ await page.route('**/rest/v1/rpc/list_invoice_cash_activity**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
  await page.goto('/?view=dashboard')
- const finance=page.getByRole('region',{name:'Financial performance',exact:true})
+ const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
  await expect(finance.getByRole('alert')).toContainText('Payments unavailable', {timeout:15000})
  await expect(finance.locator('.performance-metric.income')).toBeDisabled()
  await expect(finance.locator('.performance-metrics')).not.toContainText('$0.00')
@@ -1244,7 +1331,7 @@ test('interactive dashboard navigation does not treat an invoice link as a job l
  await page.goto('/?view=invoices&document='+invoice.id)
  await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'Home',exact:true}).click()
- await page.getByRole('button',{name:/Active jobs/}).click()
+ await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
  await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
  await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
  await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -1270,6 +1357,7 @@ for(const width of [1440,390])test(`invoice creates one linked scheduled job wit
  await page.setViewportSize({width,height:900})
  const inv={id:id(300),invoice_number:'INV-JOB',status:'sent',issue_date:'2026-11-01',due_date:'2099-01-01',subtotal:100,tax_amount:0,total:100,balance_due:100,amount_paid:0,customer_id:CID,customers:customer,job_id:null}
  const state=await mockWorkspace(page,{invoices:[inv]});await page.goto('/?view=invoices&document='+inv.id)
+ await page.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
  await page.getByRole('button',{name:'Schedule job',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Schedule job from invoice'})
  await expect(dialog).toContainText('Jane Doe');await expect(dialog).toContainText('Faucet repair × 1')
@@ -1294,14 +1382,16 @@ test('sent invoices need attention only with an unpaid balance before the busine
  for(const number of ['FUTURE','TODAY','NO-DUE','PAID','DRAFT','VOID'])await expect(attention.getByRole('link',{name:new RegExp('Open invoice INV-'+number)})).toHaveCount(0)
  const query=state.requests.find(r=>r.path.endsWith('/invoices')&&new URL(r.url).searchParams.has('due_date'))
  expect(new URL(query.url).searchParams.get('due_date')).toBe('lt.2026-11-03')
- await expect(page.locator('.billing-outstanding')).toContainText('$420.00')
+ await expect(page.getByRole('group',{name:'Needs Attention categories'}).getByRole('button',{name:'Overdue invoices 2',exact:true})).toBeVisible()
+ await page.goto('/?view=invoices');await expect(page.getByRole('button',{name:/Total Outstanding/})).toContainText('$420.00')
 })
 
 for(const width of [1440,390])test(`all attention actions use one color and size at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900})
  await mockWorkspace(page,{reminders:[reminder(700)],invoices:[{id:id(701),invoice_number:'INV-OLD',status:'sent',issue_date:'2020-01-01',due_date:'2020-01-02',total:100,balance_due:100,customers:customer}],workflow:{approved:[{id:id(702),estimate_number:'EST-READY',customer_name:'Jane Doe',offer:null}],completed:[{id:id(703),title:'Finished work',invoice_id:id(704),invoice_status:'draft'}]}})
  await page.goto('/?view=dashboard');const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
- await expect(attention.locator('.attention-action')).toHaveCount(4)
+ await expect(attention.locator('.attention-action')).toHaveCount(3)
+ await expect(attention.locator('.billing-reminder-row').getByRole('button',{name:'Send reminder',exact:true})).toBeEnabled()
  const styles=await attention.locator('.attention-action').evaluateAll(elements=>elements.map(e=>{const s=getComputedStyle(e);return [s.backgroundColor,s.color,s.fontFamily,s.fontSize,s.fontWeight,e.getBoundingClientRect().height,e.getBoundingClientRect().width]}))
  for(const style of styles){expect(style.slice(0,6)).toEqual(styles[0].slice(0,6));expect(style[0]).toBe('rgb(0, 134, 115)');expect(style[5]).toBe(44);if(width>700)expect(style[6]).toBe(176)}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
@@ -1312,17 +1402,21 @@ for(const width of [1440,390])test(`all attention actions use one color and size
 test('lost invoice scheduling response reuses the job and reports its saved schedule on retry',async({page})=>{
  const inv={id:id(390),invoice_number:'INV-RETRY',status:'sent',issue_date:'2026-11-01',due_date:'2099-01-01',subtotal:100,tax_amount:0,total:100,balance_due:100,amount_paid:0,customer_id:CID,customers:customer,job_id:null}
  const state=await mockWorkspace(page,{invoices:[inv],invoiceBookingLost:true});await page.goto('/?view=invoices&document='+inv.id)
+ await page.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
  await page.getByRole('button',{name:'Schedule job',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Schedule job from invoice'})
  await dialog.getByLabel(/Agreed start/).fill('2026-12-07T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
  await expect(dialog.getByRole('alert')).toContainText('Response lost')
  await dialog.getByLabel(/Agreed start/).fill('2026-12-08T10:00');await dialog.getByRole('button',{name:'Create job & schedule',exact:true}).click()
- await expect(dialog).toHaveCount(0);await expect(page.getByText('This invoice already has a job. Open linked job to review its saved schedule.')).toBeVisible()
+ await expect(dialog).toHaveCount(0);await expect(page.getByText('This invoice already has a job. Open linked job to review its saved appointment.')).toBeVisible()
  expect(state.jobs).toHaveLength(1);expect(state.appointments).toHaveLength(1)
  expect(state.jobs[0].scheduled_start).toBe('2026-12-07T15:00:00.000Z')
  const calls=state.requests.filter(r=>r.path.endsWith('/rpc/book_invoice_job'));expect(calls).toHaveLength(2);expect(calls[0].body.p_request).toBe(calls[1].body.p_request)
 })
 
-for(const width of [1440,390])test(`attention pages reach the entire mixed queue and approval list at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`attention pages reach the entire mixed queue and approval list at ${width}px`,async({page,browserName})=>{
+ // WebKit's touch actionability checks make this multi-step workflow longer.
+ // Retain every interaction and assertion rather than forcing clicks or retrying.
+ if(browserName==='webkit')test.setTimeout(60_000)
  await page.setViewportSize({width,height:1000})
  const workflow={approved:Array.from({length:23},(_,n)=>({id:id(2000+n),estimate_number:`AP-${n}`,customer_name:'Customer',offer:null})),completed:Array.from({length:22},(_,n)=>({id:id(2100+n),title:`JOB-${n}`,invoice_id:id(2200+n),invoice_status:'draft'}))}
  const reminders=Array.from({length:12},(_,n)=>({...reminder(2300+n),note:`REM-${n}`}))
@@ -1330,126 +1424,160 @@ for(const width of [1440,390])test(`attention pages reach the entire mixed queue
  const estimates=Array.from({length:13},(_,n)=>({id:id(2500+n),estimate_number:`EST-${n}`,status:'sent',issue_date:'2000-01-01',total:100,customers:customer}))
  const changeOrders=Array.from({length:11},(_,n)=>({id:id(2600+n),change_order_number:`CO-${n}`,status:'sent',issue_date:'2000-01-01',title:'Additional work',total:100,customers:customer}))
  await openDashboard(page,{workflow,reminders,invoices,estimates,changeOrders})
- const hub=page.getByRole('article',{name:'Estimates and invoices overview'}),queue=hub.getByRole('region',{name:'Needs Attention',exact:true}),pager=hub.getByRole('navigation',{name:'Attention pages'})
- await expect(hub.locator('.billing-metric.overdue strong')).toHaveText('95')
- await expect(hub.locator('.billing-metric.approval strong')).toHaveText('24')
- for(const count of [hub.locator('.billing-metric.overdue strong'),hub.locator('.billing-metric.approval strong')])await expect(count).toHaveCSS('color','rgb(180, 35, 24)')
+ const hub=page.getByRole('article',{name:'Needs attention overview'}),queue=hub.getByRole('region',{name:'Needs Attention',exact:true}),pager=hub.getByRole('navigation',{name:'Attention pages'})
+ const switcher=hub.getByRole('group',{name:'Home work queue'})
+ await expect(switcher.getByRole('button',{name:'Needs Attention 71',exact:true})).toBeVisible()
+ await expect(switcher.getByRole('button',{name:/^Awaiting Customer Approval 24/})).toBeVisible()
  await expect(hub.getByRole('button',{name:/new estimate|create invoice|new invoice/i})).toHaveCount(0)
  await expect(hub.getByRole('link',{name:/new estimate|create invoice|new invoice/i})).toHaveCount(0)
  await page.getByRole('button',{name:'Quick Links',exact:true}).click()
- await expect(page.getByRole('navigation',{name:'Create work'}).getByRole('link',{name:'+ New invoice',exact:true})).toBeVisible()
+ await expect(page.getByRole('navigation',{name:'Create work and quick links'}).getByRole('link',{name:'+ New invoice',exact:true})).toBeVisible()
  await page.getByRole('dialog',{name:'Quick Links',exact:true}).getByRole('button',{name:'Close',exact:true}).click()
  const seen=new Set()
- for(let n=1;n<=19;n++){
-  await expect(pager).toContainText(`Page ${n} of 19`)
-  await expect(queue.getByRole('listitem')).toHaveCount(5)
+ for(let n=1;n<=15;n++){
+  await expect(pager).toContainText(`Page ${n} of 15`)
+  await expect(queue.getByRole('listitem')).toHaveCount(n===15?1:5)
   for(const text of await queue.getByRole('listitem').allTextContents()){
-   const key=text.match(/(?:AP|JOB|REM|INV|EST|CO)-\d+/)?.[0];expect(key).toBeTruthy();expect(seen.has(key)).toBe(false);seen.add(key)
+   const key=text.match(/(?:AP|JOB|REM|INV)-\d+/)?.[0];expect(key).toBeTruthy();expect(seen.has(key)).toBe(false);seen.add(key)
   }
-  if(n<19)await pager.getByRole('button',{name:'Next',exact:true}).click()
+  if(n<15)await pager.getByRole('button',{name:'Next',exact:true}).click()
  }
- expect(seen.size).toBe(95);await expect(pager.getByRole('button',{name:'Next',exact:true})).toBeDisabled()
- await pager.getByRole('button',{name:'Previous',exact:true}).click();await expect(pager).toContainText('Page 18 of 19')
- await hub.locator('.billing-metric.approval').click();await expect(pager).toContainText('Page 1 of 5')
- const approvals=hub.getByRole('region',{name:'Customer approvals'});await expect(approvals.getByRole('listitem')).toHaveCount(5)
- for(let n=2;n<=5;n++){await pager.getByRole('button',{name:'Next',exact:true}).click();await expect(pager).toContainText(`Page ${n} of 5`)}
- await expect(approvals.getByRole('listitem')).toHaveCount(4)
+ expect(seen.size).toBe(71);await expect(pager.getByRole('button',{name:'Next',exact:true})).toBeDisabled()
+ await pager.getByRole('button',{name:'Previous',exact:true}).click();await expect(pager).toContainText('Page 14 of 15')
+ await switcher.getByRole('button',{name:/^Awaiting Customer Approval 24/}).click()
+ const approvals=hub.getByRole('region',{name:'Awaiting Customer Approval',exact:true}),seenApprovals=new Set()
+ for(let n=1;n<=5;n++){
+  await expect(pager).toContainText(`Page ${n} of 5`)
+  await expect(approvals.getByRole('listitem')).toHaveCount(n===5?4:5)
+  for(const text of await approvals.getByRole('listitem').allTextContents()){
+   const key=text.match(/(?:EST|CO)-\d+/)?.[0];expect(key).toBeTruthy();expect(seenApprovals.has(key)).toBe(false);seenApprovals.add(key)
+  }
+  if(n<5)await pager.getByRole('button',{name:'Next',exact:true}).click()
+ }
+ expect(seenApprovals.size).toBe(24);await expect(pager.getByRole('button',{name:'Next',exact:true})).toBeDisabled()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/attention-paging-${width}.png`,fullPage:true})
- // Both arrow links open complete records, not just the attention subset.
- await hub.getByRole('button',{name:'Estimates',exact:true}).click();await expect(page.getByRole('heading',{name:'Quote the work without the paperwork.',exact:true})).toBeVisible()
+ await page.getByRole('navigation').getByRole('button',{name:'Estimates',exact:true}).click();await expect(page.getByRole('heading',{name:'Quote the work without the paperwork.',exact:true})).toBeVisible()
 })
 
 test('attention paging clamps after completion and zero counts stay neutral',async({page})=>{
  const state=await openDashboard(page,{reminders:Array.from({length:6},(_,n)=>reminder(n+1))})
- const hub=page.getByRole('article',{name:'Estimates and invoices overview'}),pager=hub.getByRole('navigation',{name:'Attention pages'})
+ const hub=page.getByRole('article',{name:'Needs attention overview'}),pager=hub.getByRole('navigation',{name:'Attention pages'})
  await expect(pager).toContainText('Page 1 of 2');await pager.getByRole('button',{name:'Next',exact:true}).click();await expect(pager).toContainText('Page 2 of 2')
  await hub.getByRole('button',{name:'Complete Call customer 6',exact:true}).click()
- await expect(pager).toContainText('Page 1 of 1');await expect(hub.locator('.billing-metric.overdue strong')).toHaveText('5')
+ await expect(pager).toContainText('Showing 1–5 of 5');await expect(attentionCount(page)).toHaveText('5')
  state.reminders=[];await page.evaluate(()=>window.dispatchEvent(new Event('finviant-work-changed')))
  await expect(hub.getByText('No items need attention.',{exact:true})).toBeVisible()
- for(const count of [hub.locator('.billing-metric.overdue strong'),hub.locator('.billing-metric.approval strong')]){await expect(count).toHaveText('0');await expect(count).not.toHaveCSS('color','rgb(180, 35, 24)')}
- await expect(pager.getByRole('button',{name:'Next',exact:true})).toBeDisabled()
- await expect(pager.getByRole('button',{name:'Previous',exact:true})).toBeDisabled()
+ await expect(attentionCount(page)).toHaveText('0')
+ await expect(hub.getByRole('group',{name:'Home work queue'}).getByRole('button',{name:/^Awaiting Customer Approval 0/})).toBeVisible()
+ const categories=hub.getByRole('group',{name:'Needs Attention categories'})
+ await expect(categories.getByRole('button',{name:'All 0',exact:true})).toBeEnabled()
+ await expect(categories.getByRole('button',{name:'Follow-ups due 0',exact:true})).toBeEnabled()
+ await expect(pager).toContainText('0 items')
+ await expect(pager.getByRole('button',{name:'Next',exact:true})).toHaveCount(0)
+ await expect(pager.getByRole('button',{name:'Previous',exact:true})).toHaveCount(0)
 })
 
 test('failed attention page is retryable and a delayed response cannot overwrite a newer filter',async({page})=>{
  const state=await openDashboard(page,{reminders:Array.from({length:8},(_,n)=>reminder(n+1)),estimates:[{id:id(2900),estimate_number:'EST-FILTER',status:'sent',issue_date:'2000-01-01',total:10,customers:customer}]})
- const hub=page.getByRole('article',{name:'Estimates and invoices overview'}),pager=hub.getByRole('navigation',{name:'Attention pages'})
+ const hub=page.getByRole('article',{name:'Needs attention overview'}),pager=hub.getByRole('navigation',{name:'Attention pages'})
  await expect(pager).toContainText('Page 1 of 2');state.attentionFailure=true
  await pager.getByRole('button',{name:'Next',exact:true}).click();await expect(hub.getByRole('alert')).toContainText('Needs Attention is unavailable')
  await expect(hub.getByText('No items need attention.',{exact:true})).toHaveCount(0)
- await expect(hub.locator('.billing-metric.overdue strong')).toHaveText('—')
- state.attentionFailure=false;await hub.getByRole('button',{name:'Retry attention'}).click();await expect(pager).toContainText('Page 2 of 2')
+ await expect(attentionCount(page)).toHaveText('—')
+ state.attentionFailure=false;await hub.getByRole('button',{name:'Retry',exact:true}).click();await expect(pager).toContainText('Page 2 of 2')
  state.attentionDelay=500
  await pager.getByRole('button',{name:'Previous',exact:true}).click()
  await expect(hub.getByText('Loading attention items…')).toBeVisible()
- await hub.locator('.billing-metric.approval').click()
- await expect(hub.getByRole('region',{name:'Customer approvals'})).toContainText('EST-FILTER')
+ await hub.getByRole('group',{name:'Home work queue'}).getByRole('button',{name:/^Awaiting Customer Approval /}).click()
+ await expect(hub.getByRole('region',{name:'Awaiting Customer Approval'})).toContainText('EST-FILTER')
  await page.waitForTimeout(650)
- await expect(hub.getByRole('region',{name:'Customer approvals'}).getByRole('listitem')).toHaveCount(1)
- await expect(pager).toContainText('Page 1 of 1')
+ await expect(hub.getByRole('region',{name:'Awaiting Customer Approval'}).getByRole('listitem')).toHaveCount(1)
+ await expect(pager).toContainText('Showing 1–1 of 1')
 })
 
 const reviewCreated='2026-11-03T14:05:00Z'
 const reviewCustomer={...customer,email:'jane@example.test'}
 const reviewDocument=(n,status='sent')=>({id:id(n),invoice_number:`INV-${n}`,estimate_number:`EST-${n}`,status,issue_date:'2026-01-15',due_date:'2026-11-30',created_at:reviewCreated,updated_at:'2026-11-03T15:10:00Z',sent_at:'2026-11-03T15:10:00Z',customer_id:CID,customers:reviewCustomer,total:100,subtotal:100,tax_amount:0,amount_paid:0,balance_due:100})
-async function assertUniformDocumentActions(page){
- await page.mouse.move(0,0)
- const style=await page.locator('.document-action-grid>button:not(.danger-action),.document-action-grid>a,.document-action-grid>.invoice-email-control>button').evaluateAll(nodes=>nodes.map(node=>{const s=getComputedStyle(node),r=node.getBoundingClientRect();return {height:r.height,width:r.width,color:s.color,background:s.backgroundColor,font:s.fontFamily,size:s.fontSize,weight:s.fontWeight}}))
- expect(style.length).toBeGreaterThan(3)
- const clipped=await page.locator('.document-action-grid>button').evaluateAll(nodes=>nodes.filter(n=>n.scrollHeight>n.clientHeight+1).map(n=>n.textContent));expect(clipped).toEqual([])
- for(const value of style){expect(value.height).toBe(48);expect(Math.abs(value.width-style[0].width)).toBeLessThan(1);expect({...value,width:0}).toEqual({...style[0],width:0});expect(value.background).toBe('rgb(36, 95, 152)')}
+async function assertRecordActions(page,scope=page){
+ const bar=scope.getByRole('region',{name:'Record actions',exact:true})
+ await expect(bar).toBeVisible()
+ const controls=bar.locator('.record-action-primary>button,.record-action-secondary>button,.record-more>summary')
+ const sizes=await controls.evaluateAll(nodes=>nodes.map(n=>({height:n.getBoundingClientRect().height,clipped:n.scrollHeight>n.clientHeight+1})))
+ expect(sizes.length).toBeGreaterThan(1)
+ for(const value of sizes){expect(value.height).toBeGreaterThanOrEqual(44);expect(value.clipped).toBe(false)}
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 }
-for(const width of [1440,390])test(`invoice review has ordered uniform actions and a persistent timestamp at ${width}px`,async({page})=>{
+async function assertCanonicalPdf(page,scope,title){
+ const pdf=scope.getByRole('region',{name:title,exact:true})
+ await expect(pdf.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+ const toggle=pdf.getByRole('button',{name:'View PDF',exact:true})
+ await expect(toggle).toHaveAttribute('aria-expanded','false');await toggle.click()
+ await expect(pdf.locator('iframe')).toHaveAttribute('src',/^blob:/)
+ await expect(pdf.getByRole('link',{name:'Open PDF',exact:true})).toHaveAttribute('href',/^blob:/)
+ const download=page.waitForEvent('download');await pdf.getByRole('button',{name:'Download PDF',exact:true}).click()
+ expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
+ await pdf.getByRole('button',{name:'Hide PDF',exact:true}).click();await expect(pdf.locator('iframe')).toHaveCount(0)
+}
+for(const width of [1440,390])test(`invoice review has accessible ordered actions, a canonical PDF and a persistent timestamp at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1000})
- const inv=reviewDocument(4001);await mockWorkspace(page,{invoices:[inv],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
+ const inv={...reviewDocument(4001),due_date:'2099-11-30'};await mockWorkspace(page,{invoices:[inv],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
  await page.goto('/?view=invoices&document='+inv.id)
- const actions=page.getByRole('group',{name:'Common actions',exact:true})
- await expect(actions.getByRole('button').first()).toHaveText('Mark Paid')
- await expect(actions.getByRole('button')).toHaveText(['Mark Paid','Schedule job','Print / Save PDF','Schedule reminder'])
- await expect(page.getByRole('group',{name:'More actions',exact:true}).getByRole('button',{name:'Void invoice'})).toBeVisible()
- await assertUniformDocumentActions(page)
- const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
- const record=page.getByRole('region',{name:'Document record'})
+ const actions=page.getByRole('region',{name:'Record actions',exact:true})
+ await expect(actions.locator('.record-action-primary').getByRole('button')).toHaveText('Mark Paid')
+ await assertRecordActions(page)
+ await actions.locator('summary').click()
+ const more=actions.getByRole('group',{name:'More actions',exact:true})
+ for(const name of ['Schedule job','Remind me to follow up','Void invoice'])await expect(more.getByRole('button',{name,exact:true})).toBeVisible()
+ await expect(more.getByRole('button',{name:'Void invoice',exact:true})).toHaveCSS('color','rgb(158, 40, 40)')
+ await actions.locator('summary').press('Escape');await expect(more).toBeHidden()
+ const record=page.getByRole('region',{name:'Document record',exact:true})
  await expect(record.locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
  await expect(record).toContainText('Last updated');await expect(record).toContainText('Sent')
  await expect(record.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
- const resourcesButton=page.locator('.invoice-hero').getByRole('button',{name:'Photos & expenses',exact:true})
- await expect(resourcesButton).toBeVisible()
- await expect(page.locator('.print-document')).toContainText('2026-01-15')
+ await expect(page.getByRole('tabpanel',{name:'Details',exact:true})).toContainText('2026-01-15')
+ await assertCanonicalPdf(page,page,'Issued invoice PDF')
+ const resourcesTab=page.getByRole('tab',{name:'Photos & expenses',exact:true})
+ await resourcesTab.click();await expect(resourcesTab).toHaveAttribute('aria-selected','true')
+ await expect(page.getByRole('region',{name:'Photos and expenses',exact:true})).toBeVisible()
+ await page.getByRole('tab',{name:'Details',exact:true}).click();await expect(record).toBeVisible()
  await page.screenshot({path:`test-results/document-review-invoice-${width}.png`,fullPage:true})
  await page.emulateMedia({media:'print'})
- await expect(resourcesButton).toBeHidden()
- await expect(page.locator('.document-action-card')).toBeHidden()
- await expect(page.locator('.print-document')).toBeVisible()
+ await expect(resourcesTab).toBeHidden();await expect(actions).toBeHidden()
 })
-for(const width of [1440,390])test(`estimate review has the same action system and document record at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`estimate review has accessible actions, a canonical PDF and document history at ${width}px`,async({page,browserName})=>{
+ // WebKit's touch actionability checks make this multi-step workflow longer.
+ // Retain every interaction and assertion rather than forcing clicks or retrying.
+ if(browserName==='webkit')test.setTimeout(60_000)
  await page.setViewportSize({width,height:1000})
- const est={...reviewDocument(4002),sent_at:undefined};await mockWorkspace(page,{estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
+ const est={...reviewDocument(4002),sent_at:undefined,expires_on:'2099-11-30'};await mockWorkspace(page,{plan:'pro',estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
  await page.goto('/?view=estimates&document='+est.id)
  const preview=page.getByRole('dialog',{name:'Estimate preview'})
  await expect(preview).toBeVisible()
- await expect(preview.getByRole('group',{name:'Common actions',exact:true}).getByRole('button')).toHaveText(['Record acceptance','Print / Save PDF'])
- await assertUniformDocumentActions(page)
- const danger=page.locator('.document-action-grid>button.danger-action').first();if(await danger.count()){await expect(danger).toHaveCSS('background-color','rgb(255, 255, 255)');await expect(danger).toHaveCSS('height','48px')}
- await expect(preview.getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
- await expect(preview.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
- await expect(preview.locator('.print-document')).toContainText('2026-01-15')
+ const actions=preview.getByRole('region',{name:'Record actions',exact:true})
+ await expect(actions.locator('.record-action-primary').getByRole('button')).toHaveText('Follow up')
+ await assertRecordActions(page,preview)
+ await actions.locator('summary').click()
+ await expect(actions.getByRole('button',{name:'Record acceptance',exact:true})).toBeVisible()
+ await actions.locator('summary').press('Escape')
+ await assertCanonicalPdf(page,preview,'Estimate PDF')
+ await preview.getByRole('tab',{name:'Activity',exact:true}).click()
+ const record=preview.getByRole('region',{name:'Document record',exact:true})
+ await expect(record.locator('time').first()).toHaveText('Nov 3, 2026 · 9:05 AM EST')
+ await expect(record.getByRole('link',{name:'Customer record: Jane Doe'})).toHaveAttribute('href','/?view=customers&document='+CID)
  await page.screenshot({path:`test-results/document-review-estimate-${width}.png`,fullPage:true})
- await page.route('**/functions/v1/create-approval-link',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({token:'mock-only',relative_url:'/?approval=mock-only',expires_at:'2026-11-17T14:00:00Z'})}))
- page.once('dialog',d=>d.accept());await preview.getByRole('button',{name:'Approval link'}).click()
+ await page.route('**/functions/v1/create-approval-link',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({token:'a'.repeat(64),relative_url:'/?approval='+'a'.repeat(64),revision_id:PDF_REVISION,expires_at:'2099-11-17T14:00:00Z'})}))
+ await actions.locator('summary').click()
+ await actions.getByRole('button',{name:'Customer approval link',exact:true}).click()
  const approval=page.getByRole('dialog',{name:'EST-4002 approval link',exact:true})
- await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(/approval=mock-only/)
+ await expect(approval.getByRole('textbox',{name:'Approval link'})).toHaveValue(new RegExp('approval='+'a'.repeat(64)+'$'))
  await expect(approval.getByRole('button',{name:'Copy link',exact:true})).toBeVisible()
  await page.keyboard.press('Escape');await expect(approval).toHaveCount(0);await expect(preview).toBeVisible()
- await preview.locator('.modal-head').getByRole('button',{name:'Photos & expenses',exact:true}).click()
- const resources=page.getByRole('dialog',{name:'EST-4002 photos and expenses',exact:true});await expect(resources).toBeVisible()
- await resources.getByRole('button',{name:'Close',exact:true}).click();await expect(preview).toBeVisible()
- await preview.getByRole('button',{name:'Close preview'}).click()
- await expect(page.getByRole('button',{name:'Record acceptance'})).toHaveCount(0)
- await expect(page.getByRole('button',{name:'Open estimate',exact:true})).toBeVisible()
+ await preview.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
+ await expect(preview.getByRole('region',{name:'Photos and expenses',exact:true})).toBeVisible()
+ await preview.getByRole('tab',{name:'Activity',exact:true}).click();await expect(record).toBeVisible()
+ await preview.getByRole('button',{name:'Close preview',exact:true}).click();await expect(preview).toHaveCount(0)
+ await expect(page.getByRole('button',{name:'Open estimate EST-4002 for Jane Doe',exact:true})).toBeVisible()
  await expect(page.locator('.document-created')).toContainText('Nov 3, 2026 · 9:05 AM EST')
 })
 test('customer snapshot opens complete filtered document lists and retains original timestamps',async({page})=>{
@@ -1466,13 +1594,14 @@ test('customer snapshot opens complete filtered document lists and retains origi
   await link.click()
   await expect(page.getByLabel('Customer filter')).toContainText('Jane Doe')
   await expect(page.getByText('35 records · Page 1 of 2')).toBeVisible()
-  await expect(page.locator('.list-card .document-row')).toHaveCount(25)
+  await expect(page.locator('.module-record-list .document-row')).toHaveCount(25)
   await page.getByRole('button',{name:'Next',exact:true}).click()
-  await expect(page.locator('.list-card .document-row')).toHaveCount(10)
+  await expect(page.locator('.module-record-list .document-row')).toHaveCount(10)
   await page.getByRole('searchbox').fill(kind==='invoices'?'INV-4100':'EST-4200')
-  await expect(page.locator('.list-card .document-row')).toHaveCount(1)
-  await expect(page.locator('.list-card .document-created')).toContainText('Nov 3, 2026 · 9:00 AM EST')
-  await page.locator('.list-card .document-row button').first().click()
+  await expect(page.locator('.module-record-list .document-row')).toHaveCount(1)
+  await expect(page.locator('.module-record-list .document-created')).toContainText('Nov 3, 2026 · 9:00 AM EST')
+  await page.locator('.module-record-list .document-row button').first().click()
+  if(kind==='estimates')await page.getByRole('dialog',{name:'Estimate preview'}).getByRole('tab',{name:'Activity',exact:true}).click()
   await expect(page.getByRole('region',{name:'Document record'}).locator('time').first()).toHaveText('Nov 3, 2026 · 9:00 AM EST')
   await expect(page).toHaveURL(new RegExp('customer='+CID))
   if(kind==='invoices')await page.getByRole('link',{name:'Customer record: Jane Doe'}).click()
@@ -1520,7 +1649,7 @@ for (const width of [390, 1440]) test(`Needs Attention category buttons open fil
   await page.evaluate(() => window.dispatchEvent(new Event('finviant-work-changed')))
   await expect(hub.getByText('No follow-ups are due.')).toBeVisible()
   await expect(categories.getByRole('button', {name:'Follow-ups due 0', exact:true})).toBeEnabled()
-  await hub.getByRole('button', {name:/^Needs attention \d/}).click()
+  await hub.getByRole('button', {name:/^Needs Attention \d/}).click()
   await expect(hub.getByRole('region', {name:'Needs Attention', exact:true}).getByText('Finished lawn work')).toBeVisible()
 })
 
@@ -1544,7 +1673,7 @@ test('Individual receipt scan fills an editable expense and a failed upload retr
   const state = await mockWorkspace(page, {plan:'basic',receiptUploadFailures:1,jobs:[finishedReviewJob]})
   await page.setViewportSize({width:390,height:844})
   await page.goto('/?view=dashboard')
-  await page.getByRole('region',{name:'Financial Performance'}).getByRole('button',{name:/Add Entry/}).click()
+  await page.getByRole('region',{name:'Financial Performance'}).getByRole('button',{name:'Add transaction',exact:true}).click()
   const chooser = page.getByRole('dialog',{name:'Add financial entry',exact:true})
   await selectReceipt(page, chooser)
   const expense = page.getByRole('dialog',{name:'Add Expense',exact:true})
@@ -1605,6 +1734,7 @@ test('Google review setup and completed-job handoff use an official link and per
   await page.getByRole('button',{name:'Save company profile'}).click()
   await expect.poll(()=>state.requests.find(r=>r.path.endsWith('/businesses')&&r.method==='PATCH')?.body.google_review_url).toBe(link)
   await page.goto('/?view=work&document='+finishedReviewJob.id)
+  await page.getByRole('dialog',{name:'Job details',exact:true}).getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
   await page.getByRole('button',{name:'Request a Google review'}).click()
   const review=page.getByRole('region',{name:'Google review request'})
   await expect(review.getByLabel('Review request message')).toHaveValue(/Hi Jane.*share your experience/s)
@@ -1617,13 +1747,14 @@ test('Free displays upgrade links for receipt scanning and Google reviews and st
   await mockWorkspace(page,{plan:'free',businessProfile:{google_review_url:'https://g.page/r/Test/review'},jobs:[finishedReviewJob]})
   await page.goto('/?view=work&document='+finishedReviewJob.id)
   const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
+  await dialog.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
   await expect(dialog.getByText('Requesting Google reviews is unavailable on the Free plan.')).toBeVisible()
   await expect(dialog.getByRole('button',{name:'Request a Google review'})).toHaveCount(0)
   await dialog.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel=dialog.getByRole('region',{name:'Photos and expenses'})
   await panel.getByRole('button',{name:'Add expense manually',exact:true}).click()
   await expect(panel.getByText('Receipt scanning is unavailable on the Free plan.')).toBeVisible()
-  await expect(panel.getByRole('link',{name:'View Individual upgrade'})).toHaveAttribute('href','/?view=settings&section=plans&tier=basic')
+  await expect(panel.getByRole('link',{name:'Explore Individual',exact:true})).toHaveAttribute('href','/?view=settings&section=plans&tier=basic')
   await expect(panel.getByRole('button',{name:'Scan receipt',exact:true})).toHaveCount(0)
   await expect(panel.getByLabel('Amount ($)')).toBeEditable()
 })

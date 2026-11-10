@@ -94,3 +94,39 @@ test('invalid finances cannot be printed as an apparently valid customer documen
   snapshot.total = 'not-an-amount'
   await assert.rejects(generateDocumentPdf(snapshot), /invalid amount/)
 })
+
+for (const kind of ['invoice', 'estimate'] as const) {
+  test(`${kind} uses a centered bottom Thank You! only when custom footer is blank`, async () => {
+    const snapshot = documentPdfFixture(kind)
+    for (const footer of [null, '', '   ']) {
+      snapshot.company.document_footer = footer
+      const bytes = await generateDocumentPdf(snapshot)
+      const content = await extracted(bytes)
+      assert.equal((content.match(/Thank You!/g) || []).length, 1)
+      const directory = await mkdtemp(join(tmpdir(), 'finviant-footer-'))
+      try {
+        const file = join(directory, 'document.pdf')
+        await writeFile(file, bytes)
+        const bbox = execFileSync('pdftotext', ['-bbox', file, '-'], { encoding: 'utf8' })
+        const words = [...bbox.matchAll(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">(Thank|You!)<\/word>/g)]
+        assert.equal(words.length, 2)
+        assert.ok(Math.abs((Number(words[0][1]) + Number(words[1][3])) / 2 - 306) < 1, 'Footer is centered on the Letter page')
+        assert.ok(Number(words[0][2]) > 700, 'Footer is at the bottom of the page')
+      } finally { await rm(directory, { recursive: true, force: true }) }
+      assert.equal(snapshot.company.document_footer, footer, 'Rendering never writes the fallback into saved data')
+    }
+    snapshot.company.document_footer = 'Custom warranty terms.\nPlease retain this document.'
+    const custom = await extracted(await generateDocumentPdf(snapshot))
+    assert.match(custom, /Custom warranty terms/)
+    assert.match(custom, /Please retain this document/)
+    assert.doesNotMatch(custom, /Thank You!|NOTES/)
+  })
+}
+
+test('long custom closing footnotes paginate without losing wording', async () => {
+  const snapshot = documentPdfFixture()
+  snapshot.company.document_footer = Array.from({ length: 80 }, (_, i) => `Custom footer condition ${String(i).padStart(3, '0')}`).join('\n')
+  const content = await extracted(await generateDocumentPdf(snapshot))
+  for (let i = 0; i < 80; i++) assert.match(content, new RegExp(`Custom footer condition ${String(i).padStart(3, '0')}`))
+  assert.doesNotMatch(content, /Thank You!/)
+})
