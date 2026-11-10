@@ -240,6 +240,12 @@
       "detail": "Read-only beta review found 133 calendar scheduler HTTP 500 failures in the preceding 24-hour window, one expired queue lease and last successful Outlook sync on November 8. Runtime logs identify database_transaction_failed. PostgreSQL view-dependency and role-privilege inspection identifies exactly one unreadable final calendar_work dependency: appointments.visit_worker_ids. A narrow SELECT-column migration and regression tests are prepared; no table-wide read, financial/customer read, write, login, Vault or scheduler privilege is added. Final full-chain replay checks every actual calendar view column dependency to catch future schema drift. Backend deployment and successful worker recovery remain pending.",
       "evidence": "supabase/migrations/20261110131500_calendar_visit_column_access.sql; tests/calendar/setup.test.ts; tests/migrations/release-smoke.sql; docs/CALENDAR_VISIT_RECOVERY_2026-11-10.md",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Worker health coverage prepared",
+      "detail": "Protected health previously assessed email and sandbox payments only while live calendar sync failed. Added aggregate calendar queue/reconnect, appointment stale/uncertain/failure, and overdue/review recurring signals. Local PostgreSQL fixture verifies failure, recovery and service-only ACL; 72 recovery tests pass. Full final-schema migration replay and packaged Edge deployment are pending. External incident routing, tracing and monitoring remain open.",
+      "evidence": "supabase/migrations/20261110134000_worker_health_coverage.sql; tests/settings/worker-health.test.ts; tests/migrations/release-smoke.sql; docs/WORKER_HEALTH_2026-11-10.md",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
@@ -338,7 +344,7 @@
       "status": "open",
       "title": "Install operational monitoring and route alerts",
       "owner": "Developer + owner",
-      "why": "PostHog is product analytics, not an error or uptime monitor; limited/empty runtime logs leave major blind spots.",
+      "why": "PostHog is product analytics, not an error or uptime monitor; limited/empty runtime logs leave major blind spots. November 10: calendar, reminder and recurring aggregate health coverage is prepared with fail-closed counter validation. This does not establish external alert delivery or error tracing.",
       "acceptance": "Configure Sentry or equivalent error tracing, Vercel real-user Web Vitals, synthetic public/authenticated smoke monitors, provider/queue/DB dashboards and spend alerts. Scrub contact/document content, tokens, query strings and audio. Trigger a test incident and verify it reaches the named on-call owner; set retention and sampling budgets. Surface safe error, uptime and performance summaries in the Finviant Admin Dashboard with last-checked time, degraded/unavailable states and links to restricted provider dashboards. Keep raw customer content, tokens and privileged logs out of summaries. Verify a simulated outage/error reaches the owner and appears in the dashboard; current database/queue counts alone do not satisfy this gate.",
       "evidence": []
     },
@@ -349,7 +355,7 @@
       "status": "not_verified",
       "title": "Verify scheduled work and reconcile uncertain deliveries",
       "owner": "Developer",
-      "why": "Active cron schedules and accepted HTTP dispatches do not establish successful background work.",
+      "why": "Active cron schedules and accepted HTTP dispatches do not establish successful background work. November 10: actual calendar worker failure identified and narrow column grant repair prepared; expanded queue health and failure/recovery tests prepared. Backend recovery remains pending.",
       "acceptance": "Observe actual worker completion, heartbeat age, queue lag, failed/dead tasks, token refresh, provider 429s, expired leases, duplicate/missed runs and outage recovery. Provide operator review for uncertain sends; alert without automatically duplicating a possibly delivered message.",
       "evidence": []
     },

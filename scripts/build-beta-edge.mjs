@@ -9,7 +9,7 @@ const sourceRoot=resolve(process.argv[2]||'.')
 const out=resolve(process.argv[3]||'tmp/operations-review/edge-release')
 // Every sending entry point can be the first caller to freeze a document PDF.
 // Keep their renderer identical while preserving each existing authentication mode.
-const renderers=[['document-pdf',false],['send-document-email',true],['send-invoice-email',true],['send-invoice-reminder',true],['email-recovery-worker',false],['tier-delivery-worker',false],['work-scheduling',false],['business-card-delivery',true],['send-business-card',true]]
+const renderers=[['document-pdf',false],['send-document-email',true],['send-invoice-email',true],['send-invoice-reminder',true],['email-recovery-worker',false],['reliability-health',false],['tier-delivery-worker',false],['work-scheduling',false],['business-card-delivery',true],['send-business-card',true]]
 const functions=[]
 for(const [name,verify_jwt] of renderers){
  await mkdir(join(out,name),{recursive:true})
