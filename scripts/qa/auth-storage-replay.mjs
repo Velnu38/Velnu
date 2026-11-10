@@ -25,7 +25,7 @@ export async function verifyAuthStorageReplay(db,status){
  }
  async function json(path,token,options){
   const response=await api(path,token,options)
-  if(!response.ok)throw Error('Disposable API operation failed with HTTP '+response.status)
+  if(!response.ok)throw Object.assign(Error('Disposable API operation failed'),{httpStatus:response.status})
   return response.json()
  }
  async function actor(label){
@@ -72,12 +72,22 @@ export async function verifyAuthStorageReplay(db,status){
   assert.equal((await json('/rest/v1/invoices?select=id&business_id=eq.'+businessA,office.token)).length,1)
   phase='private-storage'
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jGdEAAAAASUVORK5CYII=','base64')
+  phase='file-metadata'
   const photo=await json('/rest/v1/record_photos',owner.token,{method:'POST',headers:{Prefer:'return=representation'},body:{business_id:businessA,invoice_id:invoice.id,file_name:'synthetic.png',byte_size:png.length,media_type:'image/png'}})
   photoPath=photo[0].storage_path
   assert.ok(photoPath.startsWith(businessA+'/'))
   const object='/storage/v1/object/finviant-record-photos/'+photoPath
-  const upload=await fetch(origin+object,{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:status.ANON_KEY,Authorization:'Bearer '+owner.token,'Content-Type':'image/png'},body:png})
-  assert.ok(upload.ok,'Owned Storage upload must succeed')
+  phase='blocked-direct-upload'
+  const uploadFile=token=>fetch(origin+object,{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:status.ANON_KEY,Authorization:'Bearer '+token,'Content-Type':'image/png'},body:png})
+  assert.ok(!(await uploadFile(owner.token)).ok,'Direct uploads must not bypass the server quota path')
+  phase='quota-reservation'
+  const reservation={p_actor:owner.id,p_bucket:'finviant-record-photos',p_path:photoPath,p_bytes:png.length}
+  assert.ok(!(await api('/rest/v1/rpc/reserve_attachment',owner.token,{method:'POST',body:reservation})).ok,'Client must not impersonate a server upload reservation')
+  const reserve=await api('/rest/v1/rpc/reserve_attachment',status.SERVICE_ROLE_KEY,{method:'POST',body:reservation});assert.equal(reserve.status,204)
+  phase='private-storage-upload'
+  const upload=await uploadFile(status.SERVICE_ROLE_KEY);assert.ok(upload.ok,'Quota-reserved server upload must succeed')
+  const finish=await api('/rest/v1/rpc/finish_attachment',status.SERVICE_ROLE_KEY,{method:'POST',body:{p_bucket:'finviant-record-photos',p_path:photoPath}});assert.equal(finish.status,204)
+  phase='private-storage-download'
   const downloaded=await api(object,owner.token);assert.ok(downloaded.ok);assert.equal(digest(Buffer.from(await downloaded.arrayBuffer())),digest(png))
   for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api(object,token)).ok,'Unrelated or anonymous identity must not read private bytes')
   const otherSign=await api('/storage/v1/object/sign/finviant-record-photos/'+photoPath,outsider.token,{method:'POST',body:{expiresIn:60}});assert.ok(!otherSign.ok)
@@ -88,9 +98,9 @@ export async function verifyAuthStorageReplay(db,status){
   assert.ok(!(await api(object,office.token)).ok,'Revoked billing access must not read invoice files with the existing session')
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
-  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true}
+  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true}
  }catch(error){
-  console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^[0-9A-Z]{5}$/.test(error.code??'')?error.code:'unknown'}))
+  console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)
  }finally{
   await db.query('rollback')
