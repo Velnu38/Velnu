@@ -26,11 +26,11 @@ for(const width of [390,1440])test(`owner archive resumes preparation and verifi
  await page.getByRole('button',{name:'Create new archive',exact:true}).click();await expect.poll(()=>!!hold).toBe(true)
  expect(ids[0]).toBe(ids[1]);await page.getByRole('button',{name:'Pause preparation',exact:true}).click()
  ready=1;await hold.fulfill({json:{prepared_part:1}});hold=null
- await expect(page.getByRole('status')).toContainText('Preparation paused');await expect(page.getByRole('region',{name:'Business archive'})).toContainText('50,001 records')
- await page.getByRole('button',{name:'Resume preparation',exact:true}).click();await expect(page.getByRole('status')).toContainText('Archive ready')
+ await expect(page.getByRole('region',{name:'Business archive'}).getByRole('status')).toContainText('Preparation paused');await expect(page.getByRole('region',{name:'Business archive'})).toContainText('50,001 records')
+ await page.getByRole('button',{name:'Resume preparation',exact:true}).click();await expect(page.getByRole('region',{name:'Business archive'}).getByRole('status')).toContainText('Archive ready')
  await page.getByRole('button',{name:'Download part 1',exact:true}).click();await expect(page.getByRole('alert')).toContainText('integrity check')
  corrupt=false;const download=page.waitForEvent('download');await page.getByRole('button',{name:'Download part 1',exact:true}).click();expect((await download).suggestedFilename()).toBe('Finviant-'+id+'-part-1.zip')
- await expect(page.getByRole('status')).toContainText('verified and handed to your browser');await expect(page.getByRole('button',{name:'Download again',exact:true})).toBeVisible()
+ await expect(page.getByRole('region',{name:'Business archive'}).getByRole('status')).toContainText('verified and handed to your browser');await expect(page.getByRole('button',{name:'Download again',exact:true})).toBeVisible()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 test('non-primary owners cannot open the complete archive controls',async({page})=>{

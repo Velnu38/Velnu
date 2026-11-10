@@ -1,0 +1,67 @@
+{
+  "checkedAt": "2026-11-10",
+  "repository": "Velnu38/Velnu",
+  "pullRequest": 82,
+  "head": "5fc20ac51170afb5c42829714382e4a37d62afb9",
+  "merge": "7fd20458994aa18139d6380ed0fd5d4da30dbae3",
+  "workflows": [
+    {
+      "id": 42870771304,
+      "conclusion": "success"
+    },
+    {
+      "id": 42870771338,
+      "conclusion": "success"
+    },
+    {
+      "id": 42870771315,
+      "conclusion": "success"
+    },
+    {
+      "id": 42870771770,
+      "conclusion": "success"
+    },
+    {
+      "id": 42870771469,
+      "conclusion": "success"
+    },
+    {
+      "id": 42870771829,
+      "conclusion": "success"
+    },
+    {
+      "id": 42870771564,
+      "conclusion": "success"
+    }
+  ],
+  "database": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "migration": "jobs_directory_pagination",
+    "version": "20261110181719",
+    "anonymousExecute": false,
+    "authenticatedExecute": true,
+    "serviceExecute": false
+  },
+  "hosting": {
+    "deployment": "dpl_8GkFoTnnKhapyQzN3mM99dGYSmdB",
+    "sha": "7fd20458994aa18139d6380ed0fd5d4da30dbae3",
+    "state": "READY",
+    "environment": "preview/private-beta",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "bothHttp200": true,
+    "entry": "/assets/index-DgQCwmS1.js"
+  },
+  "coverage": {
+    "seededJobs": 50002,
+    "lastPageRows": 2,
+    "fixedPageSize": 25,
+    "billingRedactedForJobsOnly": true
+  },
+  "limits": [
+    "Browser simulation is not physical-device certification.",
+    "Jobs Overview and Job Management pagination remain separate work."
+  ]
+}
