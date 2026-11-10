@@ -82,17 +82,23 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  // application as a user does after sending before testing its confirmation.
  await page.bringToFront()
  await expect.poll(()=>page.evaluate(()=>document.hasFocus())).toBe(true)
- // Capture real input delivery without dispatching synthetic events or retrying the click.
+ // Capture real input delivery without dispatching synthetic events or retrying activation.
  await page.evaluate(()=>{
   window.__personalSendInput=[]
-  for(const type of ['pointerdown','pointerup','mousedown','mouseup','click'])document.addEventListener(type,event=>{
+  for(const type of ['pointerdown','pointerup','mousedown','mouseup','click','keydown','keyup'])document.addEventListener(type,event=>{
    const target=event.target instanceof Element?event.target:null
    const button=target?.closest('button')
-   window.__personalSendInput.push({type,tag:target?.tagName,label:button?.textContent?.trim(),trusted:event.isTrusted,defaultPrevented:event.defaultPrevented,focused:document.hasFocus(),x:event.clientX,y:event.clientY,disabled:button?.disabled})
+   window.__personalSendInput.push({type,key:event.key,tag:target?.tagName,label:button?.textContent?.trim(),trusted:event.isTrusted,defaultPrevented:event.defaultPrevented,focused:document.hasFocus(),x:event.clientX,y:event.clientY,disabled:button?.disabled})
   },true)
  })
  try {
-  await form.getByRole('button',{name:'Confirm sent'}).click()
+  // Headless Chrome's native sms protocol UI can consume mouse input before it
+  // reaches the page. Use one real keyboard activation; physical-device handoff
+  // remains a separate acceptance check, not something this fixture certifies.
+  const confirm=form.getByRole('button',{name:'Confirm sent'})
+  await confirm.focus()
+  await expect(confirm).toBeFocused()
+  await confirm.press('Enter')
   await expect.poll(()=>state.sent.length).toBe(1)
  } finally {
   await test.info().attach('personal-send-input-events',{body:Buffer.from(JSON.stringify(await page.evaluate(()=>window.__personalSendInput),null,2)),contentType:'application/json'})

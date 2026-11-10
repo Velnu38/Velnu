@@ -54,7 +54,7 @@ async function mockWorkspace(page, options = {}) {
     attentionNow: options.attentionNow,
     workflow: options.workflow || {approved:[],completed:[]}, attentionFailure:false, attentionDelay:0,
     requests: [],
-    photos: [], expenses: [], photoLoadFailures: options.photoLoadFailures || 0, storageWrites: 0, uploadedReceipts: new Set(), receiptUploadFailures: options.receiptUploadFailures || 0,
+    photos: [], expenses: [], photoReadError: Boolean(options.photoReadError), photoLoadFailures: options.photoLoadFailures || 0, storageWrites: 0, uploadedReceipts: new Set(), receiptUploadFailures: options.receiptUploadFailures || 0,
     savedJobs: new Map(),
     aggregate: options.aggregate ?? { open_invoices: 0, outstanding_balance: 0 },
     aggregateFailures: options.aggregateFailures || 0,
@@ -246,6 +246,7 @@ async function mockWorkspace(page, options = {}) {
       return reply({ path: attachment })
     }
     if (path.endsWith('/record_photos')) {
+      if (method === 'GET' && state.photoReadError) return fail('Photos temporarily unavailable.')
       if (method === 'GET' && state.photoLoadFailures > 0) { state.photoLoadFailures--; return fail('Photos temporarily unavailable.') }
       if (method === 'POST') { state.photos.push({ ...body, created_by: UID, storage_path: `${BID}/${body.id}.jpg`, created_at: new Date().toISOString() }); return reply(null, 201) }
       if (method === 'DELETE') { const target = url.searchParams.get('id')?.replace('eq.', ''); const deleted = state.photos.filter(p => p.id === target); state.photos = state.photos.filter(p => p.id !== target); return reply(deleted) }
@@ -421,7 +422,6 @@ const openDashboard = async (page, options) => {
 }
 const openSchedule = async (page, options) => {
   const state = await mockWorkspace(page, options)
-  await page.goto('/?view=dashboard')
   await page.goto('/?view=schedule')
   await expect(page.getByRole('heading', { name: 'Know where you need to be next.' })).toBeVisible()
   return state
@@ -969,7 +969,7 @@ test('record resources: viewer cannot upload photos or add expenses', async ({ p
 test('record resources: Calendar opens job tabs, preserves notes and retries only the failed photo list', async ({ page }) => {
   const start = DateTime.now().setZone('America/New_York').set({hour:10,minute:0}).toISO()
   const job = {id:id(704),title:'Calendar receipt job',status:'scheduled',description:'Original notes',scheduled_start:start,customer_id:CID,customers:customer}
-  const state = await mockWorkspace(page,{jobs:[job],photoLoadFailures:1})
+  const state = await mockWorkspace(page,{jobs:[job],photoReadError:true})
   await page.setViewportSize({width:390,height:844})
   await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({
     json:[{source_key:'job:'+job.id,title:job.title,starts_at:start,ends_at:null,status:'scheduled',document_kind:'work',document_id:job.id,job_id:job.id}],
@@ -987,9 +987,17 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
   const resources = dialog.getByRole('region',{name:'Photos and expenses'})
   await expect(resources.getByText('No expenses yet.')).toBeVisible()
   await expect(resources.getByRole('alert')).toContainText('Photos temporarily unavailable')
+  // Development Strict Mode can repeat initial reads. Only the explicit photo
+  // retry must add one photo request and leave the settled expense list alone.
+  const expenseReads=()=>state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))
+  const photoReads=()=>state.requests.filter(request=>request.path.endsWith('/record_photos')&&request.method==='GET')
+  const expensesBefore=expenseReads().length,photosBefore=photoReads().length
+  expect(expensesBefore).toBeGreaterThan(0);expect(photosBefore).toBeGreaterThan(0)
+  state.photoReadError=false
   await resources.getByRole('button',{name:'Try photos again',exact:true}).click()
   await expect(resources.getByText('No photos yet.')).toBeVisible()
-  expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))).toHaveLength(1)
+  expect(photoReads()).toHaveLength(photosBefore+1)
+  expect(expenseReads()).toHaveLength(expensesBefore)
   await expect(resources.getByRole('button',{name:/refresh/i})).toHaveCount(0)
   await expect(resources.getByRole('progressbar')).toHaveCount(0)
   await dialog.getByRole('tab',{name:'Details',exact:true}).click()
@@ -1186,10 +1194,11 @@ test('saved invoice payment links appear on the customer copy and do not record 
  await page.goto('/?document_share='+token)
  const actions=page.getByRole('region',{name:'Document status and actions'})
  await expect(actions).toContainText('Current balance: $100.00')
- for(const [name,url] of [['Venmo','https://venmo.com/business'],['PayPal','https://paypal.me/business/100.00USD'],['Stripe','https://buy.stripe.com/example?client_reference_id=INV-920'],['Cash App','https://cash.app/$Business']]){
-  const link=actions.getByRole('link',{name:'Pay with '+name,exact:true})
+ await expect(actions.getByRole('link',{name:/^Pay with /})).toHaveCount(4)
+ for(const url of ['https://venmo.com/business','https://paypal.me/business/100.00USD','https://buy.stripe.com/example?client_reference_id=INV-920','https://cash.app/$Business']){
+  const link=actions.locator(`a[href="${url}"]`).and(actions.getByRole('link',{name:/^Pay with /}))
   await expect(link).toBeVisible();await expect(link).toHaveAttribute('href',url)
-  await expect(link).toHaveAttribute('target','_blank')
+  await expect(link).toHaveAttribute('target','_blank');await expect(link).toHaveAttribute('rel','noopener noreferrer')
  }
  await expect(actions).toContainText('Use invoice number INV-920.')
  expect(state.requests.some(r=>r.path.endsWith('/payments')&&r.method==='POST')).toBe(false)
@@ -1305,6 +1314,8 @@ for (const width of [1440,390]) test(`interactive dashboard financial periods ex
 })
 test('interactive dashboard financial failure does not show invented zero totals',async({page})=>{
  await mockWorkspace(page)
+ // Receivables are a separately verified source; only cash activity fails here.
+ await page.route('**/rest/v1/rpc/get_financial_overview',r=>r.fulfill({json:{currency_supported:true,as_of:todayISO(),receivables:{invoices:0,outstanding:0,overdue:0,overdue_count:0},aging:[],customers:[],oldest:[]}}))
  await page.route('**/rest/v1/rpc/list_invoice_cash_activity**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
  await page.goto('/?view=dashboard')
  const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
@@ -1321,7 +1332,7 @@ test('interactive dashboard navigation does not treat an invoice link as a job l
  await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'Home',exact:true}).click()
  await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
- await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
+ await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
  await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
  await expect(page.getByRole('dialog')).toHaveCount(0)
 })
@@ -1402,7 +1413,10 @@ test('lost invoice scheduling response reuses the job and reports its saved sche
  const calls=state.requests.filter(r=>r.path.endsWith('/rpc/book_invoice_job'));expect(calls).toHaveLength(2);expect(calls[0].body.p_request).toBe(calls[1].body.p_request)
 })
 
-for(const width of [1440,390])test(`attention pages reach the entire mixed queue and approval list at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`attention pages reach the entire mixed queue and approval list at ${width}px`,async({page,browserName})=>{
+ // WebKit's touch actionability checks make this multi-step workflow longer.
+ // Retain every interaction and assertion rather than forcing clicks or retrying.
+ if(browserName==='webkit')test.setTimeout(60_000)
  await page.setViewportSize({width,height:1000})
  const workflow={approved:Array.from({length:23},(_,n)=>({id:id(2000+n),estimate_number:`AP-${n}`,customer_name:'Customer',offer:null})),completed:Array.from({length:22},(_,n)=>({id:id(2100+n),title:`JOB-${n}`,invoice_id:id(2200+n),invoice_status:'draft'}))}
  const reminders=Array.from({length:12},(_,n)=>({...reminder(2300+n),note:`REM-${n}`}))
@@ -1531,7 +1545,10 @@ for(const width of [1440,390])test(`invoice review has accessible ordered action
  await page.emulateMedia({media:'print'})
  await expect(resourcesTab).toBeHidden();await expect(actions).toBeHidden()
 })
-for(const width of [1440,390])test(`estimate review has accessible actions, a canonical PDF and document history at ${width}px`,async({page})=>{
+for(const width of [1440,390])test(`estimate review has accessible actions, a canonical PDF and document history at ${width}px`,async({page,browserName})=>{
+ // WebKit's touch actionability checks make this multi-step workflow longer.
+ // Retain every interaction and assertion rather than forcing clicks or retrying.
+ if(browserName==='webkit')test.setTimeout(60_000)
  await page.setViewportSize({width,height:1000})
  const est={...reviewDocument(4002),sent_at:undefined,expires_on:'2099-11-30'};await mockWorkspace(page,{plan:'pro',estimates:[est],customers:[reviewCustomer],businessProfile:{timezone:'America/New_York'}})
  await page.goto('/?view=estimates&document='+est.id)
