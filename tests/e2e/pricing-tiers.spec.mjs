@@ -17,6 +17,7 @@ async function setup(page,{tier='pro',canTest=true,ready=false,managed=false}={}
  if(path==='get_delivery_setup')return reply(delivery())
  if(path==='save_delivery_setup'){state.saves.push(body);ready=true;return reply(delivery())}
  if(path==='get_delivery_automation')return reply({plan:state.tier,ready:false,rule:{enabled:false,after_days:3,repeat_days:7,max_reminders:3},tasks:[]})
+ if(path==='get_appointment_reminder_settings')return reply({plan:state.tier,ready_email:managed,ready_sms:false,rule:{enabled:false,lead_hours:48,channel:'email'},tasks:[]})
  if(path==='get_business_storage_usage'){const limit=state.tier==='free'?100000000:state.tier==='basic'?2000000000:10000000000;return reply({plan:state.tier,used_bytes:0,limit_bytes:limit,remaining_bytes:limit,pending_bytes:0,file_count:0,logo_allowed:state.tier!=='free',warning:'none'})}
  if(path==='prepare_personal_document'){
   const saved=base.savedDocuments[body.p_kind]
@@ -47,7 +48,17 @@ test('personal app setup requires acknowledgement and enables explicit final-sen
  expect(s.sent[0].p_channel).toBe('email')
 })
 test('Business Pro exposes activation requirements, safe fallback and disabled automation',async({page})=>{
- await setup(page);await page.goto('/?view=settings&section=delivery');await expect(page.getByText('Pending verified sender activation',{exact:false})).toBeVisible();await expect(page.getByLabel('Enable overdue invoice email reminders')).toBeDisabled();await page.goto('/?view=invoices&document='+E);await openSavedDelivery(page);await expect(page.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await page.getByRole('button',{name:'Use my email or text app instead'}).click();await expect(page.getByRole('button',{name:'Open email app',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Copy Link',exact:true})).toBeEnabled()
+ await setup(page)
+ await page.goto('/?view=settings&section=delivery')
+ await expect(page.getByText('Pending verified sender activation',{exact:false})).toBeVisible()
+ await page.goto('/?view=settings&section=customer_reminders')
+ await expect(page.getByRole('heading',{name:'Customer Reminders',exact:true})).toBeVisible()
+ await expect(page.getByLabel('Enable overdue invoice email reminders')).not.toBeChecked()
+ await expect(page.getByLabel('Enable overdue invoice email reminders')).toBeDisabled()
+ await expect(page.getByLabel('Enable automatic appointment customer reminders')).not.toBeChecked()
+ await expect(page.getByLabel('Enable automatic appointment customer reminders')).toBeDisabled()
+ await expect(page.getByLabel('Hours before arrival')).toHaveValue('48')
+ await page.goto('/?view=invoices&document='+E);await openSavedDelivery(page);await expect(page.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await page.getByRole('button',{name:'Use my email or text app instead'}).click();await expect(page.getByRole('button',{name:'Open email app',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Copy Link',exact:true})).toBeEnabled()
 })
 test('mobile plan comparison stays inside the viewport',async({page})=>{await page.setViewportSize({width:390,height:844});await setup(page);await page.goto('/?view=settings&section=plans');await expect(page.getByRole('heading',{name:'Plans & Usage'})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/tier-mobile.png',fullPage:true})})
 
