@@ -61,7 +61,8 @@ async function mockBusinessData(page) {
 test('service location opens a valid Google Maps view and driving directions without revealing access notes', async ({ page }) => {
   await mockBusinessData(page)
   await page.goto('/?view=dashboard')
-  await page.locator('.sidebar').getByRole('button', { name: 'Customers', exact: true }).click()
+  await page.locator('.sidebar').getByRole('button', { name: 'More', exact: true }).click()
+  await page.getByRole('dialog',{name:'More navigation',exact:true}).getByRole('link',{name:/^Customers/}).click()
   await page.getByRole('button', { name: /Jane Doe/ }).click()
   await expect(page.getByRole('heading', { name: 'Address',exact:true })).toBeVisible()
   await expect(page.getByText('123 Example Street', { exact: true })).toBeVisible()

@@ -26,6 +26,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan:'pro',ai_limit:0,voice_limit:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
+  if(path.endsWith('/rpc/get_job_workflow_context')){expect(body.p_business).toBe(B);return reply(body.p_jobs.map(job_id=>({job_id,active_appointment:state.bookedSlot?{id:J,status:'confirmed',starts_at:state.bookedSlot.starts_at,ends_at:state.bookedSlot.ends_at,assigned_user_ids:state.bookedSlot.workers}:null,invoice:null})))}
   if(path.endsWith('/rpc/get_dashboard_attention_page')){
    const value=attentionPage(body,{workflow:{approved:state.booked?[]:[{id:E,estimate_number:'EST-QA',customer_name:'Test Customer',offer:state.approved?{status:'approved',expires_at:'2099-01-01'}:null}],completed:[],approved_count:state.booked?0:1,completed_count:0}})
    const delay=state.workflowDelay;state.workflowDelay=0;state.pendingWorkflow++
@@ -52,7 +53,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   if(path.endsWith('/jobs')){
    if(method==='PATCH'){state.notes=body.description;return reply({id:J})}
    const job={id:J,title:'Garden maintenance',description:state.notes,status:'scheduled',customer_id:C,scheduled_start:slots[0].starts_at,scheduled_end:slots[0].ends_at,assigned_user_ids:[U],customers:customer,properties:[{id:P,address_line1:'1 Test Street',city:'Chesapeake',state:'VA',postal_code:'23322'}]}
-   return reply(req.headers().accept?.includes('vnd.pgrst.object')||req.headers().accept?.includes('vnd.pgrst.object')?job:[job])
+   return reply(url.searchParams.has('id')?job:[job])
   }
   return reply([])
  })

@@ -1,15 +1,34 @@
 import { test, expect } from '@playwright/test'
 import { DateTime } from 'luxon'
-import { mock, B, C, E, J, P, customer } from './audit-fixture.mjs'
+import { mock as auditMock, B, C, E, J, P, customer } from './audit-fixture.mjs'
 import { attentionPage } from './attention-fixture.mjs'
 import { workflow, start } from './fin-workflow-fixture.mjs'
 
 const mobile = { width: 390, height: 844 }
 const headers = { 'content-range':'0-0/1', 'access-control-expose-headers':'content-range' }
 const job = { id:J, customer_id:C, customers:[customer], title:'Landscaping', status:'lead', scheduled_start:null, properties:[] }
-const savedJob = page => page.route('**/rest/v1/jobs?**', route => route.fulfill({
-  json:new URL(route.request().url()).searchParams.has('id') ? job : [job], headers,
-}))
+async function jobContext(page, completed=()=>false) {
+  await page.route('**/rest/v1/rpc/get_job_workflow_context',route=>{
+    const body=route.request().postDataJSON();expect(body.p_business).toBe(B)
+    return route.fulfill({json:body.p_jobs.filter(id=>id===J).map(job_id=>({job_id,active_appointment:null,invoice:completed()?{id:E,status:'draft',number:'INV-QA'}:null}))})
+  })
+}
+async function mock(page,options) {
+  const state=await auditMock(page,options)
+  await jobContext(page,()=>state.completed)
+  await page.route('**/rest/v1/rpc/get_invoice_payment_operations',route=>route.fulfill({json:{state:'clear',operations:[],refunds:[]}}))
+  await page.route('**/rest/v1/rpc/get_estimate_workflow_context',route=>{
+    const body=route.request().postDataJSON();expect(body.p_business).toBe(B)
+    return route.fulfill({json:body.p_estimates.filter(id=>id===E).map(estimate_id=>({estimate_id,job:null,appointment:null,schedule:null,invitation:null,final_invoice_id:null}))})
+  })
+  return state
+}
+async function savedJob(page) {
+  await jobContext(page)
+  await page.route('**/rest/v1/jobs?**', route => route.fulfill({
+    json:new URL(route.request().url()).searchParams.has('id') ? job : [job], headers,
+  }))
+}
 
 async function fillInvoice(page) {
   await page.goto('/?view=invoices')
@@ -83,8 +102,8 @@ test('Needs Attention opens an exact change order and restores the approval queu
   }))
   await page.route('**/rest/v1/change_orders?**',route=>route.fulfill({json:[change],headers}))
   await page.goto('/?view=dashboard')
-  await page.getByRole('button',{name:'Jump to Needs Attention',exact:true}).click()
-  const filter = page.getByRole('button',{name:'Awaiting Customer Approval 1',exact:true})
+  await expect(page.getByRole('article',{name:'Needs attention overview',exact:true})).toBeVisible()
+  const filter = page.getByRole('button',{name:/^Awaiting Customer Approval 1(?: |$)/})
   await filter.click()
   await page.getByRole('link',{name:/open change order CO-QA/i}).click()
   await expect(page).toHaveURL(new RegExp('document='+P))
@@ -112,13 +131,13 @@ test('booking an existing job from the calendar retains the displayed day',async
   const calendar = page.getByRole('region',{name:'Work calendar'})
   await calendar.getByRole('button',{name:'Next week',exact:true}).click()
   const day = DateTime.now().setZone('America/New_York').plus({days:7}).toISODate()
-  await calendar.getByRole('button',{name:'+ Add entry',exact:true}).click()
+  await calendar.getByRole('button',{name:'Add to calendar',exact:true}).click()
   await page.getByRole('button',{name:'Book existing job',exact:true}).click()
   await page.getByRole('button',{name:/Landscaping · Test Customer/}).click()
-  const booking = page.getByRole('dialog',{name:'Book appointment',exact:true})
+  const booking = page.getByRole('dialog',{name:'Schedule job',exact:true})
   await expect(booking.locator('input[type="datetime-local"]').first()).toHaveValue(day+'T09:00')
   await page.goto('/?view=schedule')
-  await page.getByRole('button',{name:'Book existing job',exact:true}).click()
+  await page.getByRole('button',{name:'Book or reschedule job',exact:true}).click()
   await expect(page.getByRole('button',{name:/Landscaping · Test Customer/})).toBeVisible()
 })
 
@@ -152,18 +171,38 @@ test('personal email preserves Confirm sent across a reload of the saved estimat
   await page.route('**/rest/v1/rpc/release_personal_approval',route=>{releases++;return route.fulfill({json:null})})
   await page.route('**/rest/v1/rpc/confirm_personal_document_sent',route=>{confirmations++;return route.fulfill({json:null})})
   await page.goto('/?view=estimates&document='+E)
-  await page.getByRole('button',{name:'Send Email',exact:true}).click()
-  await expect(page.getByRole('button',{name:'Confirm sent',exact:true})).toBeVisible()
+  const estimate=page.getByRole('dialog',{name:'Estimate preview',exact:true})
+  await estimate.getByRole('region',{name:'Record actions',exact:true}).getByRole('button',{name:'Send estimate',exact:true}).click()
+  const delivery=page.getByRole('dialog',{name:'Send estimate',exact:true})
+  await delivery.getByRole('button',{name:'Use my email or text app instead',exact:true}).click()
+  await expect(delivery.getByRole('region',{name:'Estimate PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+  await delivery.getByRole('button',{name:'Open email app',exact:true}).click()
+  await expect(delivery.getByRole('button',{name:'Confirm sent',exact:true})).toBeVisible()
   expect(releases).toBe(1)
   expect(confirmations).toBe(0)
   await page.reload()
-  await page.getByRole('button',{name:'Confirm sent',exact:true}).click()
+  await estimate.getByRole('region',{name:'Record actions',exact:true}).getByRole('button',{name:'Confirm sent',exact:true}).click()
+  await delivery.getByRole('button',{name:'Use my email or text app instead',exact:true}).click()
+  await delivery.getByRole('button',{name:'Confirm sent',exact:true}).click()
   await expect(page.getByText('Recorded as sent through your app.',{exact:true})).toBeVisible()
   expect(confirmations).toBe(1)
 })
 
-test('a new customer email can be added in preview before saving the invoice',async({page})=>{
-  const state=await mock(page,{ai:true})
+test('a new customer email can be added in preview after its single draft save without sending',async({page})=>{
+  const state=await mock(page,{ai:true}),updates=[]
+  const version='2026-11-04T10:00:00Z'
+  await page.route('**/rest/v1/customers?**',route=>{
+    const request=route.request(),q=new URL(request.url()).searchParams
+    const created=state.documents[0]?.payload
+    if(created?.new_customer&&!state.customers.some(row=>row.id===created.customer_id))state.customers.push({id:created.customer_id,...created.new_customer,updated_at:version})
+    const current=state.customers.find(row=>'eq.'+row.id===q.get('id'))
+    if(request.method()==='PATCH'){
+      expect(q.get('business_id')).toBe('eq.'+B);expect(q.get('updated_at')).toBe('eq.'+version)
+      updates.push(request.postDataJSON());Object.assign(current,request.postDataJSON())
+      return route.fulfill({json:current,headers})
+    }
+    return route.fulfill({json:q.has('id')?current:state.customers,headers:{...headers,'content-range':`0-${state.customers.length-1}/${state.customers.length}`}})
+  })
   await page.goto('/?view=invoices')
   await page.getByRole('button',{name:'Create invoice',exact:true}).click()
   const editor=page.getByRole('dialog',{name:'Create an invoice',exact:true})
@@ -173,11 +212,19 @@ test('a new customer email can be added in preview before saving the invoice',as
   await editor.getByLabel('Line 1 unit price',{exact:true}).fill('100')
   await editor.getByRole('button',{name:'Preview',exact:true}).click()
   const preview=editor.getByRole('region',{name:'Review and send',exact:true})
+  await expect(editor.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled()
+  await expect(editor.getByRole('region',{name:'Invoice PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
   await expect(preview.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled()
+  expect(state.documents).toHaveLength(1)
   await preview.getByRole('button',{name:'Add email',exact:true}).click()
-  await preview.getByLabel('Customer email',{exact:true}).fill('new@example.test')
+  const contact=page.getByRole('dialog',{name:'Edit customer email',exact:true})
+  await contact.getByLabel('Email',{exact:true}).fill('new@example.test')
+  await contact.getByRole('button',{name:'Save customer changes',exact:true}).click()
+  await expect(contact).toHaveCount(0)
   await expect(preview.getByRole('button',{name:'Send Email',exact:true})).toBeEnabled()
-  expect(state.documents).toHaveLength(0)
+  expect(updates).toHaveLength(1);expect(updates[0].email).toBe('new@example.test')
+  expect(state.documents).toHaveLength(1)
+  expect(state.calls.filter(call=>/send-reviewed-document|confirm_personal_document_sent/.test(call.path))).toHaveLength(0)
 })
 
 test('the invoice payment dialog starts at the balance and accepts a partial payment',async({page})=>{
@@ -200,7 +247,7 @@ test('the invoice payment dialog starts at the balance and accepts a partial pay
   expect(writes[0]).toMatchObject({target_business_id:B,invoice_id:E,payment_amount:40})
 })
 
-test('Finish invoices opens the billing step for the exact approved change order', async ({ page }) => {
+test('Billing review opens the billing step for the exact approved change order', async ({ page }) => {
   await mock(page)
   const change = { id:P, customer_id:C, customers:customer, source_invoice_id:E,
     status:'approved', change_order_number:'CO-QA', title:'Change materials', total:25, issue_date:'2026-10-03' }
@@ -212,7 +259,7 @@ test('Finish invoices opens the billing step for the exact approved change order
   await page.route('**/rest/v1/change_orders?**', route => route.fulfill({ json:[change], headers }))
   await page.route('**/rest/v1/rpc/get_change_order_billing', route => route.fulfill({ json:{ action:'create_invoice', total:105, change_total:25 } }))
   await page.goto('/?view=dashboard')
-  await page.getByRole('button', { name:'Finish invoices 1' }).click()
+  await page.getByRole('button', { name:'Billing review 1' }).click()
   const row = page.getByRole('link', { name:/open change order CO-QA/i })
   await expect(row).toContainText('Ready to bill')
   await row.click()

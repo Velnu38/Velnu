@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { mock, B, business } from './audit-fixture.mjs'
 
-const setupLinks = ['Company Profile', 'Team & Access', 'Email & Text Setup', 'Invoice & Estimate Setup', 'Calendar Connections', 'Working Hours & Team Availability']
+const setupLinks = ['Company Profile', 'Team Management', 'Email & Text Setup', 'Invoice & Estimate Setup', 'Calendar Connections']
 const moreButton = page => page.locator(page.viewportSize().width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', {name: 'More', exact: true})
 const more = page => page.getByRole('dialog', {name: 'More navigation'})
 
@@ -12,7 +12,7 @@ for (const width of [320, 390, 1440]) test(`More consolidates setup and preserve
   const origin = await page.evaluate(() => performance.timeOrigin)
   await moreButton(page).click()
   for (const label of [...setupLinks, 'Help & Support', 'Subscription']) await expect(more(page).getByRole('link', {name: new RegExp('^' + label.replaceAll('&', '\\&'))})).toBeVisible()
-  for (const label of ['Reminders', 'Payments', 'Financial performance', 'Settings', 'Type to Fin']) await expect(more(page).getByRole('link', {name: label, exact: true})).toHaveCount(0)
+  for (const label of ['Reminders', 'Payments', 'Financial performance', 'Settings', 'Type to Fin', 'Working Hours & Team Availability']) await expect(more(page).getByRole('link', {name: label, exact: true})).toHaveCount(0)
   await expect(more(page).getByRole('button', {name: 'Ask Fin', exact: true})).toHaveCount(0)
   await more(page).getByRole('link', {name: /^Company Profile/}).click()
   await expect(page.getByRole('heading', {name: 'Company Profile', exact: true})).toBeVisible()

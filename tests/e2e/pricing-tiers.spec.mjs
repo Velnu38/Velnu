@@ -78,6 +78,10 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  expect(state.calls.some(c=>c.path.includes('/send-'))).toBe(false);expect(state.sent).toHaveLength(0)
  await expect(form.getByRole('link',{name:'Reopen draft in your app'})).toHaveAttribute('href',kind==='invoice'?/^mailto:/:/^sms:/)
  await expect(form.getByRole('button',{name:/^(Send (Email|Text)|Open email app)$/})).toHaveCount(0)
+ // Native sms/mailto handoff can move focus out of Chrome. Return to the
+ // application as a user does after sending before testing its confirmation.
+ await page.bringToFront()
+ await expect.poll(()=>page.evaluate(()=>document.hasFocus())).toBe(true)
  await form.getByRole('button',{name:'Confirm sent'}).click()
  await expect.poll(()=>state.sent.length).toBe(1)
  expect(state.sent[0].p_channel).toBe(kind==='invoice'?'email':'sms')
