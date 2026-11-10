@@ -94,7 +94,7 @@ for(const width of [1440,390])for(const kind of ['invoice','estimate','job'])tes
  page.once('dialog',d=>d.accept());await page.getByRole('dialog').press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 test('job adds a customer inline while retaining entered work',async({page})=>{
- const state=await mock(page);await page.goto('/?view=work&new=1');const dialog=page.getByRole('dialog')
+ const state=await mock(page),searchResponses=[];page.on('response',async response=>{if(new URL(response.url()).pathname.endsWith('/rpc/search_job_customers')){const request=response.request().postDataJSON();const data=await response.json().catch(()=>null);searchResponses.push({requested:request?.p_selected,selected:data?.selected?.id,count:data?.items?.length})}});await page.goto('/?view=work&new=1');const dialog=page.getByRole('dialog')
  await dialog.getByLabel('Job title',{exact:true}).fill('Keep the service scope')
  await dialog.getByRole('button',{name:'+ Add customer without leaving this draft',exact:true}).click()
  await dialog.getByLabel('Name',{exact:true}).fill('New garden customer')
@@ -103,7 +103,7 @@ test('job adds a customer inline while retaining entered work',async({page})=>{
  await expect.poll(()=>state.customers.length).toBe(2)
  const created=state.customers[1];expect(created.id).toBeTruthy()
  await expect.poll(()=>state.calls.some(c=>c.path.endsWith('/rpc/search_job_customers')&&c.body?.p_selected===created.id)).toBe(true)
- await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('New garden customer')
+ await expect(dialog.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('New garden customer').catch(async error=>{console.log('SYNTHETIC CUSTOMER DIAGNOSTIC',JSON.stringify({searchResponses,created,stateCalls:state.calls.filter(c=>c.path.endsWith('/rpc/search_job_customers')).map(c=>c.body),alerts:await dialog.getByRole('alert').allTextContents(),text:(await dialog.innerText()).slice(-1800)}));throw error})
 })
 for(const width of [1440,390])test(`public and account-entry route audit at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});await mock(page,{signedIn:false});const errors=[];page.on('pageerror',e=>errors.push(e.message))
