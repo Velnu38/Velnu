@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
 import {DateTime} from 'luxon'
@@ -57,6 +58,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
   }
   return reply([])
  })
+ await mockJobDirectory(page,()=>[{id:J,title:'Garden maintenance',description:state.notes,status:'scheduled',customer_id:C,scheduled_start:slots[0].starts_at,scheduled_end:slots[0].ends_at,assigned_user_ids:[U],customers:customer,properties:[{id:P,address_line1:'1 Test Street',city:'Chesapeake',state:'VA',postal_code:'23322'}],active_appointment:state.bookedSlot?{id:J,status:'confirmed',starts_at:state.bookedSlot.starts_at,ends_at:state.bookedSlot.ends_at,assigned_user_ids:state.bookedSlot.workers}:null,invoice:null}],zone)
  return state
 }
 

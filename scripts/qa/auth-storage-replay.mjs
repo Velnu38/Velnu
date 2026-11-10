@@ -107,6 +107,12 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   const workerResponse=await api('/rest/v1/rpc/save_worker_profile',owner.token,{method:'POST',body:{p_business:businessA,p_id:worker,p_input:{name:'Synthetic restore worker',active:true},p_expected:null}})
   assert.ok(workerResponse.ok)
   const jobs=await json('/rest/v1/jobs?select=id&source_estimate_id=eq.'+estimate.id,owner.token);assert.equal(jobs.length,1)
+  phase='bounded-job-directory'
+  const directoryArgs={p_business:businessA,p_filter:'all',p_search:'',p_page:0}
+  const directory=await json('/rest/v1/rpc/get_job_directory_page',owner.token,{method:'POST',body:directoryArgs})
+  assert.equal(directory.total,1);assert.equal(directory.counts.active,1);assert.equal(directory.items[0].id,jobs[0].id);assert.equal(directory.page_size,25)
+  for(const token of [outsider.token,status.ANON_KEY])assert.ok(!(await api('/rest/v1/rpc/get_job_directory_page',token,{method:'POST',body:directoryArgs})).ok)
+  assert.equal((await json('/rest/v1/rpc/get_job_directory_page',owner.token,{method:'POST',body:{...directoryArgs,p_customer:randomUUID()}})).total,0)
   await json('/rest/v1/rpc/manage_job_workspace',owner.token,{method:'POST',body:{p_business:businessA,p_job:jobs[0].id,p_action:'add_task',p_payload:{id:randomUUID(),title:'Synthetic restoration checklist',worker_id:worker}}})
   await json('/rest/v1/rpc/manage_job_workspace',owner.token,{method:'POST',body:{p_business:businessA,p_job:jobs[0].id,p_action:'add_time',p_payload:{request_id:randomUUID(),worked_on:'2026-11-10',minutes:60,hourly_cost:25,worker_id:worker,note:'Synthetic reviewed recovery fixture'}}})
   let recovery

@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { test, expect } from '@playwright/test'
 import { createWork } from './navigation.mjs'
 import { mock, B, C, E, P, J } from './audit-fixture.mjs'
@@ -38,13 +39,17 @@ async function setup(page,{conflict=false,failCreate=false,deleteConflict=false}
   if(failCreate){failCreate=false;return reply(r,{message:'Please retry the address save'},503)}
   const row={id:body.request_id,...body.payload,updated_at:version};state.customers.push(row);locations.push({id:body.request_id,customer_id:row.id,...body.payload.address,updated_at:version});return reply(r,row)
  })
- for(const table of ['jobs','estimates','invoices'])await page.route(`**/rest/v1/${table}?**`,r=>{
-  const q=new URL(r.request().url()).searchParams;reads.push({table,q:Object.fromEntries(q)})
+ const recordsFor=table=>{
   const base={customer_id:C,customers:state.customers[0],total:100,balance_due:100,amount_paid:0,issue_date:'2026-11-03',created_at:version,updated_at:version}
   const records=table==='jobs'?[{...base,id:J,title:'Jane current job',status:'in_progress',scheduled_start:null},{...base,id:E,title:'Jane completed job',status:'completed',scheduled_start:null}]:[{...base,id:E,status:'draft',invoice_number:'INV-JANE',estimate_number:'EST-JANE'}]
-  const data=filtered([...records,{...base,id:other,customer_id:other,status:'draft',title:'Other customer job',invoice_number:'INV-OTHER',estimate_number:'EST-OTHER',customers:state.customers[1]}],q)
+  return [...records,{...base,id:other,customer_id:other,status:'draft',title:'Other customer job',invoice_number:'INV-OTHER',estimate_number:'EST-OTHER',customers:state.customers[1]}]
+ }
+ for(const table of ['jobs','estimates','invoices'])await page.route(`**/rest/v1/${table}?**`,r=>{
+  const q=new URL(r.request().url()).searchParams;reads.push({table,q:Object.fromEntries(q)})
+  const data=filtered(recordsFor(table),q)
   return reply(r,q.has('id')?data[0]:data)
  })
+ await mockJobDirectory(page,params=>{reads.push({table:'jobs_page',q:params});return recordsFor('jobs').map(row=>({...row,active_appointment:null,invoice:null}))})
  return {state,locations,writes,reads}
 }
 test('customer list is last-name alphabetical with company fallback, and legacy Locations opens Customers',async({page})=>{
@@ -68,7 +73,7 @@ for(const width of [1440,390])test(`snapshot routes only selected customer recor
   await expect(page.getByLabel('Customer filter')).toContainText('Jane Doe')
   if(kind==='jobs'){await page.locator('.jobs-filter-panel > summary').click();await page.getByRole('navigation',{name:'Job timing'}).getByRole('button',{name:/^All /}).click();await expect(page.getByText('Jane current job',{exact:true})).toBeVisible();await expect(page.getByText('Jane completed job',{exact:true})).toBeVisible();await expect(page.getByText('Other customer job',{exact:true})).toHaveCount(0)}
   else {await expect(page.locator('.module-record-list')).toContainText(kind==='invoices'?'INV-JANE':'EST-JANE');await expect(page.locator('.module-record-list')).not.toContainText('OTHER')}
-  const request=reads.filter(r=>r.table===kind).at(-1);expect(request.q.business_id).toBe('eq.'+B);expect(request.q.customer_id).toBe('eq.'+C)
+  if(kind==='jobs'){const request=reads.filter(r=>r.table==='jobs_page').at(-1);expect(request.q.p_business).toBe(B);expect(request.q.p_customer).toBe(C)}else{const request=reads.filter(r=>r.table===kind).at(-1);expect(request.q.business_id).toBe('eq.'+B);expect(request.q.customer_id).toBe('eq.'+C)}
   await page.getByRole('link',{name:'Back to customer',exact:true}).click();await expect(snapshot).toBeVisible()
  }
  await page.getByRole('link',{name:'View invoices for Jane Doe'}).click();await page.getByRole('link',{name:'View all invoices',exact:true}).click();await expect(page).toHaveURL(/view=invoices$/);await expect(page.locator('.module-record-list')).toContainText('INV-OTHER')

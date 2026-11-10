@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import {workflow,start,save,review,step,cors} from './fin-workflow-fixture.mjs'
 import { createWork } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
@@ -36,6 +37,7 @@ async function setup(page,options={}){
   return json([])
  })
  await page.goto('/?view=dashboard')
+ await mockJobDirectory(page,()=>s.jobs.map(job=>({...job,active_appointment:null,invoice:null})))
  return s
 }
 async function setupFin(page,options={}){

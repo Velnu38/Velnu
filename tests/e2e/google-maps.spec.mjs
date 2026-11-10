@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { openWorkArea, createWork } from './navigation.mjs'
 import { test, expect } from '@playwright/test'
 
@@ -55,6 +56,7 @@ async function mockBusinessData(page) {
     }
     return json([])
   })
+  await mockJobDirectory(page,()=>[])
   return requests
 }
 

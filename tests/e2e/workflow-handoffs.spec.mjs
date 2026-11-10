@@ -1,3 +1,4 @@
+import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { test, expect } from '@playwright/test'
 import { DateTime } from 'luxon'
 import { mock as auditMock, B, C, E, J, P, customer } from './audit-fixture.mjs'
@@ -24,6 +25,7 @@ async function mock(page,options) {
   return state
 }
 async function savedJob(page) {
+  await mockJobDirectory(page,()=>[{...job,active_appointment:null,invoice:null}])
   await jobContext(page)
   await page.route('**/rest/v1/jobs?**', route => route.fulfill({
     json:new URL(route.request().url()).searchParams.has('id') ? job : [job], headers,
@@ -115,6 +117,7 @@ test('Needs Attention opens an exact change order and restores the approval queu
 
 test('completed jobs link to the prepared invoice immediately',async({page})=>{
   const state = await mock(page,{ai:true})
+  await mockJobDirectory(page,()=>[{...job,status:state.completed?'completed':'in_progress',active_appointment:null,invoice:state.completed?{id:E,status:'draft',number:'INV-QA'}:null}])
   await page.route('**/rest/v1/jobs?**',route=>{
     const row={...job,status:state.completed?'completed':'in_progress'}
     return route.fulfill({json:new URL(route.request().url()).searchParams.has('id')?row:[row],headers})
