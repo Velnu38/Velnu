@@ -84,6 +84,10 @@ export async function verifyReminderReplay(db, localUrl) {
     await blocker.query('rollback').catch(() => {})
     await db.query('rollback').catch(() => {})
     await Promise.all(peers.map(c => c.end().catch(() => {})))
+    // Delete audited children while their parent still exists, so their delete
+    // triggers can append activity without violating the business foreign key.
+    await db.query('delete from public.appointments where id=$1', [appointment])
+    await db.query('delete from public.customers where id=$1', [customer])
     await db.query('delete from public.businesses where id=$1', [business])
     await db.query('delete from auth.users where id=any($1::uuid[])', [[owner, outsider]])
   }
