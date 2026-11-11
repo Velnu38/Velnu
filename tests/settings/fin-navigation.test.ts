@@ -5,11 +5,13 @@ import type {CurrentBusiness} from '../../src/lib/business.ts'
 const owner={id:'business-a',role:'owner',primary_owner:true} as CurrentBusiness
 const usage={ai_limit:100,voice_limit:100,plan:'pro'}
 test('clear typed or transcribed requests map to exact existing destinations',()=>{
- for(const request of ['Open customer reminders','Please take me to customer reminder settings.','Set up customer reminders','Create a customer reminder','customer reminders'])assert.deepEqual(resolveFinNavigation(request),{destination:'customerReminders'})
+ for(const request of ['Can you please open customer reminders?','Open customer reminders','Please take me to customer reminder settings.','Set up customer reminders','Create a customer reminder','customer reminders'])assert.deepEqual(resolveFinNavigation(request),{destination:'customerReminders'})
  assert.equal(finDestination('customerReminders').href,'/?view=settings&section=customer_reminders')
  assert.equal(finDestination('followups').href,'/?view=reminders')
  assert.deepEqual(resolveFinNavigation('Open internal follow-ups'),{destination:'followups'})
  assert.equal(finDestination('calendar').href,'/?view=settings&section=calendar')
+ assert.equal(finDestination('jobs').href,'/?view=work&workspace=jobs')
+ assert.equal(finDestination('jobManagement').href,'/?view=work&workspace=management')
  assert.equal(finDestination('team').href,'/?view=settings&section=team')
  for(const request of ['Open invoices','Open invoices'])assert.deepEqual(resolveFinNavigation(request),{destination:'invoices'})
 })

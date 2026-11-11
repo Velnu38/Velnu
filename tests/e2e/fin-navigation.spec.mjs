@@ -18,6 +18,8 @@ for(const width of [390,1440])test(`Fin opens customer setup, repeated destinati
  await page.goBack();await expect(page).toHaveURL(/\?view=invoices$/)
  await ask(page,'Open internal follow-ups');await expect(page).toHaveURL(/\?view=reminders$/)
  await page.reload();await expect(page).toHaveURL(/\?view=reminders$/)
+ await ask(page,'Open job management');await expect(page).toHaveURL(/view=work&workspace=management$/)
+ await ask(page,'Open jobs directory');await expect(page).toHaveURL(/view=work&workspace=jobs$/)
  expect(provider).toBe(0);expect(state.documents).toHaveLength(0)
  expect(state.calls.filter(c=>/fin_execute|fin_create|send-|execute-ai-action/.test(c.path))).toHaveLength(0)
 })

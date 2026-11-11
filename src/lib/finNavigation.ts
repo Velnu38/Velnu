@@ -4,11 +4,12 @@ import { canOpenSettingsSection, settingsOptionForPlan, settingsOptions, type Se
 import type { VelnuTier } from './pricing'
 
 // Only explicit, navigation-only requests qualify. Never execute model URLs or
-// interpret an action (send/save/enable/create) as permission to navigate away.
+// interpret a send/save/enable request as permission to navigate away. Customer
+// reminder setup opens its existing settings; it never creates or enables a rule.
 const destinations = {
   home: ['dashboard', undefined], customers: ['customers', undefined],
   invoices: ['invoices', undefined], estimates: ['estimates', undefined],
-  jobs: ['work', undefined], schedule: ['schedule', undefined],
+  jobs: ['work', undefined], jobManagement: ['work', undefined], schedule: ['schedule', undefined],
   followups: ['reminders', undefined], finances: ['bookkeeping', undefined],
   settings: ['settings', undefined], customerReminders: ['settings', 'customer_reminders'],
   team: ['settings', 'team'], company: ['settings', 'company'],
@@ -19,7 +20,7 @@ export type FinDestination = keyof typeof destinations
 export type FinNavigation = { destination: FinDestination } | { clarification: string }
 const aliases: Record<string, FinDestination> = {
   home:'home', dashboard:'home', customers:'customers', 'customer directory':'customers',
-  invoices:'invoices', estimates:'estimates', jobs:'jobs', 'jobs directory':'jobs',
+  invoices:'invoices', estimates:'estimates', jobs:'jobs', 'jobs directory':'jobs', 'job management':'jobManagement',
   schedule:'schedule', calendar:'schedule', 'internal reminders':'followups',
   'internal follow ups':'followups', 'follow ups':'followups', finances:'finances',
   'financial performance':'finances', expenses:'finances', settings:'settings',
@@ -32,7 +33,7 @@ const aliases: Record<string, FinDestination> = {
   help:'support', support:'support', storage:'storage',
 }
 export function resolveFinNavigation(text: string, previous?: FinDestination): FinNavigation | null {
-  const clean=text.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/[-–]/g,' ').replace(/\s+/g,' ').replace(/^please /,'').replace(/ please$/,'')
+  const clean=text.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/[-–]/g,' ').replace(/\s+/g,' ').replace(/^(?:can|could|would) you (?:please )?/,'').replace(/^please /,'').replace(/ please$/,'')
   if(/^(?:set up|setup|create|add) (?:a |an )?(?:customer|invoice|appointment) reminders?(?: setup| settings)?$/.test(clean))return {destination:'customerReminders'}
   const match=/^(?:open|show(?: me)?|go to|take me to|navigate to) (?:the |my )?(.+)$/.exec(clean)
   if(!match)return Object.hasOwn(aliases,clean)?{destination:aliases[clean]}:null
@@ -48,7 +49,7 @@ export function resolveFinNavigation(text: string, previous?: FinDestination): F
 export function finDestination(destination: FinDestination) {
   if(!Object.hasOwn(destinations,destination))throw Error('This destination is unavailable.')
   const [view,section]=destinations[destination]
-  return {view,section:section as SettingsSection|undefined,href:'/?view='+view+(section?'&section='+section:'')}
+  return {view,section:section as SettingsSection|undefined,href:'/?view='+view+(section?'&section='+section:destination==='jobs'?'&workspace=jobs':destination==='jobManagement'?'&workspace=management':'')}
 }
 export function assertFinNavigationAccess(expectedBusiness: string, business: CurrentBusiness|null, destination: FinDestination, usage: {ai_limit?:number;voice_limit?:number;plan?:string}|null) {
   const target=finDestination(destination)
