@@ -23,7 +23,7 @@ export default function OperationalAttention({business,refreshVersion}:{business
         return <li key={job.id}><a href={`/?view=work&workspace=management&job=${encodeURIComponent(job.id)}&section=${section}`}><strong>{job.title}</strong><span>{reasons.join(' · ')||'Review work status'}</span></a></li>
       })}</ul>
       {data.total>10&&<nav aria-label="Work attention pages"><button type="button" disabled={data.page===0} onClick={()=>setPage(data.page-1)}>Previous jobs</button><span>Page {data.page+1} of {Math.ceil(data.total/10)}</span><button type="button" disabled={(data.page+1)*10>=data.total} onClick={()=>setPage(data.page+1)}>Next jobs</button></nav>}
-      <small>Checked {new Date(data.checked_at).toLocaleString()}. Visits are shown in your work calendar; billing follow-ups remain below.</small>
+      <small>Checked {new Date(data.checked_at).toLocaleString()}. Visits are shown in your work calendar; billing follow-ups remain in Needs Attention.</small>
     </>}
   </section>
 }
