@@ -1,3 +1,5 @@
+import {supabase} from '../lib/supabase'
+import {jobsPreferenceKey,preferredJobsWorkspace,type JobsWorkspace} from '../lib/jobWorkspacePreference'
 import JobManagement from '../components/JobManagement'
 import {RecordTabs} from '../components/RecordDetail'
 import {confirmNavigation} from '../lib/unsavedChanges'
@@ -46,6 +48,16 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   const [workspace,setWorkspace]=useState<'jobs'|'management'>(initialQuery.get('workspace')==='management'?'management':'jobs')
   const [managementOpened,setManagementOpened]=useState(workspace==='management')
   const [managementComplete,setManagementComplete]=useState(false)
+  const preference=useRef<{key:string|null;touched:boolean}>({key:null,touched:false});
+  useEffect(()=>{let active=true;const search=location.search;preference.current={key:null,touched:false};
+    void supabase.auth.getSession().then(({data})=>{if(!active||!data.session?.user.id)return;const key=jobsPreferenceKey(data.session.user.id,business.id);preference.current.key=key;
+      if(preference.current.touched)return;
+      let saved:string|null=null;try{saved=localStorage.getItem(key)}catch{/* Preferences are optional. */}
+      const next=preferredJobsWorkspace(search,saved);setWorkspace(next);setManagementOpened(next==='management');
+    }).catch(()=>{});return()=>{active=false}
+  },[business.id]);
+  function rememberWorkspace(next:JobsWorkspace){preference.current.touched=true;try{if(preference.current.key)localStorage.setItem(preference.current.key,next)}catch{/* Navigation still works. */}}
+
   const [selectedJob,setSelectedJob]=useState<string|null>(()=>{if(initialQuery.get('workspace')==='management')return initialQuery.get('job')||initialQuery.get('document');try{return sessionStorage.getItem(managementKey)}catch{return null}})
   const workspaceId=useId()
   function selectManagedJob(id:string|null){
@@ -55,10 +67,10 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   }
   function changeWorkspace(next:'jobs'|'management'){
     if(next===workspace||!confirmNavigation())return
-    setWorkspace(next);setManagementOpened(next==='management')
+    setWorkspace(next);setManagementOpened(next==='management');rememberWorkspace(next)
     const url=new URL(location.href);if(next==='management'){url.searchParams.set('workspace','management');if(selectedJob)url.searchParams.set('job',selectedJob)}else{url.searchParams.delete('workspace');url.searchParams.delete('job');url.searchParams.delete('section')}history.replaceState(history.state,'',url.pathname+url.search)
   }
-  function openManagement(id:string,complete=false){if(!confirmNavigation())return;selectManagedJob(id);setManagementComplete(complete);setWorkspace('management');setManagementOpened(true)}
+  function openManagement(id:string,complete=false){if(!confirmNavigation())return;selectManagedJob(id);setManagementComplete(complete);setWorkspace('management');setManagementOpened(true);rememberWorkspace('management')}
   const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean;initialSchedule?:boolean;initialPlan?:boolean}|null>(null)
   const [group, setGroup] = useState<JobGroup | 'all'>('all')
   const [quickFilter, setQuickFilter] = useState<JobQuickFilter>(customerScope ? null : 'active')
@@ -224,7 +236,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   return (
     <div className="page-stack workspace-module jobs-module"><WorkspaceBack />
       <div className="page-heading split-heading module-page-heading">
-        <div><p className="eyebrow">Jobs</p><Heading>{workspace==='management'?'Job Management':'Jobs'}</Heading><p className="module-page-intro">{workspace==='management'?'Approved work. Organized execution.':'Find your jobs, review their history, or choose Manage to organize the work.'}</p></div>
+        <div><p className="eyebrow">Jobs</p><Heading>{workspace==='management'?'Job Management':'Jobs'}</Heading><p className="module-page-intro">{workspace==='management'?'Approved work. Organized execution.':'Find your jobs, review their history, or choose Manage job to organize the work.'}</p></div>
         <div className="work-heading-actions"><RefreshButton busy={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}/>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={openNewJob}><span aria-hidden="true">＋</span> Create job</button>}</div>
       </div>
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
@@ -242,7 +254,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
       <p className="work-group-description">Use timing and worker filters together. Completed and canceled jobs remain in History.</p></details>
       {(useDirectory||(!loading&&!error))&&<RecordListControls label="jobs" list={recordList} showPagination={false}/>}
       </>}
-      {layout==='board'&&!loading&&!error&&<section className="job-board" aria-label="Job progress board">{[{id:'lead',label:'Needs scheduling'},{id:'scheduled',label:'Scheduled'},{id:'in_progress',label:'In progress'},{id:'finished',label:'Finished'}].filter(stage=>stage.id!=='finished'||selectedJobs.some(j=>['completed','canceled'].includes(j.status))).map(stage=>{const column=recordList.visible.filter(j=>stage.id===(['completed','canceled'].includes(j.status)?'finished':j.status==='in_progress'?'in_progress':hasActiveJobAppointment(j)?'scheduled':'lead'));return <section key={stage.id} className="job-board-column"><h3>{stage.label}<span>{column.length}</span></h3>{column.map(j=>{const c=Array.isArray(j.customers)?j.customers[0]:j.customers;const crew=team.filter(w=>j.assigned_user_ids?.includes(w.id));return <article className="job-board-card" key={j.id}><strong>{j.title}</strong><span>{c?[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company:'Customer'}</span>{hasActiveJobAppointment(j)&&<small>{DateTime.fromISO(j.active_appointment!.starts_at).setZone(timezone).toFormat('MMM d · h:mm a')}</small>}<small>{crew.length?crew.map(w=>w.label).join(', '):'Crew not assigned'}</small>{['completed','canceled'].includes(j.status)&&<small>{jobStatusLabels[j.status as JobStatus]}</small>}<div className="jm-inline-actions"><button type="button" className="primary-button compact" onClick={()=>openManagement(j.id)}>Manage</button><button type="button" className="secondary-button compact" onClick={()=>setDetailsJob({id:j.id})}>Open job</button></div></article>})}{!column.length&&<p className="quiet">No jobs on this page.</p>}</section>})}</section>}
+      {layout==='board'&&!loading&&!error&&<section className="job-board" aria-label="Job progress board">{[{id:'lead',label:'Needs scheduling'},{id:'scheduled',label:'Scheduled'},{id:'in_progress',label:'In progress'},{id:'finished',label:'Finished'}].filter(stage=>stage.id!=='finished'||selectedJobs.some(j=>['completed','canceled'].includes(j.status))).map(stage=>{const column=recordList.visible.filter(j=>stage.id===(['completed','canceled'].includes(j.status)?'finished':j.status==='in_progress'?'in_progress':hasActiveJobAppointment(j)?'scheduled':'lead'));return <section key={stage.id} className="job-board-column"><h3>{stage.label}<span>{column.length}</span></h3>{column.map(j=>{const c=Array.isArray(j.customers)?j.customers[0]:j.customers;const crew=team.filter(w=>j.assigned_user_ids?.includes(w.id));return <article className="job-board-card" key={j.id}><strong>{j.title}</strong><span>{c?[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company:'Customer'}</span>{hasActiveJobAppointment(j)&&<small>{DateTime.fromISO(j.active_appointment!.starts_at).setZone(timezone).toFormat('MMM d · h:mm a')}</small>}<small>{crew.length?crew.map(w=>w.label).join(', '):'Crew not assigned'}</small>{['completed','canceled'].includes(j.status)&&<small>{jobStatusLabels[j.status as JobStatus]}</small>}<div className="jm-inline-actions"><button type="button" className="primary-button compact" onClick={()=>openManagement(j.id)}>Manage job</button><button type="button" className="secondary-button compact" onClick={()=>setDetailsJob({id:j.id})}>Job details</button></div></article>})}{!column.length&&<p className="quiet">No jobs on this page.</p>}</section>})}</section>}
       {layout==='board'&&loading&&<p role="status">Loading job board…</p>}
       {layout==='list'&&<section className="module-record-list jobs-record-list" aria-label={`${quickFilter || group} jobs`} aria-busy={loading}>
         {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : selectedJobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{quickFilter === 'today' ? 'No jobs scheduled today' : quickFilter === 'active' ? 'No active jobs' : quickFilter === 'unscheduled' ? 'Nothing needs scheduling' : group === 'all' ? 'No jobs yet' : group === 'history' ? 'No past jobs' : quickFilter ? 'No jobs in this view' : `No ${group} jobs`}</h3><p>{quickFilter === 'today' ? 'Appointments scheduled for today will appear here.' : quickFilter === 'active' ? 'Current and upcoming jobs will appear here.' : quickFilter === 'unscheduled' ? 'Jobs without an appointment will appear here.' : group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled work will appear here.' : 'Choose another filter, return to Overview, or create a job.'}</p></div> : recordList.visible.map((job) => {
@@ -259,8 +271,8 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
               <span className={`module-record-status ${job.status === 'completed' ? 'is-positive' : job.status === 'lead' ? 'is-pending' : ''}`}>{jobStatusLabels[job.status as JobStatus] || job.status.replaceAll('_',' ')}</span>
               {needsUpdate && <span className="job-status-followup">Past appointment · confirm job status</span>}
               <div className="job-row-actions">
-                <button type="button" className="primary-button compact" onClick={()=>openManagement(job.id)}>Manage</button><button type="button" className="secondary-button compact" onClick={()=>setDetailsJob({id:job.id})}>Open job</button>
-                {action ? <button type="button" className="primary-button compact" disabled={busy} onClick={()=>action==='schedule'?setDispatch(job):action==='complete'?openManagement(job.id,true):void changeStatus(job.id,'in_progress')}>{action==='schedule'?'Schedule job':action==='start'?'Start job':'Mark complete'}</button> : job.status==='completed' && invoiceLink ? <a className="primary-button compact" href={invoiceLink.href}>{invoiceLink.label}</a> : null}
+                <button type="button" className="primary-button compact" onClick={()=>openManagement(job.id)}>Manage job</button><button type="button" className="secondary-button compact" onClick={()=>setDetailsJob({id:job.id})}>Job details</button>
+                {action ? <button type="button" className="primary-button compact" disabled={busy} onClick={()=>action==='schedule'?setDispatch(job):action==='complete'?openManagement(job.id,true):void changeStatus(job.id,'in_progress')}>{action==='schedule'?'Schedule job':action==='start'?'Start job':'Review completion'}</button> : job.status==='completed' && invoiceLink ? <a className="primary-button compact" href={invoiceLink.href}>{invoiceLink.label}</a> : null}
               </div>
             </div>
           </article>
