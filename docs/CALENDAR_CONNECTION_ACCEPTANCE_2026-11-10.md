@@ -8,6 +8,10 @@ Microsoft Graph SDK 3.0.7 attaches response headers directly to GraphError. The 
 
 Both writable-calendar selectors previously relied on the count of returned writable items to bound pagination. Repeated or endlessly empty pages could therefore keep making requests. They now detect repeated cursors and cap each listing at 20 pages, failing with a clear error rather than returning an incomplete list. Outlook also requires its next link to remain on the exact approved calendar collection, with no URL credentials or fragment. Opaque cursor query bytes are preserved. Tests cover empty pages followed by valid data, writable filtering, repeated cursors, nonrepeating empty pages and foreign/unrelated routes.
 
+## Release-test date correction
+
+Initial candidate CI run 42927846672 failed its unchanged financial/tenant smoke after UTC midnight: the fixture used server current_date while the business still used the previous local date. Application rejection of future issue dates was correct. The smoke fixture now derives document/due/expiry dates from the business timezone and runs with Pacific/Kiritimati as the database timezone and Pacific/Pago_Pago for the first business. Their 25-hour difference forces the boundary on every run. Assertions require a different server/business day and the saved document's exact local date; financial totals, retries and tenant denial checks remain intact. A new complete CI run must pass this fixture before release.
+
 ## Scheduling semantics
 
 Finviant publishes scheduled work to the selected external calendar and displays the signed-in user's selected calendar events for reference. Imported personal events are scoped to both user and business and do not become shared jobs or crew availability. Existing outbound work is excluded from imported events to avoid showing duplicates. External edits do not update Finviant jobs/invoices.

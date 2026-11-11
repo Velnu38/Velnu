@@ -66,5 +66,19 @@
     "Google configuration and owner consent",
     "live separate-account refresh/reconnect/revoke and device acceptance",
     "external busy-time mapping/freshness design before expanding server booking conflict checks"
-  ]
+  ],
+  "preFixRegression": {
+    "baseCommit": "f82f9901daf3c21edf6e37efd57cae4b9bc249a7",
+    "tests": 20,
+    "passed": 13,
+    "expectedFailures": 7,
+    "reason": "pagination, Graph Retry-After and worker-deadline regressions reproduce on old source"
+  },
+  "initialCandidateCI": {
+    "commit": "e7bff26e40ccfe85b410a1083e0fe5ecd8ac1ad5",
+    "run": 42927846672,
+    "failedJob": 130218787568,
+    "failure": "financial/tenant smoke used server current_date after UTC midnight rather than business date",
+    "correction": "derive dates from business timezone and force a 25-hour server/business timezone difference; preserve financial/tenant assertions"
+  }
 }
