@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "2fb3d076b4e5acf1acce8ba4b792f50f6fa9c7ae",
+  "auditedCommit": "eff790e589f276e8f7acd5a26c21d7853c4b25a7",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -15,8 +15,8 @@
     },
     {
       "title": "Current audited release baseline",
-      "detail": "Fresh November 11 read-only verification: beta branch 2fb3d076b4e5acf1acce8ba4b792f50f6fa9c7ae is served by both domains at READY deployment dpl_C6gF4g2ENhpEKwXHujwA2FFcEGtQ. Its complete-validation run 42936586247 failed browser shard 3 and the aggregate gate: an obsolete saved-review totals selector could pass against the closing editor. READY is not a test certificate. Square recovery remains unmerged at 1b0da310c6df937a19a1e8bb00cc242af329c1cc; beta lookup is absent, both Square Edge functions are version 1, health reports unconfigured/disabled sandbox and zero merchant connections. Historical PR90/91 receipts remain valid only for their exact earlier commits. No live configuration or data changed during this reconciliation.",
-      "evidence": "docs/evidence/2026-11-10-concurrency-rollout.json; docs/evidence/2026-11-11-payment-integration-baseline.json",
+      "detail": "PR92 is merged as eff790e589f276e8f7acd5a26c21d7853c4b25a7; its tree exactly matches tested candidate e74d9fe8cae37710e59fe73cda5e5d1e22feee57. All five candidate workflows and all 22 complete-suite jobs passed (43028773830). Beta deployment dpl_2G58XKuzmCqYfkVXBuzfoJ71Jb77 serves both domains with HTTP 200 and private-beta no-index/no-store headers. Additive lookup is applied as hosted version 20261111133400; both Square Edge functions are v2 and all downloaded files match tested packages. Square remains unconfigured, disabled sandbox with zero merchant connections. Candidate CI, release-branch push CI, deployment, activation and provider/physical acceptance are distinct states. Earlier failed baseline and corrected fixture attempt are retained in evidence; no payment or launch gate is closed.",
+      "evidence": "docs/evidence/2026-11-11-payment-integration-baseline.json; docs/evidence/2026-11-11-payment-recovery-rollout.json",
       "verifiedAt": "2026-11-11"
     },
     {
@@ -393,7 +393,7 @@
     },
     {
       "title": "Calendar connection resilience and booking limits",
-      "detail": "PR91 calendar resilience is deployed as 3e781eec050bd891eafdf0ddb14bf995930faaa5, READY dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F on both domains. Final candidate passed all five workflows and 22 complete-suite jobs, including the corrected business-date boundary fixture. Both domains return HTTP 200 with the expected asset and private-beta no-index headers; calendar queue remains empty. No schema/OAuth/provider settings changed. Google configuration/consent and separate live-provider/device certification remain open; personal external events still do not block booking.",
+      "detail": "Historical PR91 rollout: calendar resilience was deployed as 3e781eec050bd891eafdf0ddb14bf995930faaa5, READY dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F on both domains at that time; the current baseline above supersedes that deployment. Final candidate passed all five workflows and 22 complete-suite jobs, including the corrected business-date boundary fixture. Both domains return HTTP 200 with the expected asset and private-beta no-index headers; calendar queue remains empty. No schema/OAuth/provider settings changed. Google configuration/consent and separate live-provider/device certification remain open; personal external events still do not block booking.",
       "evidence": "docs/CALENDAR_CONNECTION_ACCEPTANCE_2026-11-10.md; tests/calendar/pagination.test.ts; tests/calendar/security.test.ts; tests/calendar/worker.test.ts; docs/evidence/2026-11-10-calendar-connection-validation.json; docs/evidence/2026-11-10-calendar-resilience-rollout.json",
       "verifiedAt": "2026-11-10"
     },
@@ -407,6 +407,12 @@
       "title": "Square recovery integration and saved-review regression",
       "detail": "The existing payment recovery candidate is integrated with the latest beta assessment decisions on a separate nondeploying review branch. Local 19 payment/database regressions, 91 deployment guards, application build, Edge packaging and eight assessment tests pass. Browser regression now waits for saved review and verifies downloaded PDF amounts instead of the removed editor totals panel. Local Chromium launch is blocked by sandbox socket permissions; full candidate CI and rollout remain unverified. Manager roster limits 25/5/1 and account seats 5/1 were separately checked in deployed functions. No entitlement, merchant activation, fee, message, charge or refund changed.",
       "evidence": "docs/evidence/2026-11-11-payment-integration-baseline.json; tests/e2e/document-calendar-contacts.spec.mjs; tests/operations/square-recovery.test.ts",
+      "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "Square recovery beta rollout verified; activation still closed",
+      "detail": "PR92 reused existing recovery implementation and strengthened saved-review browser checks. The corrected PDF shard passed all 69 tests, checking downloaded amounts for increases, reductions and unchanged quantities. Hosted read-only lookup denies anon/authenticated execution and permits service_role; deployed function bodies match the tested build. No account seats, worker limits, access, records, provider settings, real messages, charges or refunds changed. Health remains disabled sandbox and merchant count zero. Source defaults are not account activation. Rollback retains the lookup and records while restoring prior Square functions/frontend. Next independent batch is UX-01 friction baseline and JOB-01 task/primary-action consistency, preserving completion review and authorized overrides.",
+      "evidence": "docs/evidence/2026-11-11-payment-recovery-rollout.json; docs/payments/PAYMENT_ACCEPTANCE_2026-11-10.md",
       "verifiedAt": "2026-11-11"
     }
   ],

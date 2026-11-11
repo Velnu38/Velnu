@@ -1,0 +1,245 @@
+{
+  "observedAt": "2026-11-11",
+  "pr": 92,
+  "testedCommit": "e74d9fe8cae37710e59fe73cda5e5d1e22feee57",
+  "mergedCommit": "eff790e589f276e8f7acd5a26c21d7853c4b25a7",
+  "testedAndMergedTreesIdentical": true,
+  "workflows": [
+    {
+      "id": 43028773824,
+      "name": "Finviant authentication access checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43028773847,
+      "name": "Document design checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43028773849,
+      "name": "Pricing tier checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43028773841,
+      "name": "Finviant assessment maintenance",
+      "conclusion": "success"
+    },
+    {
+      "id": 43028773830,
+      "name": "Complete automated test checks",
+      "conclusion": "success"
+    }
+  ],
+  "completeJobs": [
+    {
+      "id": 130550276595,
+      "name": "pure-deno-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550276809,
+      "name": "iPhone WebKit (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550276848,
+      "name": "DOM checks (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550276866,
+      "name": "iPhone WebKit (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550276868,
+      "name": "node-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550276869,
+      "name": "DOM checks (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550276900,
+      "name": "iPhone WebKit (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550276990,
+      "name": "DOM checks (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277032,
+      "name": "native-app-handoffs",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277045,
+      "name": "DOM checks (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277067,
+      "name": "isolated-provider-workload",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277134,
+      "name": "migrations / postgres-17",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277188,
+      "name": "desktop-and-scheduling / checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277231,
+      "name": "desktop-and-scheduling / Full browser regression (5/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277293,
+      "name": "desktop-and-scheduling / Full browser regression (1/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277303,
+      "name": "desktop-and-scheduling / Full browser regression (3/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277344,
+      "name": "desktop-and-scheduling / Full browser regression (4/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277368,
+      "name": "iPhone WebKit (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277371,
+      "name": "desktop-and-scheduling / Full browser regression (2/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277376,
+      "name": "private-beta-email",
+      "conclusion": "success"
+    },
+    {
+      "id": 130550277437,
+      "name": "desktop-and-scheduling / Full browser regression (6/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130554642074,
+      "name": "Release validation",
+      "conclusion": "success"
+    }
+  ],
+  "frontend": {
+    "deployment": "dpl_2G58XKuzmCqYfkVXBuzfoJ71Jb77",
+    "sourceCommit": "eff790e589f276e8f7acd5a26c21d7853c4b25a7",
+    "state": "READY",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "http": 200,
+    "entry": "/assets/index-jNrffpwh.js",
+    "robots": "noindex, nofollow, noarchive",
+    "backend": "xvybcmyoblfgzokaifsx"
+  },
+  "database": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "sourceMigration": "20261111001800_square_pos_event_context.sql",
+    "hostedVersion": "20261111133400",
+    "sourceSha256": "109c3b2f7d5e0b02c697a9c2aeb7c12183071d96519e2b65484845c5a9c73aa0",
+    "anonExecute": false,
+    "authenticatedExecute": false,
+    "serviceExecute": true,
+    "definitionVerified": true
+  },
+  "edge": [
+    {
+      "name": "square-payments",
+      "verify_jwt": false,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.js",
+        "deno.json"
+      ],
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "bf5ec2ca1745caa9c556a52172af12e09aadd4effca1a5478cf0092816f60ed4"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ],
+      "version": 2,
+      "downloadedFilesExactlyMatch": true
+    },
+    {
+      "name": "square-payment-events",
+      "verify_jwt": false,
+      "entrypoint_path": "index.js",
+      "import_map_path": "deno.json",
+      "files": [
+        "index.js",
+        "deno.json"
+      ],
+      "file_hashes": [
+        {
+          "path": "index.js",
+          "sha256": "d02687367091f2f67c768e44a4769bb098e05c184320bdcdac5e69159bc982e1"
+        },
+        {
+          "path": "deno.json",
+          "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+        }
+      ],
+      "version": 2,
+      "downloadedFilesExactlyMatch": true
+    }
+  ],
+  "health": {
+    "configured": false,
+    "payments_enabled": false,
+    "environment": "sandbox",
+    "squareConnections": 0,
+    "webhookUnconfiguredHttp": 503,
+    "unauthenticatedConfigurationHttp": 401
+  },
+  "status": {
+    "built": true,
+    "locallyTested": "19 payment/database; 91 deployment; 8 assessment; build/package; synthetic PDF text and visual review. Local browser unavailable.",
+    "ciPassed": true,
+    "merged": true,
+    "migrated": true,
+    "deployed": true,
+    "activated": false,
+    "providerVerified": false,
+    "physicallyTested": false
+  },
+  "limitations": [
+    "Final candidate CI is certified; release-branch push CI is a separate run.",
+    "Synthetic provider/volume and mobile emulation are not live-provider, hosted-capacity or physical-device acceptance.",
+    "PAY-01/PAY-02 and all other incomplete gates remain open."
+  ],
+  "costs": "No paid setting, subscription, fee or commitment changed; no real customer message, charge or refund.",
+  "rollback": {
+    "frontend": "dpl_C6gF4g2ENhpEKwXHujwA2FFcEGtQ",
+    "squareFunctions": "Restore preserved version-1 source files; keep additive lookup and financial records."
+  },
+  "next": "UX-01 source/rendered journey baseline, then narrow JOB-01 next-action consistency fix preserving completion safeguards."
+}
