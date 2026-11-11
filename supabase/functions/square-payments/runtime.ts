@@ -10,7 +10,9 @@ const host=squareEnvironment==='production'?'https://connect.squareup.com':'http
 const callback=project+'/functions/v1/square-payments?callback=oauth'
 const db=project&&service?createClient(project,service,{auth:{persistSession:false,autoRefreshToken:false}}):null
 const configured=!!app&&!!db&&!!applicationId&&!!clientSecret&&!!signatureKey&&/^[A-Za-z0-9+/]{43}=$/.test(tokenKey)
-async function rpc(action:string,p:Record<string,unknown>){if(!db)throw Error('Database unavailable');const{data,error}=await db.rpc('square_service',{p_action:action,p});if(error)throw Error('Square operation unavailable');return data}
+async function rpc(action:string,p:Record<string,unknown>){if(!db)throw Error('Database unavailable');const{data,error}=action==='pos_event_context'
+ ?await db.rpc('square_pos_event_context',{p_merchant:p.merchant_id,p_environment:p.environment,p_location:p.location_id,p_operation:p.operation_id})
+ :await db.rpc('square_service',{p_action:action,p});if(error)throw Error('Square operation unavailable');return data}
 const oauth=async(body:Record<string,unknown>)=>await providerJson(host+'/oauth2/token',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({client_id:applicationId,client_secret:clientSecret,...body})},{timeoutMs:20000,maxBytes:65536}) as Record<string,any>
 async function request(access:string,path:string,body?:Record<string,unknown>){if(!configured)throw Error('Square is not configured');if(!/^\/v2\/[a-z0-9/_-]+$/i.test(path))throw Error('Invalid provider path');return await providerJson(host+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+access,'Square-Version':squareVersion,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})},{timeoutMs:20000,maxBytes:262144}) as Record<string,any>}
 async function square(business:string,path:string,body?:Record<string,unknown>){

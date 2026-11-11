@@ -1,0 +1,72 @@
+{
+  "observedAt": "2026-11-11",
+  "baseCommit": "2fb3d076b4e5acf1acce8ba4b792f50f6fa9c7ae",
+  "paymentSourceCommit": "1b0da310c6df937a19a1e8bb00cc242af329c1cc",
+  "reviewBranch": "review/payment-recovery-integration-20261111",
+  "frontend": {
+    "deployment": "dpl_C6gF4g2ENhpEKwXHujwA2FFcEGtQ",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "state": "READY",
+    "sourceCommit": "2fb3d076b4e5acf1acce8ba4b792f50f6fa9c7ae",
+    "completeCi": "failed",
+    "runId": 42936586247,
+    "failedJobId": 130248151836,
+    "artifactId": 13819295693,
+    "cause": "Saved review displays canonical PDF; test expects removed editor totals and may match the closing editor transiently."
+  },
+  "beta": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "lookupPresent": false,
+    "squareConnections": 0,
+    "squarePaymentsVersion": 1,
+    "squarePaymentEventsVersion": 1,
+    "health": {
+      "configured": false,
+      "payments_enabled": false,
+      "environment": "sandbox"
+    },
+    "workerLimits": {
+      "pro": 25,
+      "basic": 5,
+      "free": 1
+    },
+    "accountSeats": {
+      "pro": 5,
+      "other": 1
+    }
+  },
+  "local": {
+    "paymentDatabaseTests": {
+      "passed": 19,
+      "failed": 0
+    },
+    "deploymentTests": {
+      "passed": 91,
+      "failed": 0
+    },
+    "build": "passed; 92 startup checks before two additional review-branch rejection cases",
+    "edgePackaging": "passed",
+    "assessmentTests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "browser": "blocked before test execution: Chromium socket() operation not permitted"
+  },
+  "candidateStatus": {
+    "built": true,
+    "locallyTested": "partial; browser requires CI",
+    "ciPassed": false,
+    "merged": false,
+    "migrated": false,
+    "deployed": false,
+    "activated": false,
+    "providerVerified": false,
+    "physicallyTested": false
+  },
+  "costs": "Public GitHub repository; normal existing hosted CI only. Billing usage endpoint inaccessible (401); no paid setting or commitment changed.",
+  "rollback": "Before rollout, abandon review branch. After authorized rollout restore prior Square Edge sources; retain additive service-only lookup and all financial records.",
+  "next": "Full final-commit CI, then compatible beta lookup and Square Edge rollout without payment activation; UX-01 next."
+}

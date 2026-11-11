@@ -10,7 +10,7 @@ Both writable-calendar selectors previously relied on the count of returned writ
 
 ## Release-test date correction
 
-Initial candidate CI run 42927846672 failed its unchanged financial/tenant smoke after UTC midnight: the fixture used server current_date while the business still used the previous local date. Application rejection of future issue dates was correct. The smoke fixture now derives document/due/expiry dates from the business timezone and runs with Pacific/Kiritimati as the database timezone and Pacific/Pago_Pago for the first business. Their 25-hour difference forces the boundary on every run. Assertions require a different server/business day and the saved document's exact local date; financial totals, retries and tenant denial checks remain intact. A new complete CI run must pass this fixture before release.
+Initial candidate CI run 42927846672 failed its unchanged financial/tenant smoke after UTC midnight: the fixture used server current_date while the business still used the previous local date. Application rejection of future issue dates was correct. The smoke fixture now derives document/due/expiry dates from the business timezone and runs with Pacific/Kiritimati as the database timezone and Pacific/Pago_Pago for the first business. Their 25-hour difference forces the boundary on every run. Assertions require a different server/business day and the saved document's exact local date; financial totals, retries and tenant denial checks remain intact. A subsequent fixture syntax typo was corrected. Final candidate a0f10cc1ad994500a907ae1f5f1c540aabace050 passed complete run 42929241854, including PostgreSQL replay of the forced boundary.
 
 ## Scheduling semantics
 
@@ -22,13 +22,13 @@ Customer appointment options are checked against Finviant working hours, dated t
 
 Read-only review found one Outlook connection, auto-sync enabled, no recorded error and last successful sync 2026-11-10T23:26:00.189119Z; no Google connection. The calendar queue has zero pending, leased or dead entries. This confirms the earlier worker recovery, not a new consent/reconnect/revoke exercise or proof of event delivery for this change.
 
-Local calendar TypeScript, application build/startup and calendar build checks passed; all 45 calendar tests, 89 deployment tests and eight assessment tests passed. The local browser run could not launch: the Playwright headless binary was absent, and installed Chromium failed its Unix-socket sandbox check (EPERM). Those 22 attempted browser scenarios are not counted as passed locally; they must run in CI. The release must also pass the complete CI candidate, including calendar and guided scheduling checks at desktop/mobile widths, before merge. Synthetic provider responses are not live-provider certification. The review branch is excluded from automatic hosted deployment and blocked by the environment guard.
+Local calendar TypeScript, application build/startup and calendar build checks passed; all 45 calendar tests, 89 deployment tests and eight assessment tests passed. The local browser run could not launch: the Playwright headless binary was absent, and installed Chromium failed its Unix-socket sandbox check (EPERM). Those 22 attempted browser scenarios are not counted as passed locally; they must run in CI. The final candidate passed all five workflows and all 22 complete-suite jobs, including browser scheduling/calendar checks. Synthetic provider responses are not live-provider certification. The review branch is excluded from automatic hosted deployment and blocked by the environment guard.
 
 Remaining CAL-01 acceptance includes owner-controlled Google client configuration and consent, separate live provider calendars/accounts, refresh/reconnect/revoke and external-event behavior on actual devices. SMS readiness is separate and remains blocked; no email/SMS was sent in this calendar work.
 
 ## Release and rollback
 
-Merge only the validated candidate into ux/private-testing-20261029 and verify the exact READY deployment, both domain aliases, unchanged private-beta restrictions and calendar queue state. No hosted database changes are needed. Roll back to the preceding compatible frontend/server deployment if needed; preserve credentials, mappings and queues, and never force recreation of uncertain remote events.
+PR91 was merged as 3e781eec050bd891eafdf0ddb14bf995930faaa5 and deployed READY as dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F. Both domains resolve to that deployment, return HTTP 200 with index-jNrffpwh.js and noindex/nofollow/noarchive, and the calendar queue remains empty. See docs/evidence/2026-11-10-calendar-resilience-rollout.json. No hosted database changes are needed. Roll back to the preceding compatible frontend/server deployment if needed; preserve credentials, mappings and queues, and never force recreation of uncertain remote events.
 
 Official references checked November 10, 2026:
 - https://learn.microsoft.com/en-us/graph/paging

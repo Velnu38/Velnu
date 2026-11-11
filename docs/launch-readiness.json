@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-10",
+  "updatedAt": "2026-11-11",
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "1356853cad3173bc9df31d02ab5eb6b40aec88ff",
+  "auditedCommit": "2fb3d076b4e5acf1acce8ba4b792f50f6fa9c7ae",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -15,9 +15,9 @@
     },
     {
       "title": "Current audited release baseline",
-      "detail": "Private-beta merge 1356853cad3173bc9df31d02ab5eb6b40aec88ff is READY at dpl_2kFRbA5svEcp1jspZMfyUKPKQSvD on both domains. The deployed tree exactly matches final PR90 head 930ec8b. All 22 complete-validation jobs and assessment maintenance passed, including genuine PostgreSQL overlap tests, actual PDF/simulated Fin-OCR workloads, browser and iPhone WebKit suites. Existing runtime assets and private-beta indexing restrictions were verified over HTTP. This adds release checks and safe aggregate evidence; no hosted schema, provider configuration, live messages, charges or public activation changed. Hosted pool/TLS and live-provider/device gates remain open.",
-      "evidence": "docs/evidence/2026-11-10-concurrency-rollout.json",
-      "verifiedAt": "2026-11-10"
+      "detail": "Fresh November 11 read-only verification: beta branch 2fb3d076b4e5acf1acce8ba4b792f50f6fa9c7ae is served by both domains at READY deployment dpl_C6gF4g2ENhpEKwXHujwA2FFcEGtQ. Its complete-validation run 42936586247 failed browser shard 3 and the aggregate gate: an obsolete saved-review totals selector could pass against the closing editor. READY is not a test certificate. Square recovery remains unmerged at 1b0da310c6df937a19a1e8bb00cc242af329c1cc; beta lookup is absent, both Square Edge functions are version 1, health reports unconfigured/disabled sandbox and zero merchant connections. Historical PR90/91 receipts remain valid only for their exact earlier commits. No live configuration or data changed during this reconciliation.",
+      "evidence": "docs/evidence/2026-11-10-concurrency-rollout.json; docs/evidence/2026-11-11-payment-integration-baseline.json",
+      "verifiedAt": "2026-11-11"
     },
     {
       "title": "Jobs and Job Management workspaces",
@@ -393,9 +393,21 @@
     },
     {
       "title": "Calendar connection resilience and booking limits",
-      "detail": "Step 16 fixes Microsoft Graph Retry-After header handling and bounds writable-calendar pagination, including repeated/empty pages and unrelated Graph next links. Settings, connected events and appointment review explicitly explain that personal events do not block customer booking times. All 45 local calendar tests, typecheck and calendar build pass. Read-only beta review found a connected Outlook account with successful sync and an empty queue; no Google connection. Full candidate CI/deployment and remaining live provider/device certification are distinct requirements. Initial candidate CI exposed an existing smoke-fixture business-date mismatch after UTC midnight; the fixture now forces a server/business date boundary and keeps all financial/tenant assertions. Final complete CI remains required.",
-      "evidence": "docs/CALENDAR_CONNECTION_ACCEPTANCE_2026-11-10.md; tests/calendar/pagination.test.ts; tests/calendar/security.test.ts; tests/calendar/worker.test.ts; docs/evidence/2026-11-10-calendar-connection-validation.json",
+      "detail": "PR91 calendar resilience is deployed as 3e781eec050bd891eafdf0ddb14bf995930faaa5, READY dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F on both domains. Final candidate passed all five workflows and 22 complete-suite jobs, including the corrected business-date boundary fixture. Both domains return HTTP 200 with the expected asset and private-beta no-index headers; calendar queue remains empty. No schema/OAuth/provider settings changed. Google configuration/consent and separate live-provider/device certification remain open; personal external events still do not block booking.",
+      "evidence": "docs/CALENDAR_CONNECTION_ACCEPTANCE_2026-11-10.md; tests/calendar/pagination.test.ts; tests/calendar/security.test.ts; tests/calendar/worker.test.ts; docs/evidence/2026-11-10-calendar-connection-validation.json; docs/evidence/2026-11-10-calendar-resilience-rollout.json",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Square POS return-loss recovery",
+      "detail": "Step 17 adds verified signed-event recovery when a POS browser return is lost, correct handling of empty operation lookups, and server-fetched order/tender reference validation. Forty-two local payment/database checks and 89 deployment checks pass. Real ledger tests cover replay, delayed callbacks, refunds and service-only merchant/mode/location lookup. Beta has no Stripe merchant bindings or Square connections; the connected Stripe test account has no connected merchants. Full CI, additive-function and Edge rollout remain required. No provider activation or real charge/refund occurred. Disputes, provider concurrency, complete fee/payout reconciliation and merchant/device acceptance remain open.",
+      "evidence": "docs/payments/PAYMENT_ACCEPTANCE_2026-11-10.md; docs/evidence/2026-11-10-payment-recovery-validation.json; tests/operations/square-recovery.test.ts",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Square recovery integration and saved-review regression",
+      "detail": "The existing payment recovery candidate is integrated with the latest beta assessment decisions on a separate nondeploying review branch. Local 19 payment/database regressions, 91 deployment guards, application build, Edge packaging and eight assessment tests pass. Browser regression now waits for saved review and verifies downloaded PDF amounts instead of the removed editor totals panel. Local Chromium launch is blocked by sandbox socket permissions; full candidate CI and rollout remain unverified. Manager roster limits 25/5/1 and account seats 5/1 were separately checked in deployed functions. No entitlement, merchant activation, fee, message, charge or refund changed.",
+      "evidence": "docs/evidence/2026-11-11-payment-integration-baseline.json; tests/e2e/document-calendar-contacts.spec.mjs; tests/operations/square-recovery.test.ts",
+      "verifiedAt": "2026-11-11"
     }
   ],
   "tasks": [
@@ -838,7 +850,7 @@
       "status": "blocked_external",
       "title": "Configure and certify Square hosted checkout and POS Tap to Pay",
       "owner": "Developer + owner",
-      "why": "Square OAuth/encrypted token refresh, owner/staff controls, mobile-web POS handoff, hosted checkout, signed-event reconciliation, refunds, protected processing-cost entries and Stripe/Square reservation guards are implemented. No live merchant/physical-phone payment is certified. New payments remain inactive until operator setup and acceptance; see docs/payments/SQUARE_SETUP.md.",
+      "why": "Square OAuth/encrypted token refresh, owner/staff controls, hosted checkout, signed events, refunds and reservation guards are implemented. Step 17 candidate adds verified POS recovery without a browser return and an exact service-only merchant/mode/location lookup. Local synthetic ledger tests pass. No connected beta merchant, full provider/device certification or activation; see docs/payments/PAYMENT_ACCEPTANCE_2026-11-10.md.",
       "acceptance": "After separate scope selection, preserve Stripe and certify optional Square OAuth merchant/location binding, token refresh/revocation, invoice/amount/currency/mode identity and signed webhook/API reconciliation. Prove supported online checkout and any mobile-web POS handoff on actual phones with owner-authorized bounded charges where Square lacks sandbox, including missing app, wrong seller, cancellation/return loss, pending/offline failure, refunds/disputes, retries and simultaneous Stripe-versus-Square payment attempts. Never mark paid from callback alone. Verify single default processor/customer checkout, gross-to-fee/net reporting, owner-only destination changes and protected migration of issued documents if standalone link defaults are later retired. No POS-handoff app-fee promise; native/Terminal separately scoped under TAP-01.",
       "evidence": []
     },
