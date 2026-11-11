@@ -20,6 +20,7 @@ for(const width of [390,1440])test(`Home, chooser, customer and saved review acc
   await expect(attention.getByText('Prepare the work site',{exact:true})).toBeVisible()
   await expect(attention.getByRole('link',{name:/Prepare the work site/})).toHaveAttribute('href',/section=tasks/)
   await scan(page,'.home-work-attention')
+  if(width===1440){const finance=await page.locator('.performance-compact').boundingBox(),billing=await page.locator('.home-attention-tile').boundingBox(),work=await attention.boundingBox();expect(Math.abs(finance.y-billing.y)).toBeLessThan(2);expect(work.y).toBeGreaterThanOrEqual(Math.max(finance.y+finance.height,billing.y+billing.height))}
   await mkdir('tmp/ux-review',{recursive:true});await page.screenshot({path:`tmp/ux-review/home-${width}.png`,fullPage:true})
   await page.getByRole('button',{name:'Quick Links',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Create',exact:true})).toBeVisible()
@@ -45,6 +46,7 @@ test('mobile job groups retain all sections, completion safeguards and direct se
   await page.getByRole('article').filter({hasText:'Kitchen renovation'}).getByRole('button',{name:'Manage job',exact:true}).click()
   await expect(page.getByRole('group',{name:'Job workspace areas'})).toBeVisible()
   await scan(page,'.jm-section-groups')
+  expect(await page.locator('.jm-section-groups button').evaluateAll(buttons=>buttons.every(button=>button.scrollWidth<=button.clientWidth))).toBe(true)
   await mkdir('tmp/ux-review',{recursive:true});await page.screenshot({path:'tmp/ux-review/job-mobile.png',fullPage:true})
   for(const [group,sections] of [['Work',['Tasks','Schedule & Crew','Materials','Photos & Expenses']],['Billing',['Billing','Changes']],['Records',['Activity','Completion Report']],['Summary',['Overview']]]){
     await page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:group,exact:true}).click()

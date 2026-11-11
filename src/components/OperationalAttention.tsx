@@ -18,7 +18,7 @@ export default function OperationalAttention({business,refreshVersion}:{business
       <ul className="home-work-list">{data.entries.map(entry=>{
         if(entry.kind!=='job')return null
         const job=entry.data,signal=data.signals.find(s=>s.job_id===job.id)
-        const reasons=[signal?.due_tasks?`${signal.due_tasks} tasks due`:null,signal?.materials_needed?`${signal.materials_needed} materials outstanding`:null,!job.assigned_user_ids?.length?'Crew unassigned':null,signal?.pending_changes?`${signal.pending_changes} changes to review`:null].filter(Boolean)
+        const reasons=[signal?.due_tasks?`${signal.due_tasks} ${signal.due_tasks===1?'task':'tasks'} due`:null,signal?.materials_needed?`${signal.materials_needed} materials outstanding`:null,!job.assigned_user_ids?.length?'Crew unassigned':null,signal?.pending_changes?`${signal.pending_changes} changes to review`:null].filter(Boolean)
         const section=signal?.due_tasks?'tasks':signal?.materials_needed?'materials':!job.assigned_user_ids?.length?'schedule':signal?.pending_changes?'changes':'overview'
         return <li key={job.id}><a href={`/?view=work&workspace=management&job=${encodeURIComponent(job.id)}&section=${section}`}><strong>{job.title}</strong><span>{reasons.join(' · ')||'Review work status'}</span></a></li>
       })}</ul>

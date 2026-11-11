@@ -109,8 +109,8 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     <div className="home-overview">
       {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} compact />}
       {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey+':financial'} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
-      {canAccess(business,'jobs') && <OperationalAttention key={workspaceKey+':work-attention'} business={business} refreshVersion={refreshVersion}/>}
       {canAccess(business,'billing') && <BillingHub key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} openRequest={openAttention} onPendingChange={setAttentionCount} approvalBreakdown={{estimates:snapshot.pendingEstimateCount,changeOrders:snapshot.pendingChangeOrderCount}} />}
+      {canAccess(business,'jobs') && <OperationalAttention key={workspaceKey+':work-attention'} business={business} refreshVersion={refreshVersion}/>}
       {canAccess(business,'finances') && <CustomerPaymentReviews key={workspaceKey+':payment-reviews'} businessId={business.id} />}
     </div>
 

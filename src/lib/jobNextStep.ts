@@ -13,7 +13,7 @@ export function jobNextStep(p: {
   if (!p.canEdit) return {label:'Review work plan',detail:'You have read-only access to this job.',action:'overview'}
   if (!p.booked && p.status!=='in_progress') return {label:p.canSchedule?'Schedule visit':'Review visits',detail:'This job needs a scheduled visit.',action:p.canSchedule?'schedule':'visits'}
   if (!p.crew && p.canSchedule) return {label:'Assign crew',detail:'Choose workers for the scheduled work.',action:'crew'}
-  if (p.materials) return {label:'Review materials',detail:`${p.materials} materials not received`,action:'materials'}
+  if (p.materials) return {label:'Review materials',detail:`${p.materials} ${p.materials===1?'material':'materials'} not received`,action:'materials'}
   if (p.changes && p.canBill) return {label:'Review changes',detail:`${p.changes} changes need review`,action:'changes'}
   if (p.status!=='in_progress') return p.futureVisit
     ? {label:'Review visit',detail:'Your next visit is scheduled for a future time.',action:'visits'}
