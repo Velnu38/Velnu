@@ -4,7 +4,7 @@
 begin;
 -- Force the database day ahead of the first business at every time of day.
 -- Document dates belong to the business timezone, not the CI runner/server.
-set local timezone 'Pacific/Kiritimati';
+set local time zone 'Pacific/Kiritimati';
 do $$declare health jsonb; metric text;begin
  if has_function_privilege('anon','public.finviant_ops_health()','EXECUTE')
   or has_function_privilege('authenticated','public.finviant_ops_health()','EXECUTE')
