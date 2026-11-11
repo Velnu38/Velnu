@@ -414,6 +414,18 @@
       "detail": "PR92 reused existing recovery implementation and strengthened saved-review browser checks. The corrected PDF shard passed all 69 tests, checking downloaded amounts for increases, reductions and unchanged quantities. Hosted read-only lookup denies anon/authenticated execution and permits service_role; deployed function bodies match the tested build. No account seats, worker limits, access, records, provider settings, real messages, charges or refunds changed. Health remains disabled sandbox and merchant count zero. Source defaults are not account activation. Rollback retains the lookup and records while restoring prior Square functions/frontend. Next independent batch is UX-01 friction baseline and JOB-01 task/primary-action consistency, preserving completion review and authorized overrides.",
       "evidence": "docs/evidence/2026-11-11-payment-recovery-rollout.json; docs/payments/PAYMENT_ACCEPTANCE_2026-11-10.md",
       "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "UX journey candidate: action clarity and existing-component reuse",
+      "detail": "PR93 retains the approved customer-to-payment UX candidate and all existing backend, financial, document, permission and private-beta boundaries. Full CI run 43112291926 completed: package installation now succeeds; browser shards 5/6 and 6/6 fail on stale Settings group and completion-button selectors (three tier cases and one completion-to-invoice case). The repair updates these assertions to the approved Business & team / Documents & delivery / Connections groups and Review completion action, retaining tier exclusion, explicit completion, one mutation, invoice deep link and no-send assertions, and adding exact settings destination checks. No application or workflow changes, migration, Edge deployment, provider activation or new costs. Local Chromium launch is blocked by process-singleton socket permission; hosted browser validation is required. Prior Home/UX and local source evidence remains in the receipt. Required repaired-candidate CI is pending; PR93 is unmerged and the live baseline remains 36fb325 / dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb. UX-01/JOB-01, provider, physical-device and public-launch gates remain open.",
+      "evidence": "docs/UX_JOURNEY_2026-11-11.md; docs/evidence/2026-11-11-ux-journey.json; PR93; full CI 43112291926; failed jobs 130835331606 and 130835331794; tests/e2e/pricing-tiers.spec.mjs; tests/e2e/workflow-handoffs.spec.mjs",
+      "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "Focused work-queue checkpoint",
+      "detail": "Authorized beta source: 36fb3254a347381c581ff8f247f2ea1df97af976 on ux/private-testing-20261029. This documentation branch starts there; PR93 runtime changes are not imported. PR92 merged as eff790e589f276e8f7acd5a26c21d7853c4b25a7. Its additive Square lookup and two Edge v2 packages have a recorded beta rollout. Do not repeat integration or rollout; merchant/provider/device acceptance remains open. PR93 remains draft and unmerged at 852a11b7fd8ff903d3fbc247fd85869c40be64d9. The stale Settings/completion selectors are repaired. Run 43116095293: all six browser shards, four WebKit shards and four DOM shards passed; node-tests and desktop-and-scheduling / checks were still running. This is not a complete-suite pass. Last recorded live frontend: 36fb325 / dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb. This task did not independently probe deployment or change frontend, schema, Edge functions or providers. Beta backend remains xvybcmyoblfgzokaifsx. Owner authorized publication, merge and private-beta deployment after required checks pass. Next: publish this documentation candidate, verify required CI, then merge and verify beta deployment. PR93 remains a separate candidate requiring its own final checks. Keep all unmet provider, physical-device and public-launch gates open.",
+      "evidence": "https://github.com/Velnu38/Velnu/pull/92; https://github.com/Velnu38/Velnu/pull/93; https://github.com/Velnu38/Velnu/actions/runs/43116095293; docs/evidence/2026-11-11-payment-recovery-rollout.json",
+      "verifiedAt": "2026-11-11"
     }
   ],
   "tasks": [
@@ -980,6 +992,17 @@
       "why": "Owner requested the app-wide friction/navigation prompt be added to the assessment on November 10. Review current deployed experience and latest source, not stale assumptions; reduce redundant choices and repeated information without deleting useful features or shortcuts. Assessment update only, no app changes.",
       "acceptance": "First map and rank friction, duplicate buttons/displays, confusing labels and competing paths across Home/navigation, Customers, Estimates, Invoices, Jobs, Schedule, Financial Performance, Photos & Expenses, Settings and Ask Fin. Measure steps and repeated entry on add-customer → create/send-estimate → approval/scheduling → job completion → invoice/payment journeys and establish a before/after baseline. Make one primary next action obvious; use progressive disclosure for secondary actions but keep them discoverable. Consolidate redundant screens/paths while retaining shortcuts that genuinely save time and preserving all data, workflows, permissions and deep links. Standardize labels/statuses, button placement, back/navigation behavior, refresh and actionable empty/error/partial states. Reuse saved customer/job/service data without overwriting edits, bypassing review or automating consequential actions. Test phones first: readable layouts, tap targets, keyboard/zoom/screen-reader behavior, scroll, Back/Cancel, repeated clicks, interruptions and unsaved edits; preserve desktop and future app-shell compatibility without claiming native readiness. Keep tenant isolation, role/plan restrictions and historical issued records intact. Reconcile hero/introduction claims with verified capabilities and current plan limits. Coordinate current PRs and AUTO-02/AUTO-03/FIN-02 rather than duplicating their work; prioritize dependency-free high-friction fixes, then JOB-01 workspace integration. Implement only in small reviewable batches under implementation authorization; run affected automated/browser journeys after each batch and report exact source, tests, deployed versus branch-only changes and unverified phone/provider steps. No new paid plugin or service without approval; preserve independent security/provider/load/launch gates.",
       "evidence": []
+    },
+    {
+      "id": "AI-03",
+      "priority": "P1",
+      "status": "open",
+      "gate": "advertised",
+      "title": "Open the correct destination from clear Fin navigation requests",
+      "owner": "Engineering / product owner",
+      "why": "Clear contextual typed or voice requests should open the correct supported area without a navigation-only confirmation; customer reminders must not be confused with internal follow-ups.",
+      "acceptance": "Exact destination assertions cover context, repeated requests, missing routes, mobile/deep links, Back/Cancel, unsaved edits and tenant/role/plan denial. Ask only for genuine ambiguity or unsaved edits. Navigation alone creates nothing, changes no setting and sends nothing. Consequential actions retain review and permissions. Document unavailable destinations honestly. Record source tests separately from real voice and physical-device acceptance.",
+      "evidence": []
     }
   ],
   "recommendations": [
@@ -1160,5 +1183,564 @@
       "statusNote": "Owner-requested assessment to-do; implementation and acceptance pending.",
       "body": "### Sequence and scope\n\n1. **UX-01 first:** map the current end-to-end owner journeys, rank the highest-friction duplicated displays/paths and establish consistent navigation/action patterns. Preserve useful shortcuts and all existing functionality. Work in small testable batches aligned with active project work, not a parallel rebuild.\n2. **JOB-01 next:** apply those patterns to one practical job workspace and a Today / Needs Attention landing view. Existing tasks/templates, visits/crews, materials, costs, changes and completion reports should become easier to find and use. Do not interpret weak presentation as missing capability.\n3. **Acceptance:** use the current JOB-02–05 and DEVICE-01/PERF-01 gates, plus the full customer-to-payment journey. Prioritize correctness of next actions and financial/cost context before cosmetic additions. Preserve worker-profile versus account-seat boundaries, tier isolation and history. No layout test is proof of live providers, real phones or full load readiness.\n\nThese two owner-supplied prompt areas are recorded in UX-01 and the refined JOB-01 rather than creating duplicate Jobs implementation tracks. Existing release/security/provider/operations work remains required and should not be displaced. Assessment-only update: no app code, settings, provider configuration, spending or deployment is authorized or performed by this document change."
     }
+  ],
+  "workQueue": {
+    "cards": [
+      {
+        "number": "01",
+        "title": "Finish PR93 candidate validation",
+        "taskIds": [
+          "CI-01",
+          "UX-01",
+          "JOB-01"
+        ],
+        "boundary": "Selector repair implemented; required CI remains incomplete"
+      },
+      {
+        "number": "02",
+        "title": "Make the report a focused work queue",
+        "taskIds": [
+          "REL-01",
+          "REL-02",
+          "REL-03",
+          "CI-01",
+          "SEC-01",
+          "SEC-02",
+          "SEC-03",
+          "OPS-01",
+          "OPS-02",
+          "OPS-03",
+          "PERF-01",
+          "PERF-02",
+          "EMAIL-01",
+          "BILL-01",
+          "SMS-01",
+          "PAY-01",
+          "CAL-01",
+          "AI-01",
+          "INT-01",
+          "DEVICE-01",
+          "OPS-04",
+          "COST-01",
+          "AUTO-01",
+          "EXPORT-01",
+          "PORTAL-01",
+          "TAP-01",
+          "AUTH-01",
+          "PLAN-01",
+          "RET-01",
+          "EXPORT-02",
+          "GROW-01",
+          "GROW-02",
+          "GROW-03",
+          "JOB-01",
+          "JOB-02",
+          "JOB-03",
+          "JOB-04",
+          "FIN-01",
+          "PAY-02",
+          "PAY-03",
+          "FIN-02",
+          "INV-01",
+          "REC-01",
+          "AI-02",
+          "JOB-05",
+          "STORE-01",
+          "CARD-02",
+          "AUTO-02",
+          "AUTO-03",
+          "UX-01",
+          "AI-03"
+        ],
+        "boundary": "Documentation only; publication approval needed"
+      },
+      {
+        "number": "03",
+        "title": "Open the right page from Fin",
+        "taskIds": [
+          "AI-03",
+          "AI-01",
+          "AI-02"
+        ],
+        "boundary": "Ready for a scoped implementation request"
+      },
+      {
+        "number": "04",
+        "title": "Finish effective reminder settings",
+        "taskIds": [
+          "AUTO-01"
+        ],
+        "boundary": "Existing engine; verify gaps only"
+      },
+      {
+        "number": "05",
+        "title": "Expose accurate reminder history",
+        "taskIds": [
+          "AUTO-02"
+        ],
+        "boundary": "Ready; reuse existing activity records"
+      },
+      {
+        "number": "06",
+        "title": "Guide rescheduling safely",
+        "taskIds": [
+          "AUTO-03",
+          "CAL-01"
+        ],
+        "boundary": "Ready; notification activation separate"
+      },
+      {
+        "number": "07",
+        "title": "Replace surcharge entry with a flat fee",
+        "taskIds": [
+          "FIN-02",
+          "INV-01",
+          "PAY-01",
+          "PAY-02"
+        ],
+        "boundary": "Legacy-draft policy and compliance gates"
+      },
+      {
+        "number": "08",
+        "title": "Add the persistent live-card link",
+        "taskIds": [
+          "CARD-02"
+        ],
+        "boundary": "Implementation plus physical-contact acceptance"
+      },
+      {
+        "number": "09",
+        "title": "Close document and finance gaps",
+        "taskIds": [
+          "INV-01",
+          "FIN-01"
+        ],
+        "boundary": "Existing shortcuts, designs and ledger retained"
+      },
+      {
+        "number": "10",
+        "title": "Certify costs and recurring work",
+        "taskIds": [
+          "JOB-02",
+          "JOB-01",
+          "INV-01"
+        ],
+        "boundary": "Existing implementation; remaining exceptions"
+      },
+      {
+        "number": "11",
+        "title": "Scope recurring dispatch and autopay",
+        "taskIds": [
+          "REC-01",
+          "PLAN-01",
+          "PAY-01",
+          "PAY-02"
+        ],
+        "boundary": "Decision first; no charge activation"
+      },
+      {
+        "number": "12",
+        "title": "Certify signup and recovery",
+        "taskIds": [
+          "AUTH-01",
+          "SEC-01",
+          "REL-03"
+        ],
+        "boundary": "Owner/provider inputs required"
+      },
+      {
+        "number": "13",
+        "title": "Close tenant and access findings",
+        "taskIds": [
+          "SEC-02"
+        ],
+        "boundary": "Targeted security acceptance"
+      },
+      {
+        "number": "14",
+        "title": "Prove abuse and cost limits",
+        "taskIds": [
+          "SEC-03"
+        ],
+        "boundary": "Existing controls; gap-based changes"
+      },
+      {
+        "number": "15",
+        "title": "Prove alerts and worker recovery",
+        "taskIds": [
+          "OPS-02",
+          "OPS-03"
+        ],
+        "boundary": "Monitoring choice and bounded activation required"
+      },
+      {
+        "number": "16",
+        "title": "Prove an isolated full restore",
+        "taskIds": [
+          "OPS-01",
+          "REL-01"
+        ],
+        "boundary": "Backup plan and isolated target required"
+      },
+      {
+        "number": "17",
+        "title": "Measure performance and capacity",
+        "taskIds": [
+          "PERF-01",
+          "PERF-02",
+          "JOB-04"
+        ],
+        "boundary": "Bounded isolated load authorization required"
+      },
+      {
+        "number": "18",
+        "title": "Certify email and managed SMS",
+        "taskIds": [
+          "EMAIL-01",
+          "SMS-01"
+        ],
+        "boundary": "Provider/recipient approval required; one channel per batch"
+      },
+      {
+        "number": "19",
+        "title": "Certify calendar connections",
+        "taskIds": [
+          "CAL-01"
+        ],
+        "boundary": "Google setup/owner accounts required"
+      },
+      {
+        "number": "20",
+        "title": "Certify Stripe and Square payments",
+        "taskIds": [
+          "PAY-01",
+          "PAY-02"
+        ],
+        "boundary": "Merchant and bounded transaction approval required"
+      },
+      {
+        "number": "21",
+        "title": "Verify Fin voice and usefulness",
+        "taskIds": [
+          "AI-01",
+          "AI-02",
+          "AI-03"
+        ],
+        "boundary": "Bounded provider/device and pilot inputs required"
+      },
+      {
+        "number": "22",
+        "title": "Certify QuickBooks and integration claims",
+        "taskIds": [
+          "INT-01"
+        ],
+        "boundary": "Controlled real company required"
+      },
+      {
+        "number": "23",
+        "title": "Settle commercial terms and lifecycle",
+        "taskIds": [
+          "PLAN-01",
+          "BILL-01",
+          "PAY-03",
+          "COST-01"
+        ],
+        "boundary": "Unsettled decisions first; one implementation increment at a time"
+      },
+      {
+        "number": "24",
+        "title": "Verify complete owner archives",
+        "taskIds": [
+          "EXPORT-01"
+        ],
+        "boundary": "Existing archive; completeness and real download acceptance"
+      },
+      {
+        "number": "25",
+        "title": "Prepare safe inactive-account retention",
+        "taskIds": [
+          "RET-01",
+          "EXPORT-01"
+        ],
+        "boundary": "Policy approval; no live purge"
+      },
+      {
+        "number": "26",
+        "title": "Validate costs and operating ownership",
+        "taskIds": [
+          "COST-01",
+          "OPS-04",
+          "REL-02",
+          "JOB-04"
+        ],
+        "boundary": "Provider bills, plan evidence and owner decisions required"
+      },
+      {
+        "number": "27",
+        "title": "Finish real-device journey acceptance",
+        "taskIds": [
+          "DEVICE-01",
+          "JOB-05",
+          "UX-01",
+          "JOB-01"
+        ],
+        "boundary": "After current UI candidate is releasable"
+      },
+      {
+        "number": "28",
+        "title": "Run the explicit release audit",
+        "taskIds": [
+          "REL-01",
+          "REL-03",
+          "CI-01"
+        ],
+        "boundary": "Release audit only after scoped work"
+      },
+      {
+        "number": "29",
+        "title": "Keep optional work separate",
+        "taskIds": [
+          "EXPORT-02",
+          "GROW-01",
+          "GROW-02",
+          "GROW-03",
+          "PORTAL-01",
+          "TAP-01",
+          "JOB-03",
+          "STORE-01"
+        ],
+        "boundary": "Deferred or separately selected; no automatic implementation"
+      }
+    ],
+    "crosswalk": [
+      {
+        "package": 1,
+        "title": "Accurate baseline and consolidation",
+        "cards": [
+          "01",
+          "02"
+        ]
+      },
+      {
+        "package": 2,
+        "title": "Release test system",
+        "cards": [
+          "01",
+          "28"
+        ]
+      },
+      {
+        "package": 3,
+        "title": "Approved invoice and estimate design",
+        "cards": [
+          "09",
+          "27"
+        ]
+      },
+      {
+        "package": 4,
+        "title": "Jobs execution and roster reconciliation",
+        "cards": [
+          "10",
+          "27"
+        ]
+      },
+      {
+        "package": 5,
+        "title": "Manager availability",
+        "cards": [
+          "19",
+          "27"
+        ]
+      },
+      {
+        "package": 6,
+        "title": "Customer reminder defaults",
+        "cards": [
+          "04",
+          "05",
+          "06",
+          "15",
+          "18"
+        ]
+      },
+      {
+        "package": 7,
+        "title": "Fin product knowledge",
+        "cards": [
+          "03",
+          "21"
+        ]
+      },
+      {
+        "package": 8,
+        "title": "Tenant, role, RPC and file isolation",
+        "cards": [
+          "13"
+        ]
+      },
+      {
+        "package": 9,
+        "title": "Signup, onboarding, recovery and MFA",
+        "cards": [
+          "12",
+          "28"
+        ]
+      },
+      {
+        "package": 10,
+        "title": "Distributed abuse and cost limits",
+        "cards": [
+          "14"
+        ]
+      },
+      {
+        "package": 11,
+        "title": "Monitoring and owner alerts",
+        "cards": [
+          "15",
+          "26"
+        ]
+      },
+      {
+        "package": 12,
+        "title": "Workers and uncertain deliveries",
+        "cards": [
+          "15",
+          "18",
+          "19",
+          "20"
+        ]
+      },
+      {
+        "package": 13,
+        "title": "Backups, storage restore and rollback",
+        "cards": [
+          "16",
+          "28"
+        ]
+      },
+      {
+        "package": 14,
+        "title": "Database performance and capacity",
+        "cards": [
+          "17"
+        ]
+      },
+      {
+        "package": 15,
+        "title": "General email and managed SMS",
+        "cards": [
+          "18"
+        ]
+      },
+      {
+        "package": 16,
+        "title": "Google and Outlook calendars",
+        "cards": [
+          "19"
+        ]
+      },
+      {
+        "package": 17,
+        "title": "Stripe and Square payments",
+        "cards": [
+          "20"
+        ]
+      },
+      {
+        "package": 18,
+        "title": "Fee handling",
+        "cards": [
+          "07",
+          "23"
+        ]
+      },
+      {
+        "package": 19,
+        "title": "Financial reporting and document tools",
+        "cards": [
+          "09",
+          "10"
+        ]
+      },
+      {
+        "package": 20,
+        "title": "Recurrence and progress billing",
+        "cards": [
+          "10",
+          "11"
+        ]
+      },
+      {
+        "package": 21,
+        "title": "AI, voice, OCR, QuickBooks and usefulness",
+        "cards": [
+          "03",
+          "21",
+          "22"
+        ]
+      },
+      {
+        "package": 22,
+        "title": "Commercial lifecycle and monetization",
+        "cards": [
+          "23",
+          "26"
+        ]
+      },
+      {
+        "package": 23,
+        "title": "Complete owner archives",
+        "cards": [
+          "24"
+        ]
+      },
+      {
+        "package": 24,
+        "title": "Safe retention",
+        "cards": [
+          "25"
+        ]
+      },
+      {
+        "package": 25,
+        "title": "Economics, support and privacy",
+        "cards": [
+          "26"
+        ]
+      },
+      {
+        "package": 26,
+        "title": "Device acceptance and cutover",
+        "cards": [
+          "27",
+          "28"
+        ]
+      },
+      {
+        "package": 27,
+        "title": "Historical import",
+        "cards": [
+          "29"
+        ]
+      },
+      {
+        "package": 28,
+        "title": "Deferred products and major expansion",
+        "cards": [
+          "29"
+        ]
+      }
+    ],
+    "guide": "docs/FOCUSED_TASK_CARDS.md",
+    "handoff": "docs/CURRENT_HANDOFF.md"
+  },
+  "currentState": [
+    "Authorized beta source: 36fb3254a347381c581ff8f247f2ea1df97af976 on ux/private-testing-20261029. This documentation branch starts there; PR93 runtime changes are not imported.",
+    "PR92 merged as eff790e589f276e8f7acd5a26c21d7853c4b25a7. Its additive Square lookup and two Edge v2 packages have a recorded beta rollout. Do not repeat integration or rollout; merchant/provider/device acceptance remains open.",
+    "PR93 remains draft and unmerged at 852a11b7fd8ff903d3fbc247fd85869c40be64d9. The stale Settings/completion selectors are repaired. Run 43116095293: all six browser shards, four WebKit shards and four DOM shards passed; node-tests and desktop-and-scheduling / checks were still running. This is not a complete-suite pass.",
+    "Last recorded live frontend: 36fb325 / dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb. This task did not independently probe deployment or change frontend, schema, Edge functions or providers. Beta backend remains xvybcmyoblfgzokaifsx.",
+    "Owner authorized publication, merge and private-beta deployment after required checks pass. Next: publish this documentation candidate, verify required CI, then merge and verify beta deployment. PR93 remains a separate candidate requiring its own final checks. Keep all unmet provider, physical-device and public-launch gates open."
   ]
 }

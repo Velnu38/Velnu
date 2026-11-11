@@ -89,7 +89,8 @@ test("saved pricing policy survives task completion and rejects invalid proposal
   );
   const report = renderReport(completed);
   assert.ok(report.includes("## Finviant Pricing\n"));
-  assert.ok(report.includes(proposal.body));
+  assert.ok(report.includes("Full preserved proposal"));
+  assert.ok(registry.proposals.some(p => p.body));
   assert.ok(report.includes("Implementation pending."));
   assert.ok(report.includes("| PLAN-01 |"));
   assert.ok(report.includes("| RET-01 |"));
@@ -113,7 +114,8 @@ test("proposal status distinguishes built features from pending activation witho
   const proposal = { ...original, statusNote: "Core features built; provider acceptance remains open." };
   const report = renderReport({ ...registry, proposals: [proposal] });
   assert.ok(report.includes(proposal.statusNote));
-  assert.ok(report.includes(proposal.body));
+  assert.ok(report.includes("Full preserved proposal"));
+  assert.ok(registry.proposals.some(p => p.body));
   assert.ok(report.includes("| PAY-01 |"));
   for (const statusNote of [" ", 5, null])
     assert.throws(() => renderReport({ ...registry, proposals: [{ ...proposal, statusNote }] }), /Invalid.*proposal/);
@@ -206,4 +208,30 @@ test("legacy campaign publication cannot append historical campaign state to the
   assert.ok(
     guard < s.indexOf("const status=['<!-- CAMPAIGN_STATUS_START -->'"),
   );
+});
+
+test("work queue rejects lost coverage and broken package/card references", () => {
+  const missing = structuredClone(registry);
+  for (const c of missing.workQueue.cards) c.taskIds = c.taskIds.filter(id => id !== "AI-03");
+  assert.throws(() => validateRegistry(missing), /Unmapped|Invalid/);
+  const broken = structuredClone(registry);
+  broken.workQueue.crosswalk[0].cards = ["99"];
+  assert.throws(() => validateRegistry(broken), /crosswalk/);
+  const duplicate = structuredClone(registry);
+  duplicate.workQueue.crosswalk[1].package = 1;
+  assert.throws(() => validateRegistry(duplicate), /crosswalk/);
+  const unknown = structuredClone(registry);
+  unknown.workQueue.cards[0].taskIds.push("UNKNOWN-01");
+  assert.throws(() => validateRegistry(unknown), /task card/);
+});
+
+test("every card links to a single maintained guide section without duplicating full prompts", () => {
+  const guide = readFileSync(registry.workQueue.guide, "utf8");
+  const report = renderReport(registry);
+  for (const c of registry.workQueue.cards) {
+    assert.ok(guide.includes(`## Card ${c.number}: ${c.title}`));
+    assert.equal(guide.split(`## Card ${c.number}:`).length - 1, 1);
+  }
+  assert.equal(report.includes("**Done when:**"), false);
+  assert.ok(readFileSync(registry.workQueue.handoff, "utf8").includes("PR93"));
 });

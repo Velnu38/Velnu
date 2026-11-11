@@ -71,6 +71,23 @@ export function validateRegistry(data) {
     )
       throw Error("Completion needs dated, commit-bound evidence: " + t.id);
   }
+  if (!data.workQueue || !Array.isArray(data.currentState) || !data.currentState.length)
+    throw Error("Missing focused work queue or current handoff");
+  const q = data.workQueue, cardIds = new Set();
+  if (!Array.isArray(q.cards) || !Array.isArray(q.crosswalk) || !q.guide || !q.handoff)
+    throw Error("Invalid work queue");
+  for (const c of q.cards) {
+    if (!/^\d{2}$/.test(c.number) || cardIds.has(c.number) || !c.title || !c.boundary ||
+        !Array.isArray(c.taskIds) || !c.taskIds.length || c.taskIds.some(id => !ids.has(id)))
+      throw Error("Invalid or duplicate task card");
+    cardIds.add(c.number);
+  }
+  for (const id of ids) if (!q.cards.some(c => c.number !== "02" && c.taskIds.includes(id)))
+    throw Error("Unmapped readiness record " + id);
+  if (q.crosswalk.length !== 28 || new Set(q.crosswalk.map(p => p.package)).size !== 28 ||
+      q.crosswalk.some(p => !Number.isInteger(p.package) || p.package < 1 || p.package > 28 ||
+        !p.title || !Array.isArray(p.cards) || !p.cards.length || p.cards.some(n => !cardIds.has(n))))
+    throw Error("Invalid 28-package crosswalk");
   return data;
 }
 const cell = (value) =>
@@ -82,136 +99,31 @@ const table = (head, rows) =>
     ...rows.map((r) => "| " + r.map(cell).join(" | ") + " |"),
   ].join("\n");
 export function renderReport(input) {
-  const d = validateRegistry(input),
-    open = d.tasks.filter((t) => t.status !== "done"),
-    publicGates = open.filter((t) => t.gate === "public"),
-    paid = open.filter((t) => ["paid", "pro", "advertised"].includes(t.gate)),
-    lines = [];
-  const add = (...v) => {
-    for (const value of v) lines.push(value, "");
-  };
-  add(
-    "# Finviant Assessment Report",
-    `**Reviewed: ${d.updatedAt} (${d.timezone}).** Current open-work assessment for hundreds of customer businesses.`,
-    "> Generated from [docs/launch-readiness.json](docs/launch-readiness.json). Completed tasks are removed from this report automatically; evidence/history remains in the registry and Git history. Do not edit this generated file directly.",
-  );
-  add(
-    "## Launch decision",
-    `**${publicGates.length ? "NOT READY for unrestricted public launch" : "Public gates recorded complete; confirm the release decision"}** — ${publicGates.length} public-launch gates remain; ${paid.length} additional paid/Pro/advertised-feature items remain. ${open.filter((t) => t.gate === "optional").length} optional/deferred enhancements are kept separate.`,
-    d.verdict,
-    "The application has a substantial working product. The main remaining work is verified provider activation, production operations, multi-tenant security and measured capacity. No claim of support for hundreds of simultaneous customers is established by the current small beta dataset.",
-  );
-  add(
-    "## To-do summary — execution order",
-    "1. Approve commercial hosting/production ownership, backup/rollback and ordinary onboarding (REL-01–03, OPS-01).",
-    "2. Make the current release gate green; harden Auth, tenant boundaries and burst/cost controls (CI-01, SEC-01–03).",
-    "3. Install and test operational alerts, verify background jobs, tune query/connection pressure, then measure isolated multi-tenant load (OPS-02–03, PERF-01–02).",
-    "4. Certify general email, subscription purchase, Pro SMS, merchant payments and external calendars before advertising/charging for those capabilities (EMAIL/BILL/SMS/PAY/CAL).",
-    "5. Implement and verify the Finviant Pricing proposal, complete owner exports and the disclosed expiry/deletion lifecycle before activating public trials or the 90-day Free offer (PLAN-01, EXPORT-01, RET-01). Finish device/provider acceptance, support/privacy operations and tier unit economics; stage rollout rather than opening registration to everyone at once.",
-  );
-  add(
-    "## Verified current observations",
-    table(
-      ["Area", "Observed state / evidence limit", "Evidence"],
-      d.observations.map((o) => [
-        o.title,
-        `${o.detail} (checked ${o.verifiedAt})`,
-        o.evidence,
-      ]),
-    ),
-    `Audited code baseline: \`${d.auditedCommit}\`. Branch: \`${d.branch}\`. Findings are source/configuration observations, not a penetration-test or load-test certificate.`,
-  );
-  for (const p of d.proposals || []) {
-    add(
-      `## ${p.title}`,
-      `**Proposal updated: ${p.updatedAt} (${d.timezone}). ${p.statusNote || 'Implementation pending.'}**`,
-      p.body,
-    );
-  }
-  add(
-    "## Public-launch gates",
-    table(
-      [
-        "ID",
-        "Priority / status",
-        "Work and owner",
-        "Acceptance needed to close",
-      ],
-      publicGates.map((t) => [
-        t.id,
-        `${t.priority} · ${t.status}`,
-        `${t.title} — ${t.owner}. ${t.why}`,
-        t.acceptance,
-      ]),
-    ),
-  );
-  add(
-    "## Paid, Pro and advertised-feature gates",
-    "These can be staged separately only if unavailable features and prices are presented accurately. A live landing page, a configured secret or a connected database row is not end-to-end activation evidence.",
-    table(
-      [
-        "ID",
-        "Priority / status",
-        "Work and owner",
-        "Acceptance needed to close",
-      ],
-      paid.map((t) => [
-        t.id,
-        `${t.priority} · ${t.status}`,
-        `${t.title} — ${t.owner}. ${t.why}`,
-        t.acceptance,
-      ]),
-    ),
-  );
-  add(
-    "## Optional / owner-deferred backlog",
-    table(
-      ["ID", "Status", "Work", "Acceptance"],
-      open
-        .filter((t) => t.gate === "optional")
-        .map((t) => [t.id, t.status, `${t.title}. ${t.why}`, t.acceptance]),
-    ),
-  );
-  add(
-    "## Recommended monitoring and configuration",
-    "These are assessed recommendations, not newly purchased accounts or activated monitoring. Prefer this small stack over overlapping plugins. Account capabilities, cost, retention and alert delivery must be confirmed before activation.",
-    table(
-      [
-        "Tool / service",
-        "Purpose and current state",
-        "Recommended configuration",
-        "Cost / decision",
-      ],
-      d.recommendations.map((r) => [
-        r.tool,
-        `${r.purpose}. ${r.current}`,
-        r.configuration,
-        r.cost,
-      ]),
-    ),
-  );
-  add(
-    "## Capacity plan and acceptance targets",
-    "Treat hundreds of registered businesses, simultaneous logged-in people and public customer-link traffic as different loads. Start with an isolated production-like dataset of at least **300 workspaces**, separate authenticated tenant sessions, realistic histories/files and skewed heavy accounts. Ramp **10 → 50 → 100 active users**, record achieved requests/second and transaction mix, run a **60-minute soak**, then test a controlled spike and queue recovery. Increase toward 1,000 workspaces only after measured acceptance. The old 1,000 input-profile campaign is not equivalent to 1,000 customer accounts.",
-    "Proposed starting targets, to approve and measure: ordinary read/write API p95 ≤1 second and <1% unexpected failures; no cross-tenant data, duplicate financial mutations or duplicate confirmed sends; p75 LCP ≤2.5s, INP ≤200ms, CLS ≤0.1 on representative mobile journeys; 99.9% monthly service availability as an operational goal, not a current SLA. Report PDF/OCR/voice latency separately from ordinary API calls. Start alerts around 70–80% sustained resource/connection pressure, any dead-letter job, and queue lag beyond two normal schedule intervals.",
-    "Proposed recovery goals: RPO ≤15 minutes and RTO ≤4 hours if the selected backup/PITR and storage plan can demonstrably achieve them. Otherwise document achievable numbers and make an explicit business decision. Do not promise those goals before a restore drill.",
-    "Bound tests to approved staging infrastructure and provider policies. Stub billable third-party sends/AI/payment capture at scale; run a few separately authorized live-provider checks. Do not load-test the current beta domain or create hundreds of persistent customer accounts during an assessment.",
-    "Suggested rollout: 10 real pilot businesses → 50 → 100 → 300, with an owner-reviewed 48–72-hour stability/incident/usage window at each step. Gate expansion on monitored error rates, support load, provider success, queue lag and actual capacity; these windows are recommendations, not measured history.",
-  );
-  add(
-    "## How this report stays current",
-    "- Canonical task and evidence state: `docs/launch-readiness.json`. `npm run assessment:sync` deterministically regenerates this report; `npm run assessment:check` rejects stale output and unsupported completion records.",
-    '- A verified completion is recorded with `npm run assessment:complete -- ID --evidence "receipt/test/provider verification reference"`. It requires a date and immutable code commit, removes that item from the report, and preserves its evidence in the registry. Source existence or mocked tests alone must not close an external-provider, capacity, restore or real-device gate. Reopen regressions with `npm run assessment:reopen -- ID --reason "failure evidence"`.',
-    "- `.github/workflows/assessment-report.yml` validates PRs and regenerates on trusted release-branch pushes. If only the report is stale, the trusted job writes a report-only commit using a non-forced, exact-parent Git update. No credentials or customer data belong in the report.",
-    "- A separate daily evidence review checks for newly verified completions, regressions and provider/configuration changes. It updates the registry/report only with adequate evidence. This is a periodic check, not an instantaneous subscription to every external account setting.",
-    "- Project `AGENTS.md` requires readiness updates as part of future work. The old campaign publisher cannot overwrite this current launch assessment. Historical campaigns and completed fixes remain in Git history and existing evidence files, rather than recurring as unfinished work.",
-    "- A remote CI pass, deployment READY, scheduler dispatch, real-provider success and real-phone acceptance are distinct evidence types. Keep unknown/unavailable checks open and describe unavailable access rather than guessing.",
-  );
-  add(
-    "## Source and audit scope",
-    "The entire previous assessment was reviewed and replaced at the owner’s request: duplicate chronological releases, completed interface/card work, old branch-binding/SSO claims and old source-specific pass counts were removed from the active to-do report. Their history remains in Git and `STRESS_TEST_LOGS.json`/existing evidence. No provider activation, data migration, paid purchase, production Auth change or intrusive load/security test was performed by this document refresh.",
-    ...d.sources.map(([label, url]) => `- [${label}](${url})`),
-  );
+  const d = validateRegistry(input), open = d.tasks.filter(t => t.status !== "done");
+  const publicGates = open.filter(t => t.gate === "public");
+  const paid = open.filter(t => ["paid", "pro", "advertised"].includes(t.gate));
+  const q = d.workQueue, lines = [];
+  const add = (...v) => { for (const value of v) lines.push(value, ""); };
+  add("# Finviant Assessment Report",
+    `**Reviewed: ${d.updatedAt} (${d.timezone}).** Focused work queue; acceptance records are not counts of unbuilt features.`,
+    "> Generated from [docs/launch-readiness.json](docs/launch-readiness.json). Completed tasks are removed from this report automatically; evidence/history remains in the registry and Git history. Do not edit this generated file directly.");
+  add("## Release boundary",
+    `**${publicGates.length ? "NOT READY for unrestricted public launch" : "Public gates recorded complete; confirm the release decision"}** — ${publicGates.length} public gates; ${paid.length} paid/Pro/advertised gates; ${open.filter(t => t.gate === "optional").length} optional/deferred items.`,
+    "Owner authorized publication, merge and private-beta deployment after required checks pass. Private beta, existing permissions and backend remain unchanged. Source, CI, merge, migration, deployment, activation and provider/physical-device acceptance are separate.");
+  add("## Current state and next action", ...d.currentState.map(s => `- ${s}`),
+    `[Current handoff](${q.handoff}) · [Detailed task cards](${q.guide}). Select one card; do not repeat the full audit. Recheck current heads before publication or release.`);
+  add("## Focused task cards", "This index summarizes scope and blockers; detailed Task and Done when text lives once in the linked guide.",
+    table(["Card", "Selected work", "Boundary / input"], q.cards.map(c => [c.number,
+      `[${c.title}](${q.guide}#card-${c.number}-${c.title.toLowerCase().replace(/[^a-z0-9 -]/g, "").replace(/ /g, "-")})`, c.boundary])));
+  add("## Open acceptance records", "Original acceptance criteria, owner, rationale and evidence remain in the canonical registry. Cards narrow execution; they do not replace or weaken those criteria. Card 02 maintains every record; the table lists implementation/acceptance cards separately.",
+    table(["ID", "Priority / status", "Requirement", "Gate", "Cards"], open.map(t => [t.id, `${t.priority} · ${t.status}`, t.title, t.gate,
+      q.cards.filter(c => c.number !== "02" && c.taskIds.includes(t.id)).map(c => c.number).join(", ")])));
+  add("## Original 28-package crosswalk", "Lookup only; not a completion certificate or instruction to rerun all packages.",
+    table(["Package", "Original scope", "Cards"], q.crosswalk.map(p => [p.package, p.title, p.cards.join(", ")])));
+  add("## Decisions and supporting evidence", "The canonical registry retains all dated observations, recommendations, proposal bodies and source references. Historical pending actions are superseded by the current handoff; approved document design, reminder rules and worker-profile/login separation are not reopened.");
+  for (const p of d.proposals || []) add(`## ${p.title}`, `**${p.statusNote || "Implementation pending."}** Full preserved proposal: [canonical registry](docs/launch-readiness.json), proposals section. Later approved task-specific decisions take precedence over conflicting older proposal text.`);
+  add("## Maintenance", "Run `npm run assessment:sync`, `npm run assessment:test`, and `npm run assessment:check` after registry changes. Close tasks only with complete dated, commit-bound acceptance evidence; use assessment:complete or assessment:reopen. Never infer provider, restore, capacity or physical-device acceptance from source, mocks or deployment READY.",
+    "No runtime change, migration, provider activation, real send/charge, access expansion, paid commitment or public cutover is authorized by this report.");
   return lines.join("\n").trim() + "\n";
 }
 export function transitionTask(input, id, status, evidence, day, commit) {
