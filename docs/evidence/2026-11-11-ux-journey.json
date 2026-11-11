@@ -39,9 +39,9 @@
   },
   "ci": {
     "homeRun": 43050923483,
-    "fullRun": 43050923668,
+    "fullRun": 43112291926,
     "focusedStatus": "passed: 49 Home regressions plus 7 UX/accessibility journeys",
-    "fullStatus": "not passed: run 43050923668 completed with package-installation failures before affected tests; CI repair candidate 01d76a83c42e4f28f5d5cc095ad827b4625eabe5 awaiting hosted execution",
+    "fullStatus": "Failed: three settings-group selectors and one renamed completion-action selector. All other jobs passed except the aggregate release gate.",
     "previousFocusedPass": {
       "commit": "9887d4430cfdcd8fdbf41b8f3035ce63f6d6936b",
       "run": 43048679633,
@@ -59,7 +59,7 @@
         "01d76a83c42e4f28f5d5cc095ad827b4625eabe5"
       ],
       "scope": "Preserve supplied proxy through sudo apt; fail fast on package update errors; reuse existing pinned Playwright image for native handoffs, pricing and customer prediction. No tests removed.",
-      "status": "Hosted verification pending; local bash syntax and already-installed Poppler path pass",
+      "status": "Package installation passed in 43112291926; browser shards 5/6 and 6/6 failed on stale UX selectors. Repaired-candidate hosted validation pending.",
       "fullRun": 43112291926,
       "supersededRun": {
         "id": 43111517051,
@@ -86,5 +86,15 @@
   "costs": "No new license/subscription commitment; existing CI and hosting metering remains",
   "approvalsNeeded": "None for this source candidate. Real messages, payments, provider activation and paid changes require their separately bounded authorization.",
   "rollback": "Close/revert PR93 before merge; after an eventual release restore the prior frontend. No data rollback needed.",
-  "nextBatch": "Restore CI package access and complete required full checks on the release candidate, then merge/deploy private beta; retain provider/device/public-launch gates. Timeline, optional field access, monitoring activation and GROW-02 remain deferred."
+  "nextBatch": "Complete required repaired-candidate CI, then merge/deploy private beta; retain provider/device/public-launch gates.",
+  "selectorRepair": {
+    "base": "acc086d200580073072dc966747eedd7f9076b4b",
+    "files": [
+      "tests/e2e/pricing-tiers.spec.mjs",
+      "tests/e2e/workflow-handoffs.spec.mjs"
+    ],
+    "scope": "Align assertions with approved groups and Review completion; retain all behavior checks and add exact settings href assertions. No application changes.",
+    "localBrowser": "Blocked before tests: Chromium process_singleton_posix.cc socket() Operation not permitted. Build and fixtures completed.",
+    "hosted": "Pending required full CI on repaired candidate"
+  }
 }
