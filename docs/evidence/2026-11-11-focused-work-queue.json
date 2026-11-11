@@ -1,6 +1,6 @@
 {
   "date": "2026-11-11",
-  "baseCommit": "36fb3254a347381c581ff8f247f2ea1df97af976",
+  "baseCommit": "e9b940d17808faa06949be9cc09ccf10078b4e54",
   "originalTaskCount": 50,
   "resultTaskCount": 51,
   "originalTasksSha256": "85cefb6cf0185b71f333e33ac41dff4e13de196c07d9de53ad54e540f8c8df11",
@@ -11,7 +11,7 @@
   "addedTaskStatus": "open",
   "cardCount": 29,
   "originalPackageCount": 28,
-  "publication": "Owner authorized publication, merge and private-beta deployment after required checks pass; not yet published or deployed",
+  "publication": "Authorized for merge and private-beta publication after checks; PR94 reconciled with deployed PR93",
   "oldSnapshot": "c941e9e unavailable locally and via GitHub; no old snapshot applied",
   "scope": "Documentation and assessment generator/tests only; no runtime, migration or deployment"
 }

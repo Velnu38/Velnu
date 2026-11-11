@@ -77,6 +77,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
   const [estimates, setEstimates] = useState<Estimate[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [customerLoad,setCustomerLoad]=useState<'loading'|'ready'|'failed'>('loading')
   const [statusFilter, setStatusFilter] = useState<EstimateFilter>('all')
   const [showForm, setShowForm] = useState(false)
   const [convertTarget, setConvertTarget] = useState<Estimate | null>(null)
@@ -122,20 +123,20 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
 
   async function refresh() {
     const current=++readRequest.current
-    const loaded = await Promise.all([listEstimates(business.id, customerScope), listCustomers(business.id)]).catch(err=>{if(current!==readRequest.current)return null;throw err})
+    const loaded = await Promise.all([listEstimates(business.id, customerScope), listCustomers(business.id)]).catch(err=>{if(current!==readRequest.current)return null;setCustomerLoad('failed');throw err})
     if(!loaded)return [] as Estimate[]
     const [estimateRows, customerRows] = loaded
     if(current!==readRequest.current)return estimateRows as Estimate[]
     setEstimates(estimateRows as Estimate[])
     setPreviewTarget(previous=>previous?(estimateRows as Estimate[]).find(row=>row.id===previous.id)||previous:null)
-    setCustomers(customerRows as Customer[])
+    setCustomers(customerRows as Customer[]);setCustomerLoad('ready')
     try{const context=await getEstimateWorkflowContexts(business.id,estimateRows.map(row=>row.id));if(current===readRequest.current){setWorkflows(Object.fromEntries(context.map(row=>[row.estimate_id,row])));setWorkflowError('')}}catch(err){if(current===readRequest.current)setWorkflowError(readableError(err,'Work details could not refresh. Check the existing job before scheduling.'))}
     return estimateRows as Estimate[]
   }
 
   useAssistantRefresh(refresh,e=>setError(readableError(e,'The saved change could not refresh. Reload the list; do not repeat the save.')))
   useBusinessRefresh(business.id,()=>refresh().then(()=>{}))
-  useEffect(() => {setEstimates([]);setPreviewTarget(null);setWorkflows({});void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates'));return()=>{readRequest.current++;previewRequest.current++} }, [business.id,customerScope])
+  useEffect(() => {setCustomerLoad('loading');setCustomers([]);setEstimates([]);setPreviewTarget(null);setWorkflows({});void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load estimates'));return()=>{readRequest.current++;previewRequest.current++} }, [business.id,customerScope])
   useEffect(()=>{let active=true;setPendingPersonal(false);const check=()=>{if(previewTarget&&['draft','sent'].includes(previewTarget.status))void readPendingPersonalSend(business.id,'estimate',previewTarget.id).then(value=>{if(active)setPendingPersonal(!!value)})};check();window.addEventListener('focus',check);window.addEventListener('finviant:delivery-state',check);return()=>{active=false;window.removeEventListener('focus',check);window.removeEventListener('finviant:delivery-state',check)}},[business.id,previewTarget?.id,previewTarget?.status,deliveryMode])
 
   const linkedDocumentOpened = useRef(false)
@@ -394,7 +395,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {showForm && <FormDialog label="Create an estimate" autoFocusFields={false} busy={busy} cleanVersion={savedCreation.current} onClose={() => { if(savedCreation.current)void finishCreation(savedCreation.current);else {setShowForm(false);resetForm()} }} wide>
       <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
-        <div className="form-grid"><CustomerEntry customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setCustomerId(id);setPropertyId('')}} onDraft={setCustomerDraft} disabled={busy}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setExpiresOn(documentEndDate(e.target.value,'estimate'))}} /></label><PaymentTerms kind="estimate" issued={issueDate} value={expiresOn} onChange={value=>{dateEdited.current=true;setExpiresOn(value)}}/><label>Valid until<input type="date" required min={issueDate} value={expiresOn} onChange={(e) => {dateEdited.current=true;setExpiresOn(e.target.value)}} /></label><label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={e=>setCustomerReference(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <div className="form-grid"><CustomerEntry loading={customerLoad==='loading'} error={customerLoad==='failed'?'Saved customers could not load.':''} onRetry={()=>void refresh().catch(()=>setError('Could not refresh saved customers.'))} customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setCustomerId(id);setPropertyId('')}} onDraft={setCustomerDraft} disabled={busy}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setExpiresOn(documentEndDate(e.target.value,'estimate'))}} /></label><PaymentTerms kind="estimate" issued={issueDate} value={expiresOn} onChange={value=>{dateEdited.current=true;setExpiresOn(value)}}/><label>Valid until<input type="date" required min={issueDate} value={expiresOn} onChange={(e) => {dateEdited.current=true;setExpiresOn(e.target.value)}} /></label><label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={e=>setCustomerReference(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
         <div className="full"><CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/></div>
         <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 30 days. A deposit is due before work begins." /></label></div>
         <DocumentLineEditor businessId={business.id} lines={lines} onChange={setLines} newLine={newLine} taxOptions taxDefault={{ rate: documentTax, onChange: setDocumentTax }}/>

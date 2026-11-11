@@ -4,15 +4,15 @@ Select one card per batch. Read `AGENTS.md`, [current handoff](CURRENT_HANDOFF.m
 
 Source: owner-maintained Finviant_Complete_Stage_Prompts.docx, November 11, 2026. Current release facts below supersede its historical checkpoint. Full acceptance and evidence remain in `launch-readiness.json`; cards are scoped execution guidance.
 
-## Card 01: Finish PR93 candidate validation
+## Card 01: Retain PR93 release evidence
 
-CI-01, UX-01, JOB-01 | Selector repair implemented; required CI remains incomplete
+CI-01, UX-01, JOB-01 | Released; verify only a new regression or changed release candidate
 
-**Task:** Continue PR93 at 852a11b7fd8ff903d3fbc247fd85869c40be64d9. Selector repairs are already implemented. All six browser shards passed in run 43116095293; node-tests and desktop-and-scheduling / checks were still running at this snapshot. Check the latest candidate and remaining checks once; repair only a demonstrated remaining failure.
+**Task:** PR93 has passed all ten workflows and is deployed. Preserve the release receipt in docs/evidence/2026-11-11-ux-release.json. Do not repeat the repaired Settings/completion selectors, Python runner fix or approved UX design. Recheck only changed evidence for a later candidate.
 
-**Done when:** Required final-candidate CI is recorded separately from merge and deployment. Preserve assertions and current live baseline 36fb325. Do not restart the UX audit or repeat the repaired selector work. Report queued/running CI promptly.
+**Done when:** Source, CI, merge and beta deployment remain clearly distinguished from unperformed provider and physical-device acceptance. A later regression receives its own targeted repair and evidence.
 
-**Release scope:** PR only.
+**Release scope:** No additional implementation required by this card; any later selected repair deploys to private beta after required checks pass.
 
 ## Card 02: Make the report a focused work queue
 

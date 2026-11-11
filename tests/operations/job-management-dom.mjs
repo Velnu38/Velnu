@@ -16,8 +16,8 @@ async function scenario(name,verify){
  try{await until(()=>button('List')&&doc.querySelector('.jobs-record-list')&&!doc.querySelector('.jobs-record-list').textContent.includes('Loading jobs'));await verify({doc,until,click,button,tab,fill,dialog,window:dom.window});assert.deepEqual(errors,[]);process.stdout.write('PASS job management DOM: '+name+'\n')}finally{dom.window.close()}
 }
 await scenario('mixed',async({doc,until,click,button,tab,fill,dialog})=>{
- assert.equal(tab('Jobs').getAttribute('aria-selected'),'true');await fill(doc.querySelector('input[type=search]'),'Kitchen');await until(()=>[...doc.querySelectorAll('.jobs-record-list button')].filter(b=>b.textContent.trim()==='Manage').length===1&&doc.querySelector('.jobs-record-list').textContent.includes('Kitchen'))
- await click(button('Manage'));await until(()=>doc.querySelector('.jm-workspace h2'))
+ assert.equal(tab('Jobs').getAttribute('aria-selected'),'true');await fill(doc.querySelector('input[type=search]'),'Kitchen');await until(()=>[...doc.querySelectorAll('.jobs-record-list button')].filter(b=>b.textContent.trim()==='Manage job').length===1&&doc.querySelector('.jobs-record-list').textContent.includes('Kitchen'))
+ await click(button('Manage job'));await until(()=>doc.querySelector('.jm-workspace h2'))
  assert.equal(tab('Job Management').getAttribute('aria-selected'),'true');assert.match(doc.querySelector('.jm-workspace').textContent,/Kitchen renovation/)
  await click(tab('Materials'));await click(button('+ Add material'));await until(()=>dialog()?.querySelector('input'))
  await fill(dialog().querySelector('input'),'Paver blocks');const draftDialog=dialog();await click(button('Refresh'));await until(()=>!doc.querySelector('.jm-workspace')?.getAttribute('aria-busy')||doc.querySelector('.jm-workspace').getAttribute('aria-busy')==='false');assert.equal(dialog(),draftDialog,'queue refresh preserves the selected workspace and open form');assert.equal(dialog().querySelector('input').value,'Paver blocks');await click(button('Save material',dialog()));await until(()=>!dialog());await until(()=>doc.querySelector('.jm-panel:not([hidden])').textContent.includes('Paver blocks'))
@@ -29,18 +29,18 @@ await scenario('mixed',async({doc,until,click,button,tab,fill,dialog})=>{
  await click(tab('Billing'));await until(()=>doc.querySelector('.jm-workspace .job-cost-grid'));assert.match(doc.querySelector('.jm-workspace .job-cost-grid').textContent,/\$2,570.00/)
  await click(tab('Jobs'));await until(()=>doc.querySelector('.jobs-record-list'));assert.equal(doc.querySelector('input[type=search]').value,'Kitchen','directory search survives tab switching')
  await click(tab('Job Management'));await until(()=>doc.querySelector('.jm-workspace h2'));assert.match(doc.querySelector('.jm-workspace h2').textContent,/Kitchen/)
- await click(button('Complete job'));await until(()=>dialog()?.textContent.includes('Review before completing'));assert.equal(button('Complete job',dialog()).disabled,true)
+ await click(button('Review completion'));await until(()=>dialog()?.textContent.includes('Review before completing'));assert.equal(button('Complete job',dialog()).disabled,true)
  const check=dialog().querySelector('input[type=checkbox]');await click(check);assert.equal(button('Complete job',dialog()).disabled,false);await click(button('Complete job',dialog()));await until(()=>!dialog());await until(()=>doc.querySelector('.jm-job-header .jm-status')?.textContent==='Completed');assert.match(doc.querySelector('.jm-workspace').textContent,/Review invoice/)
 })
 await scenario('approved',async({doc,until,click,tab,button})=>{
  await click(tab('Job Management'));await until(()=>button('Manage approved work'));await click(button('Manage approved work'));await until(()=>doc.querySelector('.jm-workspace h2')?.textContent==='Backyard patio');assert.equal(doc.querySelectorAll('.jm-approved-work').length,0)
 })
 await scenario('restricted',async({doc,until,click,tab,button})=>{
- await click(button('Manage'));await until(()=>doc.querySelector('.jm-workspace h2'));assert.equal(tab('Billing'),undefined);assert.equal(tab('Changes'),undefined);assert.equal(button('Complete job'),undefined);assert.equal(button('+ Add task'),undefined);await click(tab('Materials'));assert.equal(button('+ Add material'),undefined);assert.doesNotMatch(doc.querySelector('.jm-panel:not([hidden])').textContent,/Estimated total/)
+ await click(button('Manage job'));await until(()=>doc.querySelector('.jm-workspace h2'));assert.equal(tab('Billing'),undefined);assert.equal(tab('Changes'),undefined);assert.equal(button('Review completion'),undefined);assert.equal(button('+ Add task'),undefined);await click(tab('Materials'));assert.equal(button('+ Add material'),undefined);assert.doesNotMatch(doc.querySelector('.jm-panel:not([hidden])').textContent,/Estimated total/)
 })
 await scenario('empty',async({doc,until,click,tab})=>{
  await click(tab('Job Management'));await until(()=>doc.querySelector('.jm-queue-empty'));assert.match(doc.querySelector('.jm-queue-empty').textContent,/Your work starts here/);assert.equal(doc.querySelector('.jm-workspace'),null)
 })
 await scenario('failure',async({doc,until,click,tab,button})=>{
- await click(button('Manage'));await until(()=>doc.querySelector('.jm-error'));assert.notEqual(button('Complete job')?.disabled,false);assert.equal(doc.querySelector('.jm-financial-lines'),null);assert.ok(button('Retry job'))
+ await click(button('Manage job'));await until(()=>doc.querySelector('.jm-error'));assert.notEqual(button('Review completion')?.disabled,false);assert.equal(doc.querySelector('.jm-financial-lines'),null);assert.ok(button('Retry job'))
 })

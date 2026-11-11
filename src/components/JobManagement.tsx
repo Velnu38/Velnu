@@ -138,6 +138,7 @@ export default function JobManagement({
             "changes",
             "billing",
             "activity",
+            "reports",
           ].includes(requested || "")
             ? requested
             : "overview") as
@@ -148,7 +149,8 @@ export default function JobManagement({
             | "photos"
             | "changes"
             | "billing"
-            | "activity");
+            | "activity"
+            | "reports");
   return (
     <div
       className={"job-management" + (selectedJobId ? " has-selected-job" : "")}

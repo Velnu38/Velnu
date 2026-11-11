@@ -2,7 +2,7 @@ name: Home screen checks
 on:
   pull_request:
     branches: [ux/private-testing-20261029]
-    paths: ['src/components/AppShell.tsx', 'src/components/WorkspaceIcon.tsx', 'src/components/FinancialPerformance.tsx', 'src/pages/DashboardPage.tsx', 'src/home-screen.css', 'src/pages/RemindersPage.tsx', 'tests/e2e/home-screen.spec.mjs', '.github/workflows/home-screen-checks.yml']
+    paths: ['src/components/AppShell.tsx', 'src/components/WorkspaceIcon.tsx', 'src/components/FinancialPerformance.tsx', 'src/pages/DashboardPage.tsx', 'src/home-screen.css', 'src/pages/RemindersPage.tsx', 'tests/e2e/home-screen.spec.mjs', 'tests/e2e/ux-journey.spec.mjs', '.github/workflows/home-screen-checks.yml']
 permissions:
   contents: read
 concurrency:
@@ -24,6 +24,17 @@ jobs:
         run: npx playwright test tests/e2e/home-screen.spec.mjs tests/e2e/professional-interface-audit.spec.mjs tests/e2e/unified-attention.spec.mjs tests/e2e/fin-conversation.spec.mjs tests/e2e/fin-direct-voice.spec.mjs tests/e2e/critical-dashboard-schedule.spec.mjs tests/e2e/document-calendar-contacts.spec.mjs tests/e2e/guided-scheduling.spec.mjs tests/e2e/google-maps.spec.mjs tests/e2e/recovery.spec.mjs tests/e2e/workflows.spec.mjs --grep 'Home |list opens|calendar widget fits|dashboard layout uses|matching customer property|job creation preserves|technician keeps|workspace route|creation from|one attention|interactive dashboard|Fin has one|one mobile tap|cancel releases native|spoken (yes|no)|selected day shows|tiles share|navigation returns|all attention actions|dashboard manual refresh|mobile dock' --workers=2
         env:
           FINVIANT_TEST_CHANNEL: chrome
+      - name: Customer-to-payment UX and accessibility
+        run: npx playwright test tests/e2e/ux-journey.spec.mjs --workers=2
+        env:
+          FINVIANT_TEST_CHANNEL: chrome
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && github.head_ref == 'review/ux-journey-20261111'
+        with:
+          name: ux-journey-review
+          path: tmp/ux-review/*.png
+          if-no-files-found: ignore
+          retention-days: 3
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:

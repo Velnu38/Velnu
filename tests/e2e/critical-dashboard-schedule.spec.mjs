@@ -521,9 +521,9 @@ test('07 navigation during a slow dashboard load does not resurrect the old scre
 test('08 absent customer relations and injected invoice HTML do not crash or render executable markup', async ({ page }) => {
   const malicious = '<img src=x onerror=alert(1)>'
   await openDashboard(page, { invoices: [{ id: id(9), invoice_number: malicious, status: 'sent', balance_due: 15, due_date: '2020-01-01', customers: null }] })
-  await expect(page.getByRole('region', { name: 'Needs Attention' })).toContainText('Customer')
-  await expect(page.getByRole('region', { name: 'Needs Attention' })).toContainText(malicious)
-  expect(await page.getByRole('region', { name: 'Needs Attention' }).locator('img').count()).toBe(0)
+  await expect(page.getByRole('region', { name: 'Needs Attention', exact: true })).toContainText('Customer')
+  await expect(page.getByRole('region', { name: 'Needs Attention', exact: true })).toContainText(malicious)
+  expect(await page.getByRole('region', { name: 'Needs Attention', exact: true }).locator('img').count()).toBe(0)
 })
 
 for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
@@ -536,7 +536,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     const state = await openDashboard(page, { invoices })
     const tile = page.getByRole('article', { name: 'Needs attention overview' })
     await tile.getByRole('group',{name:'Home work queue'}).getByRole('button', { name: /^Needs Attention 14$/ }).click()
-    await expect(tile.getByRole('region', { name: 'Needs Attention' }).getByRole('listitem')).toHaveCount(5)
+    await expect(tile.getByRole('region', { name: 'Needs Attention', exact: true }).getByRole('listitem')).toHaveCount(5)
     await expect(tile).toContainText('Jane Doe')
     await expect(tile).toContainText('INV-1')
     await expect(tile).toContainText('$15.00')
@@ -923,7 +923,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
     const openRecord = async () => {
       await page.goto(kind === 'job' ? '/?view=work' : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
       if (kind === 'job') {
-        await page.getByRole('button', { name: 'Open job', exact: true }).click()
+        await page.getByRole('button', { name: 'Job details', exact: true }).click()
         await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
       } else if (kind === 'estimate') {
         await page.getByRole('dialog',{name:'Estimate preview'}).getByRole('tab',{name:'Photos & expenses',exact:true}).click()
@@ -968,7 +968,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
 test('record resources: viewer cannot upload photos or add expenses', async ({ page }) => {
   await mockWorkspace(page, { role: 'viewer', jobs: [{ id: id(702), title: 'Read only job', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }] })
   await page.goto('/?view=work')
-  await page.getByRole('button', { name: 'Open job', exact: true }).click()
+  await page.getByRole('button', { name: 'Job details', exact: true }).click()
   await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel = page.getByRole('region', { name: 'Photos and expenses' })
   await expect(panel.getByLabel('Add job photos')).toHaveCount(0)

@@ -17,6 +17,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Reuse the pinned browser image already used by the full WebKit suite.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -26,5 +28,4 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: node --import tsx --test tests/predictive/matching.test.ts tests/settings/fin-workflow.test.ts
-      - run: npx playwright install --with-deps chromium
       - run: npx playwright test tests/e2e/predictive-customers.spec.mjs tests/e2e/document-creation-preview.spec.mjs tests/e2e/voice-multiple-lines.spec.mjs

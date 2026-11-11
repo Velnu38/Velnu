@@ -1,23 +1,17 @@
 # Current repository handoff
 
-Checked November 11, 2026. Point-in-time evidence; recheck the relevant head before acting.
+Checked November 11, 2026. Recheck relevant heads before acting.
 
-- Authorized beta source: 36fb3254a347381c581ff8f247f2ea1df97af976 on ux/private-testing-20261029. This documentation branch starts there; PR93 runtime changes are not imported.
+- PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- PR92 merged as eff790e589f276e8f7acd5a26c21d7853c4b25a7. Its additive Square lookup and two Edge v2 packages have a recorded beta rollout. Do not repeat integration or rollout; merchant/provider/device acceptance remains open.
+- Latest verified beta source before this report release: e9b940d17808faa06949be9cc09ccf10078b4e54, deployment dpl_3X4WxiAmw2vUqwvJaqEuUMvD8ZXj. Both domains return HTTP 200 with identical index-CZTK5yB_.js, private no-store and noindex headers. Vercel SSO remains enabled. See docs/evidence/2026-11-11-ux-release.json.
 
-- PR93 remains draft and unmerged at 852a11b7fd8ff903d3fbc247fd85869c40be64d9. The stale Settings/completion selectors are repaired. Run 43116095293: all six browser shards, four WebKit shards and four DOM shards passed; node-tests and desktop-and-scheduling / checks were still running. This is not a complete-suite pass.
+- PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
-- Last recorded live frontend: 36fb325 / dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb. This task did not independently probe deployment or change frontend, schema, Edge functions or providers. Beta backend remains xvybcmyoblfgzokaifsx.
+- PR94 reconciles the documentation queue with the deployed PR93 source. All 50 existing readiness records and their acceptance/evidence remain unchanged; AI-03 is added open. Owner authorizes merge and private-beta deployment after checks pass.
 
-- Owner authorized publication, merge and private-beta deployment after required checks pass. Next: publish this documentation candidate, verify required CI, then merge and verify beta deployment. PR93 remains a separate candidate requiring its own final checks. Keep all unmet provider, physical-device and public-launch gates open.
+- Next: finish PR94 checks and beta publication; then select card 03 for Fin contextual navigation. Keep beta backend xvybcmyoblfgzokaifsx and all unmet external gates. No runtime, migration, provider activation, sends or charges in this documentation batch.
 
-## Documentation reconciliation
+The unpublished c941e9e object was unavailable locally and on GitHub. No old snapshot was applied. Task cards and the exact 28-package mapping came from the maintained owner guide. Direct old-patch reconciliation remains unavailable.
 
-All 50 original task records, acceptance criteria, statuses and evidence are unchanged. AI-03 is the only added readiness record and remains open. Existing dated observations, recommendations, proposals and sources remain in the canonical registry; current-state statements supersede historical next actions. PR93 adds no task-record changes; its additional observation is preserved with its original date and evidence.
-
-The unpublished c941e9e object was unavailable in local repositories and GitHub (422: no commit found). No old snapshot was applied or publication retried. The maintained owner guide supplies the task cards and exact 28-package mapping. Direct comparison with the old patch remains unavailable; do not claim byte-for-byte reconciliation.
-
-Owner has now authorized publication, merge and private-beta deployment after required checks pass. Before publishing, fetch and compare the authorized beta and PR93 heads again; retain any newer evidence with a normal merge/reconciliation, never a forced update.
-
-[Focused cards](FOCUSED_TASK_CARDS.md) · [Generated work queue](../ASSESSMENT_REPORT.md) · [Canonical registry](launch-readiness.json)
+[Focused cards](FOCUSED_TASK_CARDS.md) · [Generated queue](../ASSESSMENT_REPORT.md) · [Registry](launch-readiness.json)
