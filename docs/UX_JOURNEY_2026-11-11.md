@@ -1,5 +1,7 @@
 # UX journey implementation — November 11, 2026
 
+Current release: PR93 merged as `4339c3a`; all ten final-candidate workflows passed at `4846fc9`. Private-beta deployment `dpl_3Rxnuofgv9m9NuM2W9oPAUubYd8U` is READY on both domains. See `docs/evidence/2026-11-11-ux-release.json`. Earlier pending statements below are historical. Provider, physical-device and public-launch gates remain open. Next: reconcile PR94 with this release.
+
 Baseline: `36fb3254a347381c581ff8f247f2ea1df97af976`, private-beta branch. Concurrent open PRs were checked before editing; no newer UX candidate superseded it. Original 28-package brief, latest handoff, current registry and approved component review remain the scope. No acceptance gate is closed by this candidate.
 
 ## Small batches and compatibility

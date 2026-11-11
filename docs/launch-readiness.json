@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "eff790e589f276e8f7acd5a26c21d7853c4b25a7",
+  "auditedCommit": "4339c3a559cb14164ea273efa79ee1fba2b1c399",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -425,6 +425,12 @@
       "title": "PR93 final pricing runner repair",
       "detail": "Candidate 852a11b passed complete suite 43116095293 and eight other workflows. Pricing run 43116095310 failed in owner archive verification because the pinned Linux container lacks the python alias (spawnSync python ENOENT). Use python3 for the independent ZIP reader; all assertions retained. New candidate CI required before merge/deployment; no runtime or backend changes.",
       "evidence": "https://github.com/Velnu38/Velnu/actions/runs/43116095310; job 130844371540; tests/storage/owner-archive.test.ts",
+      "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "PR93 UX private-beta release verified",
+      "detail": "Final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f passed all ten PR workflows, including complete suite 43118163266 and pricing 43118163252. PR93 merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399; tested and merged trees are identical. Deployment dpl_3Rxnuofgv9m9NuM2W9oPAUubYd8U is READY and serves both Finviant domains. Both returned HTTP 200, index-CZTK5yB_.js, private no-store and noindex/nofollow/noarchive headers. Vercel SSO remains enabled for all deployments. No schema/Edge/provider changes, real sends or charges. Hosted signed-in and physical-device/provider acceptance remain separate and open. This supersedes older pending PR93 observations. Next: reconcile PR94 report with this release; do not repeat UX implementation.",
+      "evidence": "docs/evidence/2026-11-11-ux-release.json; https://github.com/Velnu38/Velnu/pull/93",
       "verifiedAt": "2026-11-11"
     }
   ],
