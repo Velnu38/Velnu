@@ -28,13 +28,20 @@
       "passed": 8,
       "generatedReportConsistent": true
     },
-    "browser": "Not executable locally: Chromium socket permission restriction"
+    "browser": "Not executable locally: Chromium socket permission restriction",
+    "javascriptRelease": {
+      "commit": "31c47876d1eb94a6cb56c0900c83702c89572fe7",
+      "passed": 212,
+      "failed": 0,
+      "skipped": 0,
+      "prerequisite": "npm run test:recovery generated required build and passed 72 tests. Initial direct test invocation failed three imports because that generated prerequisite was absent; corrected invocation passed."
+    }
   },
   "ci": {
     "homeRun": 43050923483,
     "fullRun": 43050923668,
     "focusedStatus": "passed: 49 Home regressions plus 7 UX/accessibility journeys",
-    "fullStatus": "not passed; current run pending, previous attempts failed before PDF tests on Ubuntu DNS",
+    "fullStatus": "not passed: run 43050923668 completed with package-installation failures before affected tests; CI repair candidate 01d76a83c42e4f28f5d5cc095ad827b4625eabe5 awaiting hosted execution",
     "previousFocusedPass": {
       "commit": "9887d4430cfdcd8fdbf41b8f3035ce63f6d6936b",
       "run": 43048679633,
@@ -45,6 +52,19 @@
       "run": 43046845993,
       "stage": "Install Poppler before tests",
       "reason": "Ubuntu package repository DNS failure persisted with direct official archive; PDF tests retained"
+    },
+    "repair": {
+      "commits": [
+        "31c47876d1eb94a6cb56c0900c83702c89572fe7",
+        "01d76a83c42e4f28f5d5cc095ad827b4625eabe5"
+      ],
+      "scope": "Preserve supplied proxy through sudo apt; fail fast on package update errors; reuse existing pinned Playwright image for native handoffs, pricing and customer prediction. No tests removed.",
+      "status": "Hosted verification pending; local bash syntax and already-installed Poppler path pass",
+      "fullRun": 43112291926,
+      "supersededRun": {
+        "id": 43111517051,
+        "status": "Canceled by branch concurrency when the additional CI repair was published; no pass claimed"
+      }
     }
   },
   "visualReview": "Final synthetic desktop/mobile Home and mobile Jobs captures inspected. Paired desktop cards, padded work queue and unclipped mobile group labels verified. Artifact 13870190080, sha256:d2f4be9ca079bcf580e622df5d84d5bd28bf6bc241da1286056bc656ee9d9ad8. Browser emulation only.",
