@@ -27,10 +27,29 @@ export function pointOfSaleUrl({platform,amount,applicationId,locationId,state,o
 }
 /** Require a server-fetched payment, exact seller location/order/amount, and one card tender.
  * A browser status or amount alone is never payment evidence. */
-export function verifiedSquarePayment(payment:Record<string,any>,operation:Record<string,any>,applicationId:string){
+export function squarePosOperationId(payment:Record<string,any>,order:Record<string,any>):string|null{
+ if(!Array.isArray(order.tenders)||order.tenders.length!==1)return null
+ const notes=[payment.note,order.tenders[0].note].filter(value=>value!==undefined&&value!==null&&value!=='')
+ if(!notes.length)return null
+ const prefix='Finviant payment ',note=notes[0]
+ if(typeof note!=='string'||!note.startsWith(prefix)||!uuid.test(note.slice(prefix.length))||notes.some(value=>value!==note))return null
+ return note.slice(prefix.length)
+}
+/** Only a server-retrieved single-card order can bind a POS operation. */
+export function verifiedSquarePosOrder(order:Record<string,any>,operation:Record<string,any>,paymentId?:string){
+ if(!order||order.id!==operation.order_id||order.location_id!==operation.location_id||order.total_money?.currency!=='USD'||order.total_money.amount!==operation.amount_minor||!Array.isArray(order.tenders)||order.tenders.length!==1||order.tenders[0].type!=='CARD')throw Error('Transaction verification failed')
+ const tender=order.tenders[0],id=tender.payment_id||tender.id
+ if(!squareId.test(id||'')||(paymentId&&id!==paymentId)||(tender.location_id&&tender.location_id!==operation.location_id))throw Error('Payment reference mismatch')
+ if(tender.amount_money&&(tender.amount_money.currency!=='USD'||tender.amount_money.amount!==operation.amount_minor))throw Error('Tender amount mismatch')
+ return id as string
+}
+export function verifiedSquarePayment(payment:Record<string,any>,operation:Record<string,any>,applicationId:string,posOrder?:Record<string,any>){
  const money=payment.amount_money,total=payment.total_money
  if(!squareId.test(String(payment.id||''))||payment.order_id!==operation.order_id||payment.location_id!==operation.location_id||!money||money.currency!=='USD'||money.amount!==operation.amount_minor||!total||total.currency!=='USD'||total.amount!==operation.amount_minor||payment.source_type!=='CARD'||Number(payment.tip_money?.amount||0)!==0||Number(payment.app_fee_money?.amount||0)!==0||!['COMPLETED','APPROVED','PENDING','FAILED','CANCELED'].includes(payment.status))throw Error('Payment verification failed')
- if(operation.kind==='pos'&&payment.note!=='Finviant payment '+operation.id)throw Error('Point of sale invoice reference could not be verified')
+ if(operation.kind==='pos'){
+  if(!posOrder||squarePosOperationId(payment,posOrder)!==operation.id)throw Error('Point of sale invoice reference could not be verified')
+  verifiedSquarePosOrder(posOrder,operation,payment.id)
+ }
  if(payment.application_details?.application_id&&payment.application_details.application_id!==applicationId)throw Error('Payment application mismatch')
  const created=Date.parse(payment.created_at);if(!Number.isFinite(created)||created<Date.parse(operation.created_at)-60000||created>Date.now()+300000)throw Error('Payment timestamp mismatch')
  return payment

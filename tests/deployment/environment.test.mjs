@@ -37,6 +37,8 @@ test('private beta email can be enabled on its registered staging preview branch
 })
 
 const cases = [
+  ['payment recovery integration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/payment-recovery-integration-20261111' }],
+  ['payment recovery review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/payment-recovery-20261110' }],
   ['calendar resilience review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/calendar-resilience-20261110' }],
   ['integration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: INTEGRATION_REVIEW_GIT_REF }],
   ['next steps review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/next-steps-20261110' }],
@@ -102,6 +104,8 @@ test('all deployed routes opt out of search indexing and cached archives', () =>
 test('integration review disables automatic deployment without changing the beta branch', () => {
   const config = JSON.parse(readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'))
   assert.equal(config.git.deploymentEnabled['review/calendar-resilience-20261110'], false)
+  assert.equal(config.git.deploymentEnabled['review/payment-recovery-20261110'], false)
+  assert.equal(config.git.deploymentEnabled['review/payment-recovery-integration-20261111'], false)
   assert.equal(config.git.deploymentEnabled[INTEGRATION_REVIEW_GIT_REF], false)
   assert.equal(config.git.deploymentEnabled[MIGRATION_REVIEW_GIT_REF], false)
   assert.equal(config.git.deploymentEnabled['review/next-steps-20261110'], false)

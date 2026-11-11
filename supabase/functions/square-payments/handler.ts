@@ -1,5 +1,5 @@
 import {readLimitedRequest} from '../_shared/signedEvents.ts'
-import {digest,secret,uuid,hex64,squareId,pointOfSaleUrl,validSquareCheckout,verifiedSquarePayment} from './core.ts'
+import {digest,secret,uuid,hex64,squareId,pointOfSaleUrl,validSquareCheckout,verifiedSquarePayment,verifiedSquarePosOrder} from './core.ts'
 export type SquareDeps={configured:boolean;allowNewPayments?:boolean;environment:'production'|'sandbox';applicationId:string;origin:string;origins:readonly string[];callback:string;
  authenticate:(request:Request)=>Promise<string>;rpc:(action:string,p:Record<string,unknown>)=>Promise<any>;
  square:(business:string,path:string,body?:Record<string,unknown>)=>Promise<Record<string,any>>;
@@ -8,7 +8,10 @@ export type SquareDeps={configured:boolean;allowNewPayments?:boolean;environment
 const messages:Record<string,string>={not_connected:'Square is not connected for invoice payments.',disabled:'Square payments are not activated.',pending:'A payment has already started. Verify its status before requesting or recording another payment.',review_required:'A Square payment needs reconciliation. Check Square before accepting another payment.',not_payable:'This invoice is not available for another payment.',ready:'Payment is verified with Square before the invoice balance updates.'}
 export const readiness=(state:string,extra:Record<string,unknown>={})=>({state,available:state==='ready',provider:'square',message:messages[state]||'Square is temporarily unavailable. No payment has been confirmed.',...extra})
 export async function reconcileSquarePayment(deps:SquareDeps,operation:Record<string,any>,paymentId:string,eventId:string){
- const response=await deps.square(operation.business_id,'/v2/payments/'+encodeURIComponent(paymentId)),payment=verifiedSquarePayment(response.payment||{},operation,deps.applicationId)
+ const response=await deps.square(operation.business_id,'/v2/payments/'+encodeURIComponent(paymentId))
+ if(response.payment?.id!==paymentId)throw Error('Payment identity mismatch')
+ const order=operation.kind==='pos'?(await deps.square(operation.business_id,'/v2/orders/'+encodeURIComponent(operation.order_id))).order:undefined
+ const payment=verifiedSquarePayment(response.payment||{},operation,deps.applicationId,order)
  const refundIds=payment.refund_ids||[];if(!Array.isArray(refundIds)||refundIds.length>100||refundIds.some(id=>!squareId.test(String(id))))throw Error('Refund ledger needs review')
  const refunds:Record<string,unknown>[]=[]
  for(let offset=0;offset<refundIds.length;offset+=5){const batch=await Promise.all(refundIds.slice(offset,offset+5).map(id=>deps.square(operation.business_id,'/v2/refunds/'+encodeURIComponent(id))));for(const response of batch){const r=response.refund;if(!r||r.payment_id!==payment.id||(r.location_id&&r.location_id!==operation.location_id)||r.amount_money?.currency!=='USD'||!refundIds.includes(r.id)||!Number.isSafeInteger(r.amount_money.amount)||r.amount_money.amount<=0)throw Error('Refund verification failed');if(r.status==='COMPLETED')refunds.push({id:r.id,amount_minor:r.amount_money.amount,refunded_at:r.created_at})}}
@@ -51,10 +54,11 @@ export function squarePaymentsHandler(deps:SquareDeps){return async(request:Requ
    if(!uuid.test(p.operation_id||'')||!hex64.test(p.state||'')||!squareId.test(p.transaction_id||''))return reply(400,{error:'Payment return is incomplete. Verify the transaction in Square before retrying.'})
    const operation=await deps.rpc('pos_context',{business_id:p.business_id,actor_id:actor,operation_id:p.operation_id,state_hash:await digest(p.state)})
    const response=await deps.square(p.business_id,'/v2/orders/'+encodeURIComponent(p.transaction_id)),order=response.order
-   if(!order||order.id!==p.transaction_id||order.location_id!==operation.location_id||order.total_money?.currency!=='USD'||order.total_money.amount!==operation.amount_minor||!Array.isArray(order.tenders)||order.tenders.length!==1||order.tenders[0].type!=='CARD')throw Error('Transaction verification failed')
-   const paymentId=order.tenders[0].payment_id||order.tenders[0].id;if(!squareId.test(paymentId||''))throw Error('Payment reference missing')
+   const paymentId=verifiedSquarePosOrder(order,{...operation,order_id:p.transaction_id})
    // Fetch and verify the payment before attaching an untrusted callback order.
-   verifiedSquarePayment((await deps.square(p.business_id,'/v2/payments/'+encodeURIComponent(paymentId))).payment||{},{...operation,order_id:order.id},deps.applicationId)
+   const payment=(await deps.square(p.business_id,'/v2/payments/'+encodeURIComponent(paymentId))).payment||{}
+   if(payment.id!==paymentId)throw Error('Payment identity mismatch')
+   verifiedSquarePayment(payment,{...operation,order_id:order.id},deps.applicationId,order)
    await deps.rpc('attach',{operation_id:operation.id,order_id:order.id});operation.order_id=order.id
    const result=await reconcileSquarePayment(deps,operation,paymentId,'return:'+paymentId+':'+secret().slice(0,16));return reply(200,{...result,invoice_id:operation.invoice_id})
   }

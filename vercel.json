@@ -319,7 +319,9 @@
       "review/queue-catchup-20261110": false,
       "review/reminder-scan-20261110": false,
       "review/commerce-concurrency-20261110": false,
-      "review/calendar-resilience-20261110": false
+      "review/calendar-resilience-20261110": false,
+      "review/payment-recovery-20261110": false,
+      "review/payment-recovery-integration-20261111": false
     }
   }
 }

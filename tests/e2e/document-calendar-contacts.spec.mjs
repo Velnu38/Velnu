@@ -187,6 +187,19 @@ test('viewer selects dates with the keyboard and sees that day without creation 
 for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-$52.50','$52.50'],['2','$0.00','$105.00']]) {
  test(`changing an original invoice item to quantity ${quantity} shows and saves the revised agreement`, async ({ page }) => {
   const state = await mock(page)
+  let savedPdf
+  await page.route('**/functions/v1/document-pdf', async route => {
+   if(route.request().method()==='OPTIONS')return route.fulfill({headers:pdfHeaders,body:''})
+   expect(route.request().postDataJSON()).toEqual({business_id:B,document_kind:'change_order',document_id:P})
+   expect(state.changes).toHaveLength(1)
+   const change=state.changes[0],subtotal=change.p_revision.quantity*change.p_revision.unit_price-100,tax=subtotal*0.05
+   savedPdf=Buffer.from(await generateDocumentPdf({kind:'change_order',number:'CO-QA',status:'draft',issue_date:'2026-11-07',
+    customer:{name:'Test Customer'},company:{name:'Scheduling QA'},title:change.p_input.title,
+    subtotal,tax_amount:tax,total:subtotal+tax,
+    change_totals:{current_total:105,change_amount:subtotal+tax,revised_total:105+subtotal+tax,deposit_paid:25,other_paid:0,revision_subtotal:subtotal,revision_tax:tax},
+    items:[{description:change.p_revision.description,quantity:1,unit_price:0,line_total:0,tax_rate:5}]}))
+   return route.fulfill({status:200,headers:pdfHeaders,body:savedPdf})
+  })
   await page.goto('/?view=invoices')
   await page.getByRole('button', { name: /^Open invoice INV-QA/ }).click()
   await page.getByRole('region',{name:'Record actions',exact:true}).locator('.record-more>summary').click();await page.getByRole('button', { name: 'New change order', exact: true }).click()
@@ -202,7 +215,22 @@ for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-
   await expect.poll(() => state.changes.length).toBe(1)
   expect(state.changes[0].p_revision).toMatchObject({ id: P, description: 'Updated work', quantity: Number(quantity), unit_price: 50 })
   expect(state.changes[0].p_input).toMatchObject({ items: [], expected_current_total: 105 })
-  await expect(page.getByRole('dialog').locator('.change-order-totals')).toContainText(revised)
+  // The saved review uses the canonical PDF, not the closing editor's totals.
+  // Waiting for that handoff prevents a transient editor from passing this check.
+  await expect(dialog).toHaveCount(0)
+  const review=page.getByRole('dialog',{name:'Review change order',exact:true})
+  const pdf=review.getByRole('region',{name:'Change order PDF',exact:true})
+  await expect(pdf.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
+  await expect(pdf.locator('iframe')).toHaveAttribute('src',/^blob:/)
+  const downloading=page.waitForEvent('download')
+  await pdf.getByRole('button',{name:'Download PDF',exact:true}).click()
+  const file=await (await downloading).path()
+  expect(await readFile(file)).toEqual(savedPdf)
+  const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8'})
+  for(const amount of ['$105.00',difference,revised,'$25.00',quantity==='3'?'$132.50':quantity==='1'?'$27.50':'$80.00'])expect(text).toContain(amount)
+  for(const label of ['Current total','This change','Revised total','Deposit paid','Remaining if approved'])expect(text).toContain(label)
+  expect(state.changes).toHaveLength(1)
+  expect(state.calls.some(call=>/send-document|send-invoice/.test(call.path))).toBe(false)
  })
 }
 

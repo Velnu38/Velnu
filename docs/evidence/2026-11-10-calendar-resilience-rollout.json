@@ -1,0 +1,195 @@
+{
+  "observedAt": "2026-11-10",
+  "timezone": "America/New_York",
+  "scope": "Step 16 private-beta calendar resilience",
+  "pullRequest": 91,
+  "candidateCommit": "a0f10cc1ad994500a907ae1f5f1c540aabace050",
+  "candidateTree": "0ee68ad4352e0713c775d33f221741129d6395a4",
+  "deployedCommit": "3e781eec050bd891eafdf0ddb14bf995930faaa5",
+  "deploymentId": "dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F",
+  "deploymentState": "READY",
+  "aliases": [
+    {
+      "alias": "finviant.com",
+      "deploymentId": "dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F",
+      "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo"
+    },
+    {
+      "alias": "www.finviant.com",
+      "deploymentId": "dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F",
+      "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo"
+    }
+  ],
+  "http": [
+    {
+      "domain": "finviant.com",
+      "status": 200,
+      "asset": "/assets/index-jNrffpwh.js",
+      "robots": "noindex, nofollow, noarchive"
+    },
+    {
+      "domain": "www.finviant.com",
+      "status": 200,
+      "asset": "/assets/index-jNrffpwh.js",
+      "robots": "noindex, nofollow, noarchive"
+    }
+  ],
+  "ci": [
+    {
+      "id": 42929241991,
+      "name": "Finviant assessment maintenance",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 42929241816,
+      "name": "Finviant authentication access checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 42929241776,
+      "name": "Pricing tier checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 42929241808,
+      "name": "Calendar integration checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 42929241854,
+      "name": "Complete automated test checks",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "completeJobs": [
+    {
+      "id": 130223658875,
+      "name": "isolated-provider-workload",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659230,
+      "name": "desktop-and-scheduling / Full browser regression (5/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659250,
+      "name": "desktop-and-scheduling / Full browser regression (1/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659251,
+      "name": "private-beta-email",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659254,
+      "name": "DOM checks (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659276,
+      "name": "desktop-and-scheduling / Full browser regression (4/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659290,
+      "name": "native-app-handoffs",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659294,
+      "name": "desktop-and-scheduling / Full browser regression (2/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659309,
+      "name": "desktop-and-scheduling / Full browser regression (3/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659392,
+      "name": "DOM checks (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659394,
+      "name": "iPhone WebKit (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659402,
+      "name": "iPhone WebKit (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659404,
+      "name": "desktop-and-scheduling / Full browser regression (6/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659452,
+      "name": "DOM checks (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659468,
+      "name": "pure-deno-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659507,
+      "name": "iPhone WebKit (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659550,
+      "name": "node-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659658,
+      "name": "iPhone WebKit (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659756,
+      "name": "DOM checks (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223659942,
+      "name": "desktop-and-scheduling / checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 130223660053,
+      "name": "migrations / postgres-17",
+      "conclusion": "success"
+    },
+    {
+      "id": 130227682121,
+      "name": "Release validation",
+      "conclusion": "success"
+    }
+  ],
+  "calendarQueue": {
+    "total": 0,
+    "leased": 0,
+    "dead": 0
+  },
+  "schemaChanges": 0,
+  "providerConfigurationChanges": 0,
+  "messagesSent": 0,
+  "publicLaunchCertified": false,
+  "remaining": [
+    "Google OAuth setup and consent",
+    "live separate-account refresh/reconnect/revoke and actual-device acceptance",
+    "external busy-time mapping/freshness before server booking enforcement"
+  ]
+}

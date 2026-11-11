@@ -1,0 +1,51 @@
+{
+  "observedAt": "2026-11-10",
+  "scope": "Step 17 Square POS recovery and payment acceptance preparation",
+  "local": {
+    "paymentTestsPassed": 42,
+    "paymentTestsFailed": 0,
+    "deploymentTestsPassed": 89,
+    "edgePackages": "built",
+    "applicationBuild": "passed",
+    "startupTestsPassed": 92,
+    "assessmentTestsPassed": 8
+  },
+  "previousSourceRegression": {
+    "commit": "f82f9901daf3c21edf6e37efd57cae4b9bc249a7",
+    "tests": 3,
+    "expectedFailures": 2,
+    "passed": 1,
+    "sameNewLookupSchema": true
+  },
+  "betaInventory": {
+    "stripeMerchantBindings": 0,
+    "squareConnections": 0,
+    "enabledConnections": 0,
+    "connectedStripeTestMerchantCount": 0
+  },
+  "sourceSha256": {
+    "supabase/functions/square-payments/core.ts": "ed5c7525a3a0a1790aedf66f97d773a99edca14f2ec694de44a0a26e2675d9ac",
+    "supabase/functions/square-payments/handler.ts": "527d137605f6e21a8e71c50c9dd0ebe4285c38580d39de635b0850233915ea6b",
+    "supabase/functions/square-payments/runtime.ts": "e58190d1b6b052107f225d7c79cdb5d1ab9bd27a0faf1fa012dae05224a2b995",
+    "supabase/functions/square-payment-events/handler.ts": "87d439d54ccf47e0819ac3645740bcf6ece253d69e9e6d48cc2178f36969d6d7",
+    "supabase/migrations/20261111001800_square_pos_event_context.sql": "109c3b2f7d5e0b02c697a9c2aeb7c12183071d96519e2b65484845c5a9c73aa0"
+  },
+  "providerRequestsByTests": 0,
+  "realCharges": 0,
+  "realRefunds": 0,
+  "messagesSent": 0,
+  "paymentsActivated": false,
+  "publicLaunchCertified": false,
+  "remaining": [
+    "final candidate CI and private-beta migration/Edge rollout",
+    "controlled merchant sandbox setup and full provider matrix",
+    "real iPhone and Android POS acceptance with bounded authorization",
+    "dispute and full fee/payout reconciliation acceptance"
+  ],
+  "betaHealthBefore": {
+    "configured": false,
+    "payments_enabled": false,
+    "environment": "sandbox"
+  },
+  "baseRelease": "3e781eec050bd891eafdf0ddb14bf995930faaa5"
+}
