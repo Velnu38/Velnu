@@ -390,6 +390,12 @@
       "detail": "Owner-authorized invoice, estimate and E-Business Card emails each delivered once through the deployed backend and natural cron, with six signed sent/delivered receipts. The owner confirmed email receipt. Canonical PDF hashes/bytes matched anonymous customer downloads; both rendered correctly. The card vCard matches its shared preview; estimate decision availability was inspected without approval. Three messages fit existing free allowance ($0 incremental send cost). Managed Twilio SMS stayed blocked: no active sender or reply route. This was backend-assisted acceptance; reply and physical-phone checks and broader EMAIL/SMS gates remain open.",
       "evidence": "docs/CONTROLLED_DELIVERY_ACCEPTANCE_2026-11-10.md; docs/evidence/2026-11-10-controlled-email-delivery.json",
       "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Calendar connection resilience and booking limits",
+      "detail": "Step 16 fixes Microsoft Graph Retry-After header handling and bounds writable-calendar pagination, including repeated/empty pages and unrelated Graph next links. Settings, connected events and appointment review explicitly explain that personal events do not block customer booking times. All 45 local calendar tests, typecheck and calendar build pass. Read-only beta review found a connected Outlook account with successful sync and an empty queue; no Google connection. Full candidate CI/deployment and remaining live provider/device certification are distinct requirements. Initial candidate CI exposed an existing smoke-fixture business-date mismatch after UTC midnight; the fixture now forces a server/business date boundary and keeps all financial/tenant assertions. Final complete CI remains required.",
+      "evidence": "docs/CALENDAR_CONNECTION_ACCEPTANCE_2026-11-10.md; tests/calendar/pagination.test.ts; tests/calendar/security.test.ts; tests/calendar/worker.test.ts; docs/evidence/2026-11-10-calendar-connection-validation.json",
+      "verifiedAt": "2026-11-10"
     }
   ],
   "tasks": [
@@ -433,7 +439,7 @@
       "status": "open",
       "title": "Complete release validation and staged promotion enforcement",
       "owner": "Developer",
-      "why": "The previous release merge 85abc5466db21ae8c0faeda5de8ac8bc790da5e4 passed complete 21-job validation (42862992414). Current HEAD 18bab1b38bf3f15d05b4dc1a9e4d97084c0d23af is already domain-bound at READY deployment dpl_Htcp9Cot1hUNcRRqxPNQ9jq57Wur while full validation 42869888587 is unfinished. Same-commit release validation and enforcement remain open. Rulesets list is empty; classic branch-protection read returned HTTP 403 Resource not accessible by integration on 2026-11-10. This does not establish that classic protection is absent. No hosted setting was altered.",
+      "why": "Current beta release f82f9901daf3c21edf6e37efd57cae4b9bc249a7 is READY and all five triggered workflows passed, including complete automated validation 42924187972. New candidates still require final-commit CI before merge. Rulesets were empty and classic protection returned integration HTTP 403; required-check/staged-promotion enforcement remains unknown and no hosted setting was altered.",
       "acceptance": "Update obsolete fixtures without weakening functional assertions; pass complete current build, financial/tenant/voice/storage/calendar and authenticated browser journeys for the same immutable release commit. Enforce required checks and staged deployment/promotion before domain release; unify supported Node versions and include the actual release branch in CI.",
       "evidence": []
     },
@@ -588,7 +594,7 @@
       "status": "blocked_external",
       "title": "Finish Google setup and multi-account calendar certification",
       "owner": "Owner + developer",
-      "why": "No Google connection/configuration names observed; one connected Outlook row does not prove multi-tenant refresh reliability. November 10 review confirmed a visit_worker_ids column-grant regression in the live calendar worker. A narrow repair and full-schema dependency guard are prepared; successful backend recovery remains to be observed. November 10 deployed repair: Outlook completed sync at 13:36 UTC and the queue cleared after restoring the missing visit column grant. Google OAuth and multi-account lifecycle acceptance remain open.",
+      "why": "Outlook sync recovered and the beta queue is empty. Step 16 adds correct Graph Retry-After handling, bounded calendar listing and clear personal-calendar limitations. External events remain user/business scoped and display-only for booking. Google configuration/consent and separate live-provider refresh/reconnect/revoke/device tests remain open.",
       "acceptance": "Finish the Google external OAuth app/verification as required, scopes/redirects, publishing and token refresh; verify Google and Outlook connections, refresh/reconnect/revoke, background sync, conflicts, duplicates, time zones/DST and job/calendar consistency with separate accounts.",
       "evidence": []
     },

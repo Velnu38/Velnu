@@ -113,13 +113,14 @@ test("worker reconciles once, skips duplicates, reschedules, cancels and disconn
 test("rate limits retry later; revoked authorization stops retry storm", async () => {
   const db = await setup();
   try {
-    let reason = "rate";
+    let reason = "rate", calls = 0;
     const svc: CalendarService = {
       calendars: async () => [],
       events: async () => [],
       upsert: async () => {
+        calls++;
         throw reason === "rate"
-          ? new CalendarError("provider_rate_limited", true, 120, 429)
+          ? { statusCode: 429, headers: new Headers({ 'Retry-After': '450' }) }
           : new CalendarError("authorization_revoked", false, 0, 401);
       },
       remove: async () => {},
@@ -132,7 +133,9 @@ test("rate limits retry later; revoked authorization stops retry storm", async (
     ).rows[0];
     assert.equal(row.dead, false);
     assert.equal(row.attempts, 1);
-    assert(Number(row.delay) > 110);
+    assert(Number(row.delay) > 440);
+    await runSyncBatch(runtime(db, svc));
+    assert.equal(calls, 1, 'the next cron must not call a throttled provider before its deadline');
     reason = "revoked";
     await db.exec("update private.calendar_sync_queue set available_at=now()");
     await runSyncBatch(runtime(db, svc));

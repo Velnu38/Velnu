@@ -68,6 +68,10 @@ export async function calendarRequest<T>(
       reconnect_required: "Reconnect this calendar account to continue.",
       provider_rate_limited:
         "Your calendar provider is busy. Please try again shortly.",
+      too_many_calendars:
+        "The calendar provider returned more pages than Finviant can safely load. No calendar settings were changed. Try again later or contact support.",
+      invalid_provider_pagination:
+        "The calendar provider returned an incomplete response. No calendar settings were changed. Try again later.",
       disconnect_previous_account_first:
         "Disconnect the existing account before choosing a different account.",
     };

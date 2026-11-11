@@ -87,6 +87,7 @@ for(const width of [1440,390])test(`guided booking proposes crew availability an
  await expect(dialog.getByRole('button',{name:'Book appointment',exact:true})).toHaveAttribute('aria-pressed','true')
  await dialog.getByRole('button',{name:'Send booking link',exact:true}).click()
  await expect(dialog.getByRole('group',{name:'Available appointment times'})).toBeVisible()
+ await expect(dialog).toContainText('Check personal Google or Outlook events before booking or sharing options; those events do not block these times.')
  await expect(dialog.getByRole('button',{name:'Approve & email customer',exact:true})).toBeDisabled()
  expect(state.calls.filter(c=>/approve_scheduling_offer|work-scheduling/.test(c.path))).toHaveLength(0)
  expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)

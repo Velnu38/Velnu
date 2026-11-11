@@ -30,6 +30,7 @@ for (const width of [390, 1440]) test(`Calendar Connections opens from More and 
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Calendar Connections/ }).click()
   const settings = page.getByRole('region', { name: 'Calendar integrations' })
   await expect(settings).toBeVisible({ timeout: 15000 })
+  await expect(settings).toContainText('Personal events do not block customer booking times.')
   await expect(settings.getByRole('alert')).toContainText('need administrator setup in Finviant')
   await expect(settings.getByRole('button', { name: 'Connect Google Calendar' })).toHaveCount(0)
   configured = true

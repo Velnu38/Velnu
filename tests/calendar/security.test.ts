@@ -59,6 +59,20 @@ test("provider revocation and throttling classification never leaks SDK payloads
   assert(classify({ response: { status: 503 } }).retryable);
   assert(retrySeconds(1, 120) >= 120);
 });
+test("Microsoft Graph throttling honors top-level Retry-After without exposing response content", () => {
+  const graph = { statusCode: 429, code: 'TooManyRequests', headers: new Headers({ 'Retry-After': '450' }), body: 'private content' }
+  const issue = classify(graph)
+  assert.equal(issue.reason, 'provider_rate_limited')
+  assert.equal(issue.retryAfter, 450)
+  assert.equal(issue.status, 429)
+  assert(issue.retryable)
+  assert(!JSON.stringify(issue).includes('private content'))
+  const date = new Date(Date.now() + 300000).toUTCString()
+  const delay = classify({ statusCode: 429, headers: new Headers({ 'Retry-After': date }) }).retryAfter
+  assert(delay >= 299 && delay <= 300)
+  assert.equal(classify({ statusCode: 429, headers: new Headers({ 'Retry-After': 'invalid' }) }).retryAfter, 60)
+  assert.equal(classify({ statusCode: 429, headers: new Headers({ 'Retry-After': '9999999' }) }).retryAfter, 86400)
+})
 test("event carries exact UTC instants and deep link; absent end time rejected", () => {
   const w = {
     source_key: "x",
