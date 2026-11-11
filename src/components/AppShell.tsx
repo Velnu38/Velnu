@@ -1,3 +1,4 @@
+import {assertFinNavigationAccess, type FinDestination} from '../lib/finNavigation'
 import TierBanner from './TierBanner'
 import FinBrand from './FinBrand'
 import MoreNavigation from './MoreNavigation'
@@ -114,6 +115,20 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
     setShowMobileMore(false)
   }
 
+  async function openFinDestination(destination: FinDestination) {
+    const [current,{data,error}]=await Promise.all([getCurrentBusiness(),supabase.rpc('get_plan_usage',{target_business_id:business.id})])
+    if(error)throw Error('Plan access could not be verified. Try again after reconnecting.')
+    const target=assertFinNavigationAccess(business.id,current,destination,data)
+    if(accessRemoved)throw Error('Your business access could not be verified. Reload and try again.')
+    if(target.href===location.pathname+location.search)return true
+    if(!confirmNavigation('fin'))return false
+    navigationIndex.current++
+    window.history.pushState({finviantIndex:navigationIndex.current},'',target.href)
+    lastLocation.current=location.href
+    setCompany(current!);setView(target.view);setRefreshVersion(v=>v+1);setShowMobileMore(false)
+    return true
+  }
+
   function openFinInvoice(draft: FinInvoiceDraft | InvoiceSourceTarget) {
     if (accessRemoved || !canOpenView(company, 'invoices') || !confirmNavigation('fin')) return false
     const view = 'kind' in draft && draft.kind === 'estimate' ? 'estimates' : 'invoices'
@@ -168,7 +183,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
       </aside>
       <main className="workspace">
         <header className="topbar"><div className="mobile-brand"><FinBrand wordmark/></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div>
-          <div className="workspace-assistant">{!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onOpenInvoice={openFinInvoice} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}</div>
+          <div className="workspace-assistant">{!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onNavigate={openFinDestination} onOpenInvoice={openFinInvoice} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}</div>
         </header>
         <div className="private-testing-app"><PrivateBetaNotice compact disclosure={view==='dashboard'} /></div><TierBanner businessId={company.id}/>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>

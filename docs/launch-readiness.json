@@ -444,6 +444,12 @@
       "detail": "PR94 is merged and published to private beta. Final candidate c2c9a534dcd1337eb233f2b63ffa518fc816e623 passed assessment 43121197565, pricing 43121197581 and complete suite 43121197572. Tested and merged trees match. All 50 original readiness records survive; AI-03 is added open. Current verified beta: PR94 merge 8d1db84b80ff7744dde1c376e8ca3c169bfc9279, READY deployment dpl_3GCkJYUeGUGxkTdGheLedEDHVgVi on both Finviant domains. Both return HTTP 200, unchanged index-CZTK5yB_.js, private no-store and noindex headers; runtime behavior remains the tested PR93 release.",
       "evidence": "docs/evidence/2026-11-11-focused-work-queue.json; https://github.com/Velnu38/Velnu/pull/94",
       "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "Fin direct navigation implementation awaiting browser and release verification",
+      "detail": "Card 03 adds an allowlisted navigation-only resolver, separate Customer Reminders and internal follow-ups, fresh membership/module/plan checks, and existing unsaved-edit protection. Thirteen targeted source tests and TypeScript passed. Local Chromium launch was blocked by the executor socket restriction; hosted CI must verify the new mobile/desktop destination and dictation cases before release. AI-01 real-provider/device and AI-02 usefulness gates remain open.",
+      "evidence": "tests/settings/fin-navigation.test.ts; tests/e2e/fin-navigation.spec.mjs",
+      "verifiedAt": "2026-11-11"
     }
   ],
   "tasks": [
