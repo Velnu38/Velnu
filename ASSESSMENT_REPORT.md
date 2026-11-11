@@ -14,13 +14,13 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Latest verified beta source before this report release: e9b940d17808faa06949be9cc09ccf10078b4e54, deployment dpl_3X4WxiAmw2vUqwvJaqEuUMvD8ZXj. Both domains return HTTP 200 with identical index-CZTK5yB_.js, private no-store and noindex headers. Vercel SSO remains enabled. See docs/evidence/2026-11-11-ux-release.json.
+- Current verified beta: PR94 merge 8d1db84b80ff7744dde1c376e8ca3c169bfc9279, READY deployment dpl_3GCkJYUeGUGxkTdGheLedEDHVgVi on both Finviant domains. Both return HTTP 200, unchanged index-CZTK5yB_.js, private no-store and noindex headers; runtime behavior remains the tested PR93 release.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
-- PR94 reconciles the documentation queue with the deployed PR93 source. All 50 existing readiness records and their acceptance/evidence remain unchanged; AI-03 is added open. Owner authorizes merge and private-beta deployment after checks pass.
+- PR94 is merged and published to private beta. Final candidate c2c9a534dcd1337eb233f2b63ffa518fc816e623 passed assessment 43121197565, pricing 43121197581 and complete suite 43121197572. Tested and merged trees match. All 50 original readiness records survive; AI-03 is added open.
 
-- Next: finish PR94 checks and beta publication; then select card 03 for Fin contextual navigation. Keep beta backend xvybcmyoblfgzokaifsx and all unmet external gates. No runtime, migration, provider activation, sends or charges in this documentation batch.
+- Next: card 03, Fin contextual navigation, when selected. Cards 01 and 02 release work is complete; do not repeat it. All unmet provider, physical-device and public-launch gates remain open. No runtime, migrations, provider activation, real sends or charges occurred in PR94.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
