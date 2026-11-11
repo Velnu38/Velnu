@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-11",
+  "baseCommit": "e9b940d17808faa06949be9cc09ccf10078b4e54",
+  "originalTaskCount": 50,
+  "resultTaskCount": 51,
+  "originalTasksSha256": "85cefb6cf0185b71f333e33ac41dff4e13de196c07d9de53ad54e540f8c8df11",
+  "preservedTasksSha256": "85cefb6cf0185b71f333e33ac41dff4e13de196c07d9de53ad54e540f8c8df11",
+  "allOriginalTaskObjectsIdentical": true,
+  "originalObservationsProposalsRecommendationsSourcesPreserved": true,
+  "addedTask": "AI-03",
+  "addedTaskStatus": "open",
+  "cardCount": 29,
+  "originalPackageCount": 28,
+  "publication": "Authorized for merge and private-beta publication after checks; PR94 reconciled with deployed PR93",
+  "oldSnapshot": "c941e9e unavailable locally and via GitHub; no old snapshot applied",
+  "scope": "Documentation and assessment generator/tests only; no runtime, migration or deployment"
+}
