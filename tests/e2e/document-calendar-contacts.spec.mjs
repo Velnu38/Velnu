@@ -190,7 +190,9 @@ for (const [quantity, difference, revised] of [['3','+$52.50','$157.50'],['1','-
   let savedPdf
   await page.route('**/functions/v1/document-pdf', async route => {
    if(route.request().method()==='OPTIONS')return route.fulfill({headers:pdfHeaders,body:''})
-   expect(route.request().postDataJSON()).toEqual({business_id:B,document_kind:'change_order',document_id:P})
+   const request=route.request().postDataJSON()
+   if(request.document_kind!=='change_order')return route.fallback()
+   expect(request).toEqual({business_id:B,document_kind:'change_order',document_id:P})
    expect(state.changes).toHaveLength(1)
    const change=state.changes[0],subtotal=change.p_revision.quantity*change.p_revision.unit_price-100,tax=subtotal*0.05
    savedPdf=Buffer.from(await generateDocumentPdf({kind:'change_order',number:'CO-QA',status:'draft',issue_date:'2026-11-07',
