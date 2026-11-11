@@ -9,7 +9,7 @@ export const settingsOptions: { id: SettingsSection; title: string; description:
   { id: 'support', title: 'Help & Support', description: 'Report an issue and follow Finviant replies.', group: 'business', icon: 'support' },
   { id: 'documents', title: 'Invoice & Estimate Setup', description: 'Branding, taxes, payments, and your E-Business Card.', group: 'setup', icon: 'invoices' },
   { id: 'company', title: 'Company Profile', description: 'Business details and services.', group: 'setup', icon: 'company' },
-  { id: 'team', title: 'Team Management', description: 'Workers, availability, and account access.', group: 'setup', icon: 'customers' },
+  { id: 'team', title: 'Team Management', description: 'Manage worker profiles and availability. Account access is separate.', group: 'setup', icon: 'customers' },
   { id: 'sms', title: 'Text Messaging Setup', description: 'Verify your owner mobile number before sending SMS.', group: 'setup', icon: 'sms' },
   { id: 'calendar', title: 'Calendar Connections', description: 'Google Calendar and Microsoft Outlook.', group: 'setup', icon: 'schedule' },
   { id: 'scheduling', title: 'Working Hours & Team Availability', description: 'Working hours, booking notice, travel time, and time off.', group: 'setup', icon: 'availability' },

@@ -129,6 +129,7 @@ export default function CreationPreview({ paper, busy, error, saved = false, onB
   return <section className="creation-preview" data-saving={locked ? 'true' : undefined}>
     <button type="button" className="back-button" data-keep-dialog disabled={locked} onClick={onBack}>← Back to edit</button>
     <h2 ref={heading} tabIndex={-1}>{paper.kind === 'invoice' ? 'Invoice' : 'Estimate'} preview</h2>
+    <p role="status" className="quiet">{documentId?'Draft saved. Review the PDF before choosing a delivery option.':deliveryError?'Draft preparation needs attention. Your edits remain available.':'Preparing your saved draft…'}</p>
     <section className="creation-review-bar" aria-label="Review and send">
       <div className="creation-review-summary">
         <div><strong>{[paper.customer?.first_name, paper.customer?.last_name].filter(Boolean).join(' ') || paper.customer?.company || 'Customer'}</strong>

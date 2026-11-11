@@ -1,3 +1,4 @@
+import OperationalAttention from '../components/OperationalAttention'
 import SendBusinessCard, {BusinessCardQuickLink} from '../components/SendBusinessCard'
 import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import { canAccess, canOpenView, workspaceModules } from '../lib/workspaceAccess'
@@ -108,6 +109,7 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     <div className="home-overview">
       {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} compact />}
       {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey+':financial'} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
+      {canAccess(business,'jobs') && <OperationalAttention key={workspaceKey+':work-attention'} business={business} refreshVersion={refreshVersion}/>}
       {canAccess(business,'billing') && <BillingHub key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} openRequest={openAttention} onPendingChange={setAttentionCount} approvalBreakdown={{estimates:snapshot.pendingEstimateCount,changeOrders:snapshot.pendingChangeOrderCount}} />}
       {canAccess(business,'finances') && <CustomerPaymentReviews key={workspaceKey+':payment-reviews'} businessId={business.id} />}
     </div>
@@ -115,10 +117,12 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
     {showCreate && <FormDialog label="Quick Links" onClose={() => setShowCreate(false)}>
       <div className="modal-head"><div><p className="eyebrow">{business.name}</p><h2>Quick Links</h2></div><button type="button" className="icon-button" aria-label="Close" onClick={() => setShowCreate(false)}>×</button></div>
       <nav className="home-create-options" aria-label="Create work and quick links">
-        {canCreateBilling&&<BusinessCardQuickLink business={business} onOpen={()=>{setShowCreate(false);setShowCardSend(true)}}/>}
+<h3 className="quick-links-heading">Create</h3>
         {canCreateBilling && <><a href="/?view=invoices&new=1" aria-label="+ New invoice"><WorkspaceIcon kind="invoices"/><span><strong>Invoice</strong><small>Bill a customer for your work</small></span><span aria-hidden="true">›</span></a><a href="/?view=estimates&new=1" aria-label="+ New estimate"><WorkspaceIcon kind="estimates"/><span><strong>Estimate</strong><small>Prepare a quote for a customer</small></span><span aria-hidden="true">›</span></a></>}
         {canCreateJob && <a href="/?view=work&new=1" aria-label="+ New job"><WorkspaceIcon kind="work"/><span><strong>Job</strong><small>Plan and manage customer work</small></span><span aria-hidden="true">›</span></a>}
         {canCreateEntry && <a href="/?view=reminders&new=1" aria-label="+ New reminder"><WorkspaceIcon kind="reminders"/><span><strong>Reminder</strong><small>Keep track of a follow-up</small></span><span aria-hidden="true">›</span></a>}
+        <h3 className="quick-links-heading">Go to / Share</h3>
+        {canCreateBilling&&<BusinessCardQuickLink business={business} onOpen={()=>{setShowCreate(false);setShowCardSend(true)}}/>}
         {canOpenView(business, 'customers') && <a href="/?view=customers" aria-label="Customers"><WorkspaceIcon kind="customers"/><span><strong>Customers</strong><small>Find customer details, locations, and history</small></span><span aria-hidden="true">›</span></a>}
         {canManageTeam && <a href={settingsHref('team')} aria-label="Team Management"><WorkspaceIcon kind="customers"/><span><strong>Team Management</strong><small>Workers, availability, and account access</small></span><span aria-hidden="true">›</span></a>}
       </nav>

@@ -22,6 +22,7 @@ export default function MoreNavigation({ business }: { business: CurrentBusiness
   ]
   const lockedPreviews = plan ? previews.filter(item=>tierRank[item.required]>tierRank[plan]&&canOpenSettingsSection(business,item.section)) : []
   const setup = options.filter(option => option.group === 'setup')
+  const setupGroups=[{title:'Business & team',ids:['company','team']},{title:'Documents & delivery',ids:['documents','delivery','customer_reminders']},{title:'Connections',ids:['calendar']}];
   const account = options.filter(option => option.group === 'account')
   const destinations = [
     { id: 'customers', title: 'Customers', description: 'Customer details, locations, and history.' },
@@ -32,9 +33,7 @@ export default function MoreNavigation({ business }: { business: CurrentBusiness
       {destinations.map(option => <a key={option.id} href={'/?view=' + option.id}><WorkspaceIcon kind={option.id}/><span><strong>{option.title}</strong><small>{option.description}</small></span></a>)}
       {options.filter(option => option.group === 'business').map(option => <a key={option.id} href={settingsHref(option.id)}><WorkspaceIcon kind={option.icon}/><span><strong>{option.title}</strong><small>{option.description}</small></span></a>)}
     </div></section>
-    {setup.length > 0 && <section aria-label="Setup and connections"><h3>Setup & connections</h3><div className="more-navigation-grid">
-      {setup.map(option => <a key={option.id} href={settingsHref(option.id)}><WorkspaceIcon kind={option.icon}/><span><strong>{option.title}</strong><small>{option.description}</small></span></a>)}
-    </div></section>}
+    {setupGroups.map(group=>{const entries=setup.filter(option=>group.ids.includes(option.id));return entries.length?<section key={group.title} aria-label={group.title}><h3>{group.title}</h3><div className="more-navigation-grid">{entries.map(option=><a key={option.id} href={settingsHref(option.id)}><WorkspaceIcon kind={option.icon}/><span><strong>{option.title}</strong><small>{option.description}</small></span></a>)}</div></section>:null})}
     {plan && lockedPreviews.length>0 && <section aria-label="Additional plan features"><h3>More ways to run your business</h3><div className="plan-feature-previews">{lockedPreviews.map(item=><article className="plan-feature-preview" key={item.title}><span className="plan-availability-label">{planAvailabilityLabel(item.required)}</span><strong>{item.title}</strong><p>{item.benefit}</p><UpgradeLink plan={plan} required={item.required} canUpgrade={isPrimaryOwner(business)}/></article>)}</div></section>}
     <section className="more-navigation-account" aria-label="Account">
       <div><strong>{business.name}</strong><span>{business.role}</span></div>
