@@ -1,3 +1,4 @@
+import {jobNextStep} from '../lib/jobNextStep'
 import {
   lazy,
   Suspense,
@@ -124,6 +125,8 @@ export default function JobManagementWorkspace({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
+  const [compactSections,setCompactSections]=useState(()=>window.matchMedia('(max-width:820px)').matches);
+  useEffect(()=>{const media=window.matchMedia('(max-width:820px)');const update=()=>setCompactSections(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update)},[]);
   const [section, setSection] = useState<Section>(initialSection),
     [notes, setNotes] = useState(""),
     [details, setDetails] = useState(false),
@@ -246,6 +249,7 @@ export default function JobManagementWorkspace({
     if (next !== "billing") setCostsOpened(false);
     if (next !== "photos") setPhotosOpened(false);
     setSection(next);
+    const url=new URL(location.href);url.searchParams.set('section',next);history.replaceState(history.state,'',url.pathname+url.search);
     if (next === "photos") setPhotosOpened(true);
     if (next === "billing") setCostsOpened(true);
   }
@@ -385,6 +389,23 @@ export default function JobManagementWorkspace({
   const tabs = (Object.keys(sectionLabels) as Section[]).filter(
     (s) => !["billing", "changes"].includes(s) || canBill,
   );
+  const groups = [
+    {label:'Summary',sections:['overview']},
+    {label:'Work',sections:['tasks','schedule','materials','photos']},
+    {label:'Billing',sections:['billing','changes']},
+    {label:'Records',sections:['activity','reports']},
+  ].map(group=>({...group,sections:group.sections.filter(s=>tabs.includes(s as Section))})).filter(group=>group.sections.length);
+  const activeGroup=groups.find(group=>group.sections.includes(section))||groups[0];
+  const visibleTabs=compactSections?tabs.filter(s=>activeGroup.sections.includes(s)):tabs;
+  const step=jobNextStep({status:job?.status||'',ready:!!data&&!loading&&!error,canEdit,canSchedule,canBill,booked,
+    crew:!!job?.assigned_user_ids?.length,futureVisit:!!job?.scheduled_start&&Date.parse(job.scheduled_start)>Date.now(),
+    remainingVisits,tasks:outstandingTasks.length,materials:missingMaterials.length,changes:pendingChanges.length+unbilledChanges.length,invoice:billingInvoice});
+  function takeNextStep(){
+    if(step.action==='schedule'||step.action==='crew')setDispatch(step.action==='crew'?'crew':'appointment');
+    else if(step.action==='start')void run(()=>updateJobStatus(jobId,'in_progress'),'Job started.');
+    else if(step.action==='complete')reviewCompletion();
+    else selectSection(({visits:'schedule',history:'activity',invoice:'billing'} as Record<string,Section>)[step.action]||step.action as Section);
+  }
   const tab = (s: string) => id + "-" + s;
   if (changeOrder && changeSource)
     return (
@@ -481,60 +502,11 @@ export default function JobManagementWorkspace({
             </p>
           )}
           <div className="jm-next-action">
-            <div>
-              <small>Next action</small>
-              <strong>
-                {closed
-                  ? job.status === "completed"
-                    ? "Review final billing"
-                    : "Job canceled"
-                  : !data
-                    ? "Load the work plan"
-                    : !booked
-                      ? "Book the next visit"
-                      : action === "start"
-                        ? "Start the scheduled work"
-                        : outstandingTasks.length
-                          ? `${outstandingTasks.length} ${outstandingTasks.length === 1 ? "task" : "tasks"} to finish`
-                          : "Review and complete the job"}
-              </strong>
-            </div>
-            <div>
-              {action && (
-                <button
-                  type="button"
-                  className="primary-button"
-                  disabled={busy || !data}
-                  onClick={() =>
-                    action === "schedule"
-                      ? setDispatch("appointment")
-                      : action === "complete"
-                        ? reviewCompletion()
-                        : void run(
-                            () => updateJobStatus(jobId, "in_progress"),
-                            "Job started.",
-                          )
-                  }
-                >
-                  {action === "schedule"
-                    ? "Schedule job"
-                    : action === "start"
-                      ? "Start job"
-                      : "Complete job"}
-                </button>
-              )}
-              {closed && canBill && (
-                <a
-                  className="primary-button"
-                  href={
-                    billingInvoice
-                      ? "/?view=invoices&document=" + billingInvoice.id
-                      : "/?view=invoices&job=" + jobId
-                  }
-                >
-                  {billingInvoice ? "Review invoice" : "Add charges & invoice"}
-                </a>
-              )}
+            <div><small>Next action</small><strong>{step.detail}</strong></div>
+            <div className="jm-inline-actions">
+              {step.action==='invoice'?<a className="primary-button" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>{step.label}</a>:
+                <button type="button" className="primary-button" disabled={busy||!data||loading||!!error} onClick={takeNextStep}>{step.label}</button>}
+              {action==='complete'&&step.action!=='complete'&&<button type="button" className="secondary-button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
             </div>
           </div>
           {data && (
@@ -578,10 +550,11 @@ export default function JobManagementWorkspace({
               )}
             </div>
           )}
+          {compactSections&&<div className="jm-section-groups" role="group" aria-label="Job workspace areas">{groups.map(group=><button type="button" key={group.label} aria-pressed={group===activeGroup} onClick={()=>selectSection(group.sections[0] as Section)}>{group.label}</button>)}</div>}
           <RecordTabs
             label="Job management sections"
             active={tab(section)}
-            tabs={tabs.map((s) => ({ id: tab(s), label: sectionLabels[s] }))}
+            tabs={visibleTabs.map((s) => ({ id: tab(s), label: sectionLabels[s] }))}
             onChange={(value) =>
               selectSection(tabs.find((s) => tab(s) === value) || "overview")
             }

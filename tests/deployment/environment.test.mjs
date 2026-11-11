@@ -37,6 +37,7 @@ test('private beta email can be enabled on its registered staging preview branch
 })
 
 const cases = [
+  ['UX journey review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/ux-journey-20261111' }],
   ['payment recovery integration review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/payment-recovery-integration-20261111' }],
   ['payment recovery review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/payment-recovery-20261110' }],
   ['calendar resilience review deployment', { ...staging, VERCEL_GIT_COMMIT_REF: 'review/calendar-resilience-20261110' }],

@@ -7,7 +7,7 @@ import {ownerArchiveHandler,type ArchiveDependencies} from '../../supabase/funct
 import {cleanupOwnerArchives} from '../../supabase/functions/_shared/archiveCleanup.ts'
 const B='11111111-1111-4111-8111-111111111111',A='22222222-2222-4222-8222-222222222222',L='33333333-3333-4333-8333-333333333333'
 const claim:ArchiveClaim={business_id:B,archive_id:A,lease:L,part_no:1,part_count:2,kind:'records',created_at:'2026-11-10T12:00:00Z',expires_at:'2099-01-01T00:00:00Z',counts:{'public.customers':2},rows:[{collection:'public.customers',data:{id:'1',name:'José 👷'}},{collection:'public.customers',data:{id:'2',name:'Second'}}]}
-const openZip=(bytes:Uint8Array)=>JSON.parse(execFileSync('python',['-c',"import sys,io,zipfile,json,hashlib; z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); assert z.testzip() is None; print(json.dumps({n:{'text':z.read(n).decode(),'hash':hashlib.sha256(z.read(n)).hexdigest()} for n in z.namelist()}))"],{input:Buffer.from(bytes),encoding:'utf8'}))
+const openZip=(bytes:Uint8Array)=>JSON.parse(execFileSync('python3',['-c',"import sys,io,zipfile,json,hashlib; z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); assert z.testzip() is None; print(json.dumps({n:{'text':z.read(n).decode(),'hash':hashlib.sha256(z.read(n)).hexdigest()} for n in z.namelist()}))"],{input:Buffer.from(bytes),encoding:'utf8'}))
 test('bounded archive ZIPs open independently, preserve Unicode records and provide verified entry manifests',async()=>{
  const result=await assembleArchivePart(claim,async()=>{throw Error('Records must not download files')})
  const files=openZip(result.bytes),name='records/public.customers.part-000001.jsonl'

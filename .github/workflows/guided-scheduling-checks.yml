@@ -70,7 +70,7 @@ jobs:
       - run: npm ci --ignore-scripts
       # Every test still runs. Independent shards expose the whole suite even if
       # a focused check fails and avoid exhausting one shared 20-minute budget.
-      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: bash scripts/qa/install-pdf-tools.sh
       - name: Full browser regression
         run: npx playwright test --grep-invert @native-handoff --fully-parallel --workers=2 --shard=${{ matrix.shard }}/6
         env:
@@ -81,3 +81,12 @@ jobs:
           name: guided-browser-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
+
+      - name: Preserve synthetic UX review screenshots
+        if: always() && github.head_ref == 'review/ux-journey-20261111'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ux-review-${{ matrix.shard }}
+          path: tmp/ux-review/*.png
+          if-no-files-found: ignore
+          retention-days: 3
