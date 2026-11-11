@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-11",
+  "repository": "Velnu38/Velnu",
+  "baseBranch": "ux/private-testing-20261029",
+  "baseCommit": "36fb3254a347381c581ff8f247f2ea1df97af976",
+  "candidate": "2b2de93301164790ddda08a21f96e9c5cdafbbd5",
+  "pr": 93,
+  "reviewBranch": "review/ux-journey-20261111",
+  "built": {
+    "status": "passed",
+    "startupTests": 95
+  },
+  "localTests": {
+    "typeScript": {
+      "passed": 648,
+      "failed": 0,
+      "skipped": 1,
+      "runtime": "Node 22",
+      "scope": "TypeScript source shared by 618142a and 9887d44; subsequent material-count copy change separately passed all three job-next-step tests",
+      "skip": "Existing optional dedicated PostgreSQL quota-wait/concurrent-claim/sibling-save test; database not configured"
+    },
+    "jobNextStep": {
+      "passed": 3,
+      "candidate": "8a4a62d40c9ebb2458ccbbbcb2de1e827e333ff5"
+    },
+    "dom": "Existing management (five scenarios), execution (four scenarios), component interactions, and supplementary compact-group/completion/report-link check passed",
+    "assessment": {
+      "passed": 8,
+      "generatedReportConsistent": true
+    },
+    "browser": "Not executable locally: Chromium socket permission restriction"
+  },
+  "ci": {
+    "homeRun": 43050923483,
+    "fullRun": 43050923668,
+    "focusedStatus": "passed: 49 Home regressions plus 7 UX/accessibility journeys",
+    "fullStatus": "not passed; current run pending, previous attempts failed before PDF tests on Ubuntu DNS",
+    "previousFocusedPass": {
+      "commit": "9887d4430cfdcd8fdbf41b8f3035ce63f6d6936b",
+      "run": 43048679633,
+      "homeRegressionTests": 49,
+      "uxAccessibilityTests": 7
+    },
+    "infrastructureFailure": {
+      "run": 43046845993,
+      "stage": "Install Poppler before tests",
+      "reason": "Ubuntu package repository DNS failure persisted with direct official archive; PDF tests retained"
+    }
+  },
+  "visualReview": "Final synthetic desktop/mobile Home and mobile Jobs captures inspected. Paired desktop cards, padded work queue and unclipped mobile group labels verified. Artifact 13870190080, sha256:d2f4be9ca079bcf580e622df5d84d5bd28bf6bc241da1286056bc656ee9d9ad8. Browser emulation only.",
+  "merged": false,
+  "migrated": "Not applicable: no schema change",
+  "edgeDeployed": "Not applicable: no Edge change",
+  "frontendDeployed": false,
+  "liveBaseline": {
+    "commit": "36fb3254a347381c581ff8f247f2ea1df97af976",
+    "deployment": "dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "activated": "No provider, subscription, fee, monitoring or public-registration activation",
+  "providerVerified": "No new live-provider certification",
+  "physicallyTested": false,
+  "costs": "No new license/subscription commitment; existing CI and hosting metering remains",
+  "approvalsNeeded": "None for this source candidate. Real messages, payments, provider activation and paid changes require their separately bounded authorization.",
+  "rollback": "Close/revert PR93 before merge; after an eventual release restore the prior frontend. No data rollback needed.",
+  "nextBatch": "Restore CI package access and complete required full checks on the release candidate, then merge/deploy private beta; retain provider/device/public-launch gates. Timeline, optional field access, monitoring activation and GROW-02 remain deferred."
+}

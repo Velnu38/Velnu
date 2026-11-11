@@ -42,3 +42,36 @@ No SVAR, Gantt, crew timeline, Sentry or PostHog error-tracking activation is in
 Primary references checked November 11: https://github.com/dequelabs/axe-core-npm/blob/develop/packages/playwright/package.json ; https://github.com/dequelabs/axe-core-npm/blob/develop/LICENSE ; https://svar.dev/react/gantt/ ; https://posthog.com/docs/privacy . Candidate and package licensing must be checked again for any future selected version. No new hosted integration or permission was accepted in this batch.
 
 Initial CI candidate `7791f08c3eb24cb27f44454efc9572c0c6f8512b`, full run `43045332828`: migration replay and four DOM shards passed. One WebKit shard found a partial accessible-name selector matching both attention regions; corrected to exact matching with all injection assertions retained. Home run `43045332582` found its old three-card expectation; updated to include the new fourth card while retaining surface, typography and overflow assertions. Full Node/browser jobs failed before tests on Ubuntu Azure mirror DNS while installing Poppler. CI now uses the official signed Ubuntu archive directly with bounded network retries and verifies both PDF utilities; no test is skipped. New Home fixtures also explicitly handle CORS/preflight and cover failure/retry. Final candidate validation remains pending.
+
+### Job state → next action
+
+The first applicable condition wins; existing permissions and completion override checks remain authoritative.
+
+| State | Primary action |
+| --- | --- |
+| Work data unavailable | Disabled review guidance and retry; never imply readiness |
+| Canceled | View history |
+| Completed, billing allowed | Review charges, draft invoice, outstanding balance or paid history according to linked invoice state |
+| Completed, billing restricted | View history |
+| Read-only job access | Review work plan |
+| Unbooked work | Schedule visit if permitted; otherwise review visits |
+| No assigned crew | Assign crew if scheduling is permitted |
+| Outstanding materials | Review materials |
+| Pending/unbilled changes | Review changes for authorized billing users |
+| Scheduled future visit | Review visit |
+| Scheduled work ready to start | Start job |
+| In progress with unfinished tasks | Review tasks |
+| In progress with remaining visits | Review next visit |
+| Work ready for completion review | Review completion; existing blockers and explicit override remain |
+
+Completion review remains independently reachable for authorized in-progress work when the primary action opens a blocker. No action sends a message, assigns a login or automatically charges a customer.
+
+## Final source review receipt
+
+Functional candidate: `2b2de93301164790ddda08a21f96e9c5cdafbbd5`, PR93. Final Home run [43050923483](https://github.com/Velnu38/Velnu/actions/runs/43050923483) passes 49 existing regressions and all seven focused UX/accessibility tests. Synthetic desktop/mobile Home and mobile Jobs screenshots were inspected; the new work card follows the retained Financial Performance/attention pair, has consistent padding, and all four mobile group labels fit. Artifact `13870190080`, SHA256 `d2f4be9ca079bcf580e622df5d84d5bd28bf6bc241da1286056bc656ee9d9ad8`. Earlier failed visual/contrast assertions remain in run history; no rules were disabled.
+
+Final build and 95 startup checks pass. Full local TypeScript suite: 648 passed, zero failed, one existing optional dedicated-PostgreSQL check skipped; later material-count wording passed the three focused policy tests. Existing management/execution/component DOM journeys and supplementary compact groups/completion/report-link checks pass. Assessment synchronization, eight tests and consistency validation pass.
+
+**Not merged or deployed.** Full CI run `43050923668` has not passed. Prior attempts failed before PDF tests because runners could not resolve Ubuntu package repositories, including a direct official archive attempt (`43046845993`); full tests remain enabled. Local browser execution is also unavailable due to socket restrictions. No new migration, Edge deployment, provider activation or physical-device certificate. Live domains remain on `36fb325` / `dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb`; beta branch rechecked unchanged. No charges, sends, permissions, seats or paid commitments changed.
+
+Machine-readable stage distinctions, rollback and next batch: `docs/evidence/2026-11-11-ux-journey.json`. Restore CI package access, run the complete required checks on the release candidate, then merge and verify the private-beta frontend deployment. Keep provider, physical-device and public-launch gates open. This documentation-only receipt follows the repository assessment publisher's `[skip ci]` convention; it is not a CI pass and does not authorize release.
