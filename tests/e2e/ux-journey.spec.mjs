@@ -11,7 +11,7 @@ async function scan(page,selector){
 async function home(page){
   const state=await mock(page,{ai:true})
   const jobs=[{id:J,title:'Prepare the work site',status:'in_progress',customer_id:customer.id,customers:[customer],properties:[],assigned_user_ids:[],active_appointment:null,invoice:null}]
-  await page.route('**/rpc/get_job_management_page',route=>route.fulfill({json:managementPage(jobs,[],[{job_id:J,tasks_total:2,tasks_completed:0,due_tasks:1,materials_needed:0,pending_changes:0}],route.request().postDataJSON(),true,'America/New_York')}))
+  await page.route('**/rpc/get_job_management_page',route=>route.request().method()==='OPTIONS'?route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'},body:''}):route.fulfill({headers:{'access-control-allow-origin':'*'},json:managementPage(jobs,[],[{job_id:J,tasks_total:2,tasks_completed:0,due_tasks:1,materials_needed:0,pending_changes:0}],route.request().postDataJSON(),true,'America/New_York')}))
   return state
 }
 for(const width of [390,1440])test(`Home, chooser, customer and saved review accessibility at ${width}px`,async({page})=>{
@@ -72,4 +72,18 @@ test('workspace preference honors user/business key and explicit directory links
   await page.evaluate(({B,U})=>localStorage.setItem(`finviant-jobs-workspace:v1:${U}:${B}`,'management'),{B,U})
   await page.goto('/?view=work');await expect(page.getByRole('tab',{name:'Job Management',exact:true})).toHaveAttribute('aria-selected','true')
   await page.goto('/?view=work&workspace=jobs');await expect(page.getByRole('tab',{name:'Jobs',exact:true})).toHaveAttribute('aria-selected','true')
+})
+test('work attention failure stays distinct from empty and retries without sending',async({page})=>{
+  const state=await home(page);let failed=false
+  await page.route('**/rpc/get_job_management_page',route=>{
+    if(route.request().method()==='OPTIONS'||failed)return route.fallback()
+    failed=true;return route.fulfill({status:403,headers:{'access-control-allow-origin':'*'},json:{message:'Synthetic unavailable work query'}})
+  })
+  await page.goto('/?view=dashboard')
+  const attention=page.getByRole('region',{name:'Work needs attention',exact:true})
+  await expect(attention.getByRole('alert')).toContainText('Work attention is unavailable')
+  await expect(attention.getByText('No work blockers found.',{exact:true})).toHaveCount(0)
+  await attention.getByRole('button',{name:'Retry work attention'}).click()
+  await expect(attention.getByRole('link',{name:/Prepare the work site/})).toBeVisible()
+  expect(state.calls.some(c=>/send-document|send-invoice/.test(c.path))).toBe(false)
 })

@@ -29,7 +29,7 @@ jobs:
         run: npx playwright test tests/e2e/voice-review-delivery.spec.mjs tests/e2e/document-review-delivery.spec.mjs tests/e2e/voice-multiple-lines.spec.mjs tests/e2e/audit-remediation.spec.mjs tests/e2e/fin-conversation.spec.mjs tests/e2e/fin-voice-recovery.spec.mjs
         env:
           FINVIANT_TEST_CHANNEL: chrome
-      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: bash scripts/qa/install-pdf-tools.sh
       - name: Full browser regression
         run: npx playwright test --grep-invert @native-handoff --workers=2
         env:

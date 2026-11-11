@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts
-      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: bash scripts/qa/install-pdf-tools.sh
       - run: node --import tsx --test tests/documents/*.test.ts
       - name: Draft, saved review and delivery browser checks
         env:
