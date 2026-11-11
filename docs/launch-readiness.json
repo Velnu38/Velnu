@@ -393,8 +393,14 @@
     },
     {
       "title": "Calendar connection resilience and booking limits",
-      "detail": "Step 16 fixes Microsoft Graph Retry-After header handling and bounds writable-calendar pagination, including repeated/empty pages and unrelated Graph next links. Settings, connected events and appointment review explicitly explain that personal events do not block customer booking times. All 45 local calendar tests, typecheck and calendar build pass. Read-only beta review found a connected Outlook account with successful sync and an empty queue; no Google connection. Full candidate CI/deployment and remaining live provider/device certification are distinct requirements. Initial candidate CI exposed an existing smoke-fixture business-date mismatch after UTC midnight; the fixture now forces a server/business date boundary and keeps all financial/tenant assertions. Final complete CI remains required.",
-      "evidence": "docs/CALENDAR_CONNECTION_ACCEPTANCE_2026-11-10.md; tests/calendar/pagination.test.ts; tests/calendar/security.test.ts; tests/calendar/worker.test.ts; docs/evidence/2026-11-10-calendar-connection-validation.json",
+      "detail": "PR91 calendar resilience is deployed as 3e781eec050bd891eafdf0ddb14bf995930faaa5, READY dpl_bQQiySjf2wpjFFdRGAXYmLVFKw6F on both domains. Final candidate passed all five workflows and 22 complete-suite jobs, including the corrected business-date boundary fixture. Both domains return HTTP 200 with the expected asset and private-beta no-index headers; calendar queue remains empty. No schema/OAuth/provider settings changed. Google configuration/consent and separate live-provider/device certification remain open; personal external events still do not block booking.",
+      "evidence": "docs/CALENDAR_CONNECTION_ACCEPTANCE_2026-11-10.md; tests/calendar/pagination.test.ts; tests/calendar/security.test.ts; tests/calendar/worker.test.ts; docs/evidence/2026-11-10-calendar-connection-validation.json; docs/evidence/2026-11-10-calendar-resilience-rollout.json",
+      "verifiedAt": "2026-11-10"
+    },
+    {
+      "title": "Square POS return-loss recovery",
+      "detail": "Step 17 adds verified signed-event recovery when a POS browser return is lost, correct handling of empty operation lookups, and server-fetched order/tender reference validation. Forty-two local payment/database checks and 89 deployment checks pass. Real ledger tests cover replay, delayed callbacks, refunds and service-only merchant/mode/location lookup. Beta has no Stripe merchant bindings or Square connections; the connected Stripe test account has no connected merchants. Full CI, additive-function and Edge rollout remain required. No provider activation or real charge/refund occurred. Disputes, provider concurrency, complete fee/payout reconciliation and merchant/device acceptance remain open.",
+      "evidence": "docs/payments/PAYMENT_ACCEPTANCE_2026-11-10.md; docs/evidence/2026-11-10-payment-recovery-validation.json; tests/operations/square-recovery.test.ts",
       "verifiedAt": "2026-11-10"
     }
   ],
@@ -838,7 +844,7 @@
       "status": "blocked_external",
       "title": "Configure and certify Square hosted checkout and POS Tap to Pay",
       "owner": "Developer + owner",
-      "why": "Square OAuth/encrypted token refresh, owner/staff controls, mobile-web POS handoff, hosted checkout, signed-event reconciliation, refunds, protected processing-cost entries and Stripe/Square reservation guards are implemented. No live merchant/physical-phone payment is certified. New payments remain inactive until operator setup and acceptance; see docs/payments/SQUARE_SETUP.md.",
+      "why": "Square OAuth/encrypted token refresh, owner/staff controls, hosted checkout, signed events, refunds and reservation guards are implemented. Step 17 candidate adds verified POS recovery without a browser return and an exact service-only merchant/mode/location lookup. Local synthetic ledger tests pass. No connected beta merchant, full provider/device certification or activation; see docs/payments/PAYMENT_ACCEPTANCE_2026-11-10.md.",
       "acceptance": "After separate scope selection, preserve Stripe and certify optional Square OAuth merchant/location binding, token refresh/revocation, invoice/amount/currency/mode identity and signed webhook/API reconciliation. Prove supported online checkout and any mobile-web POS handoff on actual phones with owner-authorized bounded charges where Square lacks sandbox, including missing app, wrong seller, cancellation/return loss, pending/offline failure, refunds/disputes, retries and simultaneous Stripe-versus-Square payment attempts. Never mark paid from callback alone. Verify single default processor/customer checkout, gross-to-fee/net reporting, owner-only destination changes and protected migration of issued documents if standalone link defaults are later retired. No POS-handoff app-fee promise; native/Terminal separately scoped under TAP-01.",
       "evidence": []
     },
