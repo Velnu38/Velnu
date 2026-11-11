@@ -414,6 +414,12 @@
       "detail": "PR92 reused existing recovery implementation and strengthened saved-review browser checks. The corrected PDF shard passed all 69 tests, checking downloaded amounts for increases, reductions and unchanged quantities. Hosted read-only lookup denies anon/authenticated execution and permits service_role; deployed function bodies match the tested build. No account seats, worker limits, access, records, provider settings, real messages, charges or refunds changed. Health remains disabled sandbox and merchant count zero. Source defaults are not account activation. Rollback retains the lookup and records while restoring prior Square functions/frontend. Next independent batch is UX-01 friction baseline and JOB-01 task/primary-action consistency, preserving completion review and authorized overrides.",
       "evidence": "docs/evidence/2026-11-11-payment-recovery-rollout.json; docs/payments/PAYMENT_ACCEPTANCE_2026-11-10.md",
       "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "UX journey candidate: action clarity and existing-component reuse",
+      "detail": "November 11 candidate on review/ux-journey-20261111 implements actionable job guidance with completion review preserved, four mobile groups retaining all nine sections, per-user/business remembered Jobs tab with explicit-link precedence, bounded operational attention on Home, grouped Quick Links and Settings, saved-draft status, and customer loading/error feedback. Existing directory views, branding, forms, financial mutations, entitlements and provider gates are retained. Reuses deployed ten-row management read API; no migration or Edge changes. Adds pinned development-only axe Playwright checks and synthetic screenshots; no new runtime component/vendor or monitoring activation. Local build/startup, action-policy and existing management DOM checks pass; final CI, rendered review and frontend deployment remain pending. Source review confirmed existing customer/site reuse, inline creation, exact PDF review and explicit send; those implemented features were not rebuilt. Full UX-01/JOB-01 acceptance, physical phones and provider certification remain open.",
+      "evidence": "docs/UX_JOURNEY_2026-11-11.md; tests/e2e/ux-journey.spec.mjs; tests/operations/job-next-step.test.ts",
+      "verifiedAt": "2026-11-11"
     }
   ],
   "tasks": [
