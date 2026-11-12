@@ -730,6 +730,16 @@
   .job-management {
     gap: 12px;
   }
+  .finviant-workspace .jobs-module:has(> [role="tabpanel"]:not([hidden]) > .job-management) .module-page-heading .work-heading-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .finviant-workspace .jobs-module:has(> [role="tabpanel"]:not([hidden]) > .job-management) .module-page-heading .primary-button {
+    width: auto;
+    flex: 1 1 auto;
+  }
   .jm-summary > summary {
     min-height: 44px;
     padding: 8px 0;
@@ -754,6 +764,7 @@
     text-overflow: ellipsis;
   }
   .jm-mobile-picker > .text-button {
+    font-size: 13px;
     justify-self: start;
     min-height: 44px;
     padding: 8px 0;
@@ -843,7 +854,7 @@
     outline-offset: 3px;
   }
   .jm-section-groups {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr));
     gap: 6px;
     margin: 0;
   }
@@ -852,8 +863,9 @@
     border-color: var(--jm-border);
     border-radius: 12px;
     background: #fff;
-    font-size: 13px;
-    padding: 8px 3px;
+    font-size: clamp(11px, 3vw, 13px);
+    white-space: nowrap;
+    padding: 8px 2px;
   }
   .jm-workspace .jm-section-groups button[aria-pressed=true] {
     background: var(--jm-mint);
