@@ -16,18 +16,21 @@
   ],
   "tests": {
     "sql": {
-      "passed": 22,
-      "scope": "8 new history cases and 14 existing override/suppression cases; synthetic isolated PGlite"
+      "passed": 34,
+      "scope": "10 history cases, 14 override/suppression cases, 10 existing reminder cases; isolated synthetic PGlite"
     },
     "dom": [
       "history statuses, timezone, paging, retry, stale scope and missing-read isolation",
       "invoice detail actions regression",
       "mobile personal/managed reminder routing regression"
     ],
-    "build": "passed with 95 startup checks",
-    "hostedBrowser": "pending",
+    "build": "passed including TypeScript and startup checks in Playwright web-server build",
+    "hostedBrowser": "Pending PR CI; desktop suite includes history and iPhone WebKit selection now includes history",
     "fullMigrationReplay": "pending",
-    "requiredCI": "pending"
+    "requiredCI": "pending",
+    "assessment": "10 passed; sync and check passed; all 51 tasks preserved",
+    "migrationRunnerGuards": "6 passed; actual final-schema history read, tenant denial and ACL assertions added to disposable migration replay",
+    "localBrowser": "Blocked before test execution: Chromium process_singleton_posix socket() Operation not permitted"
   },
   "limitations": [
     "Provider acceptance and physical-device handoff/reopen remain open",
@@ -36,8 +39,12 @@
   ],
   "migration": "supabase/migrations/20261112004157_invoice_reminder_history.sql",
   "hostedMigration": "not applied",
-  "release": "Candidate awaiting required CI",
+  "release": "PR97 resumed and reconciled; required CI and additive beta migration pending. Not merged or deployed.",
   "messagesSent": false,
   "charges": false,
-  "providerActivation": false
+  "providerActivation": false,
+  "reconciledBaseCommit": "c614324a71faba24caeefb75791069b97b75c7d9",
+  "fixes": [
+    "Personal email and SMS records for the same share are deduplicated and confirmed independently by channel."
+  ]
 }

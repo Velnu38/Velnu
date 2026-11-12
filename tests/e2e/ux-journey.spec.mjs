@@ -39,20 +39,31 @@ for(const width of [390,1440])test(`Home, chooser, customer and saved review acc
   expect(state.documents).toHaveLength(1)
   expect(state.calls.some(c=>/send-document|send-invoice/.test(c.path))).toBe(false)
 })
-test('mobile job groups retain all sections, completion safeguards and direct section links',async({page})=>{
-  await page.setViewportSize({width:390,height:900})
-  await page.goto('/tests/operations/preview.html?screen=jobs&scenario=mixed')
+for(const width of [320,390,430])test(`mobile job groups retain all sections, completion safeguards and direct section links at ${width}px`,async({page},testInfo)=>{
+  await page.setViewportSize({width,height:900})
+  await page.goto('/tests/operations/preview.html?screen=jobs&scenario=mixed&layout=phone')
   await page.getByRole('searchbox').fill('Kitchen')
   await page.getByRole('article').filter({hasText:'Kitchen renovation'}).getByRole('button',{name:'Manage job',exact:true}).click()
   await expect(page.getByRole('group',{name:'Job workspace areas'})).toBeVisible()
-  await scan(page,'.jm-section-groups')
+  await scan(page,'.jm-section-groups');await scan(page,'.jm-next-action')
+  const groups=page.locator('.jm-section-groups');
+  expect(await groups.locator('button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44))).toBe(true)
+  await expect(page.getByRole('combobox',{name:'Selected job',exact:true})).toBeVisible()
+  await expect(page.getByRole('combobox',{name:'Selected job',exact:true}).locator('option[value=browse]')).toHaveText('Browse all jobs…')
+  await expect(page.getByRole('button',{name:'Job details',exact:true})).toBeVisible()
   expect(await page.locator('.jm-section-groups button').evaluateAll(buttons=>buttons.every(button=>button.scrollWidth<=button.clientWidth))).toBe(true)
-  await mkdir('tmp/ux-review',{recursive:true});await page.screenshot({path:'tmp/ux-review/job-mobile.png',fullPage:true})
-  for(const [group,sections] of [['Work',['Tasks','Schedule & Crew','Materials','Photos & Expenses']],['Billing',['Billing','Changes']],['Records',['Activity','Completion Report']],['Summary',['Overview']]]){
+  await mkdir('tmp/ux-review',{recursive:true});await testInfo.attach(`job-mobile-${width}`,{body:await page.screenshot({path:`tmp/ux-review/job-mobile-${width}.png`,fullPage:true}),contentType:'image/png'})
+  for(const [group,items] of [['Work',[['Tasks & templates','Tasks'],['Visits & crew','Schedule & Crew'],['Materials','Materials'],['Photos & expenses','Photos & Expenses']]],['Billing',[['Invoices','Billing'],['Costs & budget','Billing'],['Change orders','Changes']]],['Records',[['Activity history','Activity'],['Completion reports','Completion Report']]]]){
     await page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:group,exact:true}).click()
-    for(const section of sections)await expect(page.getByRole('tab',{name:section,exact:true})).toBeVisible()
+    for(const [item,panel] of items){
+      await page.locator('.jm-quick-tile').filter({has:page.getByText(item,{exact:true})}).click()
+      await expect(page.getByRole('tabpanel',{name:panel,exact:true})).toBeVisible()
+      await page.getByRole('button',{name:`‹ Back to ${group}`,exact:true}).click()
+    }
   }
+  await page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:'Summary',exact:true}).click()
   await expect(page.locator('.jm-next-action')).toContainText('Review materials')
+  await page.locator('.jm-workspace-footer summary').click()
   await page.getByRole('button',{name:'Review completion',exact:true}).click()
   await expect(page.getByRole('dialog',{name:'Complete job review'}).getByRole('button',{name:'Complete job',exact:true})).toBeDisabled()
   await page.getByRole('button',{name:'Keep working',exact:true}).click()

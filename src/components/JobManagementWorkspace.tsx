@@ -1,3 +1,4 @@
+import JobMobileMenu, { JOB_PHONE_QUERY, JobMenuIcon, type JobMenuItem } from './JobMobileMenu'
 import {jobNextStep} from '../lib/jobNextStep'
 import {
   lazy,
@@ -125,8 +126,10 @@ export default function JobManagementWorkspace({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
-  const [compactSections,setCompactSections]=useState(()=>window.matchMedia('(max-width:820px)').matches);
-  useEffect(()=>{const media=window.matchMedia('(max-width:820px)');const update=()=>setCompactSections(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update)},[]);
+  const [compactSections,setCompactSections]=useState(()=>window.matchMedia(JOB_PHONE_QUERY).matches);
+  useEffect(()=>{const media=window.matchMedia(JOB_PHONE_QUERY);const update=()=>setCompactSections(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update)},[]);
+  const [mobileDetail, setMobileDetail] = useState(initialSection !== 'overview' && new URLSearchParams(location.search).get('panel') !== 'menu');
+  const [mobileBilling, setMobileBilling] = useState<'invoices'|'costs'>(new URLSearchParams(location.search).get('billing') === 'costs' ? 'costs' : 'invoices');
   const [section, setSection] = useState<Section>(initialSection),
     [notes, setNotes] = useState(""),
     [details, setDetails] = useState(false),
@@ -239,8 +242,8 @@ export default function JobManagementWorkspace({
       if (mounted.current) setBusy(false);
     }
   }
-  function selectSection(next: Section) {
-    if (next === section) return;
+  function selectSection(next: Section, detail = true, billingView: 'invoices'|'costs' = 'invoices') {
+    if (next === section && (!compactSections || (detail === mobileDetail && billingView === mobileBilling))) return;
     if (!confirmNavigation()) return;
     if (dirty) {
       setNotes(job?.description || "");
@@ -249,9 +252,12 @@ export default function JobManagementWorkspace({
     if (next !== "billing") setCostsOpened(false);
     if (next !== "photos") setPhotosOpened(false);
     setSection(next);
-    const url=new URL(location.href);url.searchParams.set('section',next);history.replaceState(history.state,'',url.pathname+url.search);
+    setMobileDetail(detail && next !== "overview");
+    setMobileBilling(billingView);
+    const url=new URL(location.href);url.searchParams.set('section',next);if(detail)url.searchParams.delete('panel');else url.searchParams.set('panel','menu');if(next==='billing'&&billingView==='costs')url.searchParams.set('billing','costs');else url.searchParams.delete('billing');history.replaceState(history.state,'',url.pathname+url.search);
     if (next === "photos") setPhotosOpened(true);
     if (next === "billing") setCostsOpened(true);
+    if (compactSections) requestAnimationFrame(() => { const heading=document.getElementById(id + "-mobile-heading"); heading?.focus({preventScroll:true}); heading?.scrollIntoView?.({block:"start"}); });
   }
   async function saveNotes(e: FormEvent) {
     e.preventDefault();
@@ -386,6 +392,7 @@ export default function JobManagementWorkspace({
   }
   const date = (value: string) =>
     DateTime.fromISO(value).setZone(zone).toFormat("EEE, MMM d · h:mm a");
+  const phoneDate = (value: string) => DateTime.fromISO(value).setZone(zone).toFormat("MMM d · h:mm a");
   const tabs = (Object.keys(sectionLabels) as Section[]).filter(
     (s) => !["billing", "changes"].includes(s) || canBill,
   );
@@ -396,7 +403,22 @@ export default function JobManagementWorkspace({
     {label:'Records',sections:['activity','reports']},
   ].map(group=>({...group,sections:group.sections.filter(s=>tabs.includes(s as Section))})).filter(group=>group.sections.length);
   const activeGroup=groups.find(group=>group.sections.includes(section))||groups[0];
-  const visibleTabs=compactSections?tabs.filter(s=>activeGroup.sections.includes(s)):tabs;
+  const showPanel = (name:Section) => section === name && (!compactSections || mobileDetail);
+  const mobileHome = compactSections && !mobileDetail;
+  const alertCount = Number(missingMaterials.length > 0 && !closed) + Number(outstandingTasks.some(t=>t.due_on && t.due_on < DateTime.now().setZone(zone).toISODate()!) && !closed) + Number(unbilledChanges.length > 0) + Number(pendingChanges.length > 0) + Number(!closed && !job?.assigned_user_ids?.length && canSchedule);
+  const menuItems:JobMenuItem[] = activeGroup.label === 'Work' ? [
+    {key:'tasks',label:'Tasks & templates',description:data ? `${data.tasks.filter(t=>t.completed).length} of ${data.tasks.length} complete` : 'Work checklist',onClick:()=>selectSection('tasks')},
+    {key:'schedule',label:'Visits & crew',description:booked ? phoneDate(job!.active_appointment!.starts_at) : 'Review visits and assignments',onClick:()=>selectSection('schedule')},
+    {key:'materials',label:'Materials',description:missingMaterials.length ? `${missingMaterials.length} not received` : 'Review supplies and quantities',onClick:()=>selectSection('materials')},
+    {key:'photos',label:'Photos & expenses',description:'View job records',onClick:()=>selectSection('photos')},
+  ] : activeGroup.label === 'Billing' ? [
+    {key:'billing',label:'Invoices',description:'Review linked documents',onClick:()=>selectSection('billing',true,'invoices')},
+    ...(data?.financial_access ? [{key:'costs',label:'Costs & budget',description:'Budget, labor and expenses',onClick:()=>selectSection('billing',true,'costs')}] : []),
+    {key:'changes',label:'Change orders',description:'Review approved and pending changes',onClick:()=>selectSection('changes')},
+  ] : [
+    {key:'activity',label:'Activity history',description:'Changes, updates and job events',onClick:()=>selectSection('activity')},
+    {key:'reports',label:'Completion reports',description:'Review saved reports',onClick:()=>selectSection('reports')},
+  ];
   const step=jobNextStep({status:job?.status||'',ready:!!data&&!loading&&!error,canEdit,canSchedule,canBill,booked,
     crew:!!job?.assigned_user_ids?.length,futureVisit:!!job?.scheduled_start&&Date.parse(job.scheduled_start)>Date.now(),
     remainingVisits,tasks:outstandingTasks.length,materials:missingMaterials.length,changes:pendingChanges.length+unbilledChanges.length,invoice:billingInvoice});
@@ -406,6 +428,58 @@ export default function JobManagementWorkspace({
     else if(step.action==='complete')reviewCompletion();
     else selectSection(({visits:'schedule',history:'activity',invoice:'billing'} as Record<string,Section>)[step.action]||step.action as Section);
   }
+  const notesEditor = (
+                  <form onSubmit={saveNotes}>
+                    <label className="sr-only" htmlFor={id + "-notes"}>
+                      Job notes
+                    </label>
+                    <textarea
+                      id={id + "-notes"}
+                      maxLength={4000}
+                      rows={3}
+                      value={notes}
+                      disabled={!canEdit || busy}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Work scope, site access, customer instructions…"
+                    />
+                    {canEdit && dirty && (
+                      <button
+                        className="secondary-button compact"
+                        disabled={busy}
+                      >
+                        Save job notes
+                      </button>
+                    )}
+                  </form>
+  );
+  const quickActions = job && (
+            <div className="jm-job-actions">
+              {job.customers[0]?.phone && (
+                <a
+                  className="secondary-button compact"
+                  aria-label="Call customer"
+                  href={"tel:" + job.customers[0].phone}
+                >
+                  Call customer
+                </a>
+              )}
+              {job.properties[0] && (
+                <GoogleMapTools
+                  address={job.properties[0]}
+                  compact
+                  directionsOnly
+                />
+              )}
+              <button
+                type="button"
+                className="secondary-button compact"
+                aria-label="Job details"
+                onClick={() => setDetails(true)}
+              >
+                Job details
+              </button>
+            </div>
+  );
   const tab = (s: string) => id + "-" + s;
   if (changeOrder && changeSource)
     return (
@@ -423,7 +497,7 @@ export default function JobManagementWorkspace({
     );
   return (
     <section
-      className="jm-workspace"
+      className={"jm-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections && (mobileDetail || section !== "overview") ? " jm-compact-job" : "")}
       aria-label="Selected job workspace"
       aria-busy={loading || busy}
     >
@@ -447,6 +521,7 @@ export default function JobManagementWorkspace({
               <p className="eyebrow">
                 Selected job · {job.id.slice(0, 8).toUpperCase()}
               </p>
+              <span className="jm-phone-status jm-status">{jobStatusLabels[job.status as JobStatus] || job.status}</span>
               <h2>{job.title}</h2>
               <p>
                 {job.customers
@@ -468,30 +543,7 @@ export default function JobManagementWorkspace({
                 <p className="quiet">Service address to confirm</p>
               )}
             </div>
-            <div className="jm-job-actions">
-              {job.customers[0]?.phone && (
-                <a
-                  className="secondary-button compact"
-                  href={"tel:" + job.customers[0].phone}
-                >
-                  Call customer
-                </a>
-              )}
-              {job.properties[0] && (
-                <GoogleMapTools
-                  address={job.properties[0]}
-                  compact
-                  directionsOnly
-                />
-              )}
-              <button
-                type="button"
-                className="secondary-button compact"
-                onClick={() => setDetails(true)}
-              >
-                Job details
-              </button>
-            </div>
+            {!compactSections && quickActions}
           </header>
           {notice && (
             <p role="status" className="guided-success">
@@ -501,16 +553,17 @@ export default function JobManagementWorkspace({
               )}
             </p>
           )}
+          {(!compactSections || (mobileHome && section === "overview")) && <>
           <div className="jm-next-action">
-            <div><small>Next action</small><strong>{step.detail}</strong></div>
+            <div><small>Next action</small><strong title={step.detail}>{compactSections && step.label==='Review visit' ? 'Upcoming visit' : step.detail}</strong></div>
             <div className="jm-inline-actions">
               {step.action==='invoice'?<a className="primary-button" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>{step.label}</a>:
                 <button type="button" className="primary-button" disabled={busy||!data||loading||!!error} onClick={takeNextStep}>{step.label}</button>}
-              {action==='complete'&&step.action!=='complete'&&<button type="button" className="secondary-button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
+              {!compactSections&&action==='complete'&&step.action!=='complete'&&<button type="button" className="secondary-button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
             </div>
           </div>
-          {data && (
-            <div className="jm-alerts">
+          {data && alertCount > 0 && (
+            <details className="jm-alert-disclosure" open={!compactSections}><summary>Needs attention ({alertCount})</summary><div className="jm-alerts">
               {missingMaterials.length > 0 && !closed && (
                 <button
                   type="button"
@@ -548,17 +601,18 @@ export default function JobManagementWorkspace({
                   No crew assigned <span>Assign crew →</span>
                 </button>
               )}
-            </div>
+            </div></details>
           )}
-          {compactSections&&<div className="jm-section-groups" role="group" aria-label="Job workspace areas">{groups.map(group=><button type="button" key={group.label} aria-pressed={group===activeGroup} onClick={()=>selectSection(group.sections[0] as Section)}>{group.label}</button>)}</div>}
-          <RecordTabs
+          </>}
+          {compactSections&&!mobileDetail&&<div className="jm-section-groups" role="group" aria-label="Job workspace areas">{groups.map(group=><button type="button" key={group.label} aria-pressed={group===activeGroup} onClick={()=>selectSection(group.sections[0] as Section,false)}>{group.label}</button>)}</div>}
+          {!compactSections && <RecordTabs
             label="Job management sections"
             active={tab(section)}
-            tabs={visibleTabs.map((s) => ({ id: tab(s), label: sectionLabels[s] }))}
+            tabs={tabs.map((s) => ({ id: tab(s), label: sectionLabels[s] }))}
             onChange={(value) =>
               selectSection(tabs.find((s) => tab(s) === value) || "overview")
             }
-          />
+          />}
           {!data && !loading && !error && (
             <p role="alert">
               The work plan is unavailable.{" "}
@@ -567,13 +621,35 @@ export default function JobManagementWorkspace({
               </button>
             </p>
           )}
+          {compactSections && <div className="jm-mobile-heading" id={id + '-mobile-heading'} tabIndex={-1}>
+            {mobileDetail && <button type="button" className="jm-back-button" onClick={()=>selectSection(activeGroup.sections[0] as Section,false)}>‹ Back to {activeGroup.label}</button>}
+            {mobileDetail && <h3>{section === 'billing' ? (mobileBilling === 'costs' ? 'Costs & budget' : 'Invoices') : sectionLabels[section]}</h3>}
+          </div>}
+          {data && mobileHome && section === 'overview' && <section className="jm-phone-summary" aria-label="Job summary">
+            <dl className="jm-visit-facts"><div><dt>Next visit</dt><dd>{booked ? phoneDate(job.active_appointment!.starts_at) : 'Not scheduled'}</dd></div><div><dt>Assigned crew</dt><dd>{job.assigned_user_ids?.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ') || 'Not assigned'}</dd></div></dl>
+            {quickActions}
+            <p className="jm-progress-line">Tasks {data.tasks.filter(t=>t.completed).length}/{data.tasks.length} complete · {missingMaterials.length ? `${missingMaterials.length} materials not received` : 'No outstanding materials'}</p>
+            <details className="jm-notes-disclosure"><summary>Job notes &amp; access instructions</summary>{notesEditor}</details>
+          </section>}
+          {data && mobileHome && section !== 'overview' && <JobMobileMenu title={activeGroup.label === 'Work' ? 'Manage the work' : activeGroup.label === 'Billing' ? 'Job billing' : 'Job records'} items={menuItems}>
+            {activeGroup.label === 'Billing' && <div className="jm-menu-finances"><dl className="jm-financial-lines">
+              {data.source_estimate && <div><dt>{approvedValue === null ? 'Original estimate' : 'Approved scope'}</dt><dd>{money(approvedValue ?? Number(data.source_estimate.total))}</dd></div>}
+              {data.financial_access && <div><dt>Recorded costs</dt><dd>{money(costs)}</dd></div>}
+              {data.billing_access && <><div><dt>Deposit received</dt><dd>{money(depositPaid)}</dd></div><div><dt>Issued invoice balance</dt><dd>{money(balance)}</dd></div></>}
+            </dl><p className="quiet">Recorded costs may be incomplete. Drafts are excluded from the issued balance.</p></div>}
+          </JobMobileMenu>}
+          {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{phoneDate(job.active_appointment!.starts_at)}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
+          {data && mobileHome && activeGroup.label==='Records' && data.activity.length>0 && <section className="jm-menu-context"><h4>Latest activity</h4><Activity entries={data.activity.slice(0,1)} zone={zone}/></section>}
+          {data && mobileHome && activeGroup.label==='Records' && <button type="button" className="jm-record-details" onClick={()=>setDetails(true)}><JobMenuIcon kind="billing"/><strong>Job details</strong><span aria-hidden="true">›</span></button>}
+
           {data && (
             <>
               <div
                 role="tabpanel"
                 id={tab("overview") + "-panel"}
-                aria-labelledby={tab("overview") + "-tab"}
-                hidden={section !== "overview"}
+                aria-labelledby={compactSections ? undefined : tab("overview") + "-tab"}
+                aria-label={compactSections ? sectionLabels["overview"] : undefined}
+                hidden={compactSections || section !== "overview"}
                 className="jm-overview-grid"
               >
                 <section className="jm-card">
@@ -762,28 +838,7 @@ export default function JobManagementWorkspace({
                   <header>
                     <h3>Job notes &amp; access instructions</h3>
                   </header>
-                  <form onSubmit={saveNotes}>
-                    <label className="sr-only" htmlFor={id + "-notes"}>
-                      Job notes
-                    </label>
-                    <textarea
-                      id={id + "-notes"}
-                      maxLength={4000}
-                      rows={3}
-                      value={notes}
-                      disabled={!canEdit || busy}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Work scope, site access, customer instructions…"
-                    />
-                    {canEdit && dirty && (
-                      <button
-                        className="secondary-button compact"
-                        disabled={busy}
-                      >
-                        Save job notes
-                      </button>
-                    )}
-                  </form>
+                  {!compactSections && notesEditor}
                 </section>
                 <section className="jm-card jm-card-wide">
                   <header>
@@ -802,18 +857,20 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("tasks") + "-panel"}
-                aria-labelledby={tab("tasks") + "-tab"}
-                hidden={section !== "tasks"}
+                aria-labelledby={compactSections ? undefined : tab("tasks") + "-tab"}
+                aria-label={compactSections ? sectionLabels["tasks"] : undefined}
+                hidden={!showPanel("tasks")}
                 className="jm-panel"
               >
                 <header className="jm-section-heading">
                   <div>
-                    <h3>Tasks</h3>
+                    <h3>{compactSections ? "Tasks & templates" : "Tasks"}</h3>
                     <p>
                       {data.tasks.filter((t) => t.completed).length} of{" "}
                       {data.tasks.length} complete
                     </p>
                   </div>
+                  {compactSections && section==='tasks' && <progress className="jm-task-progress" aria-label="Task completion" value={data.tasks.filter(t=>t.completed).length} max={Math.max(1,data.tasks.length)}/>}
                   {canEdit && !closed && (
                     <div className="jm-inline-actions">
                       <button
@@ -834,6 +891,7 @@ export default function JobManagementWorkspace({
                   )}
                 </header>
                 <JobTaskList
+                  collapseCompleted={compactSections}
                   tasks={data.tasks}
                   team={team}
                   zone={zone}
@@ -875,8 +933,9 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("schedule") + "-panel"}
-                aria-labelledby={tab("schedule") + "-tab"}
-                hidden={section !== "schedule"}
+                aria-labelledby={compactSections ? undefined : tab("schedule") + "-tab"}
+                aria-label={compactSections ? sectionLabels["schedule"] : undefined}
+                hidden={!showPanel("schedule")}
                 className="jm-panel"
               >
                 <header className="jm-section-heading">
@@ -938,8 +997,9 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("materials") + "-panel"}
-                aria-labelledby={tab("materials") + "-tab"}
-                hidden={section !== "materials"}
+                aria-labelledby={compactSections ? undefined : tab("materials") + "-tab"}
+                aria-label={compactSections ? sectionLabels["materials"] : undefined}
+                hidden={!showPanel("materials")}
                 className="jm-panel"
               >
                 <header className="jm-section-heading">
@@ -1038,8 +1098,9 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("photos") + "-panel"}
-                aria-labelledby={tab("photos") + "-tab"}
-                hidden={section !== "photos"}
+                aria-labelledby={compactSections ? undefined : tab("photos") + "-tab"}
+                aria-label={compactSections ? sectionLabels["photos"] : undefined}
+                hidden={!showPanel("photos")}
                 className="jm-panel"
               >
                 {photosOpened && (
@@ -1054,8 +1115,9 @@ export default function JobManagementWorkspace({
                 <div
                   role="tabpanel"
                   id={tab("changes") + "-panel"}
-                  aria-labelledby={tab("changes") + "-tab"}
-                  hidden={section !== "changes"}
+                  aria-labelledby={compactSections ? undefined : tab("changes") + "-tab"}
+                aria-label={compactSections ? sectionLabels["changes"] : undefined}
+                  hidden={!showPanel("changes")}
                   className="jm-panel"
                 >
                   {section === "changes" &&
@@ -1155,10 +1217,12 @@ export default function JobManagementWorkspace({
                 <div
                   role="tabpanel"
                   id={tab("billing") + "-panel"}
-                  aria-labelledby={tab("billing") + "-tab"}
-                  hidden={section !== "billing"}
+                  aria-labelledby={compactSections ? undefined : tab("billing") + "-tab"}
+                aria-label={compactSections ? sectionLabels["billing"] : undefined}
+                  hidden={!showPanel("billing")}
                   className="jm-panel"
                 >
+                  <div hidden={compactSections && mobileBilling === "costs"}>
                   <header className="jm-section-heading">
                     <div>
                       <h3>Billing &amp; job costs</h3>
@@ -1243,7 +1307,8 @@ export default function JobManagementWorkspace({
                       billing for office review.
                     </p>
                   )}
-                  {data.financial_access && costsOpened && (
+                  </div>
+                  {data.financial_access && costsOpened && (!compactSections || mobileBilling === "costs") && (
                     <>
                       <JobWorkPlan
                         business={business}
@@ -1266,8 +1331,9 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("reports") + "-panel"}
-                aria-labelledby={tab("reports") + "-tab"}
-                hidden={section !== "reports"}
+                aria-labelledby={compactSections ? undefined : tab("reports") + "-tab"}
+                aria-label={compactSections ? sectionLabels["reports"] : undefined}
+                hidden={!showPanel("reports")}
                 className="jm-panel"
               >
                 {section === "reports" && (
@@ -1283,8 +1349,9 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("activity") + "-panel"}
-                aria-labelledby={tab("activity") + "-tab"}
-                hidden={section !== "activity"}
+                aria-labelledby={compactSections ? undefined : tab("activity") + "-tab"}
+                aria-label={compactSections ? sectionLabels["activity"] : undefined}
+                hidden={!showPanel("activity")}
                 className="jm-panel"
               >
                 <h3>Activity history</h3>
@@ -1297,6 +1364,7 @@ export default function JobManagementWorkspace({
           )}
           <footer className="jm-workspace-footer">
             <RecordMoreMenu label="Job actions" disabled={busy}>
+              {compactSections && action === 'complete' && step.action !== 'complete' && <button type="button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
               {canEdit && !closed && (
                 <button
                   type="button"

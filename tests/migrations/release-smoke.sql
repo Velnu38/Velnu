@@ -5,6 +5,14 @@ begin;
 -- Force the database day ahead of the first business at every time of day.
 -- Document dates belong to the business timezone, not the CI runner/server.
 set local time zone 'Pacific/Kiritimati';
+do $$begin
+ if has_function_privilege('anon','public.get_invoice_reminder_history(uuid,uuid,timestamptz,uuid,integer)','EXECUTE')
+  or has_function_privilege('service_role','public.get_invoice_reminder_history(uuid,uuid,timestamptz,uuid,integer)','EXECUTE')
+  or not has_function_privilege('authenticated','public.get_invoice_reminder_history(uuid,uuid,timestamptz,uuid,integer)','EXECUTE')
+  or has_function_privilege('anon','public.record_invoice_reminder_draft(uuid,text,text,boolean)','EXECUTE') then
+  raise exception 'Reminder history grants are invalid' using errcode='23514',constraint='replay_reminder_history_acl';
+ end if;
+end $$;
 do $$declare health jsonb; metric text;begin
  if has_function_privilege('anon','public.finviant_ops_health()','EXECUTE')
   or has_function_privilege('authenticated','public.finviant_ops_health()','EXECUTE')
@@ -91,6 +99,12 @@ begin
  perform public.record_manual_payment(business_a,invoice,receipt,30,'cash','Synthetic local receipt');
  if (select balance_due from public.invoices where id=invoice)<>75 or (select count(*) from public.payments where invoice_id=invoice)<>1 then raise exception 'Payment retry or remaining balance calculation failed' using errcode='23514',constraint='replay_payment_retry';end if;
 
+ data:=public.get_invoice_reminder_history(business_a,invoice);
+ if data->>'invoice_id' is distinct from invoice::text or data->'items' is distinct from '[]'::jsonb
+  or (select balance_due from public.invoices where id=invoice)<>75 then
+  raise exception 'Reminder history changed invoice or misreported empty state' using errcode='23514',constraint='replay_reminder_history_read';
+ end if;
+
  data:=public.create_document(business_a,'estimate',gen_random_uuid(),payload||jsonb_build_object('expires_on',business_today+30));
  estimate:=(data->>'id')::uuid;
  update public.estimates set status='accepted' where id=estimate;
@@ -102,6 +116,8 @@ begin
  perform set_config('request.jwt.claim.sub',owner_b::text,true);
  if exists(select 1 from public.service_packages where business_id=business_a) then raise exception 'Second tenant read service packages' using errcode='23514',constraint='replay_packages_tenant';end if;
  if exists(select 1 from public.customers where business_id=business_a) or exists(select 1 from public.invoices where id=invoice) or exists(select 1 from public.jobs where id=job) then raise exception 'Second tenant read another tenant record' using errcode='23514',constraint='replay_tenant_read';end if;
+ blocked:=false;begin perform public.get_invoice_reminder_history(business_a,invoice);exception when insufficient_privilege then blocked:=true;end;
+ if not blocked then raise exception 'Second tenant read reminder history' using errcode='23514',constraint='replay_reminder_history_tenant';end if;
  blocked:=false;begin perform public.get_job_management(business_a,job);exception when insufficient_privilege then blocked:=true;end;
  if not blocked then raise exception 'Second tenant invoked another tenant management RPC' using errcode='23514',constraint='replay_tenant_rpc';end if;
  blocked:=false;begin perform public.save_worker_profile(business_a,gen_random_uuid(),jsonb_build_object('name','Unauthorized worker'),null);exception when insufficient_privilege then blocked:=true;end;

@@ -32,10 +32,10 @@ begin
   full join (select * from private.delivery_tasks where business_id=p_business and kind='invoice' and document_id=p_invoice and reminder) t on t.id=m.id
   left join private.finviant_email_outbox o on o.id=m.id and o.business_id=p_business and o.document_id=p_invoice and o.document_kind in('invoice','invoice_reminder')
   left join private.document_shares s on m.provider in('personal_app_reminder','personal_app') and s.token_hash=m.provider_message_id and s.business_id=p_business and s.document_id=p_invoice and s.kind='invoice'
-  left join lateral (select x.id,x.sent_at from public.messages x where m.provider='personal_app_reminder' and x.business_id=p_business and x.invoice_id=p_invoice and x.provider='personal_app' and x.provider_message_id=m.provider_message_id order by x.created_at limit 1) confirmed on true
+  left join lateral (select x.id,x.sent_at from public.messages x where m.provider='personal_app_reminder' and x.business_id=p_business and x.invoice_id=p_invoice and x.provider='personal_app' and x.provider_message_id=m.provider_message_id and x.channel=m.channel order by x.created_at limit 1) confirmed on true
   left join lateral (select case when count(distinct e.event_type)=1 then min(e.event_type) end event_type from private.finviant_delivery_events e where e.provider_id=o.provider_id and e.occurred_at=o.last_event_at and e.event_type in('email.delivered','email.failed','email.bounced','email.suppressed','email.complained')) event on true
   where t.reminder or m.subject like 'Payment reminder:%' or m.provider='personal_app_reminder'
-   or m.provider='personal_app' and not exists(select 1 from public.messages draft where draft.business_id=p_business and draft.invoice_id=p_invoice and draft.provider='personal_app_reminder' and draft.provider_message_id=m.provider_message_id)
+   or m.provider='personal_app' and not exists(select 1 from public.messages draft where draft.business_id=p_business and draft.invoice_id=p_invoice and draft.provider='personal_app_reminder' and draft.provider_message_id=m.provider_message_id and draft.channel=m.channel)
  ), labeled as (
   select r.id,r.created_at,r.channel,r.recipient,r.source,r.status,r.sent_at,r.last_event_at,r.attempts,r.next_attempt_at,r.detail,r.events,
    case when r.source='automatic' then 'Automatic rule' when r.actor_id=auth.uid() then 'You' when member.user_id is not null then coalesce(nullif(left(profile.full_name,100),''),'Team member') else 'Initiator unavailable' end initiator
@@ -71,7 +71,7 @@ begin
  review:=private.invoice_reminder_review(auth.uid(),p_business,share.document_id);
  recipient:=case when p_channel='email' then review->>'email' else review->>'phone' end;
  if recipient is null or recipient is distinct from share.snapshot#>>array['customer',case when p_channel='email' then 'email' else 'phone' end] then raise exception 'Recipient changed. Prepare a fresh reminder.';end if;
- if not exists(select 1 from public.messages where business_id=p_business and provider='personal_app_reminder' and provider_message_id=share.token_hash) then
+ if not exists(select 1 from public.messages where business_id=p_business and provider='personal_app_reminder' and provider_message_id=share.token_hash and channel=p_channel) then
   insert into public.messages(business_id,customer_id,invoice_id,direction,channel,recipient,subject,body,provider,provider_message_id,status)
   values(p_business,(review->>'customer_id')::uuid,share.document_id,'outbound',p_channel,recipient,'Payment reminder: app draft','Draft opened in a personal app. Sending and delivery are not verified.','personal_app_reminder',share.token_hash,'queued');
  end if;

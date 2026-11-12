@@ -86,3 +86,13 @@ test('last successful reminder follows delivery time rather than draft creation 
  await seed(db,'delivered');await db.exec(`update messages set created_at='2026-11-01T12:00:00Z',sent_at='2026-11-01T12:00:00Z';update private.finviant_email_outbox set last_event_at='2026-11-05T12:00:00Z';insert into messages(id,business_id,invoice_id,direction,channel,subject,provider,status,created_at,sent_at) values('${C}','${B}','${I}','outbound','email','Payment reminder: second','resend','delivered','2026-11-02T12:00:00Z','2026-11-02T12:00:00Z');insert into private.finviant_email_outbox(id,business_id,actor_id,document_kind,document_id,payload,status,last_event_at) values('${C}','${B}','${U}','invoice','${I}','{}','delivered','2026-11-03T12:00:00Z')`)
  const h=await history(db);assert.equal(h.last_attempt.id,C);assert.equal(h.last_success.id,R);assert.equal(new Date(h.last_success.last_event_at).toISOString(),'2026-11-05T12:00:00.000Z')
 }finally{await db.close()}})
+
+
+test('personal email and SMS attempts keep separate recipients and outcomes for one share',async()=>{const db=await setup();try{
+ const token='b'.repeat(64);await db.query(`insert into private.document_shares values(encode(sha256(convert_to($1,'UTF8')),'hex'),'${B}','invoice','${I}','${U}','{"customer":{"email":"jordan@example.test","phone":"7575550123"}}',null,now()+interval '1 day')`,[token])
+ const draft=async(channel:string,canceled=false)=>db.query('select public.record_invoice_reminder_draft($1,$2,$3,$4)',[B,token,channel,canceled])
+ await draft('email');await draft('sms');await draft('sms');
+ let h=await history(db);assert.equal(h.items.length,2);assert.equal(h.items.find(x=>x.channel==='sms').recipient,'7575550123')
+ await db.query(`insert into messages(business_id,invoice_id,direction,channel,provider,provider_message_id,status,sent_at) select '${B}','${I}','outbound','email','personal_app',token_hash,'sent',now() from private.document_shares`)
+ await draft('sms',true);h=await history(db);assert.equal(h.items.length,2);assert.equal(h.items.find(x=>x.channel==='email').status,'user_reported');assert.equal(h.items.find(x=>x.channel==='sms').status,'canceled');assert.equal(h.last_success,null)
+}finally{await db.close()}})

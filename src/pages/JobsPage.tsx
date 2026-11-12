@@ -63,12 +63,12 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
   function selectManagedJob(id:string|null){
     setSelectedJob(id);setManagementComplete(false)
     try{if(id)sessionStorage.setItem(managementKey,id);else sessionStorage.removeItem(managementKey)}catch{/* Selection still works when browser storage is unavailable. */}
-    const url=new URL(location.href);url.searchParams.set('workspace','management');url.searchParams.delete('document');url.searchParams.delete('section');if(id)url.searchParams.set('job',id);else url.searchParams.delete('job');history.replaceState(history.state,'',url.pathname+url.search)
+    const url=new URL(location.href);url.searchParams.set('workspace','management');url.searchParams.delete('document');url.searchParams.delete('section');url.searchParams.delete('panel');url.searchParams.delete('billing');if(id)url.searchParams.set('job',id);else url.searchParams.delete('job');history.replaceState(history.state,'',url.pathname+url.search)
   }
   function changeWorkspace(next:'jobs'|'management'){
     if(next===workspace||!confirmNavigation())return
     setWorkspace(next);setManagementOpened(next==='management');rememberWorkspace(next)
-    const url=new URL(location.href);if(next==='management'){url.searchParams.set('workspace','management');if(selectedJob)url.searchParams.set('job',selectedJob)}else{url.searchParams.delete('workspace');url.searchParams.delete('job');url.searchParams.delete('section')}history.replaceState(history.state,'',url.pathname+url.search)
+    const url=new URL(location.href);if(next==='management'){url.searchParams.set('workspace','management');if(selectedJob)url.searchParams.set('job',selectedJob)}else{url.searchParams.delete('workspace');url.searchParams.delete('job');url.searchParams.delete('section');url.searchParams.delete('panel');url.searchParams.delete('billing')}history.replaceState(history.state,'',url.pathname+url.search)
   }
   function openManagement(id:string,complete=false){if(!confirmNavigation())return;selectManagedJob(id);setManagementComplete(complete);setWorkspace('management');setManagementOpened(true);rememberWorkspace('management')}
   const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean;initialSchedule?:boolean;initialPlan?:boolean}|null>(null)
@@ -234,10 +234,10 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     setPage:(value:Parameters<typeof localList.setPage>[0])=>{setDirectoryPage(value);localList.setPage(value)}}
 
   return (
-    <div className="page-stack workspace-module jobs-module"><WorkspaceBack />
+    <div className={"page-stack workspace-module jobs-module"+(workspace==='management'?' phone-job-page':'')}><WorkspaceBack />
       <div className="page-heading split-heading module-page-heading">
         <div><p className="eyebrow">Jobs</p><Heading>{workspace==='management'?'Job Management':'Jobs'}</Heading><p className="module-page-intro">{workspace==='management'?'Approved work. Organized execution.':'Find your jobs, review their history, or choose Manage job to organize the work.'}</p></div>
-        <div className="work-heading-actions"><RefreshButton busy={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}/>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={openNewJob}><span aria-hidden="true">＋</span> Create job</button>}</div>
+        <div className="work-heading-actions"><RefreshButton aria-label="Refresh" busy={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}/>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={openNewJob}><span aria-hidden="true">＋</span> Create job</button>}</div>
       </div>
       {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
       <CustomerRecordScope customerId={customerScope} customers={customers} view="work"/>

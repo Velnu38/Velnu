@@ -83,7 +83,7 @@ jobs:
           retention-days: 7
 
       - name: Preserve synthetic UX review screenshots
-        if: always() && github.head_ref == 'review/ux-journey-20261111'
+        if: always() && (github.head_ref == 'review/ux-journey-20261111' || github.head_ref == 'ux/job-management-mobile-layout-20261112' || startsWith(github.head_ref, 'ux/job-phone-'))
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ux-review-${{ matrix.shard }}

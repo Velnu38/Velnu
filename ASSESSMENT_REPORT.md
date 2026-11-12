@@ -1,6 +1,6 @@
 # Finviant Assessment Report
 
-**Reviewed: 2026-11-11 (America/New_York).** Focused work queue; acceptance records are not counts of unbuilt features.
+**Reviewed: 2026-11-12 (America/New_York).** Focused work queue; acceptance records are not counts of unbuilt features.
 
 > Generated from [docs/launch-readiness.json](docs/launch-readiness.json). Completed tasks are removed from this report automatically; evidence/history remains in the registry and Git history. Do not edit this generated file directly.
 
@@ -14,13 +14,21 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified beta: PR96 merge d9e954783ab838050ad354f7584879425e77cfae, READY deployment dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ on both Finviant domains. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Previous application release: PR101 merge e0ca5aeaec4cd5ceb80749ecf2a942139fc514d4, READY deployment dpl_BgbMjq6wmhBKh9C4o6QcSiphS7NG on both Finviant domains. Full-width phone shell, compact account disclosure, joined Summary picker/card, prominent next action, compact working-screen identity, large quick buttons and full-screen editors. All seven workflows and 22 complete-suite jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
 - PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.
 
-- Card 04 is deployed with all required checks passed. In progress: card 05, AUTO-02 invoice reminder history, reusing existing message/outbox/task/events and recording native reminder drafts truthfully. Candidate CI, additive beta migration and deployment remain pending. All unmet provider and physical-device gates remain open.
+- Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.
+
+- PR101 phone composition is deployed. All 51 task records and acceptance criteria remain unchanged. PR97 and the sequential queue remain paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open; the separate desktop document contrast finding under iPhone WebKit is recorded as an unresolved follow-up.
+
+- Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update.
+
+- PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.
+
+- Owner resumed PR97 reminder history on November 12. Reconciled with the latest private-beta branch and preserved PR102 layout. Targeted SQL/DOM/build checks pass; required CI, additive migration and coordinated release remain pending. The other sequential cards stay paused. No providers activated, real messages sent or charges.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
@@ -31,10 +39,10 @@ This index summarizes scope and blockers; detailed Task and Done when text lives
 | Card | Selected work | Boundary / input |
 | --- | --- | --- |
 | 01 | [Retain PR93 release evidence](docs/FOCUSED_TASK_CARDS.md#card-01-retain-pr93-release-evidence) | Released; verify only a new regression or changed release candidate |
-| 02 | [Make the report a focused work queue](docs/FOCUSED_TASK_CARDS.md#card-02-make-the-report-a-focused-work-queue) | Documentation only; publication approval needed |
-| 03 | [Open the right page from Fin](docs/FOCUSED_TASK_CARDS.md#card-03-open-the-right-page-from-fin) | Ready for a scoped implementation request |
-| 04 | [Finish effective reminder settings](docs/FOCUSED_TASK_CARDS.md#card-04-finish-effective-reminder-settings) | Existing engine; verify gaps only |
-| 05 | [Expose accurate reminder history](docs/FOCUSED_TASK_CARDS.md#card-05-expose-accurate-reminder-history) | Ready; reuse existing activity records |
+| 02 | [Make the report a focused work queue](docs/FOCUSED_TASK_CARDS.md#card-02-make-the-report-a-focused-work-queue) | Published via PR94; maintain source and regenerate, no old snapshot |
+| 03 | [Open the right page from Fin](docs/FOCUSED_TASK_CARDS.md#card-03-open-the-right-page-from-fin) | AI-03 verified and closed; broader voice/provider acceptance remains open |
+| 04 | [Finish effective reminder settings](docs/FOCUSED_TASK_CARDS.md#card-04-finish-effective-reminder-settings) | Implementation deployed; provider/device acceptance remains open |
+| 05 | [Expose accurate reminder history](docs/FOCUSED_TASK_CARDS.md#card-05-expose-accurate-reminder-history) | PR97 open and paused; do not duplicate or resume without owner direction |
 | 06 | [Guide rescheduling safely](docs/FOCUSED_TASK_CARDS.md#card-06-guide-rescheduling-safely) | Ready; notification activation separate |
 | 07 | [Replace surcharge entry with a flat fee](docs/FOCUSED_TASK_CARDS.md#card-07-replace-surcharge-entry-with-a-flat-fee) | Legacy-draft policy and compliance gates |
 | 08 | [Add the persistent live-card link](docs/FOCUSED_TASK_CARDS.md#card-08-add-the-persistent-live-card-link) | Implementation plus physical-contact acceptance |
@@ -59,6 +67,7 @@ This index summarizes scope and blockers; detailed Task and Done when text lives
 | 27 | [Finish real-device journey acceptance](docs/FOCUSED_TASK_CARDS.md#card-27-finish-real-device-journey-acceptance) | After current UI candidate is releasable |
 | 28 | [Run the explicit release audit](docs/FOCUSED_TASK_CARDS.md#card-28-run-the-explicit-release-audit) | Release audit only after scoped work |
 | 29 | [Keep optional work separate](docs/FOCUSED_TASK_CARDS.md#card-29-keep-optional-work-separate) | Deferred or separately selected; no automatic implementation |
+| 30 | [Verify the phone Job Management design](docs/FOCUSED_TASK_CARDS.md#card-30-verify-the-phone-job-management-design) | PR101 deployed; mockup fidelity and owner/physical-phone acceptance remain open |
 
 ## Open acceptance records
 
@@ -85,7 +94,7 @@ Original acceptance criteria, owner, rationale and evidence remain in the canoni
 | CAL-01 | P0 · blocked_external | Finish Google setup and multi-account calendar certification | pro | 06, 19 |
 | AI-01 | P1 · not_verified | Verify AI, voice and receipt scanning live | paid | 03, 21 |
 | INT-01 | P1 · not_verified | Validate remaining advertised external integrations | advertised | 22 |
-| DEVICE-01 | P1 · not_verified | Complete real-device and accessibility acceptance | public | 27 |
+| DEVICE-01 | P1 · not_verified | Complete real-device and accessibility acceptance | public | 27, 30 |
 | OPS-04 | P1 · open | Set customer support, privacy and incident operations | public | 26 |
 | COST-01 | P1 · not_verified | Validate tier unit economics and shared capacity | paid | 23, 26 |
 | AUTO-01 | P2 · open | Extend owner-controlled follow-up automation | optional | 04 |
@@ -99,7 +108,7 @@ Original acceptance criteria, owner, rationale and evidence remain in the canoni
 | GROW-01 | P2 · open | Validate one additional Finviant business-solutions offer | optional | 29 |
 | GROW-02 | P2 · open | Qualify reusable job-management components and commercial licenses | optional | 29 |
 | GROW-03 | P2 · open | Certify the selected product or download before sale | optional | 29 |
-| JOB-01 | P1 · open | Unify Job Management into a practical daily manager workspace | optional | 01, 10, 27 |
+| JOB-01 | P1 · open | Unify Job Management into a practical daily manager workspace | optional | 01, 10, 27, 30 |
 | JOB-02 | P2 · open | Certify job costs, recurrence and progress-to-final billing | optional | 10 |
 | JOB-03 | P2 · deferred | Decide and certify restricted field-worker access separately from profiles | optional | 29 |
 | JOB-04 | P2 · open | Benchmark, load-test and cost-certify the selected Jobs module | optional | 17, 26 |
@@ -110,12 +119,12 @@ Original acceptance criteria, owner, rationale and evidence remain in the canoni
 | INV-01 | P2 · open | Finish document shortcuts and consistency acceptance | optional | 07, 09, 10 |
 | REC-01 | P2 · open | Certify opt-in recurring dispatch and merchant autopay | optional | 11 |
 | AI-02 | P2 · open | Measure Fin usefulness against the manual workflow | optional | 03, 21 |
-| JOB-05 | P1 · open | Verify Job Management on physical devices and authenticated live workflows | public | 27 |
+| JOB-05 | P1 · open | Verify Job Management on physical devices and authenticated live workflows | public | 27, 30 |
 | STORE-01 | P2 · deferred | Prepare future Apple and Google store distribution | optional | 29 |
 | CARD-02 | P2 · open | Add a persistent live business-card link to saved contacts | optional | 08 |
 | AUTO-02 | P1 · open | Make invoice reminder history visible, complete and delivery-accurate | advertised | 05 |
 | AUTO-03 | P1 · open | Guide rescheduling and reviewed customer notification | advertised | 06 |
-| UX-01 | P1 · open | Make Finviant intuitive, action-first and frictionless | optional | 01, 27 |
+| UX-01 | P1 · open | Make Finviant intuitive, action-first and frictionless | optional | 01, 27, 30 |
 
 ## Original 28-package crosswalk
 
@@ -126,7 +135,7 @@ Lookup only; not a completion certificate or instruction to rerun all packages.
 | 1 | Accurate baseline and consolidation | 01, 02 |
 | 2 | Release test system | 01, 28 |
 | 3 | Approved invoice and estimate design | 09, 27 |
-| 4 | Jobs execution and roster reconciliation | 10, 27 |
+| 4 | Jobs execution and roster reconciliation | 10, 27, 30 |
 | 5 | Manager availability | 19, 27 |
 | 6 | Customer reminder defaults | 04, 05, 06, 15, 18 |
 | 7 | Fin product knowledge | 03, 21 |
@@ -148,7 +157,7 @@ Lookup only; not a completion certificate or instruction to rerun all packages.
 | 23 | Complete owner archives | 24 |
 | 24 | Safe retention | 25 |
 | 25 | Economics, support and privacy | 26 |
-| 26 | Device acceptance and cutover | 27, 28 |
+| 26 | Device acceptance and cutover | 27, 28, 30 |
 | 27 | Historical import | 29 |
 | 28 | Deferred products and major expansion | 29 |
 
@@ -178,7 +187,7 @@ The canonical registry retains all dated observations, recommendations, proposal
 
 ## Finviant frictionless navigation and Job Management refinement
 
-**Owner-requested assessment to-do; implementation and acceptance pending.** Full preserved proposal: [canonical registry](docs/launch-readiness.json), proposals section. Later approved task-specific decisions take precedence over conflicting older proposal text.
+**Navigation and phone presentation increments are deployed through PR101. Owner/mockup fidelity, physical-device, accessibility and broader JOB-01/UX-01 acceptance remain open; do not repeat completed source work or claim the design is accepted.** Full preserved proposal: [canonical registry](docs/launch-readiness.json), proposals section. Later approved task-specific decisions take precedence over conflicting older proposal text.
 
 ## Maintenance
 

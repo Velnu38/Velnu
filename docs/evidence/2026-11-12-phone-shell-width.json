@@ -1,0 +1,123 @@
+{
+  "date": "2026-11-12",
+  "base": "bc5b888c156b173eb99683e82534ae61222dd809",
+  "scope": "Full-width mockup-based phone composition; existing actions and business behavior retained",
+  "status": "Merged and deployed to private beta; automated acceptance passed",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/101",
+  "testedHead": "6dcc318933ed93155be74e86c54496013dc3d60d",
+  "testedTree": "7f9cd117a565d81b11eee4e07d00f9ec293c7605",
+  "merge": "e0ca5aeaec4cd5ceb80749ecf2a942139fc514d4",
+  "deployment": {
+    "id": "dpl_BgbMjq6wmhBKh9C4o6QcSiphS7NG",
+    "state": "READY",
+    "target": null,
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "workflows": [
+    {
+      "id": 43150254340,
+      "name": "Finviant authentication access checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43150254335,
+      "name": "Finviant assessment maintenance",
+      "conclusion": "success"
+    },
+    {
+      "id": 43150254401,
+      "name": "Home screen checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43150254648,
+      "name": "More navigation checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43150254369,
+      "name": "Pricing tier checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43150254388,
+      "name": "Complete automated test checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43150250682,
+      "name": "Focused phone visual review",
+      "conclusion": "success"
+    }
+  ],
+  "completeSuiteJobs": 22,
+  "focusedRun": 43150250682,
+  "artifacts": [
+    13913945576,
+    13913053753
+  ],
+  "reviewedScreens": [
+    "Summary",
+    "Work",
+    "Billing",
+    "Records",
+    "Tasks",
+    "Add task editor"
+  ],
+  "viewports": [
+    320,
+    390,
+    430,
+    768,
+    844
+  ],
+  "localChecks": [
+    "TypeScript",
+    "operations DOM mixed/restricted",
+    "10 assessment tests",
+    "assessment consistency"
+  ],
+  "assets": {
+    "index": "/assets/index-CQoHuoq9.js",
+    "app": "App-DhNOr0Q3.js",
+    "css": "JobsPage-Y08oQSiT.css",
+    "appStatus": 200,
+    "beta": true,
+    "prod": false,
+    "cssStatus": 200,
+    "fullWidth": true,
+    "accountStrip": true,
+    "narrowLabels": true
+  },
+  "domains": [
+    {
+      "domain": "finviant.com",
+      "status": 200,
+      "index": "/assets/index-CQoHuoq9.js",
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    },
+    {
+      "domain": "www.finviant.com",
+      "status": 200,
+      "index": "/assets/index-CQoHuoq9.js",
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    }
+  ],
+  "fixedFailures": [
+    "Next action label contrast",
+    "320px area-label overflow"
+  ],
+  "open": [
+    "Physical iPhone/Android and owner acceptance",
+    "Provider acceptance",
+    "Broader JOB-01/UX-01",
+    "Separate 1440px desktop document contrast finding under iPhone WebKit: run 43149844030, job 130956169675"
+  ],
+  "paused": "PR97 and sequential queue",
+  "limitations": "Synthetic authenticated fixtures and emulated browsers; no real messages, charges, provider activation or physical-device certification."
+}

@@ -1,3 +1,4 @@
+import { JOB_PHONE_QUERY } from './JobMobileMenu'
 import { useEffect, useRef, useState } from "react";
 import { DateTime } from "luxon";
 import type { CurrentBusiness } from "../lib/business";
@@ -19,6 +20,7 @@ import {
 } from "../services/jobManagement";
 import JobManagementWorkspace from "./JobManagementWorkspace";
 import "./job-management.css";
+import "./job-phone.css";
 const customer = (job: ManagementJob) => {
   const c = Array.isArray(job.customers) ? job.customers[0] : job.customers;
   return c
@@ -57,8 +59,10 @@ export default function JobManagement({
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(0),
     [summaryOpen, setSummaryOpen] = useState(
-      () => !selectedJobId || window.matchMedia("(min-width:821px)").matches,
+      () => !window.matchMedia(JOB_PHONE_QUERY).matches,
     );
+  const [browseOpen,setBrowseOpen]=useState(false);
+  const initialChoice=useRef(false);
   const saving = useRef(false),
     scope = useRef(business.id);
   scope.current = business.id;
@@ -84,10 +88,12 @@ export default function JobManagement({
   const jobs=visible.filter(e=>e.kind==="job").map(e=>e.data);
   const total=data?.total??0;
   const maxPage=Math.max(0,Math.ceil(total/10)-1), currentPage=data?.page??0;
+  useEffect(()=>{if(!data||initialChoice.current)return;initialChoice.current=true;if(!selectedJobId&&window.matchMedia(JOB_PHONE_QUERY).matches&&jobs.length)onSelect(jobs[0].id)},[data,selectedJobId]);
   function choose(id: string) {
     if (!confirmNavigation()) return;
+    setBrowseOpen(false);
     onSelect(id);
-    setSummaryOpen(window.matchMedia("(min-width:821px)").matches);
+    setSummaryOpen(!window.matchMedia(JOB_PHONE_QUERY).matches);
     requestAnimationFrame(() =>
       document
         .querySelector<HTMLElement>(".jm-workspace h2")
@@ -123,6 +129,7 @@ export default function JobManagement({
     setFilter(value);
     setPage(0);
     setSummaryOpen(true);
+    setBrowseOpen(true);
     if (selectedJobId) onSelect(null);
   }
   const query = new URLSearchParams(location.search),
@@ -153,7 +160,7 @@ export default function JobManagement({
             | "reports");
   return (
     <div
-      className={"job-management" + (selectedJobId ? " has-selected-job" : "")}
+      className={"job-management" + (selectedJobId ? " has-selected-job" : "") + (browseOpen ? " jm-browsing" : "")}
     >
       <details
         className="jm-summary"
@@ -215,6 +222,32 @@ export default function JobManagement({
           </button>
         </p>
       )}
+              <div className="jm-context-heading"><button type="button" onClick={()=>{if(confirmNavigation()){initialChoice.current=true;setBrowseOpen(true);onSelect(null)}}}>‹ All jobs</button><strong>Job Management</strong></div>
+              <div className="jm-mobile-picker">
+                <label>
+                  <span className="jm-picker-label">Job overview</span>
+                  <span className="jm-picker-identity" aria-hidden="true"><strong>{jobs.find(j=>j.id===selectedJobId)?.title || "Selected job"}</strong><span>{jobs.find(j=>j.id===selectedJobId) ? customer(jobs.find(j=>j.id===selectedJobId)!) : "Choose another job"}{jobs.find(j=>j.id===selectedJobId)?.status && <span className="jm-picker-status">{jobs.find(j=>j.id===selectedJobId)!.status.replaceAll("_"," ")}</span>}</span></span>
+                  <select
+                    value={selectedJobId || ""}
+                    aria-label="Selected job"
+                    onChange={(e) => { if(e.target.value === "browse") { if(confirmNavigation()) { initialChoice.current=true; setBrowseOpen(true); onSelect(null); } } else choose(e.target.value); }}
+                  >
+                    {!selectedJobId && <option value="">Select a job</option>}
+                    {selectedJobId && !jobs.some((j) => j.id === selectedJobId) && (
+                      <option value={selectedJobId || ""}>Selected job</option>
+                    )}
+                    <option value="browse">Browse all jobs…</option>
+                    {jobs.map((j) => (
+                      <option key={j.id} value={j.id}>
+                        {j.title} · {customer(j)}
+                        {closed(j) ? " · History" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+              </div>
+
       <div className="jm-layout">
         <aside className="jm-queue" aria-label="Approved and active job queue">
           <header>
@@ -357,34 +390,6 @@ export default function JobManagement({
         <div className="jm-selected">
           {selectedJobId ? (
             <>
-              <div className="jm-mobile-picker">
-                <label>
-                  Selected job
-                  <select
-                    value={selectedJobId}
-                    onChange={(e) => choose(e.target.value)}
-                  >
-                    {!jobs.some((j) => j.id === selectedJobId) && (
-                      <option value={selectedJobId}>Selected job</option>
-                    )}
-                    {jobs.map((j) => (
-                      <option key={j.id} value={j.id}>
-                        {j.title} · {customer(j)}
-                        {closed(j) ? " · History" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => {
-                    if (confirmNavigation()) onSelect(null);
-                  }}
-                >
-                  Choose another job
-                </button>
-              </div>
               <JobManagementWorkspace
                 key={[
                   business.id,
