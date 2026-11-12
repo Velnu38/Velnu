@@ -22,7 +22,7 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.
 
-- The sequential task queue and unmerged PR97 remain paused by the owner. Phone Job Management layout is merged and deployed; no functionality was added or removed. Actual-phone and other provider acceptance gates remain open.
+- PR97 and the earlier sequential task queue remain paused. The owner rejected the PR98 phone density and approved replacement mockups. Full-width phone Job Management navigation and editor implementation is under targeted validation; private-beta release is pending. Broader device/provider gates remain open.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 

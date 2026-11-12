@@ -141,7 +141,7 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts
       # Existing simulated Safari coverage; this does not certify physical devices.
-      - run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs --config=playwright.mobile.config.mjs --fully-parallel --workers=2 --shard=${{ matrix.shard }}/4
+      - run: npx playwright test tests/e2e/critical-dashboard-schedule.spec.mjs tests/e2e/job-phone-flow.spec.mjs --config=playwright.mobile.config.mjs --fully-parallel --workers=2 --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: failure() && !startsWith(github.head_ref, 'review/')
         with:

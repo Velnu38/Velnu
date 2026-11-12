@@ -474,6 +474,12 @@
       "detail": "Phone Job Management layout-only release verified: PR98 merged as c628a052173dc6a755e132865158c47f0733b8ae; tested and merged trees match. All five workflows passed, including 22 release jobs. Phone section/accessibility/overflow checks passed at 320/390/430px and screenshots were reviewed. Deployment dpl_GuE6MHxGTXofwG74SpRVnhDw8ZYn is READY on both Finviant domains, HTTP 200 with private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx. Application changes are phone CSS only; all existing functionality and all 51 readiness records are preserved. Broader JOB-01/UX-01 and physical/provider gates remain open. Earlier sequential queue and PR97 remain paused.",
       "evidence": "docs/evidence/2026-11-12-job-mobile-layout.json",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Full-width phone Job Management flow",
+      "detail": "Owner approved the replacement mockups after finding PR98 too dense. Current work replaces stacked phone sections with Summary/Work/Billing/Records menus and focused detail screens, full-viewport editors, one job selector with retained Browse all jobs, and consolidated invoice/cost destinations. Existing business operations, permissions, deep links and unsaved-edit safeguards are retained. Local targeted checks passed; hosted phone/tablet/landscape/WebKit checks and release verification are pending. No backend/provider change. PR97 and the sequential queue stay paused.",
+      "evidence": "docs/evidence/2026-11-12-job-phone-flow.json",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
@@ -1798,6 +1804,6 @@
     "PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.",
     "PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.",
     "Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.",
-    "The sequential task queue and unmerged PR97 remain paused by the owner. Phone Job Management layout is merged and deployed; no functionality was added or removed. Actual-phone and other provider acceptance gates remain open."
+    "PR97 and the earlier sequential task queue remain paused. The owner rejected the PR98 phone density and approved replacement mockups. Full-width phone Job Management navigation and editor implementation is under targeted validation; private-beta release is pending. Broader device/provider gates remain open."
   ]
 }

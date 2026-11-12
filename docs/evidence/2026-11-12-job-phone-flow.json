@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-12",
+  "scope": "Owner-approved responsive phone Job Management mockups: full available width, progressive section menus, retained detail actions and full-viewport editors. No new business functionality.",
+  "baseCommit": "78bd9567f8dfb77b944abbbe9c1a0d73dd014934",
+  "paused": "PR97 and all earlier sequential task cards remain paused.",
+  "preserved": [
+    "All 51 readiness task records",
+    "Existing backend, roles, billing balances and worker/login distinction",
+    "Existing section deep links and unsaved-change guards",
+    "All queue filters, search and paging through Browse all jobs",
+    "Private beta Supabase xvybcmyoblfgzokaifsx and provider restrictions"
+  ],
+  "localValidation": {
+    "jobManagement": "7 service/database tests and 5 existing DOM scenarios pass",
+    "phoneFlow": "2 new DOM journeys pass: menu reachability, task save, invoice/cost split, role limits, unsaved notes and queue return",
+    "typecheckBuild": "TypeScript/Vite/startup checks pass",
+    "browserLimit": "Chromium launch fails with socket() Operation not permitted; hosted browser tests required"
+  },
+  "hostedValidation": {
+    "status": "pending",
+    "coverage": [
+      "320x568",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "844x390 landscape",
+      "simulated iPhone WebKit",
+      "desktop resize",
+      "All section destinations, full-screen editor size, Cancel/unsaved guard, refresh/deep links and no sends"
+    ]
+  },
+  "release": {
+    "status": "pending"
+  },
+  "openGates": [
+    "Physical iPhone/Android acceptance",
+    "Broader JOB-01 and UX-01 criteria",
+    "Provider acceptance and public launch"
+  ]
+}
