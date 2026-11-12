@@ -14,7 +14,7 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified application release: PR101 merge e0ca5aeaec4cd5ceb80749ecf2a942139fc514d4, READY deployment dpl_BgbMjq6wmhBKh9C4o6QcSiphS7NG on both Finviant domains. Full-width phone shell, compact account disclosure, joined Summary picker/card, prominent next action, compact working-screen identity, large quick buttons and full-screen editors. All seven workflows and 22 complete-suite jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Previous application release: PR101 merge e0ca5aeaec4cd5ceb80749ecf2a942139fc514d4, READY deployment dpl_BgbMjq6wmhBKh9C4o6QcSiphS7NG on both Finviant domains. Full-width phone shell, compact account disclosure, joined Summary picker/card, prominent next action, compact working-screen identity, large quick buttons and full-screen editors. All seven workflows and 22 complete-suite jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
@@ -26,7 +26,7 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update.
 
-- Phone reference candidate: Summary, Work, Billing, Records and Tasks compared at equal content width; shared detail/editor controls and native WebKit selector overflow corrected. Layout-only browser verification covers 320–844px, long titles, roles, deep links and Back/Cancel. Required release checks and deployment remain pending; PR97 and sequential queue stay paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open.
+- PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
