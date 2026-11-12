@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { readLimitedRequest } from '../../supabase/functions/_shared/signedEvents.ts'
+import { burstLimitResponse } from '../../supabase/functions/_shared/burstLimit.ts'
 
 const source = (await readFile('supabase/functions/customer-approval/index.ts', 'utf8')).replace(/^import .*;\r?$/gm, '')
 const javascript = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText
@@ -24,7 +26,7 @@ function endpoint(reply: (name: string, args: Record<string, unknown>) => unknow
       serve: (callback: typeof handler) => { handler = callback },
     },
     createClient: () => client,
-    crypto: webcrypto, TextEncoder, Request, Response,
+    crypto: webcrypto, TextEncoder, Request, Response, Error, readLimitedRequest, burstLimitResponse,
     console: { error() {} },
   })
   return {
@@ -125,4 +127,17 @@ test('preflight, unsupported methods, and missing service configuration never co
   const unconfigured = endpoint(undefined, false)
   assert.equal((await unconfigured.invoke({ token, mode: 'view' })).status, 503)
   assert.equal(unconfigured.calls.length, 0)
+})
+
+test('approval rejects oversized input and preserves shared-limit retry information', async () => {
+  const oversized = endpoint()
+  assert.equal((await oversized.invoke({ token, padding: 'x'.repeat(4096) })).status, 413)
+  assert.equal(oversized.calls.length, 0)
+  for (const mode of ['view', 'approved']) {
+    const app = endpoint(() => ({ data: null, error: { code: 'FINVIANT_BURST_LIMIT', details: '5' } }))
+    const response = await app.invoke({ token, mode, typed_name: 'Test Customer', terms_agreed: true })
+    assert.equal(response.status, 429)
+    assert.equal(response.headers.get('retry-after'), '5')
+    assert.equal(app.calls.length, 1)
+  }
 })

@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto'
 import pg from 'pg'
 import {ownedReplayContainer,cleanupSyntheticFixture} from './synthetic-restore.mjs'
 
-export const QUEUE_LIMITS=Object.freeze({workspaces:300,dispatchers:4,claimCeiling:2400,timeoutMs:120000,providerDelayMs:10})
+export const QUEUE_LIMITS=Object.freeze({workspaces:300,dispatchers:4,claimCeiling:2400,timeoutMs:180000,providerDelayMs:10})
 export function ownedQueueTarget(value,projectId){
  ownedReplayContainer(projectId)
  const url=new URL(value)
@@ -22,7 +22,7 @@ export async function verifyQueueCatchup(db,localUrl,{projectId}){
  const initial=(await db.query("select (select count(*)::int from auth.users) users,(select count(*)::int from public.businesses) businesses,(select count(*)::int from storage.objects) files,current_setting('cron.launch_active_jobs') cron,not exists(select 1 from vault.secrets) empty_vault,not exists(select 1 from private.tier_worker_config where enabled or endpoint is not null) delivery_disabled")).rows[0]
  assert.deepEqual(initial,{users:0,businesses:0,files:0,cron:'off',empty_vault:true,delivery_disabled:true})
  const actors=[],peers=Array.from({length:QUEUE_LIMITS.dispatchers},()=>new pg.Client({connectionString,statement_timeout:15000,connectionTimeoutMillis:5000})),dispatches=new Set(),claimTimes=[]
- let claims=0,skipped=0,uncertain=null,report
+ let claims=0,skipped=0,throttled=0,uncertain=null,report
  try{
   await db.query('begin')
   for(let n=0;n<QUEUE_LIMITS.workspaces;n++){
@@ -58,7 +58,20 @@ export async function verifyQueueCatchup(db,localUrl,{projectId}){
     assert.ok(due.length<=25)
     for(const row of due){
      assert.ok(++claims<=QUEUE_LIMITS.claimCeiling,'Queue claim ceiling exceeded')
-     const begin=performance.now(),value=(await c.query('select public.claim_appointment_reminder($1,false) value',[row.id])).rows[0].value
+     const begin=performance.now();let value
+     try{value=(await c.query('select public.claim_appointment_reminder($1,false) value',[row.id])).rows[0].value}
+     catch(error){
+      let body,detail
+      if(error.code==='PGRST'){try{body=JSON.parse(error.message);detail=JSON.parse(error.detail)}catch{}}
+      if(body?.code!=='FINVIANT_BURST_LIMIT')throw error
+      const retry=Number(detail?.headers?.['Retry-After'])
+      assert.ok(Number.isInteger(retry)&&retry>=1&&retry<=60)
+      throttled++
+      // Honor shared backpressure; the rejected claim is still queued. Refresh
+      // due rows after waiting because a different dispatcher may have claimed it.
+      await sleep(retry*1000+50)
+      break
+     }
      claimTimes.push(performance.now()-begin)
      if(value.status!=='claimed'){assert.ok(['sending','accepted','uncertain'].includes(value.status));skipped++;continue}
      assert.ok(!dispatches.has(row.id),'A queue occurrence was dispatched twice');dispatches.add(row.id)
@@ -71,12 +84,13 @@ export async function verifyQueueCatchup(db,localUrl,{projectId}){
   for(const result of results)if(result.status==='rejected')throw result.reason
   const catchupMs=Math.round(performance.now()-start)
   assert.equal(dispatches.size,300)
+  assert.ok(throttled>0,'Global email backpressure must be exercised by the backlog')
   const after=(await db.query("select (select count(*)::int from private.appointment_reminder_queue where status='queued') queued,(select count(*)::int from private.appointment_reminder_queue where status='sending') sending,(select count(*)::int from private.appointment_reminder_queue where status='accepted') accepted,(select count(*)::int from private.appointment_reminder_queue where status='uncertain') uncertain,(select count(*)::int from private.tier_operations where feature='email') reservations,(select count(*)::int from public.messages) messages")).rows[0]
   assert.deepEqual(after,{queued:0,sending:0,accepted:299,uncertain:1,reservations:300,messages:299})
   assert.equal((await peers[0].query('select public.claim_appointment_reminder($1,false) value',[uncertain])).rows[0].value.status,'uncertain')
   assert.equal((await peers[0].query('select public.prepare_due_appointment_reminders() n')).rows[0].n,0)
   assert.equal((await peers[0].query('select * from public.list_due_appointment_reminders(true,false)')).rows.length,0)
-  report={scope:'isolated PostgreSQL reminder queue with simulated provider outcomes',limits:QUEUE_LIMITS,prepared,prepareCalls,preparationMs,before,catchupMs,claims,overlappingClaimsSkipped:skipped,claimP95Ms:percentile(claimTimes,.95),claimP99Ms:percentile(claimTimes,.99),after,duplicateDispatches:0,uncertainRetained:true,externalProviderRequests:0,limitations:['Synthetic database identities; genuine JWT acceptance is measured separately.','Four local SQL dispatcher loops; hosted Edge runtime, cron cadence and real delivery are not measured.','An uncertain synthetic outcome remains for reconciliation and is never resent.']}
+  report={scope:'isolated PostgreSQL reminder queue with simulated provider outcomes',limits:QUEUE_LIMITS,prepared,prepareCalls,preparationMs,before,catchupMs,claims,throttled,retryAfterHonored:true,overlappingClaimsSkipped:skipped,claimP95Ms:percentile(claimTimes,.95),claimP99Ms:percentile(claimTimes,.99),after,duplicateDispatches:0,uncertainRetained:true,externalProviderRequests:0,limitations:['Synthetic database identities; genuine JWT acceptance is measured separately.','Four local SQL dispatcher loops; hosted Edge runtime, cron cadence and real delivery are not measured.','An uncertain synthetic outcome remains for reconciliation and is never resent.']}
  }finally{
   await db.query('rollback').catch(()=>{})
   await Promise.all(peers.map(c=>c.end().catch(()=>{})))

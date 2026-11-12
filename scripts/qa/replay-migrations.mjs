@@ -1,3 +1,4 @@
+import {verifyAbuseCostReplay} from './abuse-cost-replay.mjs'
 import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -138,6 +139,9 @@ export async function main({capacity=false}={}) {
       console.error(JSON.stringify({ phase: 'fresh-schema-financial-tenant-smoke', error: safeDatabaseError(error) }))
       throw new Error('Fresh-schema financial/tenant smoke failed')
     }
+    const abuseCostSmoke = await verifyAbuseCostReplay(client,localDatabaseUrl(status.DB_URL))
+    mkdirSync(join(root,'tmp/abuse-cost-results'),{recursive:true})
+    writeFileSync(join(root,'tmp/abuse-cost-results/result.json'),JSON.stringify({sourceCommit:process.env.GITHUB_SHA||null,...abuseCostSmoke},null,2)+'\n')
     const reminderSmoke = await verifyReminderReplay(client, localDatabaseUrl(status.DB_URL))
     const authStorageSmoke = await verifyAuthStorageReplay(client, status,
       options => verifySyntheticRestore(client, { projectId, ...options }),

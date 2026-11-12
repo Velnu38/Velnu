@@ -119,3 +119,12 @@ test('provider outages are retriable and never falsely confirm a payment',async(
   const{handler,calls}=webhookFixture({stripe:async()=>{throw new Error('offline')}})
   assert.equal((await handler(signed('checkout.session.completed',{id:session.id}))).status,503);assert.equal(calls.apply.length,0)
 })
+
+test('public payment throttling preserves Retry-After before contacting a provider',async()=>{
+ const {handler,calls}=checkoutFixture({context:async()=>{throw {code:'FINVIANT_BURST_LIMIT',details:'10'}}})
+ for(const mode of ['status','checkout']){
+  const response=await handler(checkoutRequest({...input,mode}))
+  assert.equal(response.status,429);assert.equal(response.headers.get('retry-after'),'10')
+ }
+ assert.equal(calls.stripe.length,0);assert.equal(calls.reserve.length,0)
+})

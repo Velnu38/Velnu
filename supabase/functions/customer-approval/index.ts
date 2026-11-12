@@ -1,3 +1,5 @@
+import { readLimitedRequest } from '../_shared/signedEvents.ts';
+import { burstLimitResponse } from '../_shared/burstLimit.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -11,14 +13,14 @@ Deno.serve(async(req:Request)=>{
  try{
   const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); if(!serviceKey)return respond(503,{error:"Approval service is not configured"});
   const supabase=createClient(Deno.env.get("SUPABASE_URL")!,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
-  const body=await req.json(); const token=String(body.token??"").trim(); const mode=String(body.mode??"view");
+  const body=JSON.parse(await readLimitedRequest(req,4096)); const token=String(body.token??"").trim(); const mode=String(body.mode??"view");
   if(token.length<32||token.length>200)return respond(400,{error:"Invalid approval token"});
   const tokenHash=await hashToken(token);
   if(mode==="view"){
    // The same persisted body drives the owner PDF, customer PDF, and approval.
    // Live status is separate; an expired action does not erase the document.
    const {data,error}=await supabase.rpc("get_customer_approval_document",{p_token:token});
-   if(error){const m=String(error.message??"");if(m.includes("not found"))return respond(404,{error:"Approval link not found"});if(m.includes("revoked")||m.includes("unavailable"))return respond(410,{error:"Approval link is unavailable"});console.error("Approval document lookup failed",error.code);return respond(503,{error:"The document could not be loaded. Try again."});}
+   if(error){const limited=burstLimitResponse(error,headers);if(limited)return limited;const m=String(error.message??"");if(m.includes("not found"))return respond(404,{error:"Approval link not found"});if(m.includes("revoked")||m.includes("unavailable"))return respond(410,{error:"Approval link is unavailable"});console.error("Approval document lookup failed",error.code);return respond(503,{error:"The document could not be loaded. Try again."});}
    return respond(200,data);
   }
 
@@ -29,7 +31,7 @@ Deno.serve(async(req:Request)=>{
   if(revision!==undefined&&revision!==null&&(typeof revision!=="string"||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(revision)))return respond(400,{error:"Invalid document revision"});
   const userAgent=String(req.headers.get("user-agent")??"").slice(0,500);
   const {data,error}=await supabase.rpc("consume_document_approval",{p_token_hash:tokenHash,p_action:mode,p_typed_name:typedName,p_user_agent:userAgent,p_terms_agreed:termsAgreed,...(revision?{p_expected_revision_id:revision}:{})});
-  if(error){const m=String(error.message??"");if(m.includes("LINK_EXPIRED"))return respond(410,{error:"The response deadline passed. The document remains available to view."});if(m.includes("LINK_REVOKED"))return respond(410,{error:"Approval link has been revoked"});if(m.includes("LINK_NOT_FOUND"))return respond(404,{error:"Approval link not found"});if(m.includes("TERMS_NOT_ACCEPTED"))return respond(400,{error:"You must agree to the estimate terms before accepting."});if(m.includes("PRO_ACTION_REQUIRED"))return respond(403,{error:"This document is available to view and download; live approval is unavailable."});if(m.includes("DOCUMENT_SUPERSEDED")||m.includes("scope total changed")||m.includes("updated this line"))return respond(409,{error:"The document changed. Ask the business for the current version."});if(m.includes("DOCUMENT_NOT_APPROVABLE"))return respond(409,{error:"This document can no longer be approved"});console.error("Approval could not be recorded",error.code);return respond(409,{error:"Approval could not be recorded"});}
+  if(error){const limited=burstLimitResponse(error,headers);if(limited)return limited;const m=String(error.message??"");if(m.includes("LINK_EXPIRED"))return respond(410,{error:"The response deadline passed. The document remains available to view."});if(m.includes("LINK_REVOKED"))return respond(410,{error:"Approval link has been revoked"});if(m.includes("LINK_NOT_FOUND"))return respond(404,{error:"Approval link not found"});if(m.includes("TERMS_NOT_ACCEPTED"))return respond(400,{error:"You must agree to the estimate terms before accepting."});if(m.includes("PRO_ACTION_REQUIRED"))return respond(403,{error:"This document is available to view and download; live approval is unavailable."});if(m.includes("DOCUMENT_SUPERSEDED")||m.includes("scope total changed")||m.includes("updated this line"))return respond(409,{error:"The document changed. Ask the business for the current version."});if(m.includes("DOCUMENT_NOT_APPROVABLE"))return respond(409,{error:"This document can no longer be approved"});console.error("Approval could not be recorded",error.code);return respond(409,{error:"Approval could not be recorded"});}
   return respond(200,data);
- }catch{console.error("Approval request failed");return respond(500,{error:"Unexpected server error"});}
+ }catch(error){if(error instanceof Error&&error.message==='REQUEST_TOO_LARGE')return respond(413,{error:'Request too large'});if(error instanceof Error&&error.message==='REQUEST_TIMEOUT')return respond(408,{error:'Request timed out'});if(error instanceof SyntaxError)return respond(400,{error:'Invalid request'});console.error("Approval request failed");return respond(500,{error:"Unexpected server error"});}
 });

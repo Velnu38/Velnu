@@ -276,6 +276,12 @@
       "verifiedAt": "2026-11-10"
     },
     {
+      "title": "Provider-independent abuse and cost backpressure candidate",
+      "detail": "Shared burst controls extended to valid document/card reads, PDF cache-miss rendering and email/SMS claim transitions; global daily attempt caps added without changing monthly entitlements. Targeted SQL/handler tests cover rollback, delayed retry, oversized streamed input and cached/manual fallback. Independent-connection replay added; exact-head CI and hosted ingress/signup/IP, invalid-token flood and monetary-budget acceptance remain required. No provider or deployment activation.",
+      "evidence": "docs/ABUSE_COST_CONTROLS_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Auth/Storage acceptance and product guide deployed",
       "detail": "PR78 final head 03a4da9c22ad8406f48227615d0678826883992e passed all triggered workflows, including full 21-job run 42855522132 and voice review 42855521779. Merged as e8696e1f368b7ed8d73fc52306566b45e65f3434; deployment dpl_4Nd8y54yVqPCeLU3cmMJMNr9CK5z is READY with that SHA and both finviant.com aliases. Fin v16 matches all eight prepared files with JWT verification preserved. No provider evaluation, hosted security certification or physical-device acceptance is claimed.",
       "evidence": "docs/evidence/2026-11-10-auth-storage-rollout.json",
@@ -543,6 +549,12 @@
       "title": "PR97 reminder history private-beta release",
       "detail": "PR97 reminder history is merged as 1e6d4a8088cf9df40332bcfbb1e115db4f647026 and released to private beta on both Finviant domains using READY deployment dpl_144zwRNoNEGAqwsTddfDnYvYNSfi. All five workflows passed at d74dab7; tested and merged trees match. Beta migration invoice_reminder_history applied as 20261112214051 from source 20261112004157; do not reapply it. ACL/missing-identity checks and live HTTP 200, no-store/noindex, beta database and history assets verified. AUTO-02 remains open for hosted owner/provider/physical-device acceptance. PR103, PR104 and app-wide layout work remain separate; future releases must preserve this merge. No providers activated, real messages or charges.",
       "evidence": "docs/evidence/2026-11-12-invoice-reminder-history.json",
+      "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "PR104 owner archive private-beta release",
+      "detail": "PR104 owner archive v2 is merged as 647195708b19c73d9296941ed0fd18ff258e6384 and deployed to private beta. All four workflows and 22 full-suite jobs passed at 8fef466c; tested and merged trees match. Beta owner-archive v3 retains JWT and PR103 session guards; additive owner_archive_completeness migration applied as 20261112221244 (source 20261112212349), do not reapply. Deployed source equality, unchanged ACLs, missing-identity denial, HTTP 401 and both domains HTTP 200/no-store/noindex/beta database verified. PR97, PR102 and PR103 retained. EXPORT-01 hosted owner acceptance/capacity and OPS-01 full hosted restore remain open. No provider activation, real messages, charges, retention changes or data deletion.",
+      "evidence": "docs/evidence/2026-11-12-owner-archive-release.json; docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md",
       "verifiedAt": "2026-11-12"
     }
   ],

@@ -203,7 +203,7 @@ export function documentEmailHandler(
         prepared.id,
         trace,
       );
-      return respond(result.status, result.body);
+      return new Response(JSON.stringify({...result.body,request_id:trace}),{status:result.status,headers:{...headers,...result.headers}});
     } catch {
       console.error(
         JSON.stringify({

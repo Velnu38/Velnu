@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { readLimitedRequest } from '../../supabase/functions/_shared/signedEvents.ts'
 
 const source = (await readFile('supabase/functions/create-approval-link/index.ts', 'utf8')).replace(/^import .*;\r?$/gm, '')
 const javascript = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText
@@ -27,7 +28,7 @@ function endpoint({ authenticated = true, result = { data: { token: 'safe-test-t
         from: () => { tableCalls++; throw new Error('Issuer must use one atomic RPC') },
       }
     },
-    Request, Response, console: { error() {} },
+    Request, Response, Error, readLimitedRequest, console: { error() {} },
   })
   return {
     calls, clientOptions, tableCalls: () => tableCalls, authCalls: () => authCalls,
@@ -93,5 +94,11 @@ test('issuer preflight and unsupported methods never create a client or change a
   assert.equal((await app.request('OPTIONS')).status, 200)
   assert.equal((await app.request('GET')).status, 405)
   assert.equal(app.clientOptions.length, 0)
+  assert.equal(app.calls.length, 0)
+})
+
+test('issuer rejects oversized input before the atomic issuing RPC', async () => {
+  const app = endpoint()
+  assert.equal((await app.invoke({ ...valid, padding: 'x'.repeat(4096) })).status, 400)
   assert.equal(app.calls.length, 0)
 })
