@@ -30,7 +30,7 @@ async function fixture(page,{restricted=false,populated=false,completed=false}={
 }
 const area=(page,name)=>page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name,exact:true})
 const tile=(page,name)=>page.locator('.jm-quick-tile').filter({has:page.getByText(name,{exact:true})})
-async function fits(page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)}
+async function fits(page){const result=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll('body *')].filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&(r.right>innerWidth+.5||r.left<-.5)}).slice(-20).map(el=>({tag:el.tagName,cls:el.className,text:el.textContent.slice(0,60),rect:{x:el.getBoundingClientRect().x,width:el.getBoundingClientRect().width},font:getComputedStyle(el).fontSize}))}));expect(result.scroll,JSON.stringify(result)).toBeLessThanOrEqual(result.width)}
 async function shot(page,name){await page.evaluate(()=>document.fonts.ready);await mkdir('tmp/ux-review',{recursive:true});await page.screenshot({path:`tmp/ux-review/phone-flow-${name}.png`,fullPage:!name.startsWith('editor-')})}
 for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:844,height:390}])test(`phone job flow fills viewport, preserves every destination and full-screen forms at ${viewport.width}x${viewport.height}`,async({page})=>{
  test.setTimeout(60000)

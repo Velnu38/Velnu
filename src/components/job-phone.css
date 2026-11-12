@@ -25,7 +25,7 @@
  .phone-job-page>.detail-top .back-button{font-size:13px;min-height:44px}
  .finviant-workspace .phone-job-page .module-page-heading{display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:8px;margin:0;padding:0;min-height:44px}
  .finviant-workspace .phone-job-page .module-page-heading>div:first-child{flex:1 1 auto;min-width:0}
- .finviant-workspace .phone-job-page .module-page-heading h1{font-size:clamp(16px,4.5vw,18px);line-height:1.2;margin:0;color:#12243c;letter-spacing:-.035em}
+ .finviant-workspace .phone-job-page.jobs-module .module-page-heading h1{font-size:clamp(16px,4.5vw,18px);line-height:1.2;margin:0;color:#12243c;letter-spacing:-.035em}
  .phone-job-page .module-page-heading .eyebrow,.phone-job-page .module-page-intro{display:none}
  .phone-job-page .work-heading-actions{display:flex;flex-wrap:nowrap;gap:6px;flex:0 0 auto}
  .finviant-workspace .phone-job-page .module-page-heading .work-heading-actions button{min-height:44px;font-size:14px;padding:8px;width:auto}
