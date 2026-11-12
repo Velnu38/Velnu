@@ -1094,3 +1094,6 @@
  .finviant-workspace .jobs-module.phone-job-page .module-page-heading .refresh-button { width: 40px !important; min-width: 40px; max-width: 40px; padding: 8px !important; }
  .finviant-workspace .jobs-module.phone-job-page .module-page-heading .work-heading-actions { gap: 6px; flex-wrap: nowrap; }
 }
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .phone-job-page .jm-phone-workspace:has(.jm-panel:not([hidden]) .jm-section-heading h3) .jm-mobile-heading h3 { display: none; }
+}
