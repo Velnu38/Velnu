@@ -1,3 +1,5 @@
+@font-face{font-family:FinviantJobSans;src:url("../assets/fonts/job-sans-regular.woff") format("woff");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:FinviantJobSans;src:url("../assets/fonts/job-sans-bold.woff") format("woff");font-weight:700;font-style:normal;font-display:swap}
 /* Phone Job Management: one composition shared by the approved screen family. */
 .jm-picker-identity,.jm-phone-status,.jm-context-heading{display:none}
 .jm-alert-disclosure>summary{display:none}
@@ -18,7 +20,7 @@
  .jm-account-banner .private-testing-app{padding:0}
  .jm-account-banner .private-beta-notice,.jm-account-banner .tier-banner{margin:8px 0;font-size:12px;flex-wrap:wrap}
  .finviant-workspace.job-phone-shell .workspace-inner{width:100%;max-width:none;margin:0;padding:6px max(14px,env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
- .finviant-workspace .phone-job-page{font-family:Arial,Helvetica,sans-serif;width:100%;min-width:0;gap:8px;position:relative}
+ .finviant-workspace .phone-job-page{font-family:FinviantJobSans,Arial,sans-serif;width:100%;min-width:0;gap:8px;position:relative}
  .phone-job-page>.detail-top{position:absolute;right:0;top:100%;margin:12px 0;z-index:1}
  .phone-job-page>.detail-top .back-button{font-size:13px;min-height:44px}
  .finviant-workspace .phone-job-page .module-page-heading{display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:8px;margin:0;padding:0;min-height:44px}
@@ -177,7 +179,7 @@
  .phone-job-page .jm-menu-context:has(>.secondary-button)>span{grid-column:1;font-size:16px}
  .phone-job-page .jm-menu-context>.secondary-button{grid-column:2;grid-row:1/3;min-height:44px;font-size:16px;background:white;border:1px solid #00715c;border-radius:10px;color:#006b57;padding:8px 12px}
  .phone-job-page .jm-menu-context .jm-activity strong{font-size:20px}
- body:has(.phone-job-page) .form-dialog{font-family:Arial,Helvetica,sans-serif;font-synthesis:weight;box-sizing:border-box;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain}
+ body:has(.phone-job-page) .form-dialog{font-family:FinviantJobSans,Arial,sans-serif;font-synthesis:weight;box-sizing:border-box;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain}
  body:has(.phone-job-page) .form-dialog :is(label,input,select,textarea){font-size:16px;max-width:100%;min-width:0}
  body:has(.phone-job-page) .form-dialog .form-grid{grid-template-columns:1fr}
  body:has(.phone-job-page) .form-dialog .modal-head h2{font-size:25px}
