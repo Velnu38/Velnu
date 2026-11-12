@@ -528,6 +528,12 @@
       "verifiedAt": "2026-11-12"
     },
     {
+      "title": "Owner archive v2 completeness prepared",
+      "detail": "Isolated follow-up to PR83 adds seven explicit delivery/job-invoice history collections, immutable snapshot format versions, catalog SHA-256, missing logo/completion-photo rejection and immutable PDF hash checks. Synthetic two-business archive reconciles counts, hashes and balances; the large archive extracts all 50,001 customers. No retention, original data, provider or layout change. Full-schema CI, controlled hosted download and hosted restore remain separate gates.",
+      "evidence": "docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md; tests/records/owner-archive.test.ts; tests/storage/owner-archive.test.ts",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Card 05 reminder history implementation",
       "detail": "PR97 resumed and reconciled with c614324a. Reminder history retains manual/automatic outcomes and fixes cross-channel personal-app confirmation. 34 SQL cases, three DOM suites, TypeScript/build and assessment checks pass. Local browser launch blocked by socket permissions; hosted desktop/WebKit and full migration replay remain pending. No beta migration or deployment performed.",
       "evidence": "docs/evidence/2026-11-12-invoice-reminder-history.json",
@@ -816,9 +822,11 @@
       "status": "open",
       "title": "Provide complete owner record archives before automated deletion",
       "owner": "Developer",
-      "why": "Customer CSV/vCard and service/workbook exports exist, but an owner needs all financial documents and attachments before a fixed purge deadline.",
+      "why": "PR83 supplies the existing owner archive. The v2 follow-up adds missing delivery/job-invoice history and integrity checks, with independent synthetic archive and 50,001-record extraction tests. Controlled hosted owner download acceptance remains open; do not activate automated deletion.",
       "acceptance": "Provide versioned, owner-authorized downloadable archives with customers/addresses, estimates/invoices/change orders and final PDFs, jobs, approval/payment history and balances, receipts/photos/attachments and worker/availability records. Include a manifest/counts; chunk beyond the 50,000-record scan boundary; verify completeness and short-lived download/7-day object expiry, including expired read-only accounts with no paid plan or Fin charge. Keep historical import enhancements in EXPORT-02; do not activate automatic deletion until this archive is verified.",
-      "evidence": []
+      "evidence": [
+        "docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md"
+      ]
     },
     {
       "id": "PORTAL-01",
