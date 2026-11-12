@@ -87,7 +87,9 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   phase='quota-reservation'
   const reservation={p_actor:owner.id,p_bucket:'finviant-record-photos',p_path:photoPath,p_bytes:png.length}
   assert.ok(!(await api('/rest/v1/rpc/reserve_attachment',owner.token,{method:'POST',body:reservation})).ok,'Client must not impersonate a server upload reservation')
-  const reserve=await api('/rest/v1/rpc/reserve_attachment',status.SERVICE_ROLE_KEY,{method:'POST',body:reservation});assert.equal(reserve.status,204)
+  phase='server-quota-reservation'
+  const reserve=await api('/rest/v1/rpc/reserve_attachment',status.SERVICE_ROLE_KEY,{method:'POST',body:reservation})
+  if(reserve.status!==204){const error=await reserve.json().catch(()=>({}));throw Object.assign(Error('Server reservation failed'),{httpStatus:reserve.status,code:error.code})}
   phase='private-storage-upload'
   const upload=await uploadFile(status.SERVICE_ROLE_KEY);assert.ok(upload.ok,'Quota-reserved server upload must succeed')
   const finish=await api('/rest/v1/rpc/finish_attachment',status.SERVICE_ROLE_KEY,{method:'POST',body:{p_bucket:'finviant-record-photos',p_path:photoPath}});assert.equal(finish.status,204)

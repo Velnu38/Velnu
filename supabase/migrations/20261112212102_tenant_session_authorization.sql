@@ -103,8 +103,12 @@ create policy require_active_session on storage.objects as restrictive for all t
 create function public.check_request_session() returns void
 language plpgsql stable security invoker set search_path='' as $$
 begin
- if current_user='authenticated' and not private.request_session_active() then
-   raise exception 'Your session has ended. Sign in again.' using errcode='42501';
+ -- Keep separate IF statements: PostgreSQL initializes function privileges
+ -- even on the unused side of a boolean AND expression.
+ if current_user='authenticated' then
+   if not private.request_session_active() then
+     raise exception 'Your session has ended. Sign in again.' using errcode='42501';
+   end if;
  end if;
 end $$;
 revoke all on function public.check_request_session() from public,anon,authenticated,service_role;

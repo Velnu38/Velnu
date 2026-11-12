@@ -80,7 +80,7 @@ test('role and membership changes take effect with the same active session; priv
   await assert.rejects(db.query('select * from auth.sessions'),/permission denied/)
   await db.exec('reset role');await db.query('delete from business_members where user_id=$1',[U])
   await actor(db);assert.equal(await val(db,'select private.is_business_member($1) v',[B]),false)
-  await db.exec('reset role;set role anon');await assert.rejects(db.query('select current_session_actor()'),/permission denied/)
-  await db.exec('reset role;set role service_role');await assert.rejects(db.query('select current_session_actor()'),/permission denied/)
+  await db.exec('reset role;set role anon');await db.query('select check_request_session()');await assert.rejects(db.query('select current_session_actor()'),/permission denied/)
+  await db.exec('reset role;set role service_role');await db.query('select check_request_session()');await assert.rejects(db.query('select current_session_actor()'),/permission denied/)
  }finally{await db.close()}
 })
