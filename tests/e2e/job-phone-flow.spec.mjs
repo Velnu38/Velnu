@@ -137,3 +137,27 @@ for(const width of [320,390])test(`phone mockup long job names retain full viewp
  await expect(page.getByRole('region',{name:'Job summary',exact:true})).toBeVisible();await fits(page);await expect(page.locator('.jm-job-header h2')).toContainText('with a long service description');await shot(page,`long-title-${width}`);
  await page.locator('.jm-mobile-picker select').selectOption('browse');await expect(page.getByRole('searchbox',{name:'Find a job',exact:true})).toBeVisible();await fits(page);
 });
+
+// The first sequential card must be inspected independently of the other cards.
+test('phone Summary card reference candidate preserves readable controls and actions',async({page})=>{
+ await page.setViewportSize({width:390,height:844});const state=await fixture(page,{populated:true});
+ await page.goto(`/?view=work&workspace=management&job=${J}`);
+ await expect(page.getByRole('region',{name:'Job summary',exact:true})).toBeVisible();
+ await page.evaluate(()=>document.fonts.ready);await fits(page);
+ const metrics=await page.evaluate(()=>{const rect=s=>{const el=document.querySelector(s),r=el.getBoundingClientRect(),c=getComputedStyle(el);return {x:r.x,y:r.y,width:r.width,height:r.height,font:c.fontSize,weight:c.fontWeight}};return {picker:rect('.jm-mobile-picker select'),card:rect('.jm-phone-workspace'),next:rect('.jm-next-action'),actions:rect('.jm-job-actions'),progress:rect('.jm-progress-line')}});
+ expect(metrics.picker.height).toBeGreaterThanOrEqual(44);
+ expect(metrics.card.width).toBeGreaterThanOrEqual(362);
+ expect(metrics.card.height).toBeLessThanOrEqual(460);
+ await expect(page.locator(".jm-phone-workspace .jm-notes-disclosure")).toHaveCount(0);
+ await expect(page.locator(".jm-summary-secondary .jm-notes-disclosure")).toBeVisible();
+ expect(metrics.actions.height).toBeGreaterThanOrEqual(44);
+ await mkdir('tmp/ux-review',{recursive:true});await writeFile('tmp/ux-review/summary-card-metrics.json',JSON.stringify(metrics,null,2));
+ await shot(page,'summary-card-candidate-390');
+ await page.getByRole('button',{name:'Review visit',exact:true}).click();
+ await expect(page.getByRole('tabpanel',{name:'Schedule & Crew',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'‹ Back to Work',exact:true}).click();
+ await area(page,'Summary').click();await page.locator('.jm-job-actions button').click();
+ await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');
+ await page.locator('.jm-notes-disclosure summary').click();await expect(page.getByLabel('Job notes',{exact:true})).toBeVisible();
+ expect(state.calls.some(c=>/send-|create_dispatched|complete_job|manage_job_workspace/.test(c.path))).toBe(false);
+});

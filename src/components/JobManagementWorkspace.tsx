@@ -480,6 +480,52 @@ export default function JobManagementWorkspace({
               </button>
             </div>
   );
+  const summaryCard = !!(job && data && mobileHome && section === "overview");
+  const jobActions = <footer className="jm-workspace-footer">
+            <RecordMoreMenu label="Job actions" disabled={busy}>
+              {compactSections && action === 'complete' && step.action !== 'complete' && <button type="button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
+              {canEdit && !closed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Cancel this job and remove its active schedule? Its records remain in History.",
+                      )
+                    )
+                      void run(
+                        () => updateJobStatus(jobId, "canceled"),
+                        "Job canceled. Records remain in history.",
+                      );
+                  }}
+                >
+                  Cancel job
+                </button>
+              )}
+              {canSchedule && closed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Reopen this job for more work? Existing visits and invoices remain.",
+                      )
+                    )
+                      void run(async () => {
+                        await reopenJob(jobId, reopenRequest.current);
+                        reopenRequest.current = crypto.randomUUID();
+                        setDispatch("appointment");
+                      }, "Job reopened. Review and save its next appointment.");
+                  }}
+                >
+                  Reopen job
+                </button>
+              )}
+              <button type="button" onClick={() => setDetails(true)}>
+                Open full job details
+              </button>
+            </RecordMoreMenu>
+          </footer>;
   const tab = (s: string) => id + "-" + s;
   if (changeOrder && changeSource)
     return (
@@ -496,6 +542,7 @@ export default function JobManagementWorkspace({
       </Suspense>
     );
   return (
+    <>
     <section
       className={"jm-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections && (mobileDetail || section !== "overview") ? " jm-compact-job" : "")}
       aria-label="Selected job workspace"
@@ -629,7 +676,6 @@ export default function JobManagementWorkspace({
             <dl className="jm-visit-facts"><div><dt>Next visit</dt><dd>{booked ? phoneDate(job.active_appointment!.starts_at) : 'Not scheduled'}</dd></div><div><dt>Assigned crew</dt><dd>{job.assigned_user_ids?.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ') || 'Not assigned'}</dd></div></dl>
             {quickActions}
             <p className="jm-progress-line">Tasks {data.tasks.filter(t=>t.completed).length}/{data.tasks.length} complete · {missingMaterials.length ? `${missingMaterials.length} materials not received` : 'No outstanding materials'}</p>
-            <details className="jm-notes-disclosure"><summary>Job notes &amp; access instructions</summary>{notesEditor}</details>
           </section>}
           {data && mobileHome && section !== 'overview' && <JobMobileMenu title={activeGroup.label === 'Work' ? 'Manage the work' : activeGroup.label === 'Billing' ? 'Job billing' : 'Job records'} items={menuItems}>
             {activeGroup.label === 'Billing' && <div className="jm-menu-finances"><dl className="jm-financial-lines">
@@ -1362,51 +1408,7 @@ export default function JobManagementWorkspace({
               </div>
             </>
           )}
-          <footer className="jm-workspace-footer">
-            <RecordMoreMenu label="Job actions" disabled={busy}>
-              {compactSections && action === 'complete' && step.action !== 'complete' && <button type="button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
-              {canEdit && !closed && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Cancel this job and remove its active schedule? Its records remain in History.",
-                      )
-                    )
-                      void run(
-                        () => updateJobStatus(jobId, "canceled"),
-                        "Job canceled. Records remain in history.",
-                      );
-                  }}
-                >
-                  Cancel job
-                </button>
-              )}
-              {canSchedule && closed && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (
-                      confirm(
-                        "Reopen this job for more work? Existing visits and invoices remain.",
-                      )
-                    )
-                      void run(async () => {
-                        await reopenJob(jobId, reopenRequest.current);
-                        reopenRequest.current = crypto.randomUUID();
-                        setDispatch("appointment");
-                      }, "Job reopened. Review and save its next appointment.");
-                  }}
-                >
-                  Reopen job
-                </button>
-              )}
-              <button type="button" onClick={() => setDetails(true)}>
-                Open full job details
-              </button>
-            </RecordMoreMenu>
-          </footer>
+          {!summaryCard && jobActions}
         </>
       )}
       {taskEditor && (
@@ -1573,6 +1575,8 @@ export default function JobManagementWorkspace({
         </FormDialog>
       )}
     </section>
+    {summaryCard && <div className="jm-summary-secondary"><details className="jm-notes-disclosure"><summary>Job notes &amp; access instructions</summary>{notesEditor}</details>{jobActions}</div>}
+    </>
   );
 }
 function Activity({

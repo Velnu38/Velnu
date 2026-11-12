@@ -323,7 +323,8 @@
       "review/payment-recovery-20261110": false,
       "review/payment-recovery-integration-20261111": false,
       "review/ux-journey-20261111": false,
-      "fix/owner-export-completeness-20261112": false
+      "fix/owner-export-completeness-20261112": false,
+      "ux/summary-card-reference-20261112": false
     }
   }
 }

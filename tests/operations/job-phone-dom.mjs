@@ -20,6 +20,7 @@ for(const scenario of ['mixed','restricted']){
   assert.equal(doc.querySelector('.jm-workspace > .record-tabs'),null,'no redundant desktop tab row')
   assert.ok(doc.querySelector('.jm-overview-grid').hidden,'desktop overview does not crowd phone summary')
   assert.ok(doc.querySelector('.jm-job-actions a[href^="tel:"]'),'existing call handoff retained')
+  assert.ok(doc.querySelector('.jm-summary-secondary .jm-workspace-footer'),'secondary job actions retained below main card')
   await click(group('Work'));assert.equal(doc.querySelectorAll('.jm-quick-tile').length,4)
   for(const [label,section] of [['Tasks & templates','tasks'],['Visits & crew','schedule'],['Materials','materials'],['Photos & expenses','photos']]){
    await click(tile(label));assert.equal(new URL(dom.window.location.href).searchParams.get('section'),section)
@@ -32,7 +33,7 @@ for(const scenario of ['mixed','restricted']){
    await click(button('‹ Back to Work'));await click(group('Billing'));assert.equal(doc.querySelectorAll('.jm-quick-tile').length,3)
    await click(tile('Costs & budget'));assert.equal(new URL(dom.window.location.href).searchParams.get('billing'),'costs');await until(()=>doc.querySelector('.job-cost-grid'));assert.ok(doc.querySelector('.jm-panel:not([hidden]) > div[hidden]'),'invoice list separated from costs')
    await click(button('‹ Back to Billing'));await click(tile('Invoices'));assert.equal(new URL(dom.window.location.href).searchParams.get('billing'),null);assert.equal(doc.querySelector('.job-cost-grid'),null,'cost editor not duplicated in invoice view');await click(button('‹ Back to Billing'))
-   await click(group('Summary'));await fill(doc.querySelector('.jm-phone-summary textarea'),'Unsaved phone notes');confirmAllowed=false;await click(group('Work'));assert.ok(doc.querySelector('.jm-phone-summary'),'unsaved notes block navigation');assert.equal(doc.querySelector('.jm-phone-summary textarea').value,'Unsaved phone notes');confirmAllowed=true
+   await click(group('Summary'));await fill(doc.querySelector('.jm-summary-secondary textarea'),'Unsaved phone notes');confirmAllowed=false;await click(group('Work'));assert.ok(doc.querySelector('.jm-phone-summary'),'unsaved notes block navigation');assert.equal(doc.querySelector('.jm-summary-secondary textarea').value,'Unsaved phone notes');confirmAllowed=true
   }else{assert.equal(group('Billing'),undefined);await click(tile('Tasks & templates'));assert.equal(button('+ Add task'),undefined);await click(button('‹ Back to Work'))}
   await click(group('Records'));assert.ok(tile('Activity history'));assert.ok(tile('Completion reports'));await click(tile('Activity history'));await click(button('‹ Back to Records'));await click(group('Summary'))
   await fill(doc.querySelector('.jm-mobile-picker select'),'browse');await until(()=>!doc.querySelector('.jm-workspace'));assert.ok(doc.querySelector('.jm-queue'),'browse retains filters and paging')
