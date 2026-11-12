@@ -54,7 +54,7 @@
  .phone-job-page .jm-job-header .jm-address,.phone-job-page .jm-job-header .quiet{font-size:14px;color:#5a6c74}
  .phone-job-page .jm-next-action{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#008673;color:white;border:0;border-radius:14px;padding:14px}
  .phone-job-page .jm-next-action>div:first-child{flex:1;min-width:0}
- .phone-job-page .jm-next-action small{color:#d6f5ed;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+ .phone-job-page .jm-next-action small{color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
  .phone-job-page .jm-next-action strong{display:block;font-size:17px;line-height:1.25;margin-top:5px}
  .phone-job-page .jm-next-action .primary-button{min-height:44px;min-width:100px;padding:10px 12px;font-size:14px;background:white;color:#086451;border:1px solid #d6e7e0;border-radius:10px}
  .phone-job-page .jm-alert-disclosure>summary{display:list-item;padding:10px;background:#fff5df;border-radius:10px;font-size:13px;cursor:pointer}

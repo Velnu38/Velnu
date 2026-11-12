@@ -34,6 +34,7 @@ for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,
  const box=await workspace.boundingBox();expect(box.width).toBeGreaterThanOrEqual(viewport.width-28)
  await expect(workspace.getByRole('tab',{name:'Overview',exact:true})).toHaveCount(0)
  await fits(page);await shot(page,`summary-${viewport.width}`)
+ const contrast=await new AxeBuilder({page}).include('.jm-next-action').withTags(['wcag2aa']).analyze();expect(contrast.violations.map(v=>v.id)).toEqual([])
  for(const [group,items] of [['Work',['Tasks & templates','Visits & crew','Materials','Photos & expenses']],['Billing',['Invoices','Costs & budget','Change orders']],['Records',['Activity history','Completion reports']]]){
   await area(page,group).click();await expect(page.locator('.jm-quick-tile')).toHaveCount(items.length)
   await fits(page);await shot(page,`${group}-${viewport.width}`)
