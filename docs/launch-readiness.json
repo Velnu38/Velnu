@@ -524,6 +524,18 @@
       "verifiedAt": "2026-11-12"
     },
     {
+      "title": "Card 05 reminder history implementation",
+      "detail": "PR97 resumed and reconciled with c614324a. Reminder history retains manual/automatic outcomes and fixes cross-channel personal-app confirmation. 34 SQL cases, three DOM suites, TypeScript/build and assessment checks pass. Local browser launch blocked by socket permissions; hosted desktop/WebKit and full migration replay remain pending. No beta migration or deployment performed.",
+      "evidence": "docs/evidence/2026-11-12-invoice-reminder-history.json",
+      "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "PR97 reminder history private-beta release",
+      "detail": "PR97 reminder history is merged as 1e6d4a8088cf9df40332bcfbb1e115db4f647026 and released to private beta on both Finviant domains using READY deployment dpl_144zwRNoNEGAqwsTddfDnYvYNSfi. All five workflows passed at d74dab7; tested and merged trees match. Beta migration invoice_reminder_history applied as 20261112214051 from source 20261112004157; do not reapply it. ACL/missing-identity checks and live HTTP 200, no-store/noindex, beta database and history assets verified. AUTO-02 remains open for hosted owner/provider/physical-device acceptance. PR103, PR104 and app-wide layout work remain separate; future releases must preserve this merge. No providers activated, real messages or charges.",
+      "evidence": "docs/evidence/2026-11-12-invoice-reminder-history.json",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Provider-independent abuse and cost backpressure candidate",
       "detail": "Shared burst controls extended to valid document/card reads, PDF cache-miss rendering and email/SMS claim transitions; global daily attempt caps added without changing monthly entitlements. Targeted SQL/handler tests cover rollback, delayed retry, oversized streamed input and cached/manual fallback. Independent-connection replay added; exact-head CI and hosted ingress/signup/IP, invalid-token flood and monetary-budget acceptance remain required. No provider or deployment activation.",
       "evidence": "docs/ABUSE_COST_CONTROLS_2026-11-12.md",
@@ -1072,7 +1084,9 @@
       "owner": "Developer / QA",
       "why": "Mike reports that overdue invoices expose Send Reminder but do not show a record of sent reminders. Current source already has Invoice Activity → Messages and a Last reminder summary in the reminder dialog; investigate discoverability and whether all reminder paths populate the records rather than rebuilding an assumed-absent backend. Assessment/to-do only; no send is authorized.",
       "acceptance": "Provide an easily found reminder history from the invoice and Send Reminder entry point, with last attempted/successful reminder and clear empty/unavailable/loading states. Include manual and automated reminders, local date/time with timezone, channel, appropriately scoped recipient, initiating user/system, status history and failure/retry details without exposing secrets. Keep queued, sending, provider-accepted, confirmed delivered, failed/bounced, canceled, suppressed and unknown/uncertain distinct; never equate request success or provider acceptance with delivery. Native email/SMS app handoff must read Draft opened or user-reported sent/unverified as appropriate, never verified delivered without evidence. Reuse existing invoice message/reminder records; correlate callbacks and prevent duplicates, out-of-order status regression and accidental resend. Verify history persists after refresh/relogin and across supported invoice entry points and platforms, chronological ordering/pagination, tenant/role controls, manual/automatic sends, provider timeout/retry, duplicate/out-of-order webhooks, opt-out, failed delivery, paid suppression and stale/broken history reads. Use synthetic tests plus separately authorized controlled provider acceptance; preserve invoice balance/due date and existing history. Do not mark done from UI/source presence alone.",
-      "evidence": []
+      "evidence": [
+        "docs/evidence/2026-11-12-invoice-reminder-history.json (synthetic acceptance; provider/device gates remain open)"
+      ]
     },
     {
       "id": "AUTO-03",
@@ -1867,6 +1881,7 @@
     "Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.",
     "PR101 phone composition is deployed. All 51 task records and acceptance criteria remain unchanged. PR97 and the sequential queue remain paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open; the separate desktop document contrast finding under iPhone WebKit is recorded as an unresolved follow-up.",
     "Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update.",
-    "PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused."
+    "PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.",
+    "PR97 reminder history is merged as 1e6d4a8088cf9df40332bcfbb1e115db4f647026 and released to private beta on both Finviant domains using READY deployment dpl_144zwRNoNEGAqwsTddfDnYvYNSfi. All five workflows passed at d74dab7; tested and merged trees match. Beta migration invoice_reminder_history applied as 20261112214051 from source 20261112004157; do not reapply it. ACL/missing-identity checks and live HTTP 200, no-store/noindex, beta database and history assets verified. AUTO-02 remains open for hosted owner/provider/physical-device acceptance. PR103, PR104 and app-wide layout work remain separate; future releases must preserve this merge. No providers activated, real messages or charges."
   ]
 }
