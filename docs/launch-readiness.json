@@ -8,6 +8,10 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Summary card reference correction — candidate only",
+      "detail": "November 12: owner requires one card verified and deployed before the next. PR102 comparison reveals larger picker typography and excess Summary spacing. Summary-only CSS candidate retains all actions and minimum 44px controls. Fresh hosted Chromium/WebKit comparison and deployed verification are required before release. UX-01/JOB-01 remain open; no physical-device acceptance claimed."
+    },
+    {
       "title": "Worker availability calendar",
       "detail": "Manager-operated availability was integrated and released by PR71/b2fe20ce0b9d36806b7e94231eed962322eb6f55 and retained by PR69. Daily team summary, eight-week calendar, normal hours, time off, preserved drafts and stale-worker checks have synthetic database/browser coverage. Availability remains distinct from a confirmed bookable slot and requires server conflict checks. Physical-device and real-session acceptance remain open.",
       "evidence": "docs/WORKER_AVAILABILITY_2026-11-10.md; docs/evidence/2026-11-10-private-beta-release.json; PR69 retained release source",

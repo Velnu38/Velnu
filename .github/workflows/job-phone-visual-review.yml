@@ -1,7 +1,7 @@
 name: Focused phone visual review
 on:
   push:
-    branches: [ux/job-phone-mockup-match-20261112]
+    branches: [ux/job-phone-mockup-match-20261112, ux/summary-card-reference-20261112]
 permissions:
   contents: read
 concurrency:
@@ -24,7 +24,7 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - name: Focused phone navigation and rendered screens
-        run: npx playwright test tests/e2e/job-phone-flow.spec.mjs tests/e2e/ux-journey.spec.mjs --config=${{ matrix.engine == 'webkit' && 'playwright.mobile.config.mjs' || 'playwright.config.mjs' }} --workers=2 --grep="phone mockup|phone job|phone menus|desktop retains|phone entry|mobile job groups"
+        run: npx playwright test tests/e2e/job-phone-flow.spec.mjs tests/e2e/ux-journey.spec.mjs --config=${{ matrix.engine == 'webkit' && 'playwright.mobile.config.mjs' || 'playwright.config.mjs' }} --workers=2 --grep="phone Summary|phone mockup|phone job|phone menus|desktop retains|phone entry|mobile job groups"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
