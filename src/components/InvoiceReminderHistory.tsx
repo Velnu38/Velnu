@@ -16,15 +16,16 @@ export default function InvoiceReminderHistory({businessId,invoiceId,timezone}:{
   finally{if(token===generation.current){flight.current=false;setBusy(false)}}
  }
  useEffect(()=>{generation.current++;flight.current=false;setPage(null);void load();return()=>{generation.current++}},[businessId,invoiceId])
- function summary(item:ReminderHistoryItem|null){return item?`${time(item.created_at)} · ${reminderHistoryStatus(item.status)}`:'None recorded'}
+ function summary(item:ReminderHistoryItem|null,successful=false){const at=item&&(successful?(item.status==='delivered'?item.last_event_at:null)||item.sent_at||item.created_at:item.created_at);return item&&at?`${time(at)} · ${reminderHistoryStatus(item.status)}`:'None recorded'}
  return <section className="detail-card" aria-label="Invoice reminder history"><h2>Reminder history</h2>
  <p className="quiet">Viewing or refreshing history never sends a reminder. Provider acceptance is not confirmed delivery.</p>
  {error&&<p role="alert">{error}</p>}{busy&&<p role="status">Loading reminder history…</p>}
  <button type="button" className="text-button" disabled={busy} onClick={()=>void load()}>{error?'Retry reminder history':'Refresh reminder history'}</button>
- {page&&<><p>Last attempt: {summary(page.last_attempt)}</p><p>Last accepted or delivered reminder: {summary(page.last_success)}</p>
+ {page&&<><p>Last attempt: {summary(page.last_attempt)}</p><p>Last accepted or delivered reminder: {summary(page.last_success,true)}</p>
  {!page.items.length?<p>No reminders recorded for this invoice.</p>:<ol className="message-list">{page.items.map(item=><li className="message-item" key={item.id}>
  <strong>{reminderHistoryStatus(item.status)}</strong><p>{time(item.created_at)} · {item.channel.toUpperCase()} · {item.source==='automatic'?'Automatic':item.source==='personal'?'Personal app':item.source==='personal_unclassified'?'Related personal-app document send — reminder purpose unverified':'Manual'}</p>
  <p>Recipient: {item.recipient||'Not recorded'} · Initiated by: {item.initiator}</p>
+ {item.sent_at&&<p>{item.source==='personal'||item.source==='personal_unclassified'?'Reported sent':'Accepted'}: {time(item.sent_at)}</p>}{item.last_event_at&&<p>Latest delivery status: {time(item.last_event_at)}</p>}
  {item.detail&&<p>{item.detail}</p>}{item.attempts!=null&&<p>Provider attempts: {item.attempts}</p>}
  {['uncertain','sending'].includes(item.status)&&<p>Check the existing attempt before retrying. Its outcome is not confirmed.</p>}
  {item.status==='draft_opened'&&<p>Sending and delivery from your app are not verified.</p>}

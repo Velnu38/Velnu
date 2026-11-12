@@ -81,3 +81,8 @@ test('legacy personal app receipt stays visible without inventing a reminder or 
  await db.exec(`insert into messages(business_id,invoice_id,direction,channel,provider,status,subject) values('${B}','${I}','outbound','email','personal_app','sent','Owner reported personal-app send')`)
  const h=await history(db);assert.equal(h.items.length,1);assert.equal(h.items[0].source,'personal_unclassified');assert.equal(h.items[0].status,'user_reported');assert.equal(h.last_attempt,null);assert.equal(h.last_success,null)
 }finally{await db.close()}})
+
+test('last successful reminder follows delivery time rather than draft creation time',async()=>{const db=await setup();try{
+ await seed(db,'delivered');await db.exec(`update messages set created_at='2026-11-01T12:00:00Z',sent_at='2026-11-01T12:00:00Z';update private.finviant_email_outbox set last_event_at='2026-11-05T12:00:00Z';insert into messages(id,business_id,invoice_id,direction,channel,subject,provider,status,created_at,sent_at) values('${C}','${B}','${I}','outbound','email','Payment reminder: second','resend','delivered','2026-11-02T12:00:00Z','2026-11-02T12:00:00Z');insert into private.finviant_email_outbox(id,business_id,actor_id,document_kind,document_id,payload,status,last_event_at) values('${C}','${B}','${U}','invoice','${I}','{}','delivered','2026-11-03T12:00:00Z')`)
+ const h=await history(db);assert.equal(h.last_attempt.id,C);assert.equal(h.last_success.id,R);assert.equal(new Date(h.last_success.last_event_at).toISOString(),'2026-11-05T12:00:00.000Z')
+}finally{await db.close()}})

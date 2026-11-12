@@ -11,7 +11,7 @@ const server=await createServer({server:{middlewareMode:true,hmr:false},appType:
 let supabase,calls=[],resolveSlow,fail=false
 const item=(n,status='accepted')=>({id:String(n),created_at:'2026-11-01T12:00:00Z',channel:'email',recipient:'synthetic@example.test',source:'manual',initiator:'You',status,attempts:1,detail:null,events:[]})
 const states=['queued','sending','accepted','delivered','failed','bounced','canceled','suppressed','uncertain','draft_opened','user_reported']
-const first=states.map((state,n)=>item(n,state))
+const first=states.map((state,n)=>item(n,state));first[3].sent_at='2026-11-02T12:00:00Z';first[3].last_event_at='2026-11-03T12:00:00Z'
 const text=()=>document.body.textContent
 async function click(label){await act(async()=>[...document.querySelectorAll('button')].find(b=>b.textContent===label).click())}
 try{
@@ -24,7 +24,7 @@ try{
  }
  const {default:Component}=await server.ssrLoadModule('/src/components/InvoiceReminderHistory.tsx')
  const render=(invoiceId='invoice',businessId='business')=>act(async()=>root.render(React.createElement(Component,{businessId,invoiceId,timezone:'America/New_York'})))
- await render();assert.equal(calls.length,1);for(const label of ['Queued','Sending','Accepted by provider','Delivered','Failed','Bounced','Canceled','Suppressed','Uncertain','Draft opened','User-reported sent'])assert.ok(text().includes(label),label)
+ await render();assert.equal(calls.length,1);const expectedDelivered=new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short',timeZone:'America/New_York'}).format(new Date(first[3].last_event_at));assert.ok([...document.querySelectorAll('p')].find(p=>p.textContent.startsWith('Last accepted or delivered reminder:')).textContent.includes(expectedDelivered));for(const label of ['Queued','Sending','Accepted by provider','Delivered','Failed','Bounced','Canceled','Suppressed','Uncertain','Draft opened','User-reported sent'])assert.ok(text().includes(label),label)
  assert.match(text(),/America\/New_York/);assert.match(text(),/synthetic@example.test/);assert.match(text(),/Initiated by: You/)
  await click('Load older reminders');assert.equal(calls.at(-1).params.p_before_id,first.at(-1).id);assert.equal(document.querySelectorAll('ol>li').length,12);assert.ok(!text().includes('Load older reminders'))
  fail=true;await click('Refresh reminder history');assert.match(text(),/history is unavailable/);assert.ok(!text().includes('credential'));assert.ok(!text().includes('No reminders recorded'))

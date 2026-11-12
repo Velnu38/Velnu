@@ -48,7 +48,7 @@ begin
   'items',coalesce((select jsonb_agg(to_jsonb(x) order by x.created_at desc,x.id desc) from (select * from page order by created_at desc,id desc limit p_limit)x),'[]'::jsonb),
   'has_more',(select count(*)>p_limit from page),
   'last_attempt',(select to_jsonb(x) from labeled x where source<>'personal_unclassified' order by created_at desc,id desc limit 1),
-  'last_success',(select to_jsonb(x) from labeled x where status in('accepted','delivered') order by coalesce(sent_at,created_at) desc,id desc limit 1)) into result;
+  'last_success',(select to_jsonb(x) from labeled x where status in('accepted','delivered') order by coalesce(last_event_at,sent_at,created_at) desc,id desc limit 1)) into result;
  return result;
 end $$;
 revoke all on function public.get_invoice_reminder_history(uuid,uuid,timestamptz,uuid,integer) from public,anon,authenticated,service_role;
