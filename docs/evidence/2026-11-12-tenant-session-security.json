@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-12",
+  "scope": "SEC-02 targeted candidate validation; isolated disposable Supabase, not hosted beta rollout",
+  "sourceCommit": "49b78b0b742a9e7d80193cb178d14a3d17d1bbb6",
+  "sourceTree": "b41a24e4f024f2105722283178256170e9aeac96",
+  "run": "https://github.com/Velnu38/Velnu/actions/runs/43311556227",
+  "migrationJob": "https://github.com/Velnu38/Velnu/actions/runs/43311556227/job/131509935541",
+  "migrationResult": "success",
+  "edgeTypecheckResult": "success",
+  "genuinePasswordSessions": 3,
+  "controlledBusinesses": 2,
+  "verified": {
+    "crossTenantReadWriteDenied": true,
+    "moduleRevocation": true,
+    "membershipRevocation": true,
+    "logoutRestRpcStorageDenied": true,
+    "foreignSigningDenied": true,
+    "anonymousFileDenied": true,
+    "privateFileHashVerified": true,
+    "serverQuotaReservation": true,
+    "directUploadBypassDenied": true,
+    "publicLinkForeignPublishRevokeDenied": true,
+    "publicLinkRevocation": true
+  },
+  "local": {
+    "targetedSecurityStorageHandlers": 28,
+    "canonicalDocumentLinks": 13,
+    "replaySafety": 6,
+    "assessment": 10,
+    "edgePackaging": "passed"
+  },
+  "fullWorkflow": "still running at receipt creation; not claimed successful",
+  "deployment": "not merged or deployed; private beta and production unchanged",
+  "remaining": [
+    "Complete broader CI before merge",
+    "Coordinate with active app-wide layout and reminder-history work",
+    "Recheck existing PostgREST hook, apply migration to beta, then deploy three file adapters only after release coordination",
+    "Hosted independent SEC-02 acceptance remains open"
+  ],
+  "initialFailure": {
+    "run": 43310283624,
+    "job": 131504847281,
+    "finding": "Request hook evaluated a restricted helper privilege for anon/service requests",
+    "correction": "Nested role and session IF checks; grants remain restricted; regression reproduced and corrected"
+  },
+  "migrationsApplied": 96,
+  "cleanup": {
+    "users": 0,
+    "businesses": 0,
+    "payments": 0,
+    "files": 0
+  }
+}

@@ -21,9 +21,10 @@ export async function verifyReminderReplay(db, localUrl) {
     await db.query(`insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at) values
       ($1,'authenticated','authenticated','reminder-owner@example.test',now(),now(),now()),
       ($2,'authenticated','authenticated','reminder-outsider@example.test',now(),now(),now())`, [owner, outsider])
+    await db.query('insert into auth.sessions(id,user_id) values($1,$1),($2,$2)',[owner,outsider]) // SQL role simulation only.
     await db.query(`insert into public.user_agreement_acceptances(user_id,agreement_version,terms_accepted,ai_disclosure_acknowledged,electronic_records_consent)
       values($1,'2026-11-06-v5',true,true,true)`, [owner])
-    await db.query("select set_config('request.jwt.claim.sub',$1,true)", [owner])
+    await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claims',jsonb_build_object('session_id',$1::text)::text,true)", [owner])
     await db.query("insert into public.businesses(id,name,created_by_user_id,timezone) values($1,'Reminder replay',$2,'America/New_York')", [business, owner])
     await db.query("insert into private.business_entitlements(business_id,plan) values($1,'pro') on conflict(business_id) do update set plan='pro',valid_until=null", [business])
     await db.query("insert into public.customers(id,business_id,first_name,last_name,email,preferred_contact) values($1,$2,'Synthetic','Reminder','reminder@example.test','email')", [customer, business])
@@ -39,7 +40,7 @@ export async function verifyReminderReplay(db, localUrl) {
     await db.query('reset role')
     await db.query('commit')
     // An unrelated identity cannot read settings, change the appointment, or claim sends.
-    await editor.query("select set_config('request.jwt.claim.sub',$1,false)", [outsider])
+    await editor.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',jsonb_build_object('session_id',$1::text)::text,false)", [outsider])
     await editor.query('set role authenticated')
     await assert.rejects(editor.query('select public.get_appointment_reminder_settings($1)', [business]), { code: '42501' })
     await assert.rejects(editor.query("select public.save_appointment_reminder_override($1,$2,'off',48,'email')", [business, appointment]), { code: '42501' })

@@ -1,6 +1,6 @@
 # Abuse prevention and cost controls — November 12, 2026
 
-Candidate reconciled with private beta 260c271 after the PR97 release; all released reminder-history and PR102 layout changes are preserved. SEC-03 remains open; this is provider-independent hardening, not hosted ingress or provider billing certification.
+Candidate reconciled with private beta 65a0b79 after PR97 and PR103 merged; all released reminder-history and PR102 layout changes are preserved. SEC-03 remains open; this is provider-independent hardening, not hosted ingress or provider billing certification.
 
 ## Changes
 
@@ -36,7 +36,7 @@ The complete migration replay now runs 20 independent PostgreSQL connections aga
 
 ## Coordinated release
 
-Do not merge/deploy until exact-head required CI passes and concurrent PR103 session security, PR104 owner-export work and PR106 layout changes are reconciled; preserve the already-released PR97 reminder history. Apply the additive migration before publishing handlers that call `reserve_document_pdf_render`. Preserve current endpoint JWT modes. Deploy all callers of the shared PDF/email helpers together, plus SMS, approval, card, customer-invoice-checkout and existing AI/upload/receipt handlers to expose daily Retry-After correctly. Retain the prior Edge packages for rollback; counters must not be deleted to reset allowances. No production settings, retention, customer data, providers, messages, charges or public launch are changed.
+Do not merge/deploy until exact-head required CI passes and concurrent PR104 owner-export work and PR106 layout changes are reconciled; preserve merged PR103 session security and the already-released PR97 reminder history. Apply the additive migration before publishing handlers that call `reserve_document_pdf_render`. Preserve current endpoint JWT modes. Deploy all callers of the shared PDF/email helpers together, plus SMS, approval, card, customer-invoice-checkout and existing AI/upload/receipt handlers to expose daily Retry-After correctly. Retain the prior Edge packages for rollback; counters must not be deleted to reset allowances. No production settings, retention, customer data, providers, messages, charges or public launch are changed.
 
 References: [Supabase Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits), [Supabase changelog](https://supabase.com/changelog.md), existing `PROVIDER_BURST_LIMITS_2026-11-10.md`.
 

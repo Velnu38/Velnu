@@ -53,16 +53,20 @@ begin
  insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at)
  values(owner_a,'authenticated','authenticated','replay-a@example.test',now(),now(),now()),
        (owner_b,'authenticated','authenticated','replay-b@example.test',now(),now(),now());
+ insert into auth.sessions(id,user_id) values(owner_a,owner_a),(owner_b,owner_b); -- SQL role simulation only
  insert into public.user_agreement_acceptances(user_id,agreement_version,terms_accepted,ai_disclosure_acknowledged,electronic_records_consent)
  values(owner_a,'2026-11-06-v5',true,true,true),(owner_b,'2026-11-06-v5',true,true,true);
  perform set_config('request.jwt.claim.sub',owner_a::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('session_id',owner_a)::text,true);
  insert into public.businesses(id,name,created_by_user_id,timezone) values(business_a,'Replay synthetic A',owner_a,'Pacific/Pago_Pago');
  perform set_config('request.jwt.claim.sub',owner_b::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('session_id',owner_b)::text,true);
  insert into public.businesses(id,name,created_by_user_id,timezone) values(business_b,'Replay synthetic B',owner_b,'Pacific/Kiritimati');
  insert into private.business_entitlements(business_id,plan) values(business_a,'pro'),(business_b,'pro')
  on conflict(business_id) do update set plan='pro',valid_until=null;
 
  perform set_config('request.jwt.claim.sub',owner_a::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('session_id',owner_a)::text,true);
  execute 'set local role authenticated';
  select (now() at time zone timezone)::date into business_today from public.businesses where id=business_a;
  if business_today>=current_date then raise exception 'Replay must exercise different business and server dates' using errcode='23514',constraint='replay_business_date_boundary';end if;
@@ -114,6 +118,7 @@ begin
  if (select count(*) from public.jobs where source_estimate_id=estimate)<>1 then raise exception 'Approval retry duplicated the job' using errcode='23514',constraint='replay_approval_retry';end if;
 
  perform set_config('request.jwt.claim.sub',owner_b::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('session_id',owner_b)::text,true);
  if exists(select 1 from public.service_packages where business_id=business_a) then raise exception 'Second tenant read service packages' using errcode='23514',constraint='replay_packages_tenant';end if;
  if exists(select 1 from public.customers where business_id=business_a) or exists(select 1 from public.invoices where id=invoice) or exists(select 1 from public.jobs where id=job) then raise exception 'Second tenant read another tenant record' using errcode='23514',constraint='replay_tenant_read';end if;
  blocked:=false;begin perform public.get_invoice_reminder_history(business_a,invoice);exception when insufficient_privilege then blocked:=true;end;
