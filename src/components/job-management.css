@@ -1069,3 +1069,15 @@
  .finviant-workspace:has(.phone-job-page) .private-beta-notice strong { font-size: 11px; }
  .finviant-workspace:has(.phone-job-page) .private-beta-notice details > summary { min-height: 28px; }
 }
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .phone-job-page .job-management:has(.jm-compact-job) .jm-mobile-picker label { font-size: 0; gap: 0; }
+ .phone-job-page .job-management:has(.jm-compact-job) .jm-mobile-picker select { font-size: 18px; font-weight: 650; min-height: 56px; border: 0; }
+ .phone-job-page .jm-selected:has(.jm-compact-job) .jm-job-header { display: none; }
+ .phone-job-page .jm-compact-job { background: transparent; border: 0; border-radius: 0; padding: 0; }
+ .phone-job-page .jm-mobile-menu { gap: 14px; }
+ .phone-job-page .jm-mobile-menu h3 { font-size: 26px; }
+ .phone-job-page .jm-quick-grid { gap: 10px; }
+ .phone-job-page .jm-quick-tile { padding: 16px 12px; min-height: 144px; }
+ .phone-job-page .jm-quick-tile strong { font-size: 18px; }
+ .phone-job-page .jm-quick-rows .jm-quick-tile { min-height: 88px; }
+}
