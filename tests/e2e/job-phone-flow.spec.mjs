@@ -147,6 +147,9 @@ test('phone Summary card reference candidate preserves readable controls and act
  const metrics=await page.evaluate(()=>{const rect=s=>{const el=document.querySelector(s),r=el.getBoundingClientRect(),c=getComputedStyle(el);return {x:r.x,y:r.y,width:r.width,height:r.height,font:c.fontSize,weight:c.fontWeight}};return {picker:rect('.jm-mobile-picker select'),card:rect('.jm-phone-workspace'),next:rect('.jm-next-action'),actions:rect('.jm-job-actions'),progress:rect('.jm-progress-line')}});
  expect(metrics.picker.height).toBeGreaterThanOrEqual(44);
  expect(metrics.card.width).toBeGreaterThanOrEqual(362);
+ expect(metrics.card.height).toBeLessThanOrEqual(460);
+ await expect(page.locator(".jm-phone-workspace .jm-notes-disclosure")).toHaveCount(0);
+ await expect(page.locator(".jm-summary-secondary .jm-notes-disclosure")).toBeVisible();
  expect(metrics.actions.height).toBeGreaterThanOrEqual(44);
  await mkdir('tmp/ux-review',{recursive:true});await writeFile('tmp/ux-review/summary-card-metrics.json',JSON.stringify(metrics,null,2));
  await shot(page,'summary-card-candidate-390');
