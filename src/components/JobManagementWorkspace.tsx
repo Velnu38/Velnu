@@ -520,6 +520,7 @@ export default function JobManagementWorkspace({
               <p className="eyebrow">
                 Selected job · {job.id.slice(0, 8).toUpperCase()}
               </p>
+              <span className="jm-phone-status jm-status">{jobStatusLabels[job.status as JobStatus] || job.status}</span>
               <h2>{job.title}</h2>
               <p>
                 {job.customers
