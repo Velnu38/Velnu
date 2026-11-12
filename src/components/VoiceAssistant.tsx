@@ -1,3 +1,4 @@
+import {resolveFinNavigation, finSuggestedDestination, type FinDestination} from '../lib/finNavigation'
 import { finInvoiceDraft, namedInvoiceSource, type FinInvoiceDraft } from '../lib/voiceDocument'
 import { findInvoiceSources, resolveInvoiceSource, type InvoiceSource, type InvoiceSourceTarget } from '../services/finInvoiceSources'
 import { canAccess } from '../lib/workspaceAccess'
@@ -40,7 +41,8 @@ export function FinResponse({result,onNavigate}:{result:FinReply;onNavigate:()=>
   : <a key={key} className="secondary-button" href={href} onClick={onNavigate}>{title}</a>
 })}<details><summary>Records checked and limits</summary><p>Checked {new Date(result.as_of).toLocaleString()}</p><ul>{result.limits?.map((l:string)=><li key={l}>{l}</li>)}</ul></details></section>}
 
-export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: { business: CurrentBusiness; onChanged: () => void; onOpenInvoice: (draft: FinInvoiceDraft | InvoiceSourceTarget) => boolean }) {
+export default function VoiceAssistant({ business, onChanged, onOpenInvoice, onNavigate }: { business: CurrentBusiness; onNavigate?: (destination: FinDestination) => Promise<boolean>; onChanged: () => void; onOpenInvoice: (draft: FinInvoiceDraft | InvoiceSourceTarget) => boolean }) {
+  const lastDestination=useRef<FinDestination|undefined>(undefined)
   const [open, setOpen] = useState(false)
   const [entryRevision,setEntryRevision]=useState(0)
   const [text, setText] = useState('')
@@ -163,6 +165,20 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: {
       }
       return
     }
+    const navigation=resolveFinNavigation(command,lastDestination.current)
+    if(navigation){
+      if('clarification' in navigation){setError(navigation.clarification);return}
+      if(plan){setError('Finish or cancel the current action review before opening another page.');return}
+      if(!onNavigate){setError('Direct navigation is unavailable here. Use the workspace navigation.');return}
+      mutationInFlight.current=true;setBusy(true);setError('')
+      try {
+        if(await onNavigate(navigation.destination)){
+          lastDestination.current=navigation.destination;setOpen(false);reset()
+        }
+      } catch(error){if(mounted.current)setError(error instanceof Error?error.message:'Unable to open this page.')}
+      finally{mutationInFlight.current=false;if(mounted.current)setBusy(false)}
+      return
+    }
     setError('');setMicrophoneFailure(null);setVoiceStatus('');setPlan(null);setExecution(null)
     setBusy(true);setWorkingMessage('Fin is checking your account and preparing the next step…');mutationInFlight.current=true
     const request=retryRequest.current?.text===command?retryRequest.current:{text:command,id:crypto.randomUUID()}
@@ -170,6 +186,7 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: {
     try {
       const response=await requestFin(business.id,thread.current,request.id,command)
       if(!mounted.current)return
+      lastDestination.current=response.plan||response.clarification?undefined:finSuggestedDestination(response.navigation)
       setConversation(turns=>[...turns,{question:command,response}].slice(-12));setPlan(response.plan||null);setExecution(response.execution||null);setText('');retryRequest.current=null
     } catch(error){if(mounted.current){setText(command);setError(error instanceof Error?error.message:'Fin could not complete this request.')}}
     finally{if(mounted.current){setBusy(false);setWorkingMessage('')}mutationInFlight.current=false}
@@ -418,7 +435,7 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice }: {
     catch(error){if(mounted.current)setError(error instanceof Error?error.message:'Cancellation could not be confirmed.')}
     finally{mutationInFlight.current=false;if(mounted.current)setBusy(false)}
   }
-  async function newConversation(){if(plan){try{await cancelFinReview(business.id,thread.current,plan);setPlan(null)}catch{setError('Cancel the pending plan before starting a new conversation.');return}}thread.current=crypto.randomUUID();retryRequest.current=null;setConversation([]);setExecution(null);reset();textAreaRef.current?.focus()}
+  async function newConversation(){if(plan){try{await cancelFinReview(business.id,thread.current,plan);setPlan(null)}catch{setError('Cancel the pending plan before starting a new conversation.');return}}thread.current=crypto.randomUUID();retryRequest.current=null;lastDestination.current=undefined;setConversation([]);setExecution(null);reset();textAreaRef.current?.focus()}
 
   const speechWindow=window as typeof window & {SpeechRecognition?:unknown;webkitSpeechRecognition?:unknown}
   const browserDictationAvailable=typeof speechWindow.SpeechRecognition==='function'||typeof speechWindow.webkitSpeechRecognition==='function'

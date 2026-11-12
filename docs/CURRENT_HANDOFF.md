@@ -10,7 +10,7 @@ Checked November 11, 2026.
 
 - PR94 is merged and published to private beta. Final candidate c2c9a534dcd1337eb233f2b63ffa518fc816e623 passed assessment 43121197565, pricing 43121197581 and complete suite 43121197572. Tested and merged trees match. All 50 original readiness records survive; AI-03 is added open.
 
-- Next: card 03, Fin contextual navigation, when selected. Cards 01 and 02 release work is complete; do not repeat it. All unmet provider, physical-device and public-launch gates remain open. No runtime, migrations, provider activation, real sends or charges occurred in PR94.
+- In progress: card 03, Fin contextual navigation. Implementation and targeted source checks are ready; browser CI, merge and private-beta publication remain pending. Cards 01 and 02 release work is complete; do not repeat it. All unmet provider, physical-device and public-launch gates remain open. No runtime, migrations, provider activation, real sends or charges occurred in PR94.
 
 The unpublished c941e9e object was unavailable locally and on GitHub. No old snapshot was applied. Task cards and the exact 28-package mapping came from the maintained owner guide. Direct old-patch reconciliation remains unavailable.
 
