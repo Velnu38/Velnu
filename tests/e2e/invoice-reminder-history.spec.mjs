@@ -5,6 +5,7 @@ const reply=(route,json,status=200)=>route.fulfill({status,headers,json})
 for(const width of [390,1280])test(`invoice and Send Reminder expose read-only history at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:950});const state=await mock(page,{ai:true});let reads=0
  const invoice={id:E,customer_id:C,invoice_number:'INV-HISTORY',status:'overdue',issue_date:'2026-01-01',due_date:'2026-01-02',created_at:'2026-01-01T12:00:00Z',total:105,subtotal:100,tax_amount:5,amount_paid:25,balance_due:80,customers:customer}
+ await page.route('**/rest/v1/rpc/get_invoice_payment_operations',route=>reply(route,{state:'clear',refunds:[]}))
  await page.route('**/rest/v1/invoices?*',route=>reply(route,new URL(route.request().url()).searchParams.has('id')?invoice:[invoice]))
  const row={id:E,created_at:'2026-11-01T12:00:00Z',channel:'email',recipient:'synthetic@example.test',source:'automatic',initiator:'Automatic rule',status:'uncertain',attempts:1,detail:null,events:[]}
  await page.route('**/rest/v1/rpc/get_invoice_reminder_history',route=>{reads++;return reply(route,{invoice_id:E,items:[row],has_more:false,last_attempt:row,last_success:null})})
