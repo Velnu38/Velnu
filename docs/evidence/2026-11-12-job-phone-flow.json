@@ -14,10 +14,11 @@
     "jobManagement": "7 service/database tests and 5 existing DOM scenarios pass",
     "phoneFlow": "2 new DOM journeys pass: menu reachability, task save, invoice/cost split, role limits, unsaved notes and queue return",
     "typecheckBuild": "TypeScript/Vite/startup checks pass",
-    "browserLimit": "Chromium launch fails with socket() Operation not permitted; hosted browser tests required"
+    "browserLimit": "Chromium launch fails with socket() Operation not permitted; hosted browser tests required",
+    "jobExecution": "9 service/database/PDF tests and 4 DOM scenarios pass"
   },
   "hostedValidation": {
-    "status": "pending",
+    "status": "passed",
     "coverage": [
       "320x568",
       "390x844",
@@ -27,10 +28,68 @@
       "simulated iPhone WebKit",
       "desktop resize",
       "All section destinations, full-screen editor size, Cancel/unsaved guard, refresh/deep links and no sends"
-    ]
+    ],
+    "candidateCommit": "d7719c111485ff22097bb3919f6d927c8e67cfd3",
+    "workflows": [
+      {
+        "id": 43140003995,
+        "result": "success"
+      },
+      {
+        "id": 43140003963,
+        "result": "success"
+      },
+      {
+        "id": 43140003991,
+        "result": "success"
+      },
+      {
+        "id": 43140003989,
+        "result": "success"
+      },
+      {
+        "id": 43140004033,
+        "result": "success"
+      }
+    ],
+    "releaseJobs": "All 22 jobs passed, including six Chromium shards and four iPhone WebKit shards",
+    "visualReview": "Reviewed rendered Summary, Work, Billing, Records, task detail and editor captures, including 320px small phone and 844x390 landscape. Editor viewport x/y/width/height, overflow, all section destinations, role limits, deep links, Cancel and unsaved-change guards pass.",
+    "repair": "First candidate exposed CSS decorative glyphs in shortcut accessible names. Explicit labels fix this; final browser regressions pass. Secondary completion review remains in Job actions with its existing safeguards.",
+    "screenshots": {
+      "workflow": "https://github.com/Velnu38/Velnu/actions/runs/43140004033",
+      "artifacts": [
+        13908319213,
+        13908768122,
+        13909351849
+      ]
+    }
   },
   "release": {
-    "status": "pending"
+    "status": "verified private beta",
+    "pullRequest": 99,
+    "mergeCommit": "4aa808e79ad49a314b60ed945d9a3c82b035f649",
+    "testedTree": "6d5ad6222b9921ad9889b6c1d95561724d406480",
+    "mergedTreeMatches": true,
+    "deployment": "dpl_6wMZDuCScLmtuA4nM4CRRkCwgAbo",
+    "state": "READY",
+    "target": null,
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "httpStatus": 200,
+    "privateHeaders": [
+      "private, no-store, max-age=0",
+      "noindex, nofollow, noarchive"
+    ],
+    "assets": [
+      "index-oYrRnmjJ.js",
+      "App-e74TdbTL.js",
+      "JobsPage-Bd8tTfaD.css"
+    ],
+    "betaSupabase": "xvybcmyoblfgzokaifsx",
+    "productionSupabaseAbsent": true,
+    "providerWrites": false
   },
   "openGates": [
     "Physical iPhone/Android acceptance",

@@ -4,7 +4,7 @@ Checked November 12, 2026 UTC.
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified application release: PR98 merge c628a052173dc6a755e132865158c47f0733b8ae, READY deployment dpl_GuE6MHxGTXofwG74SpRVnhDw8ZYn on both Finviant domains. Phone Job Management layout only; all five CI workflows and 22 release jobs passed. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Current verified application release: PR99 merge 4aa808e79ad49a314b60ed945d9a3c82b035f649, READY deployment dpl_6wMZDuCScLmtuA4nM4CRRkCwgAbo on both Finviant domains. Full-width responsive phone Job Management menus, focused detail screens and full-viewport editors. All five required workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
@@ -14,6 +14,6 @@ Checked November 12, 2026 UTC.
 
 [Card 04 evidence](evidence/2026-11-12-effective-reminders.json) · [Card 03 evidence](evidence/2026-11-11-fin-navigation.json) · [Generated queue](../ASSESSMENT_REPORT.md) · [Registry](launch-readiness.json)
 
-- Phone Job Management layout is complete and deployed. Application changes are CSS-only at widths <=820px. All existing controls, sections, permissions, links, records and balances are retained. Browser checks passed at 320/390/430px and screenshots were inspected. No provider/backend change or real send/charge. PR97 and the earlier sequential queue remain paused. See [layout evidence](evidence/2026-11-12-job-mobile-layout.json).
+- PR99 replaces the rejected PR98 phone density with the approved responsive Summary/Work/Billing/Records menus and focused details. Phone layouts use available width with safe-area padding; editors fill the viewport. Existing business actions, permissions, section deep links, queue search/filter/paging, unsaved edits and completion safeguards remain. Secondary completion review is under Job actions. Desktop behavior remains available. No backend/provider change or real send/charge.
 
-- Current work: replace the rejected PR98 phone density with the owner-approved full-width Summary/Work/Billing/Records menus and focused details/editors. Base 78bd9567f8dfb77b944abbbe9c1a0d73dd014934; no PR97 changes. Hosted validation and beta release pending. See [phone flow evidence](evidence/2026-11-12-job-phone-flow.json).
+- All 51 readiness records and acceptance criteria survive. Broader JOB-01/UX-01, physical iPhone/Android and provider gates remain open. PR97 and the earlier sequential queue remain paused. See [phone flow evidence](evidence/2026-11-12-job-phone-flow.json). Hosted screenshots and CI receipts are linked in that evidence; local Chromium could not launch in this environment, so real browser verification used hosted Chromium and WebKit.
