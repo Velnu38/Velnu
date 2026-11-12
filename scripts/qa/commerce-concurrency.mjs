@@ -20,7 +20,8 @@ export async function verifyCommerceConcurrency(db,connectionString,{projectId})
    const a={user:randomUUID(),business:randomUUID(),customer:randomUUID(),estimates:[]};actors.push(a)
    await db.query("insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at) values($1,'authenticated','authenticated',$2,now(),now(),now())",[a.user,'commerce-'+n+'@example.test'])
    await db.query("insert into public.user_agreement_acceptances(user_id,agreement_version,terms_accepted,ai_disclosure_acknowledged,electronic_records_consent) values($1,'2026-11-06-v5',true,true,true)",[a.user])
-   await db.query("select set_config('request.jwt.claim.sub',$1,true)",[a.user])
+   await db.query('insert into auth.sessions(id,user_id) values($1,$1)',[a.user]) // Synthetic SQL session; genuine Auth runs separately.
+   await db.query("select set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claims',jsonb_build_object('session_id',$1::text)::text,true)",[a.user])
    await db.query("insert into public.businesses(id,name,created_by_user_id,timezone) values($1,'Synthetic concurrency',$2,'UTC')",[a.business,a.user])
    await db.query("insert into private.business_entitlements(business_id,plan) values($1,'pro') on conflict(business_id) do update set plan='pro',valid_until=null",[a.business])
    await db.query("insert into public.customers(id,business_id,first_name) values($1,$2,'Synthetic customer')",[a.customer,a.business])
@@ -45,7 +46,7 @@ export async function verifyCommerceConcurrency(db,connectionString,{projectId})
    for(const a of group){await db.query('select id from public.invoices where id=$1 for update',[a.invoice]);await db.query("select pg_advisory_xact_lock(hashtextextended('finviant-schedule:'||$1,0))",[a.business])}
    const pending=peers.map(async(c,i)=>{
     const a=group[Math.floor(i/4)],kind=i%4
-    await c.query('reset role');await c.query("select set_config('request.jwt.claim.sub',$1,false)",[a.user]);await c.query('set role authenticated')
+    await c.query('reset role');await c.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',jsonb_build_object('session_id',$1::text)::text,false)",[a.user]);await c.query('set role authenticated')
     const started=performance.now()
     try{return {ok:true,kind,value:(await (kind<2?c.query('select public.book_approved_estimate($1,$2) v',[a.estimates[kind],a.input]):c.query("select public.record_manual_payment($1,$2,$3,60,'cash','Synthetic race') v",[a.business,a.invoice,randomUUID()]))).rows[0].v}}
     catch(e){return {ok:false,kind,code:e.code,expected:kind<2?e.code==='23P01':e.code==='P0001'&&e.message==='Payment exceeds the remaining balance'}}
