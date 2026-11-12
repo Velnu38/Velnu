@@ -161,6 +161,9 @@
  .phone-job-page .jm-completed-tasks{border:1px solid #cbd5df;border-radius:12px;margin-top:12px;background:white}
  .phone-job-page .jm-completed-tasks>summary{padding:12px 14px;font-size:18px;font-weight:700;cursor:pointer;min-height:44px}
  .phone-job-page .jm-completed-tasks .jm-task-list{padding:12px}
+ .phone-job-page .jm-task-progress::-webkit-progress-bar{background:#dce3e9;border-radius:8px}
+ .phone-job-page .jm-task-progress::-webkit-progress-value{background:#008673;border-radius:8px}
+ .phone-job-page .jm-task-progress::-moz-progress-bar{background:#008673;border-radius:8px}
  .phone-job-page .jm-task-progress{width:100%;height:10px;accent-color:#008673;grid-column:1/-1;border:0;border-radius:8px;overflow:hidden}
  .phone-job-page .jm-menu-context:has(>.secondary-button){grid-template-columns:minmax(0,1fr) auto;align-items:center}
  .phone-job-page .jm-menu-context:has(>.secondary-button)>strong{font-size:13px;text-transform:uppercase}
@@ -171,6 +174,6 @@
  body:has(.phone-job-page) .form-dialog :is(label,input,select,textarea){font-size:16px;max-width:100%;min-width:0}
  body:has(.phone-job-page) .form-dialog .form-grid{grid-template-columns:1fr}
  body:has(.phone-job-page) .form-dialog .modal-head h2{font-size:25px}
- body:has(.phone-job-page) .form-dialog .modal-actions{position:sticky;bottom:-18px;background:white;padding:14px 0;display:flex;flex-wrap:wrap;gap:10px;z-index:1}
- body:has(.phone-job-page) .form-dialog .modal-actions button{flex:1 1 auto;min-height:48px;font-size:16px;border-radius:10px}
+ body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions){position:sticky;bottom:-18px;background:white;padding:14px 0;display:flex;flex-wrap:wrap;gap:10px;z-index:1}
+ body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions) button{flex:1 1 auto;min-height:48px;font-size:16px;border-radius:10px}
 }
