@@ -456,6 +456,7 @@ export default function JobManagementWorkspace({
               {job.customers[0]?.phone && (
                 <a
                   className="secondary-button compact"
+                  aria-label="Call customer"
                   href={"tel:" + job.customers[0].phone}
                 >
                   Call customer
@@ -471,6 +472,7 @@ export default function JobManagementWorkspace({
               <button
                 type="button"
                 className="secondary-button compact"
+                aria-label="Job details"
                 onClick={() => setDetails(true)}
               >
                 Job details
@@ -555,7 +557,7 @@ export default function JobManagementWorkspace({
             <div className="jm-inline-actions">
               {step.action==='invoice'?<a className="primary-button" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>{step.label}</a>:
                 <button type="button" className="primary-button" disabled={busy||!data||loading||!!error} onClick={takeNextStep}>{step.label}</button>}
-              {action==='complete'&&step.action!=='complete'&&<button type="button" className="secondary-button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
+              {!compactSections&&action==='complete'&&step.action!=='complete'&&<button type="button" className="secondary-button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
             </div>
           </div>
           {data && alertCount > 0 && (
@@ -1354,6 +1356,7 @@ export default function JobManagementWorkspace({
           )}
           <footer className="jm-workspace-footer">
             <RecordMoreMenu label="Job actions" disabled={busy}>
+              {compactSections && action === 'complete' && step.action !== 'complete' && <button type="button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
               {canEdit && !closed && (
                 <button
                   type="button"

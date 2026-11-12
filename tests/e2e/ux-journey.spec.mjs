@@ -63,6 +63,7 @@ for(const width of [320,390,430])test(`mobile job groups retain all sections, co
   }
   await page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:'Summary',exact:true}).click()
   await expect(page.locator('.jm-next-action')).toContainText('Review materials')
+  await page.locator('.jm-workspace-footer summary').click()
   await page.getByRole('button',{name:'Review completion',exact:true}).click()
   await expect(page.getByRole('dialog',{name:'Complete job review'}).getByRole('button',{name:'Complete job',exact:true})).toBeDisabled()
   await page.getByRole('button',{name:'Keep working',exact:true}).click()

@@ -23,7 +23,7 @@ async function fixture(page,{restricted=false}={}){
 const area=(page,name)=>page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name,exact:true})
 const tile=(page,name)=>page.locator('.jm-quick-tile').filter({has:page.getByText(name,{exact:true})})
 async function fits(page){expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)}
-async function shot(page,name){await mkdir('tmp/ux-review',{recursive:true});await page.screenshot({path:`tmp/ux-review/phone-flow-${name}.png`,fullPage:true})}
+async function shot(page,name){await mkdir('tmp/ux-review',{recursive:true});await page.screenshot({path:`tmp/ux-review/phone-flow-${name}.png`,fullPage:!name.startsWith('editor-')})}
 for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:844,height:390}])test(`phone job flow fills viewport, preserves every destination and full-screen forms at ${viewport.width}x${viewport.height}`,async({page})=>{
  test.setTimeout(60000)
  await page.setViewportSize(viewport);const state=await fixture(page)
@@ -46,7 +46,7 @@ for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,
  await area(page,'Work').click();await tile(page,'Tasks & templates').click();await shot(page,`tasks-${viewport.width}`)
  await page.getByRole('button',{name:'+ Add task',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'Add task',exact:true});await expect(dialog).toBeVisible()
- const rect=await dialog.boundingBox();expect(Math.abs(rect.width-viewport.width)).toBeLessThan(2);expect(Math.abs(rect.height-viewport.height)).toBeLessThan(2)
+ const rect=await dialog.boundingBox();expect(Math.abs(rect.x)).toBeLessThan(2);expect(Math.abs(rect.y)).toBeLessThan(2);expect(Math.abs(rect.width-viewport.width)).toBeLessThan(2);expect(Math.abs(rect.height-viewport.height)).toBeLessThan(2)
  await expect(dialog.getByLabel('Work to complete')).toBeFocused();await dialog.getByLabel('Work to complete').fill('Keep this unsaved task')
  page.once('dialog',d=>d.dismiss());await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await expect(dialog.getByLabel('Work to complete')).toHaveValue('Keep this unsaved task')
  await shot(page,`editor-${viewport.width}`)
