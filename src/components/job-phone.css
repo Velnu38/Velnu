@@ -121,6 +121,11 @@
  .phone-job-page :is(button,a,summary):focus-visible{outline:3px solid #137d69;outline-offset:3px}
  .phone-job-page:has(.jm-compact-job) .jm-summary{display:none}
  .phone-job-page .jm-mobile-heading:empty{display:none}
+ .phone-job-page .jm-panel h3{font-size:24px;line-height:1.25}
+ .phone-job-page .jm-panel h4{font-size:20px;line-height:1.3}
+ .phone-job-page .jm-panel .jm-activity strong{font-size:18px;font-weight:700}
+ .phone-job-page .jm-panel .jm-activity small{font-size:14px}
+ .phone-job-page .jm-panel .work-plan-section>summary{font-size:16px;min-height:44px;padding:12px}
  .phone-job-page .jm-panel{font-size:16px;line-height:1.45;color:#172b40}
  .phone-job-page .jm-panel :is(label,p,dt,dd){font-size:16px}
  .phone-job-page .jm-panel :is(.primary-button,.secondary-button){min-height:44px;border-radius:10px;padding:10px 14px;font-size:16px;font-weight:700}
@@ -140,7 +145,7 @@
  .phone-job-page .jm-panel .jm-lines small{font-size:14px}
  .phone-job-page .jm-menu-finances .jm-financial-lines{font-size:16px}
  .phone-job-page .jm-workspace-footer{border-top:0;padding-top:0}
- .phone-job-page .jm-workspace-footer>div>button{font-size:16px;font-weight:700;min-height:44px;border-radius:10px}
+ .phone-job-page .jm-workspace-footer .record-more>summary{font-size:16px;font-weight:700;min-height:44px;border-radius:10px}
  .phone-job-page .jm-menu-note{margin:-8px 0 0;font-size:16px;color:#566273}
  .phone-job-page .jm-menu-context{padding:14px;border:1px solid #cbd5df;border-radius:12px;font-size:16px;display:grid;gap:8px}
  .phone-job-page .jm-menu-context h4{font-size:20px;margin:0;color:#075c4c}
