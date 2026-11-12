@@ -43,7 +43,7 @@
  .phone-job-page .jm-layout{display:block;width:100%;min-width:0}
  .phone-job-page .jm-queue,.phone-job-page .jm-welcome{display:none}
  .phone-job-page .jm-browsing .jm-queue{display:block;padding:16px;margin-top:12px}
- .phone-job-page .jm-mobile-picker{display:block;margin:0;padding:8px 12px 10px;background:white;border:1px solid #d2dce2;border-radius:14px 14px 0 0}
+ .phone-job-page .jm-mobile-picker{display:block;overflow:hidden;margin:0;padding:8px 12px 10px;background:white;border:1px solid #d2dce2;border-radius:14px 14px 0 0}
  .phone-job-page .jm-mobile-picker label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;overflow:hidden;gap:4px;font-size:16px;font-weight:700}
  /* Contain WebKit native selected-option text, not the page or native picker popup. */
  .phone-job-page .jm-mobile-picker:focus-within{outline:3px solid #137d69;outline-offset:2px}
@@ -186,9 +186,13 @@
  body:has(.phone-job-page) .form-dialog{font-family:FinviantJobSans,Arial,sans-serif;font-synthesis:weight;box-sizing:border-box;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain}
  body:has(.phone-job-page) .form-dialog :is(label,input,select,textarea){font-size:16px;max-width:100%;min-width:0}
  body:has(.phone-job-page) .form-dialog .form-grid{grid-template-columns:1fr}
+ body:has(.phone-job-page) .form-dialog :is(.primary-button,.secondary-button,.google-maps-link){min-height:44px;font-size:16px;font-weight:700;border-radius:10px;padding:10px 14px}
+ body:has(.phone-job-page) .form-dialog .google-maps-tools.compact .google-maps-link{min-width:0;min-height:44px;font-size:16px;padding:10px;border-radius:10px}
+ body:has(.phone-job-page) .form-dialog .record-tabs button{min-height:44px;font-size:14px}
+ body:has(.phone-job-page) .form-dialog .icon-button{width:44px;height:44px}
  body:has(.phone-job-page) .form-dialog .modal-head h2{font-size:25px}
  body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions){position:sticky;bottom:-18px;background:white;padding:14px 0;display:flex;flex-wrap:wrap;gap:10px;z-index:1}
- body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions) button{flex:1 1 auto;min-height:48px;font-size:16px;border-radius:10px}
+ body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions) button{flex:1 1 auto;min-height:44px;font-size:16px;border-radius:10px}
 }
 
 @media(max-width:360px){
