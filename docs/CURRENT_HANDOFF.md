@@ -4,7 +4,7 @@ Checked November 12, 2026 UTC.
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified beta: PR96 merge d9e954783ab838050ad354f7584879425e77cfae, READY deployment dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ on both Finviant domains. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Current verified application release: PR98 merge c628a052173dc6a755e132865158c47f0733b8ae, READY deployment dpl_GuE6MHxGTXofwG74SpRVnhDw8ZYn on both Finviant domains. Phone Job Management layout only; all five CI workflows and 22 release jobs passed. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
@@ -14,4 +14,4 @@ Checked November 12, 2026 UTC.
 
 [Card 04 evidence](evidence/2026-11-12-effective-reminders.json) · [Card 03 evidence](evidence/2026-11-11-fin-navigation.json) · [Generated queue](../ASSESSMENT_REPORT.md) · [Registry](launch-readiness.json)
 
-- Current authorized work: phone Job Management layout only, isolated from unmerged PR97 on beta head 18e83aed88fdfdf27b81599f62262ddc4547cb04. Existing functionality is retained; no new functionality. Hosted CI and deployment are pending. See [layout evidence](evidence/2026-11-12-job-mobile-layout.json).
+- Phone Job Management layout is complete and deployed. Application changes are CSS-only at widths <=820px. All existing controls, sections, permissions, links, records and balances are retained. Browser checks passed at 320/390/430px and screenshots were inspected. No provider/backend change or real send/charge. PR97 and the earlier sequential queue remain paused. See [layout evidence](evidence/2026-11-12-job-mobile-layout.json).

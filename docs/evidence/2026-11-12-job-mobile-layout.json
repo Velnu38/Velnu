@@ -7,15 +7,216 @@
     "test:job-management": "PASS: 7 service/database tests and 5 DOM scenarios (mixed, approved, restricted, empty, failure)",
     "build": "PASS: TypeScript, Vite and startup checks during Playwright webserver preparation",
     "browser": "Local browser launch blocked by socket() Operation not permitted. Hosted browser verification required before merge.",
-    "diffCheck": "PASS"
+    "diffCheck": "PASS",
+    "test:job-execution": "PASS: 9 service/database/PDF tests and 4 DOM scenarios (planned visits, cost review, report, visit failure)",
+    "test:jobs-overview": "PASS: 5 DOM scenarios (mixed, history, empty, restricted, failure)",
+    "assessment": "PASS: 10 registry tests and generated-report consistency; all 51 task records unchanged"
   },
   "browserCoverage": "Existing section reachability/completion review, selector and details visibility, 44px group targets, scoped accessibility and overflow at 320/390/430px; existing desktop journeys retained.",
   "release": {
-    "status": "pending required CI and private-beta deployment"
+    "commit": "c628a052173dc6a755e132865158c47f0733b8ae",
+    "deploymentId": "dpl_GuE6MHxGTXofwG74SpRVnhDw8ZYn",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "status": "READY; HTTP 200 on both domains",
+    "sourceTreeMatchesTested": true,
+    "privateHeaders": "private, no-store, max-age=0; noindex, nofollow, noarchive",
+    "assets": {
+      "app": "App-DoYknqBF.js",
+      "css": "JobsPage-D6vBp66Q.css",
+      "beta": true,
+      "production": false,
+      "phoneSizing": true,
+      "greenPanel": true
+    },
+    "ci": [
+      {
+        "id": 43134628832,
+        "name": "Finviant authentication access checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 43134628822,
+        "name": "Finviant assessment maintenance",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 43134628842,
+        "name": "Home screen checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 43134628974,
+        "name": "Pricing tier checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 43134629007,
+        "name": "Complete automated test checks",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "completeSuiteJobs": [
+      {
+        "id": 130907014184,
+        "name": "native-app-handoffs",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014392,
+        "name": "pure-deno-tests",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014432,
+        "name": "iPhone WebKit (4/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014445,
+        "name": "iPhone WebKit (3/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014472,
+        "name": "node-tests",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014478,
+        "name": "private-beta-email",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014479,
+        "name": "iPhone WebKit (1/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014622,
+        "name": "isolated-provider-workload",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014658,
+        "name": "DOM checks (2/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014677,
+        "name": "DOM checks (4/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014732,
+        "name": "DOM checks (3/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014827,
+        "name": "iPhone WebKit (2/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014848,
+        "name": "desktop-and-scheduling / Full browser regression (3/6)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014871,
+        "name": "desktop-and-scheduling / Full browser regression (4/6)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014932,
+        "name": "desktop-and-scheduling / Full browser regression (1/6)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014951,
+        "name": "desktop-and-scheduling / checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014953,
+        "name": "desktop-and-scheduling / Full browser regression (6/6)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014958,
+        "name": "desktop-and-scheduling / Full browser regression (5/6)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014961,
+        "name": "desktop-and-scheduling / Full browser regression (2/6)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907014967,
+        "name": "DOM checks (1/4)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130907015067,
+        "name": "migrations / postgres-17",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 130909934824,
+        "name": "Release validation",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
   },
   "openGates": [
     "Physical iPhone/Android acceptance",
     "Broader JOB-01 and UX-01 criteria",
     "Existing provider and public-launch gates remain unchanged"
-  ]
+  ],
+  "candidateCommit": "ba5ca21c209cc3f3d4381a77c149eee4ac1994c6",
+  "candidateTree": "e3c19f7f59a2f22e079021f3d584a2666b0b1723",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/98",
+  "visualReview": {
+    "status": "PASS",
+    "widths": [
+      320,
+      390,
+      430
+    ],
+    "artifactId": 13906233837,
+    "workflowRun": "https://github.com/Velnu38/Velnu/actions/runs/43134629007",
+    "browserJobId": 130907014953,
+    "checks": "All existing section controls remain visible and reachable; full labels fit, 44px targets, accessibility, completion safeguard and no page overflow pass. Screenshots inspected at 320 and 390px.",
+    "correction": "Earlier 9bfb06f candidate exposed 320px label overflow; corrected column widths in ba5ca21 and all three phone tests passed."
+  }
 }

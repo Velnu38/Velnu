@@ -14,15 +14,15 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified beta: PR96 merge d9e954783ab838050ad354f7584879425e77cfae, READY deployment dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ on both Finviant domains. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Current verified application release: PR98 merge c628a052173dc6a755e132865158c47f0733b8ae, READY deployment dpl_GuE6MHxGTXofwG74SpRVnhDw8ZYn on both Finviant domains. Phone Job Management layout only; all five CI workflows and 22 release jobs passed. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
 - PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.
 
-- Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges.
+- Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.
 
-- The sequential task queue and unmerged PR97 are paused by the owner. Current authorized work is the phone Job Management layout only, isolated from PR97 on the deployed beta baseline. No new functionality.
+- The sequential task queue and unmerged PR97 remain paused by the owner. Phone Job Management layout is merged and deployed; no functionality was added or removed. Actual-phone and other provider acceptance gates remain open.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
