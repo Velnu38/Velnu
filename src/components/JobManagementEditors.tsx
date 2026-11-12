@@ -502,6 +502,7 @@ export function JobTaskList({
   zone,
   canEdit,
   busy,
+  collapseCompleted = false,
   onToggle,
   onEdit,
   onRemove,
@@ -511,21 +512,14 @@ export function JobTaskList({
   zone: string;
   canEdit: boolean;
   busy: boolean;
+  collapseCompleted?: boolean;
   onToggle: (task: JobTask, completed: boolean) => void;
   onEdit: (task: JobTask) => void;
   onRemove: (task: JobTask) => void;
 }) {
   const today = DateTime.now().setZone(zone).toISODate()!;
-  return (
-    <ul className="job-checklist jm-task-list">
-      {[...tasks]
-        .sort(
-          (a, b) =>
-            Number(a.completed) - Number(b.completed) ||
-            Number(b.priority === "high") - Number(a.priority === "high") ||
-            (a.due_on || "9999").localeCompare(b.due_on || "9999"),
-        )
-        .map((t) => (
+  const sorted=[...tasks].sort((a,b)=>Number(a.completed)-Number(b.completed)||Number(b.priority==='high')-Number(a.priority==='high')||(a.due_on||'9999').localeCompare(b.due_on||'9999'));
+  const renderTask=(t:JobTask)=>(
           <li key={t.id}>
             <label>
               <input
@@ -574,8 +568,9 @@ export function JobTaskList({
                 </button>
               </div>
             )}
-          </li>
-        ))}
-    </ul>
-  );
+          </li>);
+  return <>
+    <ul className="job-checklist jm-task-list">{sorted.filter(t=>!collapseCompleted||!t.completed).map(renderTask)}</ul>
+    {collapseCompleted && sorted.some(t=>t.completed) && <details className="jm-completed-tasks"><summary>Completed tasks ({sorted.filter(t=>t.completed).length})</summary><ul className="job-checklist jm-task-list">{sorted.filter(t=>t.completed).map(renderTask)}</ul></details>}
+  </>;
 }

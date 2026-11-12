@@ -554,7 +554,7 @@ export default function JobManagementWorkspace({
           )}
           {(!compactSections || (mobileHome && section === "overview")) && <>
           <div className="jm-next-action">
-            <div><small>Next action</small><strong>{step.detail}</strong></div>
+            <div><small>Next action</small><strong title={step.detail}>{compactSections && step.label==='Review visit' ? 'Upcoming visit' : step.detail}</strong></div>
             <div className="jm-inline-actions">
               {step.action==='invoice'?<a className="primary-button" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>{step.label}</a>:
                 <button type="button" className="primary-button" disabled={busy||!data||loading||!!error} onClick={takeNextStep}>{step.label}</button>}
@@ -862,12 +862,13 @@ export default function JobManagementWorkspace({
               >
                 <header className="jm-section-heading">
                   <div>
-                    <h3>Tasks</h3>
+                    <h3>{compactSections ? "Tasks & templates" : "Tasks"}</h3>
                     <p>
                       {data.tasks.filter((t) => t.completed).length} of{" "}
                       {data.tasks.length} complete
                     </p>
                   </div>
+                  {compactSections && section==='tasks' && <progress className="jm-task-progress" aria-label="Task completion" value={data.tasks.filter(t=>t.completed).length} max={Math.max(1,data.tasks.length)}/>}
                   {canEdit && !closed && (
                     <div className="jm-inline-actions">
                       <button
@@ -888,6 +889,7 @@ export default function JobManagementWorkspace({
                   )}
                 </header>
                 <JobTaskList
+                  collapseCompleted={compactSections}
                   tasks={data.tasks}
                   team={team}
                   zone={zone}

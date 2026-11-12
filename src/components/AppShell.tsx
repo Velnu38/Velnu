@@ -176,7 +176,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   return (
-    <WorkspaceNavigation.Provider value={back}><div className={`app-shell finviant-workspace${view === 'dashboard' ? ' home-view' : ''}`} onClick={openAppLink}>
+    <WorkspaceNavigation.Provider value={back}><div className={`app-shell finviant-workspace${view === 'dashboard' ? ' home-view' : ''}${view === 'work' ? ' job-phone-shell' : ''}`} onClick={openAppLink}>
       <aside className="sidebar">
         <div className="sidebar-brand"><FinBrand wordmark/></div>
         <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} aria-current={activeDestination === item.id ? 'page' : undefined} className={activeDestination === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon"><WorkspaceIcon kind={item.id}/></span>{item.label}</button>)}<button type="button" aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={!mobilePrimary.includes(activeDestination)||showMobileMore?'active':''} onClick={() => setShowMobileMore(true)}><span className="nav-icon"><WorkspaceIcon kind="more"/></span>More</button></nav>
