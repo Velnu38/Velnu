@@ -392,6 +392,7 @@ export default function JobManagementWorkspace({
   }
   const date = (value: string) =>
     DateTime.fromISO(value).setZone(zone).toFormat("EEE, MMM d · h:mm a");
+  const phoneDate = (value: string) => DateTime.fromISO(value).setZone(zone).toFormat("MMM d · h:mm a");
   const tabs = (Object.keys(sectionLabels) as Section[]).filter(
     (s) => !["billing", "changes"].includes(s) || canBill,
   );
@@ -407,7 +408,7 @@ export default function JobManagementWorkspace({
   const alertCount = Number(missingMaterials.length > 0 && !closed) + Number(outstandingTasks.some(t=>t.due_on && t.due_on < DateTime.now().setZone(zone).toISODate()!) && !closed) + Number(unbilledChanges.length > 0) + Number(pendingChanges.length > 0) + Number(!closed && !job?.assigned_user_ids?.length && canSchedule);
   const menuItems:JobMenuItem[] = activeGroup.label === 'Work' ? [
     {key:'tasks',label:'Tasks & templates',description:data ? `${data.tasks.filter(t=>t.completed).length} of ${data.tasks.length} complete` : 'Work checklist',onClick:()=>selectSection('tasks')},
-    {key:'schedule',label:'Visits & crew',description:booked ? date(job!.active_appointment!.starts_at) : 'Review visits and assignments',onClick:()=>selectSection('schedule')},
+    {key:'schedule',label:'Visits & crew',description:booked ? phoneDate(job!.active_appointment!.starts_at) : 'Review visits and assignments',onClick:()=>selectSection('schedule')},
     {key:'materials',label:'Materials',description:missingMaterials.length ? `${missingMaterials.length} not received` : 'Review supplies and quantities',onClick:()=>selectSection('materials')},
     {key:'photos',label:'Photos & expenses',description:'View job records',onClick:()=>selectSection('photos')},
   ] : activeGroup.label === 'Billing' ? [
@@ -625,7 +626,7 @@ export default function JobManagementWorkspace({
             {mobileDetail && <h3>{section === 'billing' ? (mobileBilling === 'costs' ? 'Costs & budget' : 'Invoices') : sectionLabels[section]}</h3>}
           </div>}
           {data && mobileHome && section === 'overview' && <section className="jm-phone-summary" aria-label="Job summary">
-            <dl className="jm-visit-facts"><div><dt>Next visit</dt><dd>{booked ? date(job.active_appointment!.starts_at) : 'Not scheduled'}</dd></div><div><dt>Assigned crew</dt><dd>{job.assigned_user_ids?.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ') || 'Not assigned'}</dd></div></dl>
+            <dl className="jm-visit-facts"><div><dt>Next visit</dt><dd>{booked ? phoneDate(job.active_appointment!.starts_at) : 'Not scheduled'}</dd></div><div><dt>Assigned crew</dt><dd>{job.assigned_user_ids?.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ') || 'Not assigned'}</dd></div></dl>
             {quickActions}
             <p className="jm-progress-line">Tasks {data.tasks.filter(t=>t.completed).length}/{data.tasks.length} complete · {missingMaterials.length ? `${missingMaterials.length} materials not received` : 'No outstanding materials'}</p>
             <details className="jm-notes-disclosure"><summary>Job notes &amp; access instructions</summary>{notesEditor}</details>
@@ -637,7 +638,7 @@ export default function JobManagementWorkspace({
               {data.billing_access && <><div><dt>Deposit received</dt><dd>{money(depositPaid)}</dd></div><div><dt>Issued invoice balance</dt><dd>{money(balance)}</dd></div></>}
             </dl><p className="quiet">Recorded costs may be incomplete. Drafts are excluded from the issued balance.</p></div>}
           </JobMobileMenu>}
-          {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{date(job.active_appointment!.starts_at)}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
+          {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{phoneDate(job.active_appointment!.starts_at)}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
           {data && mobileHome && activeGroup.label==='Records' && data.activity.length>0 && <section className="jm-menu-context"><h4>Latest activity</h4><Activity entries={data.activity.slice(0,1)} zone={zone}/></section>}
           {data && mobileHome && activeGroup.label==='Records' && <button type="button" className="jm-record-details" onClick={()=>setDetails(true)}><JobMenuIcon kind="billing"/><strong>Job details</strong><span aria-hidden="true">›</span></button>}
 

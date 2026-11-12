@@ -41,10 +41,10 @@
  .phone-job-page .jm-layout{display:block;width:100%;min-width:0}
  .phone-job-page .jm-queue,.phone-job-page .jm-welcome{display:none}
  .phone-job-page .jm-browsing .jm-queue{display:block;padding:16px;margin-top:12px}
- .phone-job-page .jm-mobile-picker{display:block;margin:0;padding:10px 12px 14px;background:white;border:1px solid #d2dce2;border-radius:14px 14px 0 0}
- .phone-job-page .jm-mobile-picker label{display:grid;gap:8px;font-size:16px;font-weight:700}
+ .phone-job-page .jm-mobile-picker{display:block;margin:0;padding:8px 12px 10px;background:white;border:1px solid #d2dce2;border-radius:14px 14px 0 0}
+ .phone-job-page .jm-mobile-picker label{display:grid;gap:4px;font-size:16px;font-weight:700}
  .phone-job-page .jm-mobile-picker select{width:100%;max-width:100%;min-width:0;min-height:44px;font-size:16px;border:1px solid #c9d4db;border-radius:9px;background:white;padding:8px 10px;color:#243442}
- .phone-job-page .jm-phone-workspace{width:100%;min-width:0;display:flex;flex-direction:column;padding:16px;gap:12px;border:1px solid #cbd5df;border-radius:12px;background:white;box-shadow:0 2px 5px #1734450a;margin-top:-8px;color:#15283b}
+ .phone-job-page .jm-phone-workspace{width:100%;min-width:0;display:flex;flex-direction:column;padding:12px;gap:10px;border:1px solid #cbd5df;border-radius:12px;background:white;box-shadow:0 2px 5px #1734450a;margin-top:-8px;color:#15283b}
  .phone-job-page .jm-job-header{display:block;margin:0}
  .phone-job-page .jm-job-header .eyebrow{font-size:13px;font-weight:700;letter-spacing:.02em;margin:0 0 8px}
  .phone-job-page .jm-phone-status{display:table;margin:0 0 8px;padding:4px 9px;font-size:14px;font-weight:700;background:#c9f3e8;border:1px solid #8bd6c3;color:#075c4c;border-radius:20px}
@@ -66,8 +66,10 @@
  .phone-job-page .jm-visit-facts>div+div{border-left:1px solid #d4dce2;padding-left:12px}
  .phone-job-page .jm-visit-facts dt{font-size:12px;color:#5b6774;text-transform:uppercase;font-weight:700;margin-bottom:6px}
  .phone-job-page .jm-visit-facts dd{font-size:16px;line-height:1.3;margin:0;overflow-wrap:anywhere}
- .phone-job-page .jm-job-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;width:100%}
+ .phone-job-page .jm-job-actions{max-width:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;width:100%}
  .phone-job-page .jm-job-actions :is(a,button){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:68px;width:100%;padding:10px 5px;border:1px solid #cbd5df;border-radius:12px;background:white;color:#135b4d;font-size:14px;line-height:1.3;text-decoration:none}
+ .phone-job-page .jm-job-actions>*{min-width:0;max-width:100%}
+ .phone-job-page .jm-job-actions .google-maps-tools.compact .google-maps-link{min-width:0;width:100%;min-height:68px;padding:10px 5px;font-size:14px;line-height:1.3;border-radius:12px;background:white}
  .phone-job-page .google-maps-tools,.phone-job-page .google-maps-actions{display:block;margin:0}
  .phone-job-page .jm-job-actions a[href^="tel:"]:before{content:'';display:block;width:28px;height:28px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%203h4l2%205-3%202c2%203%203%204%206%206l2-3%205%202v4c-10%204-21-7-16-16Z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%203h4l2%205-3%202c2%203%203%204%206%206l2-3%205%202v4c-10%204-21-7-16-16Z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
  .phone-job-page .jm-job-actions button:before{content:'';display:block;width:28px;height:28px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M6%202h8l5%205v15H6Z%20M14%202v6h5%20M9%2012h7%20M9%2016h7%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M6%202h8l5%205v15H6Z%20M14%202v6h5%20M9%2012h7%20M9%2016h7%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
@@ -144,7 +146,7 @@
  .phone-job-page .jm-panel .jm-lines{display:grid;gap:12px}
  .phone-job-page .jm-panel .jm-lines>li{padding:14px;border:1px solid #cbd5df;border-radius:12px;background:white}
  .phone-job-page .jm-panel .jm-lines small{font-size:14px}
- .phone-job-page .jm-menu-finances .jm-financial-lines{font-size:16px}
+ .phone-job-page .jm-menu-finances .jm-financial-lines>div{font-size:16px;padding:6px 0}
  .phone-job-page .jm-workspace-footer{border-top:0;padding-top:0}
  .phone-job-page .jm-workspace-footer .record-more>summary{font-size:16px;font-weight:700;min-height:44px;border-radius:10px}
  .phone-job-page .jm-menu-note{margin:-8px 0 0;font-size:16px;color:#566273}
