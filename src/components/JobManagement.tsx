@@ -226,6 +226,7 @@ export default function JobManagement({
                   Job overview
                   <select
                     value={selectedJobId || ""}
+                    aria-label="Selected job"
                     onChange={(e) => { if(e.target.value === "browse") { if(confirmNavigation()) { initialChoice.current=true; setBrowseOpen(true); onSelect(null); } } else choose(e.target.value); }}
                   >
                     {!selectedJobId && <option value="">Select a job</option>}
