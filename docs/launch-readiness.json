@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Independent query profiling and Fin offline guidance — candidate only",
+      "detail": "November 12: actual service modules profiled against controlled HTTP fixtures at 25/500/5000 records; full jobs, document and customer-history request counts grow to 35/10/32 respectively, while paged directory/reminder history remain bounded. No application query or index changed. An isolated load/restore plan defines targets, limits and stop conditions; no hosted load or restore ran. Fin guide clarifies reminder-history states, saved-document questions and unverified calendar/payment/QuickBooks behavior. 42 controlled Fin and six history/capacity checks passed, plus TypeScript. Direct navigation remains unchanged. These fixtures do not prove real-model accuracy, genuine voice, hosted capacity or full recovery; PERF-01/PERF-02/OPS-01/AI-01/AI-02 stay open.",
+      "evidence": "docs/PERFORMANCE_RESTORE_PLAN_2026-11-12.md; docs/evidence/2026-11-12-record-query-profile.json; docs/FIN_GUIDANCE_OFFLINE_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Summary card reference correction — released to private beta",
       "detail": "November 12: PR106 is merged as 0c5a4353bf62af7b22b7fb9ebc3217d4d89e96a9. Summary-only card/font/spacing correction follows the approved reference while retaining real content, notes, actions, permissions and 44px controls. Five application workflows, all 22 complete-suite jobs and 38 focused Chromium/WebKit cases passed; a retained pricing assertion timing failure passed on an isolated shard retry. Live reviewed CSS hash, beta backend, HTTP 200 and private headers verified on both domains. PR97/103/104/105 survive. One card is released before starting the next; Home/Invoices/Estimates/Jobs/More and their downstream layouts remain sequential. UX-01/JOB-01 and physical-phone/owner acceptance remain open.",
       "evidence": "docs/SUMMARY_CARD_REFERENCE_2026-11-12.md; docs/evidence/2026-11-12-summary-card-release.json; docs/evidence/2026-11-12-summary-card-comparison.jpg",

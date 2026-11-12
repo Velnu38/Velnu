@@ -1,0 +1,24 @@
+{
+  "baseline": "7875381635b7f9a7b96a38b80cdc5156d0dbbd80",
+  "date": "2026-11-12",
+  "scope": "Candidate only; deterministic provider and authorization fixtures, selected-migration PGlite account tests, actual service modules with synthetic HTTP.",
+  "finCasesPassed": 42,
+  "historyAndCapacityGuardCasesPassed": 6,
+  "assessmentCasesPassed": 10,
+  "typecheck": "passed",
+  "browserBuild": "passed",
+  "browserNavigation": {
+    "status": "blocked_before_page_creation",
+    "cases": 8,
+    "reason": "Chromium process_singleton_posix socket() failed: Operation not permitted"
+  },
+  "realProviderCalls": 0,
+  "hostedLoadRequests": 0,
+  "applicationQueryChanges": 0,
+  "limitations": [
+    "No real-model semantic accuracy claim",
+    "No physical-device or real voice acceptance",
+    "No hosted capacity or full restore acceptance",
+    "No deployment performed"
+  ]
+}

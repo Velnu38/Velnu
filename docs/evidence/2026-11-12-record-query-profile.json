@@ -1,0 +1,171 @@
+{
+  "sourceCommit": "7875381635b7f9a7b96a38b80cdc5156d0dbbd80",
+  "scope": "Actual service modules, controlled synthetic HTTP responses; request shape/payload and local JS timings only. No SQL execution, real RLS, hosted capacity, network latency or provider evidence.",
+  "externalRequests": 0,
+  "tenantAndCustomerFiltersChecked": true,
+  "restrictedHistoryChecked": true,
+  "results": [
+    {
+      "name": "jobs",
+      "rowsPerCollection": 25,
+      "requests": 2,
+      "responseBytes": 8977,
+      "localMedianMs": 2,
+      "localMaxMs": 2.45,
+      "samples": 5
+    },
+    {
+      "name": "invoices",
+      "rowsPerCollection": 25,
+      "requests": 1,
+      "responseBytes": 6701,
+      "localMedianMs": 0.62,
+      "localMaxMs": 1.06,
+      "samples": 5
+    },
+    {
+      "name": "estimates",
+      "rowsPerCollection": 25,
+      "requests": 1,
+      "responseBytes": 6701,
+      "localMedianMs": 0.63,
+      "localMaxMs": 0.8,
+      "samples": 5
+    },
+    {
+      "name": "customer_history",
+      "rowsPerCollection": 25,
+      "requests": 5,
+      "responseBytes": 20150,
+      "localMedianMs": 2.65,
+      "localMaxMs": 3.78,
+      "samples": 5
+    },
+    {
+      "name": "job_directory",
+      "rowsPerCollection": 25,
+      "requests": 1,
+      "responseBytes": 6766,
+      "localMedianMs": 0.62,
+      "localMaxMs": 2.25,
+      "samples": 5
+    },
+    {
+      "name": "reminder_history",
+      "rowsPerCollection": 25,
+      "requests": 1,
+      "responseBytes": 4439,
+      "localMedianMs": 0.82,
+      "localMaxMs": 1.36,
+      "samples": 5
+    },
+    {
+      "name": "jobs",
+      "rowsPerCollection": 500,
+      "requests": 4,
+      "responseBytes": 179504,
+      "localMedianMs": 8.06,
+      "localMaxMs": 10.51,
+      "samples": 5
+    },
+    {
+      "name": "invoices",
+      "rowsPerCollection": 500,
+      "requests": 1,
+      "responseBytes": 134001,
+      "localMedianMs": 2.76,
+      "localMaxMs": 4.39,
+      "samples": 5
+    },
+    {
+      "name": "estimates",
+      "rowsPerCollection": 500,
+      "requests": 1,
+      "responseBytes": 134001,
+      "localMedianMs": 2.19,
+      "localMaxMs": 3.05,
+      "samples": 5
+    },
+    {
+      "name": "customer_history",
+      "rowsPerCollection": 500,
+      "requests": 5,
+      "responseBytes": 402050,
+      "localMedianMs": 5.55,
+      "localMaxMs": 7.47,
+      "samples": 5
+    },
+    {
+      "name": "job_directory",
+      "rowsPerCollection": 500,
+      "requests": 1,
+      "responseBytes": 6768,
+      "localMedianMs": 0.25,
+      "localMaxMs": 0.47,
+      "samples": 5
+    },
+    {
+      "name": "reminder_history",
+      "rowsPerCollection": 500,
+      "requests": 1,
+      "responseBytes": 4439,
+      "localMedianMs": 0.34,
+      "localMaxMs": 0.63,
+      "samples": 5
+    },
+    {
+      "name": "jobs",
+      "rowsPerCollection": 5000,
+      "requests": 35,
+      "responseBytes": 1795035,
+      "localMedianMs": 43.53,
+      "localMaxMs": 61.18,
+      "samples": 5
+    },
+    {
+      "name": "invoices",
+      "rowsPerCollection": 5000,
+      "requests": 10,
+      "responseBytes": 1340010,
+      "localMedianMs": 19.75,
+      "localMaxMs": 25.71,
+      "samples": 5
+    },
+    {
+      "name": "estimates",
+      "rowsPerCollection": 5000,
+      "requests": 10,
+      "responseBytes": 1340010,
+      "localMedianMs": 23.34,
+      "localMaxMs": 28.68,
+      "samples": 5
+    },
+    {
+      "name": "customer_history",
+      "rowsPerCollection": 5000,
+      "requests": 32,
+      "responseBytes": 4020077,
+      "localMedianMs": 60.11,
+      "localMaxMs": 181,
+      "samples": 5
+    },
+    {
+      "name": "job_directory",
+      "rowsPerCollection": 5000,
+      "requests": 1,
+      "responseBytes": 6770,
+      "localMedianMs": 0.17,
+      "localMaxMs": 0.22,
+      "samples": 5
+    },
+    {
+      "name": "reminder_history",
+      "rowsPerCollection": 5000,
+      "requests": 1,
+      "responseBytes": 4439,
+      "localMedianMs": 0.14,
+      "localMaxMs": 0.54,
+      "samples": 5
+    }
+  ]
+}
