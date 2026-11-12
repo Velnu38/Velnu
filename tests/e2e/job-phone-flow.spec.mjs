@@ -155,6 +155,7 @@ test('phone Summary card reference candidate preserves readable controls and act
  await shot(page,'summary-card-candidate-390');
  await page.getByRole('button',{name:'Review visit',exact:true}).click();
  await expect(page.getByRole('tabpanel',{name:'Schedule & Crew',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'‹ Back to Work',exact:true}).click();
  await area(page,'Summary').click();await page.locator('.jm-job-actions button').click();
  await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');
  await page.locator('.jm-notes-disclosure summary').click();await expect(page.getByLabel('Job notes',{exact:true})).toBeVisible();
