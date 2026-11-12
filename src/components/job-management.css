@@ -854,7 +854,7 @@
     outline-offset: 3px;
   }
   .jm-section-groups {
-    grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, .8fr) minmax(0, .9fr) minmax(0, 1.1fr);
     gap: 6px;
     margin: 0;
   }
