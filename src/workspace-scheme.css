@@ -1,0 +1,149 @@
+/* Approved Job Management visual language. Presentation only: no action, data,
+   permission, document-stationery or route changes. Keep phone-job-page intact. */
+@media screen {
+ .workspace-scheme{--scheme-ink:#15283b;--scheme-muted:#566773;--scheme-line:#cbd5df;--scheme-green:#008673;--scheme-mint:#e5f5ef;font-family:FinviantJobSans,Arial,sans-serif;color:var(--scheme-ink)}
+ .workspace-scheme .workspace-inner{--control-accent:#008673;--control-border:#cbd5df}
+ .workspace-scheme :is(.page-stack,.more-navigation,.team-management){min-width:0}
+ .workspace-scheme :is(.page-heading h1,.modal-head h2,.mobile-more-head h2){color:#15283b;font-weight:700;letter-spacing:-.035em;line-height:1.2}
+ .workspace-scheme .workspace-inner :is(.primary-button,.secondary-button),.workspace-scheme .form-dialog :is(.primary-button,.secondary-button){min-height:44px;border-radius:10px;font-family:inherit;font-size:16px;font-weight:700;padding:10px 14px;white-space:normal;line-height:1.3}
+ .workspace-scheme .workspace-inner .primary-button,.workspace-scheme .form-dialog .primary-button{background:#008673;color:white;border-color:#008673}
+ .workspace-scheme .workspace-inner .secondary-button,.workspace-scheme .form-dialog .secondary-button{background:white;color:#006b57;border:1px solid #a5babf}
+ .workspace-scheme :is(.workspace-inner,.form-dialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]),select,textarea){min-height:44px;border-radius:9px;border-color:#cbd5df;font-family:inherit;font-size:16px;min-width:0;max-width:100%}
+ .workspace-scheme :is(.dashboard-tile,.module-summary-card,.module-record-card,.module-job-card,.detail-card,.settings-panel,.customer-hero,.customer-snapshot,.job-board-card,.jobs-overview-card,.work-plan-section,.record-resources,.bookkeeping-summary-card){border-radius:12px;border-color:#cbd5df;background:white;box-shadow:0 2px 5px #1734450a}
+ .workspace-scheme :is(.module-record-status,.status-chip){font-size:13px;line-height:1.3}
+ .workspace-scheme .module-record-status.is-positive{background:#c9f3e8;color:#075c4c}
+ .workspace-scheme :is(.record-tabs,.team-tabs,.view-switch,.module-status-filters){gap:6px}
+ .workspace-scheme :is(.record-tabs,.team-tabs,.view-switch,.module-status-filters)>button{min-height:44px;font-family:inherit;font-size:16px;border:1px solid #cbd5df;border-radius:10px;color:#182b3d;background:white;padding:8px 12px;line-height:1.3}
+ .workspace-scheme :is(.record-tabs,.team-tabs,.view-switch,.module-status-filters)>button:is([aria-selected=true],[aria-current=page],[aria-pressed=true]){background:#e5f5ef;color:#006a55;font-weight:700;box-shadow:inset 0 -3px #008673;border-color:#b7d8cd}
+ .workspace-scheme .jobs-workspace-tabs .record-tabs{border-bottom:1px solid #d4dee3}
+ .workspace-scheme .jobs-workspace-tabs .record-tabs>button{border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;box-shadow:none}
+ .workspace-scheme .jobs-workspace-tabs .record-tabs>button[aria-selected=true]{border-bottom-color:#008673;color:#123c35}
+ .workspace-scheme .more-navigation{gap:22px}
+ .workspace-scheme .more-navigation h3{font-size:18px;color:#52606c;margin-bottom:10px}
+ .workspace-scheme .more-navigation-grid a{display:grid;grid-template-columns:36px minmax(0,1fr) 16px;gap:14px;min-height:76px;border:1px solid #cbd5df;border-radius:12px;background:white;padding:12px;color:#182b3d}
+ .workspace-scheme .more-navigation-grid a>span{border-left:1px solid #cbd5df;padding-left:14px}
+ .workspace-scheme .more-navigation-grid a:after{content:'›';font-size:26px;color:#526774}
+ .workspace-scheme .more-navigation-grid svg{width:30px;height:30px;color:#007661}
+ .workspace-scheme .more-navigation-grid strong{font-size:18px;line-height:1.3}
+ .workspace-scheme .more-navigation-grid small{font-size:14px;color:#566773}
+ .workspace-scheme .record-detail-header{border:1px solid #cbd5df;border-radius:12px;padding:14px;background:white}
+ .workspace-scheme .record-detail-title h2{font-size:26px;color:#15283b}
+ .workspace-scheme .record-detail-subtitle{font-size:16px}
+ .workspace-scheme .record-more>summary{font-family:inherit;font-size:16px;font-weight:700;border-radius:10px;min-height:44px}
+ .workspace-scheme .record-more-content{max-width:min(360px,calc(100vw - 40px))}
+ .workspace-scheme :is(button,a,input,select,textarea,summary):focus-visible{outline:3px solid #137d69;outline-offset:3px}
+ .workspace-scheme .home-create-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .workspace-scheme .home-create-options>.quick-links-heading{grid-column:1/-1;font-size:22px;color:#15283b;margin:10px 0 2px}
+ .workspace-scheme .home-create-options>:is(a,button){min-width:0;background:white;border:1px solid #cbd5df;border-radius:12px;color:#182b3d}
+ .workspace-scheme .home-create-options>:is(a,button):nth-child(-n+5){display:grid;grid-template-columns:1fr auto;align-content:start;min-height:124px;padding:12px;gap:8px}
+ .workspace-scheme .home-create-options>:is(a,button):nth-child(-n+5)>span:nth-child(2){grid-column:1/-1;grid-row:2}
+ .workspace-scheme .home-create-options>:is(a,button):nth-child(-n+5)>span:last-child{grid-column:2;grid-row:1}
+ .workspace-scheme .home-create-options>:is(a,button):nth-child(n+7){grid-column:1/-1;display:grid;grid-template-columns:36px minmax(0,1fr) 16px;gap:14px;min-height:76px;padding:12px}
+ .workspace-scheme .home-create-options>:is(a,button):nth-child(n+7)>span:nth-child(2){border-left:1px solid #cbd5df;padding-left:14px}
+ .workspace-scheme .home-create-options strong{font-size:18px;line-height:1.2}
+ .workspace-scheme .home-create-options small{font-size:14px;line-height:1.3;color:#566773}
+ .workspace-scheme .home-create-options svg{width:32px;height:32px;color:#007661}
+}
+@media screen and (max-width:900px),screen and (max-width:1100px) and (pointer:coarse){
+ .workspace-scheme.job-phone-shell{background:white}
+ .workspace-scheme .workspace-inner>.page-stack:not(.phone-job-page){width:100%;max-width:none;gap:12px;font-size:16px;line-height:1.45}
+ .workspace-scheme .page-stack:not(.phone-job-page) .page-heading{margin:0;padding:0;gap:10px}
+ .workspace-scheme .page-stack:not(.phone-job-page) .page-heading h1{font-size:26px;margin:0}
+ .workspace-scheme .page-stack:not(.phone-job-page) .module-page-heading>.eyebrow,.workspace-scheme .page-stack:not(.phone-job-page) .module-page-heading>div>.eyebrow{display:none}
+ .workspace-scheme .page-stack:not(.phone-job-page) .module-page-intro{font-size:14px;margin:8px 0 0}
+ .workspace-scheme .page-stack:not(.phone-job-page) .module-page-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}
+ .workspace-scheme .page-stack:not(.phone-job-page) .module-page-heading>div:first-child{flex:1 1 140px}
+ .workspace-scheme .page-stack:not(.phone-job-page) .module-page-heading .primary-button{font-size:16px;min-height:44px;padding:10px 12px}
+ .workspace-scheme .page-stack:not(.phone-job-page) .module-page-intro{display:none}
+ .workspace-scheme .related-page-actions{gap:8px;flex-wrap:wrap}
+ .workspace-scheme .related-page-actions>.secondary-button{order:2}
+ .workspace-scheme .module-summary-grid,.workspace-scheme .estimates-module .module-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .workspace-scheme .invoice-module .module-summary-card:first-child{grid-column:1/-1;background:#e5f5ef}
+ .workspace-scheme .estimates-module .module-summary-card:last-child{grid-column:1/-1;background:#e5f5ef}
+ .workspace-scheme .module-summary-card{padding:14px;gap:6px;min-height:100px}
+ .workspace-scheme .module-summary-card>span{font-size:15px;color:#52606c}
+ .workspace-scheme .module-summary-card>strong{font-size:28px;white-space:normal;overflow-wrap:anywhere;color:#15283b}
+ .workspace-scheme .module-summary-card>small{font-size:13px;color:#566773}
+ .workspace-scheme .module-status-filters{flex-wrap:wrap;overflow:visible}
+ .workspace-scheme .module-status-filters button{white-space:normal;min-width:0;padding:8px 10px}
+ .workspace-scheme .record-list-controls{padding:12px;border-radius:12px}
+ .workspace-scheme .record-list-controls label{font-size:16px;min-width:0;max-width:100%}
+ .workspace-scheme :is(.module-record-card,.module-job-card){display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:14px}
+ .workspace-scheme .module-record-main{gap:5px}
+ .workspace-scheme .module-record-open strong{font-size:22px}
+ .workspace-scheme .module-record-main>span{font-size:16px;color:#3e5260}
+ .workspace-scheme .module-record-main :is(.created-stamp,time){font-size:12px;color:#566773}
+ .workspace-scheme .module-record-total{justify-items:stretch;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;border-block:1px solid #d7dfe4;padding:10px 0;white-space:normal}
+ .workspace-scheme .module-record-total>span{font-size:15px}
+ .workspace-scheme .module-record-total>strong{font-size:22px;overflow-wrap:anywhere}
+ .workspace-scheme .module-record-total>small{grid-column:1/-1;font-size:13px}
+ .workspace-scheme .module-record-actions{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:10px}
+ .workspace-scheme .module-record-actions :is(.primary-button,.secondary-button){width:100%;font-size:16px;min-height:44px}
+ .workspace-scheme .module-job-main{display:grid;grid-template-columns:1fr;gap:10px}
+ .workspace-scheme .module-job-time{display:flex;align-items:center;gap:12px;width:auto;border:0;padding:0;text-align:left;font-size:16px}
+ .workspace-scheme .module-job-time strong{font-size:18px}
+ .workspace-scheme .module-job-copy .job-card-title{font-size:22px;line-height:1.3}
+ .workspace-scheme .module-job-copy>span{font-size:16px}
+ .workspace-scheme .module-job-copy :is(small,.job-location){font-size:14px;line-height:1.4}
+ .workspace-scheme .module-job-actions{justify-items:stretch;gap:10px}
+ .workspace-scheme .job-row-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+ .workspace-scheme .job-row-actions>*{flex:1 1 125px}
+ .workspace-scheme .jobs-hub-navigation{flex-wrap:wrap;gap:10px}
+ .workspace-scheme .jobs-hub-navigation .view-switch{display:flex;width:100%;background:white;border:1px solid #cbd5df;border-radius:10px;padding:3px}
+ .workspace-scheme .jobs-hub-navigation .view-switch button{flex:1;border:0;min-width:0}
+ .workspace-scheme .jobs-filter-panel{border:1px solid #cbd5df;border-radius:12px;padding:10px 12px}
+ .workspace-scheme .jobs-filter-panel>summary{min-height:44px;font-size:16px}
+ .workspace-scheme .jobs-workspace-tabs .record-tabs{margin-bottom:0}
+ .workspace-scheme .record-tabs{display:flex;gap:6px;padding-bottom:4px;border:0;margin-bottom:12px}
+ .workspace-scheme .record-tabs>button{font-size:14px;padding:8px;white-space:normal}
+ .workspace-scheme :is(.invoice-detail,.estimate-preview-modal) .record-tabs>button{flex:1 1 auto;min-width:0;flex-shrink:1}
+ .workspace-scheme .record-action-controls{display:grid;grid-template-columns:1fr;gap:10px}
+ .workspace-scheme .record-action-controls :is(.record-action-primary,.record-action-secondary)>*{width:100%}
+ .workspace-scheme .record-action-bar{padding-bottom:12px;margin-bottom:12px}
+ .workspace-scheme .record-more-content{position:static;margin-top:8px;width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+ .workspace-scheme .more-navigation-grid{grid-template-columns:minmax(0,1fr)}
+ .workspace-scheme .more-navigation-grid strong{font-size:18px}
+ .workspace-scheme .team-tabs{display:flex;flex-wrap:wrap;gap:6px;border:0;padding:0}
+ .workspace-scheme .team-tabs>button{flex:1 1 85px;font-size:14px;min-width:0;padding:8px}
+ .workspace-scheme :is(.settings-panel,.detail-card,.customer-hero,.customer-snapshot){padding:14px;font-size:16px;min-width:0}
+ .workspace-scheme :is(.settings-panel,.detail-card) h2{font-size:22px;line-height:1.25}
+ .workspace-scheme :is(.settings-panel,.detail-card) :is(label,p){font-size:16px;line-height:1.45}
+ .workspace-scheme .dashboard-page{gap:12px;--tile-title-size:20px;--tile-value-size:22px}
+ .workspace-scheme .dashboard-page .dashboard-business-header{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+ .workspace-scheme .dashboard-business-identity{min-width:0;flex:1 1 150px}
+ .workspace-scheme .dashboard-business-identity h1{font-size:24px}
+ .workspace-scheme .dashboard-page .home-intro{font-size:14px}
+ .workspace-scheme .dashboard-page .home-header-actions{flex-wrap:wrap;gap:8px}
+ .workspace-scheme .dashboard-page .home-create-button{min-height:44px;border-radius:10px;width:auto;font-size:16px}
+ .workspace-scheme .home-overview{gap:12px}
+ .workspace-scheme .dashboard-page .dashboard-tile{border-radius:12px}
+ .workspace-scheme .dashboard-page :is(.calendar-heading,.performance-heading,.work-card-heading){background:#e5f5ef;border-radius:12px 12px 0 0;padding:14px}
+ .workspace-scheme .dashboard-page .dashboard-tile-title{font-size:20px;color:#15283b}
+ .workspace-scheme .dashboard-page .performance-compact .financial-range{background:white;border-radius:10px;gap:4px}
+ .workspace-scheme .dashboard-page .performance-compact .financial-range button{min-height:44px;font-size:16px;border-radius:9px}
+ .workspace-scheme .dashboard-page .performance-compact .financial-range button[aria-pressed=true]{background:#e5f5ef;color:#006a55;box-shadow:inset 0 -3px #008673}
+ .workspace-scheme .dashboard-page .performance-compact .performance-metric{padding:12px;min-height:64px}
+ .workspace-scheme .dashboard-page .performance-compact .performance-metric>span{font-size:16px}
+ .workspace-scheme .dashboard-page .performance-compact .performance-metric>small{font-size:13px}
+ .workspace-scheme .dashboard-page .performance-compact .performance-metric:last-child{background:#e5f5ef;border-radius:10px}
+ .workspace-scheme .dashboard-page .calendar-event strong{font-size:18px}
+ .workspace-scheme .dashboard-page .calendar-event :is(time,small){font-size:14px}
+ .workspace-scheme .form-dialog{font-family:FinviantJobSans,Arial,sans-serif;box-sizing:border-box;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain;color:#15283b}
+ .workspace-scheme .form-dialog .form-grid{grid-template-columns:minmax(0,1fr)}
+ .workspace-scheme .form-dialog :is(label,input,select,textarea){font-size:16px;min-width:0;max-width:100%}
+ .workspace-scheme .form-dialog :is(.modal-head h2,.mobile-more-head h2){font-size:26px}
+ .workspace-scheme .form-dialog :is(.icon-button,.guided-dialog-head>.calendar-arrow){width:44px;height:44px;min-width:44px;flex:0 0 44px;border:0;border-radius:10px;background:#f3f4f7;color:#52606c;font-size:24px}
+ .workspace-scheme .form-dialog :is(.modal-actions,.guided-actions){position:sticky;bottom:-18px;background:white;padding:14px 0;display:flex;flex-wrap:wrap;gap:8px;z-index:1}
+ .workspace-scheme .form-dialog :is(.modal-actions,.guided-actions)>button{flex:1 1 auto;min-height:44px;font-size:16px;border-radius:10px}
+ .workspace-scheme .form-dialog .estimate-total{border-radius:12px;background:#e5f5ef;padding:14px}
+ .workspace-scheme .form-dialog .estimate-total strong{color:#006a55}
+ .workspace-scheme .mobile-more-handle{display:none}
+ .workspace-scheme .record-list-pagination{font-size:14px;gap:8px;padding:12px 0;border:0}
+ .workspace-scheme :is(.bookkeeping-page,.customer-detail,.settings-page,.schedule-page) .form-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media screen and (max-width:360px){
+ .workspace-scheme .module-page-heading{flex-direction:column;align-items:stretch}
+ .workspace-scheme .page-stack:not(.phone-job-page) .module-page-heading>div:first-child{flex:auto}
+ .workspace-scheme .more-navigation-grid strong{font-size:16px}
+ .workspace-scheme .home-create-options strong{font-size:16px}
+}

@@ -37,6 +37,8 @@ import './components/document-pdf.css';
 import './components/record-detail.css';
 import './components/upgrade-link.css';
 import './components/refresh-button.css';
+import './components/job-phone.css';
+import './workspace-scheme.css';
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Missing root element');

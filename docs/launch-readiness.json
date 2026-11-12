@@ -522,6 +522,18 @@
       "detail": "PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.",
       "evidence": "docs/evidence/2026-11-12-phone-reference-release.json; docs/PHONE_REFERENCE_MATCH_2026-11-12.md",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "App-wide workspace scheme candidate",
+      "detail": "Owner approved Job Management styling and authorized app-wide mockup implementation without functionality changes. Candidate is isolated on ux/app-wide-job-scheme-20261112; publication is held for rendered screen comparisons and required CI. PR97 and sequential queue remain paused; physical-device/provider and broader UX-01/JOB-01 gates remain open.",
+      "evidence": "docs/WORKSPACE_SCHEME_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "App-wide scheme resumed verification",
+      "detail": "Corrected invoice summary CSS and visual-test readiness selector. Local startup and assessment checks pass. Chromium launch is blocked by executor socket restrictions; candidate publication for hosted CI was blocked by automatic approval review. Rendered comparisons, required CI and beta release remain pending.",
+      "evidence": "docs/WORKSPACE_SCHEME_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
@@ -1861,6 +1873,7 @@
     "Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.",
     "PR101 phone composition is deployed. All 51 task records and acceptance criteria remain unchanged. PR97 and the sequential queue remain paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open; the separate desktop document contrast finding under iPhone WebKit is recorded as an unresolved follow-up.",
     "Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update.",
-    "PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused."
+    "PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.",
+    "Owner approved Job Management styling and authorized app-wide mockup implementation without functionality changes. Candidate is isolated on ux/app-wide-job-scheme-20261112; publication is held for rendered screen comparisons and required CI. PR97 and sequential queue remain paused; physical-device/provider and broader UX-01/JOB-01 gates remain open."
   ]
 }
