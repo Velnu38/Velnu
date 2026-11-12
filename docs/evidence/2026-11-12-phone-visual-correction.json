@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-12",
+  "base": "534fdd9c8068e1e2ea09a9fe660c153859cdb835",
+  "scope": "Phone presentation and initial existing-job selection only. No business mutations or provider changes.",
+  "status": "targeted validation; hosted visual acceptance and release pending",
+  "open": [
+    "Physical phones",
+    "Broader JOB-01/UX-01",
+    "Provider acceptance"
+  ],
+  "paused": "PR97 and sequential queue"
+}

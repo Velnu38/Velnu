@@ -234,7 +234,7 @@ export default function JobsPage({ business, embedded = false, onCreateReminder 
     setPage:(value:Parameters<typeof localList.setPage>[0])=>{setDirectoryPage(value);localList.setPage(value)}}
 
   return (
-    <div className="page-stack workspace-module jobs-module"><WorkspaceBack />
+    <div className={"page-stack workspace-module jobs-module"+(workspace==='management'?' phone-job-page':'')}><WorkspaceBack />
       <div className="page-heading split-heading module-page-heading">
         <div><p className="eyebrow">Jobs</p><Heading>{workspace==='management'?'Job Management':'Jobs'}</Heading><p className="module-page-intro">{workspace==='management'?'Approved work. Organized execution.':'Find your jobs, review their history, or choose Manage job to organize the work.'}</p></div>
         <div className="work-heading-actions"><RefreshButton busy={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}/>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={openNewJob}><span aria-hidden="true">＋</span> Create job</button>}</div>
