@@ -1,3 +1,4 @@
+import {burstLimitResponse} from '../_shared/burstLimit.ts'
 import { readLimitedRequest } from '../_shared/signedEvents.ts'
 
 type Context = {
@@ -57,7 +58,7 @@ export function customerInvoiceCheckoutHandler(deps: CheckoutDependencies) {
         (body.mode === 'checkout' && (typeof body.request_id !== 'string' || !uuid.test(body.request_id)))) return reply(400, { error: 'Invalid invoice payment request.' })
       const tokenHash = await paymentTokenHash(body.token)
       try { context = await deps.context(tokenHash) }
-      catch { return reply(404, { error: 'Invoice link is unavailable.' }) }
+      catch(error) { const limited=burstLimitResponse(error,headers);return limited||reply(404, { error: 'Invoice link is unavailable.' }) }
       if (!deps.configured) return reply(200, readiness('disabled', context))
       if (context.state !== 'ready') return reply(200, readiness(context.state, context))
       if (context.livemode !== deps.livemode) return reply(200, readiness('disabled', context))
@@ -67,7 +68,7 @@ export function customerInvoiceCheckoutHandler(deps: CheckoutDependencies) {
       if (body.mode === 'status') return reply(200, readiness('ready', context))
       let reservation: CheckoutReservation
       try { reservation = await deps.reserve(tokenHash, body.request_id) }
-      catch { return reply(409, { error: 'The invoice or an earlier payment changed. Reload its status before trying again.' }) }
+      catch(error) { const limited=burstLimitResponse(error,headers);return limited||reply(409, { error: 'The invoice or an earlier payment changed. Reload its status before trying again.' }) }
       if (!uuid.test(reservation.id) || !uuid.test(reservation.invoice_id) || reservation.stripe_account_id !== context.stripe_account_id || reservation.livemode !== deps.livemode ||
         reservation.currency !== 'usd' || !Number.isSafeInteger(reservation.amount_minor) || reservation.amount_minor < 50 || reservation.amount_minor > 99999999) return reply(503, { error: 'Online payment configuration needs review.' })
       if (reservation.status === 'pending') return reply(200, readiness('pending', context))

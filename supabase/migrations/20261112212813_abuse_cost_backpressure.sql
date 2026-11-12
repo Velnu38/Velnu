@@ -92,13 +92,22 @@ begin
  for signature,needle,replacement in select * from(values
  ('public.get_owner_document_version(uuid,text,uuid)',
   '  return private.publish_document_version(auth.uid(),p_business,p_kind,p_document);',
-  E'  perform private.reserve_provider_burst(''public_link'',p_business,auth.uid());\n  return private.publish_document_version(auth.uid(),p_business,p_kind,p_document);'),
+  E'  declare result jsonb; begin\n   result:=private.publish_document_version(auth.uid(),p_business,p_kind,p_document);\n   perform private.reserve_provider_burst(''public_link'',p_business,auth.uid());\n   return result;\n  end;'),
  ('public.get_document_pdf_version(text,text)',
   '  return jsonb_build_object(''version_id'',version.id,''business_id'',b,',
   E'  perform private.reserve_provider_burst(''public_link'',b,substring(hash,1,32)::uuid);\n  return jsonb_build_object(''version_id'',version.id,''business_id'',b,'),
  ('public.get_shared_document(text)',
   '  return (context->''snapshot'')||',
   E'  perform private.reserve_provider_burst(''public_link'',(select business_id from private.document_shares where token_hash=encode(sha256(convert_to(p_token,''UTF8'')),''hex'')),substring(encode(sha256(convert_to(p_token,''UTF8'')),''hex''),1,32)::uuid);\n  return (context->''snapshot'')||'),
+ ('private.customer_schedule_offer(text,uuid,text)',
+  ' return view||jsonb_build_object(''status'',state,',
+  E' perform private.reserve_provider_burst(''public_link'',b,substring(hash,1,32)::uuid);\n return view||jsonb_build_object(''status'',state,'),
+ ('public.consume_document_approval(text,text,text,text,boolean)',
+  '    return private.consume_document_approval_before_versions(p_token_hash,p_action,p_typed_name,p_user_agent,p_terms_agreed);',
+  E'    result:=private.consume_document_approval_before_versions(p_token_hash,p_action,p_typed_name,p_user_agent,p_terms_agreed);\n    perform private.reserve_provider_burst(''public_link'',link.business_id,substring(p_token_hash,1,32)::uuid);\n    return result;'),
+ ('public.consume_document_approval(text,text,text,text,boolean)',
+  '  return result||jsonb_build_object(''revision_id'',link.document_version_id);',
+  E'  perform private.reserve_provider_burst(''public_link'',link.business_id,substring(p_token_hash,1,32)::uuid);\n  return result||jsonb_build_object(''revision_id'',link.document_version_id);'),
  ('private.read_business_card(text)',
   ' return jsonb_build_object(''card'',l.card,',
   E' perform private.reserve_provider_burst(''public_link'',l.business_id,substring(l.token_hash,1,32)::uuid);\n return jsonb_build_object(''card'',l.card,')
@@ -123,3 +132,14 @@ begin
 end $$;
 revoke all on function public.reserve_document_pdf_render(uuid) from public,anon,authenticated;
 grant execute on function public.reserve_document_pdf_render(uuid) to service_role;
+
+-- Public payment lookups share link backpressure; internal reconciliation reads
+-- retain their stable, unthrottled context helper so recovery cannot be starved.
+create or replace function public.get_customer_payment_context(p_token_hash text) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare context jsonb;
+begin
+ context:=private.customer_payment_context(p_token_hash);
+ perform private.reserve_provider_burst('public_link',(context->>'business_id')::uuid,substring(p_token_hash,1,32)::uuid);
+ return context;
+end $$;

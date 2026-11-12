@@ -13,6 +13,9 @@ export async function verifyPublicLinkAbuse(db,api,owner,business,invoice){
  const snapshot=await first.json();assert.ok(snapshot.document_id===invoice)
  const hash=(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') hash",[token])).rows[0].hash
  await db.query("update private.provider_burst_buckets set theoretical_at=clock_timestamp()+interval '60 seconds' where resource='public_link' and scope='actor' and subject=substring($1,1,32)::uuid",[hash])
+ await assert.rejects(db.query('select public.get_customer_payment_context($1)',[hash]),{code:'PGRST'})
+ const internal=(await db.query('select private.customer_payment_context($1) value',[hash])).rows[0].value
+ assert.equal(internal.invoice_id,invoice) // Reconciliation can still inspect the invoice.
  for(const response of await Promise.all([read(),read()])){
   assert.equal(response.status,429);assert.equal((await response.json()).code,'FINVIANT_BURST_LIMIT')
   assert.ok(Number(response.headers.get('retry-after'))>=1)
@@ -24,5 +27,5 @@ export async function verifyPublicLinkAbuse(db,api,owner,business,invoice){
  const recovered=await read();assert.equal(recovered.status,200);assert.deepEqual(await recovered.json(),snapshot)
  await api('/rest/v1/rpc/revoke_document_share',owner,{method:'POST',body:{p_business:business,p_token:token}}).then(r=>assert.ok(r.ok))
  assert.ok([401,403].includes((await read()).status))
- return {anonymousRead:true,sharedTokenBurstDenied:true,retryAfter:true,cooldownRecovery:true,manualReadAvailable:true,revokedDenied:true}
+ return {anonymousRead:true,sharedTokenBurstDenied:true,retryAfter:true,cooldownRecovery:true,manualReadAvailable:true,paymentStatusLimited:true,reconciliationAvailable:true,revokedDenied:true}
 }

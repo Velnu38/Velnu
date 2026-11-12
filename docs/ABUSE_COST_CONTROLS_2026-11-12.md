@@ -4,7 +4,7 @@ Candidate based on private beta c614324. SEC-03 remains open; this is provider-i
 
 ## Changes
 
-Reuses the database-owned GCRA limiter and existing monthly quotas, storage reservations, message leases and immutable PDF cache. No per-instance rate-limit memory is used. Adds limits on successful document/card link reads, owner document reads, PDF cache-miss renders, and actual email/SMS claim transitions (document, card and appointment workers). Existing authorization, opt-out, consent, plan and private-beta recipient checks remain in place. No UI/layout changes.
+Reuses the database-owned GCRA limiter and existing monthly quotas, storage reservations, message leases and immutable PDF cache. No per-instance rate-limit memory is used. Adds limits on successful document/card link reads, customer approval actions, scheduling views/bookings, payment status/checkout requests, owner document reads, PDF cache-miss renders, and actual email/SMS claim transitions (document, card and appointment workers). Existing authorization, opt-out, consent, plan and private-beta recipient checks remain in place. No UI/layout changes.
 
 | Resource | Global/minute | Business/minute | Actor or valid link/minute | Global attempts/UTC day |
 | --- | ---: | ---: | ---: | ---: |
@@ -36,6 +36,6 @@ The complete migration replay now runs 20 independent PostgreSQL connections aga
 
 ## Coordinated release
 
-Do not merge/deploy until exact-head required CI passes and concurrent PR97 reminder history, PR103 session security, owner-export work and layout changes are reconciled. Apply the additive migration before publishing handlers that call `reserve_document_pdf_render`. Preserve current endpoint JWT modes. Deploy all callers of the shared PDF/email helpers together, plus SMS, approval, card and existing AI/upload/receipt handlers to expose daily Retry-After correctly. Retain the prior Edge packages for rollback; counters must not be deleted to reset allowances. No production settings, retention, customer data, providers, messages, charges or public launch are changed.
+Do not merge/deploy until exact-head required CI passes and concurrent PR97 reminder history, PR103 session security, owner-export work and layout changes are reconciled. Apply the additive migration before publishing handlers that call `reserve_document_pdf_render`. Preserve current endpoint JWT modes. Deploy all callers of the shared PDF/email helpers together, plus SMS, approval, card, customer-invoice-checkout and existing AI/upload/receipt handlers to expose daily Retry-After correctly. Retain the prior Edge packages for rollback; counters must not be deleted to reset allowances. No production settings, retention, customer data, providers, messages, charges or public launch are changed.
 
 References: [Supabase Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits), [Supabase changelog](https://supabase.com/changelog.md), existing `PROVIDER_BURST_LIMITS_2026-11-10.md`.
