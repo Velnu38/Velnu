@@ -226,7 +226,7 @@ export default function JobManagement({
               <div className="jm-mobile-picker">
                 <label>
                   <span className="jm-picker-label">Job overview</span>
-                  <span className="jm-picker-identity" aria-hidden="true"><strong>{jobs.find(j=>j.id===selectedJobId)?.title || "Selected job"}</strong><span>{jobs.find(j=>j.id===selectedJobId) ? customer(jobs.find(j=>j.id===selectedJobId)!) : "Choose another job"}</span></span>
+                  <span className="jm-picker-identity" aria-hidden="true"><strong>{jobs.find(j=>j.id===selectedJobId)?.title || "Selected job"}</strong><span>{jobs.find(j=>j.id===selectedJobId) ? customer(jobs.find(j=>j.id===selectedJobId)!) : "Choose another job"}{jobs.find(j=>j.id===selectedJobId)?.status && <span className="jm-picker-status">{jobs.find(j=>j.id===selectedJobId)!.status.replaceAll("_"," ")}</span>}</span></span>
                   <select
                     value={selectedJobId || ""}
                     aria-label="Selected job"

@@ -637,6 +637,9 @@ export default function JobManagementWorkspace({
               {data.billing_access && <><div><dt>Deposit received</dt><dd>{money(depositPaid)}</dd></div><div><dt>Issued invoice balance</dt><dd>{money(balance)}</dd></div></>}
             </dl><p className="quiet">Recorded costs may be incomplete. Drafts are excluded from the issued balance.</p></div>}
           </JobMobileMenu>}
+          {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{date(job.active_appointment!.starts_at)}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
+          {data && mobileHome && activeGroup.label==='Records' && data.activity.length>0 && <section className="jm-menu-context"><h4>Latest activity</h4><Activity entries={data.activity.slice(0,1)} zone={zone}/></section>}
+
           {data && (
             <>
               <div

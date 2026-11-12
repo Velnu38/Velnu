@@ -21,6 +21,8 @@ export type JobMenuItem={key:string;label:string;description:string;icon?:string
 export default function JobMobileMenu({title,items,children}:{title:string;items:JobMenuItem[];children?:ReactNode}){
  return <section className="jm-mobile-menu" aria-label={title}>
    <h3>{title}</h3>
+   {title==='Manage the work' && <p className="jm-menu-note">Choose what you need for this job</p>}
+   {title==='Job records' && <p className="jm-menu-note">History and saved completion records.</p>}
    {children}
    <div className={'jm-quick-grid'+(items.length!==4?' jm-quick-rows':'')}>
      {items.map(item=><button key={item.key} type="button" className="jm-quick-tile" onClick={item.onClick}>

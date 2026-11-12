@@ -4,13 +4,20 @@ import {mkdir} from 'node:fs/promises'
 import {mock,B,C,J,U,customer} from './audit-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'}
-async function fixture(page,{restricted=false}={}){
+async function fixture(page,{restricted=false,populated=false}={}){
  const state=await mock(page,{ai:true})
  const job={id:J,customer_id:C,customers:[customer],properties:[],title:'Kitchen renovation',description:'Keep the side gate closed.',status:'in_progress',scheduled_start:null,scheduled_end:null,assigned_user_ids:[U],updated_at:'2026-11-12T01:00:00Z',active_appointment:null,invoice:null}
  const data={tasks:[{id:'task-1',title:'Install cabinet doors',completed:false,version:1,priority:'high',worker_id:U,due_on:null}],materials:[],templates:[],visits:[],activity:[],financial_access:!restricted,billing_access:!restricted,calendar_access:!restricted,time:[],recorded_expenses:0,documents:[],changes:[],budget:null,pending_time_minutes:0,uncalculated_expenses:0}
+ if(populated){
+  job.customers=[{...customer,first_name:'Taylor',last_name:'Morgan',phone:'+17575550100'}];job.properties=[{address_line1:'124 Oak Street',city:'Chesapeake',state:'VA',postal_code:'23320'}];job.status='scheduled';job.scheduled_start='2099-11-16T19:00:00Z';job.scheduled_end='2099-11-16T21:00:00Z';job.active_appointment={id:'77777777-7777-4777-8777-777777777777',starts_at:job.scheduled_start,ends_at:job.scheduled_end,status:'scheduled'};
+  data.tasks=[{...data.tasks[0],due_on:'2099-11-16'},{id:'task-2',title:'Final inspection',completed:false,version:1,priority:'normal',worker_id:null,due_on:'2099-11-17'},...[3,4,5].map(n=>({id:'task-'+n,title:'Completed preparation '+n,completed:true,version:1,priority:'normal',worker_id:U,due_on:null}))];
+  data.activity=[{id:1,event:'Visit scheduled',created_at:'2026-11-12T15:30:00Z',actor:'Alex Carter'}];
+  data.materials=[{id:'material-1',label:'Cabinet hardware',quantity:12,unit_cost:8,status:'received',version:1}];
+  data.visits=[{...job.active_appointment,job_id:J,title:'Kitchen installation',assigned_worker_ids:[U],updated_at:job.updated_at}];
+ }
  await mockJobDirectory(page,()=>[job])
  await page.route('**/rest/v1/jobs?**',route=>route.fulfill({headers:cors,json:new URL(route.request().url()).searchParams.has('id')?job:[job]}))
- await page.route('**/rpc/get_job_workflow_context',route=>route.fulfill({headers:cors,json:[{job_id:J,active_appointment:null,invoice:null}]}))
+ await page.route('**/rpc/get_job_workflow_context',route=>route.fulfill({headers:cors,json:[{job_id:J,active_appointment:job.active_appointment,invoice:null}]}))
  for(const name of ['get_job_management','get_job_workspace'])await page.route('**/rpc/'+name,route=>route.fulfill({headers:cors,json:data}))
  await page.route('**/rpc/get_job_cost_review',route=>route.fulfill({headers:cors,json:{pending_time:[],expenses:[],possible_duplicate_time:[]}}))
  await page.route('**/rpc/get_job_reports',route=>route.fulfill({headers:cors,json:[]}))
@@ -85,4 +92,19 @@ test('phone entry starts with the selected job and keeps the shell compact',asyn
  await shot(page,'entry-390')
  await page.locator('.jm-mobile-picker select').selectOption('browse');await expect(page.locator('.jm-queue')).toBeVisible()
  await expect(page.getByRole('searchbox',{name:'Find a job',exact:true})).toBeVisible()
+})
+
+for(const width of [375,390,393,430])test(`phone mockup populated screen comparisons at ${width}px`,async({page})=>{
+ test.setTimeout(120000);await page.setViewportSize({width,height:844});const state=await fixture(page,{populated:true});await page.goto(`/?view=work&workspace=management&job=${J}`);
+ await expect(page.getByRole('region',{name:'Job summary',exact:true})).toBeVisible();
+ const viewport=await page.evaluate(()=>({layout:innerWidth,visual:visualViewport?.width,scale:visualViewport?.scale,root:document.documentElement.clientWidth}));expect(viewport.layout).toBe(width);expect(viewport.visual).toBeCloseTo(width,0);expect(viewport.scale).toBe(1);
+ await page.evaluate(()=>scrollTo(0,0));await shot(page,`mockup-Summary-${width}`);
+ for(const [group,items] of [['Work',['Tasks & templates','Visits & crew','Materials','Photos & expenses']],['Billing',['Invoices','Costs & budget','Change orders']],['Records',['Activity history','Completion reports']]]){
+  await area(page,group).click();await page.evaluate(()=>scrollTo(0,0));await fits(page);await shot(page,`mockup-${group}-${width}`);
+  for(const name of items){await tile(page,name).click();await expect(page.locator('.jm-panel:not([hidden])')).toBeVisible();await fits(page);await page.evaluate(()=>scrollTo(0,0));await shot(page,`mockup-panel-${name.replaceAll(/[^a-z]/gi,'')}-${width}`);
+   if(width===390){const panel=page.locator('.jm-panel:not([hidden])');const editors=panel.getByRole('button').filter({hasText:/^(\+ ?)?Add (task|material|visit|expense)$|^Templates$|^Assign crew$|^Reschedule next visit$/});const labels=await editors.allTextContents();for(const label of labels){const button=panel.getByRole('button',{name:label.trim(),exact:true});if(!await button.isEnabled())continue;await button.click();const dialog=page.getByRole('dialog').last();await expect(dialog).toBeVisible();await fits(page);await shot(page,`editor-${name.replaceAll(/[^a-z]/gi,'')}-${label.replaceAll(/[^a-z]/gi,'')}-${width}`);await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);}}
+   await page.getByRole('button',{name:`‹ Back to ${group}`,exact:true}).click();
+  }
+ }
+ expect(state.calls.some(c=>/send-|create_dispatched|complete_job|manage_job_workspace/.test(c.path))).toBe(false);
 })
