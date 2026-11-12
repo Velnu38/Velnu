@@ -33,7 +33,7 @@ const aliases: Record<string, FinDestination> = {
   help:'support', support:'support', storage:'storage',
 }
 export function resolveFinNavigation(text: string, previous?: FinDestination): FinNavigation | null {
-  const clean=text.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/[-–]/g,' ').replace(/\s+/g,' ').replace(/^(?:can|could|would) you (?:please )?/,'').replace(/^please /,'').replace(/ please$/,'')
+  const clean=text.toLowerCase().trim().replace(/[.!?]+$/,'').replace(/[-–]/g,' ').replace(/\s+/g,' ').replace(/^(?:can|could|would) you (?:please )?/,'').replace(/^please /,'').replace(/ please$/,'').replace(/^(?:take me|go) there$/,'open that')
   if(/^(?:set up|setup|create|add) (?:a |an )?(?:customer|invoice|appointment) reminders?(?: setup| settings)?$/.test(clean))return {destination:'customerReminders'}
   const match=/^(?:open|show(?: me)?|go to|take me to|navigate to) (?:the |my )?(.+)$/.exec(clean)
   if(!match)return Object.hasOwn(aliases,clean)?{destination:aliases[clean]}:null
@@ -60,4 +60,12 @@ export function assertFinNavigationAccess(expectedBusiness: string, business: Cu
   if(!canOpenView(business,target.view)||(target.section&&!canOpenSettingsSection(business,target.section)))throw Error('This area is not included in your access. Contact your primary business owner.')
   if(target.section){const option=settingsOptions.find(o=>o.id===target.section)!;if(!settingsOptionForPlan(option,usage.plan as VelnuTier))throw Error('This destination is not available on your current plan.')}
   return target
+}
+
+// Server suggestions are keys, never executable URLs. Generic reminders stay
+// ambiguous; a subsequent explicit customer/internal request selects the route.
+export function finSuggestedDestination(keys: string[]|undefined): FinDestination|undefined {
+  if(keys?.length!==1)return undefined
+  const suggestions: Record<string,FinDestination>={dashboard:'home',customers:'customers',invoices:'invoices',estimates:'estimates',work:'jobs',schedule:'schedule',bookkeeping:'finances',settings:'settings',company:'company',documents:'documents',team:'team',calendar:'calendar',storage:'storage',support:'support'}
+  return Object.hasOwn(suggestions,keys[0])?suggestions[keys[0]]:undefined
 }

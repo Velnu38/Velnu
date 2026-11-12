@@ -1,4 +1,4 @@
-import {resolveFinNavigation, type FinDestination} from '../lib/finNavigation'
+import {resolveFinNavigation, finSuggestedDestination, type FinDestination} from '../lib/finNavigation'
 import { finInvoiceDraft, namedInvoiceSource, type FinInvoiceDraft } from '../lib/voiceDocument'
 import { findInvoiceSources, resolveInvoiceSource, type InvoiceSource, type InvoiceSourceTarget } from '../services/finInvoiceSources'
 import { canAccess } from '../lib/workspaceAccess'
@@ -186,6 +186,7 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice, onN
     try {
       const response=await requestFin(business.id,thread.current,request.id,command)
       if(!mounted.current)return
+      lastDestination.current=response.plan||response.clarification?undefined:finSuggestedDestination(response.navigation)
       setConversation(turns=>[...turns,{question:command,response}].slice(-12));setPlan(response.plan||null);setExecution(response.execution||null);setText('');retryRequest.current=null
     } catch(error){if(mounted.current){setText(command);setError(error instanceof Error?error.message:'Fin could not complete this request.')}}
     finally{if(mounted.current){setBusy(false);setWorkingMessage('')}mutationInFlight.current=false}

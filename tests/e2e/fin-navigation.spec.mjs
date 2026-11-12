@@ -71,3 +71,15 @@ test('synthetic browser dictation uses the same direct destination without a wor
  await page.getByRole('button',{name:'Speak instead',exact:true}).click()
  await expect(page).toHaveURL(/view=settings&section=customer_reminders$/);expect(provider).toBe(0)
 })
+
+test('an unambiguous Fin suggestion supplies context without a second provider request',async({page})=>{
+ await navigationMock(page,{ai:true});let questions=0
+ await page.route('**/functions/v1/fin-workflow',route=>{
+  if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:cors})
+  questions++;return route.fulfill({status:200,headers:cors,json:{answer:'Worker profiles are in Team Management. Account access is separate.',navigation:['team'],sources:[],limits:[],as_of:'2026-11-11T12:00:00Z'}})
+ })
+ await page.goto('/?view=dashboard');const panel=await ask(page,'Where do I manage worker profiles?')
+ await expect(panel.getByRole('region',{name:'Fin’s answer'})).toBeVisible()
+ await panel.getByRole('textbox').fill('Take me there');await panel.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await expect(page).toHaveURL(/view=settings&section=team$/);expect(questions).toBe(1)
+})

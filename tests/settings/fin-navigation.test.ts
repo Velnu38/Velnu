@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {resolveFinNavigation,finDestination,assertFinNavigationAccess} from '../../src/lib/finNavigation.ts'
+import {resolveFinNavigation,finDestination,assertFinNavigationAccess,finSuggestedDestination} from '../../src/lib/finNavigation.ts'
 import type {CurrentBusiness} from '../../src/lib/business.ts'
 const owner={id:'business-a',role:'owner',primary_owner:true} as CurrentBusiness
 const usage={ai_limit:100,voice_limit:100,plan:'pro'}
@@ -30,4 +30,11 @@ test('fresh tenant, role, module and plan checks fail closed before navigation',
  assert.throws(()=>assertFinNavigationAccess(owner.id,{...owner,role:'viewer',primary_owner:false,access_modules:[]},'invoices',usage))
  assert.throws(()=>assertFinNavigationAccess(owner.id,{...owner,role:'office',primary_owner:false,access_modules:['calendar','jobs']},'customerReminders',usage))
  assert.throws(()=>assertFinNavigationAccess(owner.id,owner,'calendar',{...usage,plan:'free'}))
+})
+
+test('one supported suggestion supplies context; multiple, generic or untrusted suggestions do not',()=>{
+ assert.equal(finSuggestedDestination(['team']),'team')
+ assert.equal(finSuggestedDestination(['calendar']),'calendar')
+ assert.deepEqual(resolveFinNavigation('Take me there',finSuggestedDestination(['team'])),{destination:'team'})
+ for(const keys of [undefined,[],['reminders'],['team','calendar'],['https://evil.test'],['__proto__']])assert.equal(finSuggestedDestination(keys),undefined)
 })
