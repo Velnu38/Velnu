@@ -4,7 +4,7 @@ Checked November 12, 2026 UTC.
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified application release: PR100 merge d79a30b87e8e786ecaf11e53d0aa25753dd0d7c7, READY deployment dpl_EDfcuYfpdx2atGNYfLBqAY3Ff1pf on both Finviant domains. Phone visual correction covers compact shared chrome, initial existing-job selection, full-width selector, Summary/Work/Billing/Records, focused detail headings and full-screen editors. All six workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Current verified application release: PR101 merge e0ca5aeaec4cd5ceb80749ecf2a942139fc514d4, READY deployment dpl_BgbMjq6wmhBKh9C4o6QcSiphS7NG on both Finviant domains. Full-width phone shell, compact account disclosure, joined Summary picker/card, prominent next action, compact working-screen identity, large quick buttons and full-screen editors. All seven workflows and 22 complete-suite jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
@@ -20,4 +20,4 @@ Checked November 12, 2026 UTC.
 
 - PR100 phone shell/entry correction is merged and verified in beta. Do not treat automated visual review as physical-device or owner acceptance. See [correction evidence](evidence/2026-11-12-phone-visual-correction.json).
 
-- PR101 replaces owner-rejected PR100 phone composition. Focused Chromium/WebKit run 43148027441 passed; rendered screen family reviewed. Final required release checks and deployment pending. No functionality or provider changes. Physical-device and owner acceptance remain open.
+- PR101 is merged and deployed after visual review and all required checks. See [phone composition release receipt](evidence/2026-11-12-phone-shell-width.json). Next-action contrast and 320px tab overflow were fixed. The separately observed desktop document contrast failure under iPhone WebKit remains open under UX-01. No physical-device or owner acceptance is claimed. PR97 and the sequential queue remain paused.
