@@ -522,6 +522,12 @@
       "detail": "PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.",
       "evidence": "docs/evidence/2026-11-12-phone-reference-release.json; docs/PHONE_REFERENCE_MATCH_2026-11-12.md",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Owner archive v2 completeness prepared",
+      "detail": "Isolated follow-up to PR83 adds seven explicit delivery/job-invoice history collections, immutable snapshot format versions, catalog SHA-256, missing logo/completion-photo rejection and immutable PDF hash checks. Synthetic two-business archive reconciles counts, hashes and balances; the large archive extracts all 50,001 customers. No retention, original data, provider or layout change. Full-schema CI, controlled hosted download and hosted restore remain separate gates.",
+      "evidence": "docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md; tests/records/owner-archive.test.ts; tests/storage/owner-archive.test.ts",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
@@ -800,9 +806,11 @@
       "status": "open",
       "title": "Provide complete owner record archives before automated deletion",
       "owner": "Developer",
-      "why": "Customer CSV/vCard and service/workbook exports exist, but an owner needs all financial documents and attachments before a fixed purge deadline.",
+      "why": "PR83 supplies the existing owner archive. The v2 follow-up adds missing delivery/job-invoice history and integrity checks, with independent synthetic archive and 50,001-record extraction tests. Controlled hosted owner download acceptance remains open; do not activate automated deletion.",
       "acceptance": "Provide versioned, owner-authorized downloadable archives with customers/addresses, estimates/invoices/change orders and final PDFs, jobs, approval/payment history and balances, receipts/photos/attachments and worker/availability records. Include a manifest/counts; chunk beyond the 50,000-record scan boundary; verify completeness and short-lived download/7-day object expiry, including expired read-only accounts with no paid plan or Fin charge. Keep historical import enhancements in EXPORT-02; do not activate automatic deletion until this archive is verified.",
-      "evidence": []
+      "evidence": [
+        "docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md"
+      ]
     },
     {
       "id": "PORTAL-01",

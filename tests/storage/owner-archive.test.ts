@@ -51,3 +51,20 @@ test('cleanup only removes generated archive objects and confirms deletion befor
  calls.length=0;fail=true;await assert.rejects(()=>cleanupOwnerArchives(db));assert.ok(!calls.includes('remove_expired_owner_archive_parts'))
  calls.length=0;bad=true;await assert.rejects(()=>cleanupOwnerArchives(db));assert.deepEqual(calls,['expired_owner_archive_parts'])
 })
+
+test('versioned catalogs are hashed, legacy claims stay v1 and immutable PDF content changes fail',async()=>{
+ const old=openZip((await assembleArchivePart(claim,async()=>new Uint8Array())).bytes)
+ const oldManifest=JSON.parse(old['manifests/part-000001.json'].text)
+ assert.equal(oldManifest.schema_version,1)
+ assert.ok(!JSON.parse(old['schema/catalog.json'].text).some((c:any)=>c.collection==='private.delivery_tasks'))
+ const current=openZip((await assembleArchivePart({...claim,schema_version:2},async()=>new Uint8Array())).bytes)
+ const manifest=JSON.parse(current['manifests/part-000001.json'].text)
+ assert.equal(manifest.schema_version,2)
+ assert.equal(manifest.files.find((f:any)=>f.name==='schema/catalog.json').sha256,current['schema/catalog.json'].hash)
+ assert.ok(JSON.parse(current['schema/catalog.json'].text).some((c:any)=>c.collection==='private.delivery_tasks'))
+ await assert.rejects(()=>assembleArchivePart({...claim,schema_version:99 as any},async()=>new Uint8Array()),/Unsupported/)
+ const file={bucket:'finviant-document-pdfs',path:B+'/issued.pdf',byte_size:4,sha256:await archiveHash(new Uint8Array([1,2,3,4]))}
+ const input={...claim,schema_version:2 as const,part_no:2,kind:'file' as const,rows:[{collection:'storage_files',data:file}]}
+ await assert.rejects(()=>assembleArchivePart(input,async()=>new Uint8Array([4,3,2,1])),/hash mismatch/)
+ assert.equal((await assembleArchivePart(input,async()=>new Uint8Array([1,2,3,4]))).entries[0].sha256,file.sha256)
+})
