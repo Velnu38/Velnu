@@ -1088,3 +1088,9 @@
  .finviant-workspace .phone-job-page .module-page-heading .refresh-button { width: 40px; padding: 10px; flex: 0 0 40px; }
  .phone-job-page .refresh-button > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading h1 { font-size: 18px !important; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading .refresh-button > span { display: none !important; }
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading .refresh-button { width: 40px !important; min-width: 40px; max-width: 40px; padding: 8px !important; }
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading .work-heading-actions { gap: 6px; flex-wrap: nowrap; }
+}

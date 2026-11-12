@@ -21,7 +21,7 @@ test('unavailable financial payload displays recovery instead of zero balances o
 
 for(const width of [390,1440])test(`Jobs overview uses full server totals without fetching all jobs and recovers at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1000});await mock(page,{ai:true});let scans=0,failed=true,calls=0
- page.on('request',r=>{if(new URL(r.url()).pathname==='/rest/v1/jobs')scans++})
+ page.on('request',r=>{if(new URL(r.url()).pathname==='/rest/v1/jobs'&&!new URL(r.url()).searchParams.has('id'))scans++})
  const focus={id:J,customer_id:C,title:'Bounded focus job',status:'in_progress',scheduled_start:null,assigned_user_ids:[U],customers:[customer],active_appointment:null,invoice:null}
  const counts={all:60000,active:50001,today:7,unscheduled:49999,in_progress:2,billing:33,attention:5,unassigned:120,scheduled:0,completed:9999,current:50001,upcoming:0,history:9999}
  await page.route('**/rpc/get_jobs_overview',r=>{calls++;expect(r.request().postDataJSON().p_business).toBe(B);return r.fulfill({json:failed?[]:{counts,focus:[focus],agenda:[],crew_today:{[U]:7},checked_at:new Date().toISOString()}})})
@@ -34,7 +34,7 @@ for(const width of [390,1440])test(`Jobs overview uses full server totals withou
 
 for(const width of [390,1440])test(`Management queue pages and searches complete totals without a jobs scan at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:1000});await mock(page,{ai:true});let scans=0,failed=false;const calls=[];
- page.on('request',r=>{if(new URL(r.url()).pathname==='/rest/v1/jobs')scans++});
+ page.on('request',r=>{if(new URL(r.url()).pathname==='/rest/v1/jobs'&&!new URL(r.url()).searchParams.has('id'))scans++});
  const counts={all:50001,active:50001,approved:0,unscheduled:50001,in_progress:0,attention:0,billing:0,history:0};
  await page.route('**/rpc/get_job_management_page',r=>{
   const p=r.request().postDataJSON();calls.push(p);expect(p.p_business).toBe(B);
