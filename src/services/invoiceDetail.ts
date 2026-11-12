@@ -33,7 +33,7 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string, op
       .order('paid_at', { ascending: false }),
     supabase
       .from('messages')
-      .select('id,direction,channel,recipient,subject,body,status,sent_at,created_at')
+      .select('id,direction,channel,recipient,subject,body,provider,status,sent_at,created_at')
       .eq('business_id', businessId)
       .eq('invoice_id', invoiceId)
       .order('created_at', { ascending: false })
@@ -43,7 +43,7 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string, op
   if (invoice.error) throw invoice.error
   if (items.error) throw items.error
   if (payments.error) throw payments.error
-  if (messages.error) throw messages.error
+  // A missing activity read must not hide the invoice or imply an empty history.
 
   const operations: Promise<InvoicePaymentOperations> = options.paymentOperations ? Promise.resolve(supabase.rpc('get_invoice_payment_operations', {
     p_business:businessId,p_invoice:invoiceId,
@@ -68,7 +68,8 @@ export async function getInvoiceDetail(businessId: string, invoiceId: string, op
     invoice: invoice.data,
     items: items.data ?? [],
     payments: payments.data ?? [],
-    messages: messages.data ?? [],
+    messages: messages.error ? [] : messages.data ?? [],
+    messagesUnavailable: !!messages.error,
     paymentOperations,
     work,
     changeOrderContext,

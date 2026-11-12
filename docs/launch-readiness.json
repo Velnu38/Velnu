@@ -468,6 +468,12 @@
       "detail": "Current verified beta: PR96 merge d9e954783ab838050ad354f7584879425e77cfae, READY deployment dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ on both Finviant domains. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified. Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges. Tested and merged source trees are identical. Fresh disabled defaults and saved overrides are preserved.",
       "evidence": "docs/evidence/2026-11-12-effective-reminders.json; https://github.com/Velnu38/Velnu/pull/96",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Card 05 reminder history implementation",
+      "detail": "Invoice and Send Reminder expose paged read-only history, distinct statuses, timezone/recipient/initiator and safe failure guidance. Native reminders record Draft opened and remain unverified after owner-reported sending. Existing history and balances remain intact. Required CI, beta migration and deployment pending; provider/device acceptance is separate.",
+      "evidence": "docs/evidence/2026-11-12-invoice-reminder-history.json",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
@@ -1012,7 +1018,9 @@
       "owner": "Developer / QA",
       "why": "Mike reports that overdue invoices expose Send Reminder but do not show a record of sent reminders. Current source already has Invoice Activity \u2192 Messages and a Last reminder summary in the reminder dialog; investigate discoverability and whether all reminder paths populate the records rather than rebuilding an assumed-absent backend. Assessment/to-do only; no send is authorized.",
       "acceptance": "Provide an easily found reminder history from the invoice and Send Reminder entry point, with last attempted/successful reminder and clear empty/unavailable/loading states. Include manual and automated reminders, local date/time with timezone, channel, appropriately scoped recipient, initiating user/system, status history and failure/retry details without exposing secrets. Keep queued, sending, provider-accepted, confirmed delivered, failed/bounced, canceled, suppressed and unknown/uncertain distinct; never equate request success or provider acceptance with delivery. Native email/SMS app handoff must read Draft opened or user-reported sent/unverified as appropriate, never verified delivered without evidence. Reuse existing invoice message/reminder records; correlate callbacks and prevent duplicates, out-of-order status regression and accidental resend. Verify history persists after refresh/relogin and across supported invoice entry points and platforms, chronological ordering/pagination, tenant/role controls, manual/automatic sends, provider timeout/retry, duplicate/out-of-order webhooks, opt-out, failed delivery, paid suppression and stale/broken history reads. Use synthetic tests plus separately authorized controlled provider acceptance; preserve invoice balance/due date and existing history. Do not mark done from UI/source presence alone.",
-      "evidence": []
+      "evidence": [
+        "docs/evidence/2026-11-12-invoice-reminder-history.json (synthetic acceptance; provider/device gates remain open)"
+      ]
     },
     {
       "id": "AUTO-03",
@@ -1791,6 +1799,6 @@
     "Current verified beta: PR96 merge d9e954783ab838050ad354f7584879425e77cfae, READY deployment dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ on both Finviant domains. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.",
     "PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.",
     "PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.",
-    "Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges."
+    "Card 04 is deployed with all required checks passed. In progress: card 05, AUTO-02 invoice reminder history, reusing existing message/outbox/task/events and recording native reminder drafts truthfully. Candidate CI, additive beta migration and deployment remain pending. All unmet provider and physical-device gates remain open."
   ]
 }

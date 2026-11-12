@@ -20,7 +20,7 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.
 
-- Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges.
+- Card 04 is deployed with all required checks passed. In progress: card 05, AUTO-02 invoice reminder history, reusing existing message/outbox/task/events and recording native reminder drafts truthfully. Candidate CI, additive beta migration and deployment remain pending. All unmet provider and physical-device gates remain open.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 

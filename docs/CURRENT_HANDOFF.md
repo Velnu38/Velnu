@@ -10,6 +10,6 @@ Checked November 12, 2026 UTC.
 
 - PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.
 
-- Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges.
+- Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. In progress: card 05, AUTO-02 invoice reminder history; implementation and targeted tests pass, awaiting CI, additive beta migration and deployment. No provider activation, real sends or charges.
 
 [Card 04 evidence](evidence/2026-11-12-effective-reminders.json) · [Card 03 evidence](evidence/2026-11-11-fin-navigation.json) · [Generated queue](../ASSESSMENT_REPORT.md) · [Registry](launch-readiness.json)

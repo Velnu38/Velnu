@@ -1,0 +1,43 @@
+{
+  "card": "05",
+  "task": "AUTO-02",
+  "date": "2026-11-12",
+  "baseCommit": "18e83aed88fdfdf27b81599f62262ddc4547cb04",
+  "scope": [
+    "Read-only paged history from invoice Activity and Send Reminder",
+    "Existing messages, outbox, automatic task and provider event records; no replacement ledger",
+    "Explicit native reminder draft/cancel activity stored in existing messages; no provider call or invoice mutation"
+  ],
+  "security": [
+    "Billing module authorization and invoice tenant match before private metadata reads",
+    "Only authenticated execute grants; no private table grants",
+    "No raw payload, share token/hash, provider identifiers or unfiltered error text returned",
+    "Known PUBLIC security-definer API pattern retained with empty search_path and explicit auth checks; required for private outbox/event reads"
+  ],
+  "tests": {
+    "sql": {
+      "passed": 22,
+      "scope": "8 new history cases and 14 existing override/suppression cases; synthetic isolated PGlite"
+    },
+    "dom": [
+      "history statuses, timezone, paging, retry, stale scope and missing-read isolation",
+      "invoice detail actions regression",
+      "mobile personal/managed reminder routing regression"
+    ],
+    "build": "passed with 95 startup checks",
+    "hostedBrowser": "pending",
+    "fullMigrationReplay": "pending",
+    "requiredCI": "pending"
+  },
+  "limitations": [
+    "Provider acceptance and physical-device handoff/reopen remain open",
+    "No authenticated hosted-owner journey or real message performed",
+    "Legacy personal-app sends without reminder metadata cannot be safely inferred as reminders; shown as related document sends with reminder purpose unverified, excluded from the last-reminder summary"
+  ],
+  "migration": "supabase/migrations/20261112004157_invoice_reminder_history.sql",
+  "hostedMigration": "not applied",
+  "release": "Candidate awaiting required CI",
+  "messagesSent": false,
+  "charges": false,
+  "providerActivation": false
+}
