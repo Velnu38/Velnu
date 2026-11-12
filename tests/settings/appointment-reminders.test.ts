@@ -144,3 +144,16 @@ for(const status of ['queued','sending','accepted','failed','uncertain','blocked
  assert.equal((await db.query<{status:string}>('select status from private.appointment_reminder_queue where id=$1',[id])).rows[0].status,status);
  assert.equal(await value(db,'public.prepare_due_appointment_reminders()'),0);
 }finally{await db.close()}})
+
+test('saved 72-hour rule and custom override survive reads, pause and fallback DST',async()=>{const db=await setup();try{
+ await value(db,`public.save_appointment_reminder_settings('${B}',false,72,'email')`);
+ for(let i=0;i<2;i++)assert.deepEqual((await value(db,`public.get_appointment_reminder_settings('${B}')`)).rule,{enabled:false,lead_hours:72,channel:'email'});
+ await value(db,`public.save_appointment_reminder_override('${B}','${A}','custom',36,'email')`);
+ let o=await value(db,`public.get_appointment_reminder_override('${B}','${A}')`);assert.equal(o.effective.enabled,false);assert.equal(o.effective.lead_hours,36);assert.equal(await queue(db),undefined);
+ await value(db,`public.save_appointment_reminder_settings('${B}',true,72,'email')`);
+ await value(db,`public.save_appointment_reminder_override('${B}','${A}','inherit',36,'email')`);
+ await db.exec(`update appointments set starts_at='2030-11-03 12:00:00+00',created_at='2030-10-20 12:00:00+00'`);
+ const snapshot=await value(db,`private.appointment_reminder_snapshot('${A}')`);assert.equal(new Date(snapshot.starts_at).getTime()-new Date(snapshot.due_at).getTime(),72*3600*1000);assert.equal(new Date(snapshot.due_at).toISOString(),'2030-10-31T12:00:00.000Z');assert.match(snapshot.body,/Nov 03, 2030 07:00 \(America\/New_York\)/);
+ await value(db,`public.save_appointment_reminder_override('${B}','${A}','off',36,'email')`);assert.equal(await value(db,`private.appointment_reminder_snapshot('${A}')`),null);
+ assert.equal((await db.query('select * from messages')).rows.length,0);assert.equal((await db.query('select * from private.usage')).rows.length,0);
+}finally{await db.close()}})

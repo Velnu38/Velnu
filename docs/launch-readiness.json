@@ -456,6 +456,12 @@
       "detail": "Current verified beta: PR95 merge 7b4354b575e5d95f958fa7f5ccbe4c00871a2ef0, READY deployment dpl_8sveM9z3jFSRJPtp9qc1WFqXc25b on both Finviant domains. Both return HTTP 200 with private no-store and noindex headers. Runtime retains beta Supabase xvybcmyoblfgzokaifsx. Next: card 04, AUTO-01 effective reminder settings. Card 03 passed all eight workflows, including all 22 complete-suite jobs and mobile/desktop navigation. AI-01 real-provider/physical-device and AI-02 measured-usefulness gates remain open. No messages, charges, migrations or provider activation. Tested and merged source trees match. Supersedes earlier pending card 03 observations.",
       "evidence": "docs/evidence/2026-11-11-fin-navigation.json; https://github.com/Velnu38/Velnu/pull/95",
       "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "Card 04 saved effective reminder rules",
+      "detail": "Saved business timing/channel and enabled/paused states now remain visible separately from unsaved edits; invoice and appointment preferences show saved inherit/off/custom and master pause. Invoice-default requests ignore stale business responses and duplicate submissions. Defaults and existing engine are preserved. Targeted synthetic validation and required CI are recorded in the receipt; provider/device gates remain open.",
+      "evidence": "docs/evidence/2026-11-12-effective-reminders.json",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
@@ -723,7 +729,8 @@
       "why": "Customer reminder default and appointment outbox implementation exists in current source. Source defaults are initially disabled: appointment reminders 48 elapsed hours before arrival (email or SMS chosen by owner), overdue invoice emails first at 2 days, repeat every 7 days, maximum 3. Previously saved business rules and record overrides can differ. Mike asked whether the default is 72 hours; that question is not authorization to replace his earlier 48-hour direction. Current account-specific saved values and controlled provider/device acceptance remain to be verified.",
       "acceptance": "Add only needed follow-up rules with owner enablement, reviewed timing, response/payment suppression and retry safety; do not advertise unimplemented rules. Verify and display the effective saved timing and channel, including business default versus per-appointment override and master enabled/paused state. Preserve the requested 48-hour initial appointment default unless the owner explicitly changes it; do not silently set 72 hours. Distinguish customer appointment reminders, overdue invoice emails and internal user follow-ups. Verify fresh businesses, existing saved 72-hour/other custom settings, inherited/custom/off preferences, DST/elapsed-time boundaries, arrivals created inside the reminder window, canceled/completed/rescheduled work and paid/void invoices. Source default is not evidence that any account is enabled or that a customer message was sent.",
       "evidence": [
-        "docs/evidence/2026-11-09-customer-reminders-validation.json (synthetic only; gate remains open)"
+        "docs/evidence/2026-11-09-customer-reminders-validation.json (synthetic only; gate remains open)",
+        "docs/evidence/2026-11-12-effective-reminders.json (targeted synthetic validation; provider acceptance remains open)"
       ]
     },
     {
@@ -1778,6 +1785,6 @@
     "Current verified beta: PR95 merge 7b4354b575e5d95f958fa7f5ccbe4c00871a2ef0, READY deployment dpl_8sveM9z3jFSRJPtp9qc1WFqXc25b on both Finviant domains. Both return HTTP 200 with private no-store and noindex headers. Runtime retains beta Supabase xvybcmyoblfgzokaifsx.",
     "PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.",
     "PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.",
-    "Next: card 04, AUTO-01 effective reminder settings. Card 03 passed all eight workflows, including all 22 complete-suite jobs and mobile/desktop navigation. AI-01 real-provider/physical-device and AI-02 measured-usefulness gates remain open. No messages, charges, migrations or provider activation."
+    "Card 03 is complete and deployed. In progress: card 04, AUTO-01 saved effective reminder rules, with separate saved/edit summaries and stale-business response protection. Required candidate CI and release verification are pending; no provider activation, sends or charges. All unmet provider, physical-device and public-launch gates remain open."
   ]
 }

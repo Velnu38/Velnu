@@ -20,7 +20,7 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.
 
-- Next: card 04, AUTO-01 effective reminder settings. Card 03 passed all eight workflows, including all 22 complete-suite jobs and mobile/desktop navigation. AI-01 real-provider/physical-device and AI-02 measured-usefulness gates remain open. No messages, charges, migrations or provider activation.
+- Card 03 is complete and deployed. In progress: card 04, AUTO-01 saved effective reminder rules, with separate saved/edit summaries and stale-business response protection. Required candidate CI and release verification are pending; no provider activation, sends or charges. All unmet provider, physical-device and public-launch gates remain open.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 

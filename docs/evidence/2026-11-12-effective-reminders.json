@@ -1,0 +1,37 @@
+{
+  "card": "04",
+  "task": "AUTO-01",
+  "date": "2026-11-12",
+  "baseCommit": "77dd7473184fc48bc4aed671c46adc0188dd36b2",
+  "changes": [
+    "Show saved business enabled/paused timing and channels separately from unsaved edits",
+    "Show saved appointment and invoice inherit/off/custom preferences and business pause",
+    "Guard overdue invoice default reads, saves and cancellations against stale business responses and duplicate submission"
+  ],
+  "preserved": [
+    "Fresh appointment rule disabled at 48 elapsed hours; saved 72-hour and other overrides",
+    "Invoice email-only defaults disabled: 2 days overdue, every 7 days, maximum 3",
+    "Existing preparation, claim, suppression and provider gates; no SQL or Edge changes"
+  ],
+  "tests": {
+    "dom": "Three reminder component suites passed",
+    "typecheck": "passed",
+    "sqlAndDispatch": {
+      "passed": 81,
+      "skipped": 1,
+      "failed": 0,
+      "skip": "Optional genuine PostgreSQL lock-concurrency test; no local test database configured"
+    },
+    "build": "passed, including 95 startup checks",
+    "requiredCI": "pending",
+    "assessment": "10 passed; generated report consistency passed"
+  },
+  "externalGates": [
+    "Real provider acceptance and physical-device acceptance remain unverified",
+    "Optional real PostgreSQL concurrent lock test requires isolated local database; synthetic tests are not live-provider evidence"
+  ],
+  "release": "Candidate pending CI and private-beta verification",
+  "realMessages": false,
+  "charges": false,
+  "providerActivation": false
+}

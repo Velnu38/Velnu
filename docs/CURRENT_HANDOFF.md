@@ -10,6 +10,6 @@ Checked November 12, 2026 UTC (November 11 ET).
 
 - PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.
 
-- Next: card 04, AUTO-01 effective reminder settings. Card 03 passed all eight workflows, including all 22 complete-suite jobs and mobile/desktop navigation. AI-01 real-provider/physical-device and AI-02 measured-usefulness gates remain open. No messages, charges, migrations or provider activation.
+- In progress: card 04, AUTO-01 effective reminder settings; saved-rule visibility and stale-business response guards are implemented, awaiting required CI and beta verification. Card 03 passed all eight workflows, including all 22 complete-suite jobs and mobile/desktop navigation. AI-01 real-provider/physical-device and AI-02 measured-usefulness gates remain open. No messages, charges, migrations or provider activation.
 
 [Card 03 evidence](evidence/2026-11-11-fin-navigation.json) · [Focused cards](FOCUSED_TASK_CARDS.md) · [Generated queue](../ASSESSMENT_REPORT.md) · [Registry](launch-readiness.json)
