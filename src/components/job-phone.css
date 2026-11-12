@@ -208,7 +208,7 @@
  .phone-job-page:has(.jm-phone-summary) .jobs-workspace-tabs .record-tabs button{font-size:14px;padding:4px 12px}
  .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker{padding:8px 12px 12px;border-radius:12px 12px 0 0}
  .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker label{font-size:13px;line-height:1.2;gap:4px}
- .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker select{font-family:Arial,sans-serif;font-size:14px;font-weight:400;min-height:44px;padding:6px 10px;border-radius:7px}
+ .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker select{font-family:Arial,sans-serif;font-size:16px;font-weight:400;min-height:44px;padding:6px 10px;border-radius:7px}
  .phone-job-page .jm-phone-workspace:has(.jm-phone-summary){gap:10px;padding:12px;border-radius:14px;color:#121b2b}
  .phone-job-page:has(.jm-phone-summary) .jm-job-header .eyebrow{font-size:12px;line-height:1.2;letter-spacing:0;margin:0 0 6px;color:#121b2b}
  .phone-job-page:has(.jm-phone-summary) .jm-phone-status{font-size:13px;line-height:1.2;padding:3px 8px;margin:0 0 6px}
