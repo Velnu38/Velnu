@@ -189,7 +189,7 @@
  body:has(.phone-job-page) .form-dialog :is(.primary-button,.secondary-button,.google-maps-link){min-height:44px;font-size:16px;font-weight:700;border-radius:10px;padding:10px 14px}
  body:has(.phone-job-page) .form-dialog .google-maps-tools.compact .google-maps-link{min-width:0;min-height:44px;font-size:16px;padding:10px;border-radius:10px}
  body:has(.phone-job-page) .form-dialog .record-tabs button{min-height:44px;font-size:14px}
- body:has(.phone-job-page) .form-dialog .icon-button{width:44px;height:44px}
+ body:has(.phone-job-page) .form-dialog :is(.icon-button,.guided-dialog-head>.calendar-arrow){width:44px;height:44px;min-width:44px;flex:0 0 44px;border:0;border-radius:10px;background:#f3f4f7;color:#52606c;font-size:24px}
  body:has(.phone-job-page) .form-dialog .modal-head h2{font-size:25px}
  body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions){position:sticky;bottom:-18px;background:white;padding:14px 0;display:flex;flex-wrap:wrap;gap:10px;z-index:1}
  body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions) button{flex:1 1 auto;min-height:44px;font-size:16px;border-radius:10px}
