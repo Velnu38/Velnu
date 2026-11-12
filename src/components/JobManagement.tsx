@@ -1,3 +1,4 @@
+import { JOB_PHONE_QUERY } from './JobMobileMenu'
 import { useEffect, useRef, useState } from "react";
 import { DateTime } from "luxon";
 import type { CurrentBusiness } from "../lib/business";
@@ -57,7 +58,7 @@ export default function JobManagement({
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(0),
     [summaryOpen, setSummaryOpen] = useState(
-      () => !selectedJobId || window.matchMedia("(min-width:821px)").matches,
+      () => !selectedJobId || !window.matchMedia(JOB_PHONE_QUERY).matches,
     );
   const saving = useRef(false),
     scope = useRef(business.id);
@@ -87,7 +88,7 @@ export default function JobManagement({
   function choose(id: string) {
     if (!confirmNavigation()) return;
     onSelect(id);
-    setSummaryOpen(window.matchMedia("(min-width:821px)").matches);
+    setSummaryOpen(!window.matchMedia(JOB_PHONE_QUERY).matches);
     requestAnimationFrame(() =>
       document
         .querySelector<HTMLElement>(".jm-workspace h2")
@@ -362,11 +363,12 @@ export default function JobManagement({
                   Selected job
                   <select
                     value={selectedJobId}
-                    onChange={(e) => choose(e.target.value)}
+                    onChange={(e) => { if(e.target.value === "browse") { if(confirmNavigation()) onSelect(null); } else choose(e.target.value); }}
                   >
                     {!jobs.some((j) => j.id === selectedJobId) && (
                       <option value={selectedJobId}>Selected job</option>
                     )}
+                    <option value="browse">Browse all jobs…</option>
                     {jobs.map((j) => (
                       <option key={j.id} value={j.id}>
                         {j.title} · {customer(j)}
@@ -375,15 +377,7 @@ export default function JobManagement({
                     ))}
                   </select>
                 </label>
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => {
-                    if (confirmNavigation()) onSelect(null);
-                  }}
-                >
-                  Choose another job
-                </button>
+
               </div>
               <JobManagementWorkspace
                 key={[

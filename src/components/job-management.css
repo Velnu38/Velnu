@@ -907,3 +907,115 @@
     border-top: 1px solid var(--jm-border);
   }
 }
+
+/* The phone workspace uses available viewport space, not a scaled desktop card. */
+.jm-alert-disclosure > summary { display: none; }
+.jm-mobile-heading:empty { display: none; }
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+  .finviant-workspace .workspace-inner:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) {
+    width: 100%;
+    max-width: none;
+    padding: 16px max(12px, env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+  .jobs-module:has(> [role="tabpanel"]:not([hidden]) .job-management) {
+    width: 100%;
+    min-width: 0;
+    gap: 14px;
+  }
+  .jobs-module:has(> [role="tabpanel"]:not([hidden]) .job-management) .module-page-heading h1 { font-size: clamp(24px, 6.6vw, 32px); }
+  .jobs-module:has(> [role="tabpanel"]:not([hidden]) .job-management) .module-page-heading .eyebrow,
+  .jobs-module:has(> [role="tabpanel"]:not([hidden]) .job-management) .module-page-intro { display: none; }
+  .jobs-module:has(> [role="tabpanel"]:not([hidden]) .job-management) .work-heading-actions { display: flex; flex-direction: row; flex-wrap: wrap; }
+  .finviant-workspace .jobs-module:has(> [role="tabpanel"]:not([hidden]) .job-management) .module-page-heading .primary-button { width: auto; flex: 1 1 auto; }
+  .job-management { gap: 8px; }
+  .jm-layout { grid-template-columns: minmax(0, 1fr); }
+  .has-selected-job .jm-queue { display: none; }
+  .jm-mobile-picker { display: grid; padding: 0; margin: 0 0 14px; border: 0; border-radius: 0; background: transparent; }
+  .jm-mobile-picker label { font-size: 14px; }
+  .jm-mobile-picker select { width: 100%; max-width: 100%; min-width: 0; min-height: 48px; font-size: 16px; background: white; }
+  .jm-summary > summary { min-height: 44px; font-size: 15px; }
+  .jm-summary > summary span { font-size: 13px; }
+  .jm-phone-workspace { width: 100%; min-width: 0; padding: 16px; gap: 18px; border-radius: 18px; box-shadow: none; }
+  .jm-phone-workspace .jm-job-header { display: block; }
+  .jm-phone-workspace .jm-job-header h2 { font-size: clamp(25px, 6.7vw, 32px); line-height: 1.2; margin: 6px 0; overflow-wrap: anywhere; }
+  .jm-phone-workspace .jm-job-header p { font-size: 16px; line-height: 1.45; }
+  .jm-phone-workspace .jm-job-header .eyebrow { font-size: 12px; }
+  .jm-compact-job .jm-job-header { border-bottom: 1px solid var(--jm-border); padding-bottom: 12px; }
+  .jm-compact-job .jm-job-header h2 { font-size: 24px; }
+  .jm-compact-job .jm-job-header .eyebrow,
+  .jm-compact-job .jm-job-header .jm-address,
+  .jm-compact-job .jm-job-header .quiet { display: none; }
+  .jm-phone-workspace .jm-next-action { background: var(--jm-green); color: white; border-radius: 15px; padding: 16px; flex-wrap: wrap; }
+  .jm-phone-workspace .jm-next-action small { color: #e1f1e9; }
+  .jm-phone-workspace .jm-next-action strong { font-size: 17px; line-height: 1.4; }
+  .jm-phone-workspace .jm-next-action .primary-button { color: var(--jm-green); background: white; min-height: 48px; font-size: 15px; }
+  .jm-phone-workspace .jm-next-action .secondary-button { color: white; background: transparent; border: 1px solid white; min-height: 44px; }
+  .jm-phone-workspace .jm-alert-disclosure > summary { display: list-item; min-height: 44px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; background: #fff7e7; border-radius: 10px; color: #6a490e; }
+  .jm-phone-workspace .jm-alert-disclosure .jm-alerts { padding-top: 8px; }
+  .jm-phone-workspace .jm-section-groups { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .8fr) minmax(0, .9fr) minmax(0, 1.1fr); gap: 5px; margin: 0; }
+  .jm-phone-workspace .jm-section-groups button { font-size: clamp(13px, 3.5vw, 16px); min-height: 48px; padding: 8px 2px; white-space: nowrap; border-radius: 10px; }
+  .jm-phone-workspace .jm-section-groups button[aria-pressed=true] { background: var(--jm-mint); color: var(--jm-green); box-shadow: inset 0 -3px var(--jm-green); }
+  .jm-phone-summary { display: grid; gap: 16px; }
+  .jm-visit-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0; }
+  .jm-visit-facts dt { color: var(--jm-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+  .jm-visit-facts dd { font-size: 16px; line-height: 1.45; margin: 0; overflow-wrap: anywhere; }
+  .jm-phone-summary .jm-job-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; max-width: none; width: 100%; }
+  .jm-phone-summary .jm-job-actions :is(a, button) { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 76px; width: 100%; padding: 12px 6px; border: 1px solid var(--jm-border); border-radius: 12px; font-size: 14px; line-height: 1.3; color: var(--jm-green); background: white; text-decoration: none; white-space: normal; }
+  .jm-phone-summary .google-maps-tools, .jm-phone-summary .google-maps-actions { display: block; margin: 0; }
+  .jm-phone-summary .jm-job-actions a[href^="tel:"]::before { content: '☎'; font-size: 25px; margin-bottom: 5px; }
+  .jm-phone-summary .jm-job-actions button::before { content: '▤'; font-size: 25px; margin-bottom: 5px; }
+  .jm-phone-summary .jm-job-actions .directions::before { content: '↗'; font-size: 25px; margin-bottom: 5px; }
+  .jm-phone-summary .jm-job-actions .directions > span { display: none; }
+  .jm-progress-line { margin: 0; padding-top: 12px; border-top: 1px solid var(--jm-border); font-size: 14px; color: var(--jm-muted); }
+  .jm-notes-disclosure > summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 15px; font-weight: 600; }
+  .jm-notes-disclosure textarea { width: 100%; min-height: 120px; font-size: 16px; }
+  .jm-mobile-menu { display: grid; gap: 16px; min-width: 0; }
+  .jm-mobile-menu h3, .jm-mobile-heading h3 { font-size: 24px; line-height: 1.25; margin: 0; }
+  .jm-quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .jm-phone-workspace .jm-quick-tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: 10px; min-width: 0; min-height: 146px; padding: 16px 12px; border: 1px solid #c7d8d0; border-radius: 14px; background: white; color: #172e27; text-align: left; font: inherit; cursor: pointer; }
+  .jm-quick-tile > svg { width: 32px; height: 32px; color: var(--jm-green); }
+  .jm-quick-tile > span:not(.jm-tile-chevron) { grid-column: 1 / -1; min-width: 0; display: grid; gap: 7px; }
+  .jm-quick-tile strong { font-size: 18px; line-height: 1.3; overflow-wrap: break-word; }
+  .jm-quick-tile small { font-size: 14px; line-height: 1.4; color: var(--jm-muted); overflow-wrap: anywhere; }
+  .jm-quick-tile .jm-tile-chevron { grid-column: 2; grid-row: 1; font-size: 28px; color: var(--jm-green); }
+  .jm-quick-rows { grid-template-columns: minmax(0, 1fr); }
+  .jm-quick-rows .jm-quick-tile { grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; min-height: 96px; }
+  .jm-quick-rows .jm-quick-tile > span:not(.jm-tile-chevron) { grid-column: 2; }
+  .jm-quick-rows .jm-tile-chevron { grid-column: 3; }
+  .jm-phone-workspace :is(button,a,summary):focus-visible { outline: 3px solid #176a54; outline-offset: 3px; }
+  .jm-menu-finances { padding: 14px; border: 1px solid var(--jm-border); border-radius: 14px; }
+  .jm-menu-finances .quiet { font-size: 13px; line-height: 1.5; }
+  .jm-menu-finances .jm-financial-lines { font-size: 15px; }
+  .jm-mobile-heading { display: grid; gap: 16px; scroll-margin-top: 16px; outline: none; }
+  .jm-back-button { justify-self: start; background: none; border: 0; color: var(--jm-green); padding: 10px 0; min-height: 44px; font: inherit; font-size: 16px; font-weight: 600; }
+  .jm-phone-workspace .jm-panel { min-width: 0; padding: 0; }
+  .jm-phone-workspace .jm-section-heading { gap: 12px; flex-wrap: wrap; }
+  .jm-phone-workspace .jm-section-heading h3 { font-size: 19px; }
+  .jm-phone-workspace .jm-section-heading p { font-size: 15px; }
+  .jm-phone-workspace .jm-panel :is(input,select,textarea) { font-size: 16px; max-width: 100%; min-width: 0; }
+  .jm-phone-workspace .jm-panel :is(button,a) { min-height: 44px; }
+  .jm-phone-workspace .jm-task-list > li, .jm-phone-workspace .jm-lines > li { padding: 16px 0; gap: 12px; flex-wrap: wrap; }
+  .jm-phone-workspace .jm-task-list strong { font-size: 16px; }
+  .jm-phone-workspace .jm-panel .jm-inline-actions { flex-wrap: wrap; gap: 8px; }
+  .jm-phone-workspace .jm-panel .jm-inline-actions button { padding: 10px 14px; font-size: 15px; }
+  .jm-phone-workspace .jm-workspace-footer { margin-top: 0; }
+  body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog {
+    box-sizing: border-box;
+    inset: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog :is(input,select,textarea) { font-size: 16px; max-width: 100%; min-width: 0; }
+  body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog .form-grid { grid-template-columns: minmax(0, 1fr); }
+  body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog .modal-head h2 { font-size: 25px; }
+  body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog .modal-actions { position: sticky; bottom: -18px; background: white; padding: 14px 0 max(14px, env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; gap: 10px; z-index: 1; }
+  body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog .modal-actions button { flex: 1 1 auto; min-height: 48px; }
+}

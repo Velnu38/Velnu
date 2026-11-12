@@ -15,3 +15,5 @@ Checked November 12, 2026 UTC.
 [Card 04 evidence](evidence/2026-11-12-effective-reminders.json) · [Card 03 evidence](evidence/2026-11-11-fin-navigation.json) · [Generated queue](../ASSESSMENT_REPORT.md) · [Registry](launch-readiness.json)
 
 - Phone Job Management layout is complete and deployed. Application changes are CSS-only at widths <=820px. All existing controls, sections, permissions, links, records and balances are retained. Browser checks passed at 320/390/430px and screenshots were inspected. No provider/backend change or real send/charge. PR97 and the earlier sequential queue remain paused. See [layout evidence](evidence/2026-11-12-job-mobile-layout.json).
+
+- Current work: replace the rejected PR98 phone density with the owner-approved full-width Summary/Work/Billing/Records menus and focused details/editors. Base 78bd9567f8dfb77b944abbbe9c1a0d73dd014934; no PR97 changes. Hosted validation and beta release pending. See [phone flow evidence](evidence/2026-11-12-job-phone-flow.json).
