@@ -1081,3 +1081,10 @@
  .phone-job-page .jm-quick-tile strong { font-size: 18px; }
  .phone-job-page .jm-quick-rows .jm-quick-tile { min-height: 88px; }
 }
+
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .finviant-workspace .phone-job-page .module-page-heading > div:first-child { flex: 1 1 auto; min-width: 0; }
+ .finviant-workspace .phone-job-page .module-page-heading h1 { font-size: clamp(17px,4.6vw,22px); overflow-wrap: normal; }
+ .finviant-workspace .phone-job-page .module-page-heading .refresh-button { width: 40px; padding: 10px; flex: 0 0 40px; }
+ .phone-job-page .refresh-button > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
