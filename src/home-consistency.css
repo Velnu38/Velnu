@@ -1,4 +1,6 @@
 /* Home uses the same record controls; explicit spans keep live counts from moving cards. */
+/* Each remaining card is reviewed separately against its mockup and completed
+   Job Management. Keep these changes scoped to Home's calendar card. */
 .home-view .dashboard-business-header{align-items:center}
 .home-view .home-header-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .home-view .dashboard-page .home-create-button{width:auto;min-width:142px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;text-align:center;font-size:16px;padding:12px 22px;border-radius:12px}
@@ -108,4 +110,39 @@
  .home-view .home-header-actions>.home-create-button{flex:1}
  .home-view .home-calendar-compact .calendar-heading-actions{width:100%;justify-content:space-between}
  .home-view .home-calendar-compact .calendar-day{min-height:62px}
+}
+
+/* Calendar card: Job Management's control geometry, with Home's approved
+   calendar composition. Scope prevents changes to the completed Jobs screens. */
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .home-view .home-calendar-compact{font-family:Arial,sans-serif;border:1px solid #cbd5df;border-radius:14px;background:#fff;box-shadow:none;color:#182b3d}
+ .home-view .home-calendar-compact .calendar-heading{padding:14px 12px 10px;gap:10px}
+ .home-view .home-calendar-compact .calendar-heading h2{font-size:22px;line-height:1.2;color:#12243c}
+ .home-view .home-calendar-compact .calendar-heading-actions{flex-wrap:wrap;gap:8px}
+ .home-view .home-calendar-compact .view-switch{padding:0;gap:0;background:#fff;border:1px solid #cbd5df;border-radius:10px}
+ .home-view .home-calendar-compact .view-switch button{min-height:44px;font-size:14px;padding:8px 14px;border-radius:8px;color:#182b3d}
+ .home-view .home-calendar-compact .view-switch button[aria-pressed=true]{background:#e5f5ef;color:#006a55;box-shadow:inset 0 -3px #008673}
+ .home-view .home-calendar-compact :is(.calendar-add,.text-button,.secondary-button,.primary-button){min-height:44px;font-size:14px;line-height:1.3;border-radius:10px;padding:8px 12px;white-space:normal}
+ .home-view .home-calendar-compact .calendar-add{background:white;color:#006b57;border:1px solid #00715c}
+ .home-view .home-calendar-compact .calendar-period-nav{padding:0 12px 12px;gap:8px;flex-wrap:wrap}
+ .home-view .home-calendar-compact .calendar-period-title{width:100%;gap:8px;flex-wrap:wrap}
+ .home-view .home-calendar-compact .calendar-period-title strong{flex:1;font-size:16px;line-height:1.3;text-align:center;color:#182b3d}
+ .home-view .home-calendar-compact .calendar-arrow{width:44px;height:44px;min-width:44px;border-radius:10px;color:#182b3d}
+ .home-view .home-calendar-compact>.worker-select{margin:0 12px 12px;max-width:calc(100% - 24px);font-size:14px}
+ .home-view .home-calendar-compact :is(input,select){font-size:16px;min-height:44px;min-width:0;max-width:100%;border-radius:10px}
+ .home-view .home-calendar-compact .calendar-grid{padding-inline:12px;gap:4px}
+ .home-view .home-calendar-compact .calendar-day{border-color:#cbd5df;border-radius:8px;background:#fff;color:#182b3d;min-height:62px}
+ .home-view .home-calendar-compact .calendar-day[aria-pressed=true]{background:#008673;border-color:#008673;color:white;box-shadow:none}
+ .home-view .home-calendar-compact .calendar-weekday{font-size:12px}
+ .home-view .home-calendar-compact .calendar-day strong{font-size:18px}
+ .home-view .home-calendar-compact .calendar-agenda{padding:12px}
+ .home-view .home-calendar-compact .calendar-agenda-date>strong{font-size:16px;line-height:1.3;color:#182b3d}
+ .home-view .home-calendar-compact .calendar-agenda-date>span{font-size:12px}
+ .home-view .home-calendar-compact .home-agenda-row{gap:8px;padding:10px 0}
+ .home-view .home-calendar-compact .calendar-event{gap:8px;flex-wrap:wrap;color:#182b3d}
+ .home-view .home-calendar-compact .calendar-event :is(time,strong){font-size:14px}
+ .home-view .home-calendar-compact .calendar-event small{font-size:13px;line-height:1.4}
+ .home-view .home-calendar-compact .home-calendar-extras{padding:8px 12px;gap:8px 12px;font-size:14px}
+ .home-view .home-calendar-compact .home-calendar-extras :is(summary,a){min-height:44px}
+ .home-view .home-calendar-compact :is(.calendar-empty,.calendar-status){font-size:14px;line-height:1.5}
 }
