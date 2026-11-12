@@ -19,7 +19,7 @@ Shared owner, member, role, module, terms, field and Fin authorization helpers a
 
 ## Acceptance limits and release coordination
 
-Local Docker is unavailable. The extended real-platform replay must pass on the existing isolated CI runner before merge or rollout. PGlite uses application fixture dependencies and does not certify hosted Auth/Storage or migration parity. SEC-02 stays open until that evidence and the remaining independent hosted review are complete.
+Local Docker is unavailable. The extended real-platform replay passed on the existing isolated CI runner at source commit `49b78b0b742a9e7d80193cb178d14a3d17d1bbb6` (run 43311556227, migration job 131509935541). All application migrations applied; genuine password sessions, old-JWT logout denial, tenant/role/file isolation, public-link revocation and preserved service upload passed. Edge Deno typechecking also passed. See [immutable receipt](evidence/2026-11-12-tenant-session-security.json). Broader CI was still running when this receipt was recorded. PGlite alone is not hosted Auth/Storage evidence; the successful isolated server replay does not establish deployed-beta parity. SEC-02 stays open for the remaining independent hosted review and rollout acceptance.
 
 Previously issued signed Storage URLs are bearer capabilities until expiry; session revocation prevents new authenticated downloads/signing, not retroactive invalidation of an existing signed URL. Public business cards are intentionally anonymous capabilities, public logo bytes remain public, and expired estimate links can remain readable while decisions are rejected. Existing canonical-document tests retain those distinctions; do not weaken them to manufacture a pass.
 
