@@ -522,6 +522,12 @@
       "detail": "PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.",
       "evidence": "docs/evidence/2026-11-12-phone-reference-release.json; docs/PHONE_REFERENCE_MATCH_2026-11-12.md",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Provider-independent abuse and cost backpressure candidate",
+      "detail": "Shared burst controls extended to valid document/card reads, PDF cache-miss rendering and email/SMS claim transitions; global daily attempt caps added without changing monthly entitlements. Targeted SQL/handler tests cover rollback, delayed retry, oversized streamed input and cached/manual fallback. Independent-connection replay added; exact-head CI and hosted ingress/signup/IP, invalid-token flood and monetary-budget acceptance remain required. No provider or deployment activation.",
+      "evidence": "docs/ABUSE_COST_CONTROLS_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [

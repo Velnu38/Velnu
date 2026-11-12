@@ -4,7 +4,7 @@ import {documentPdfPath,documentPdfFilename,ensureStoredDocumentPdf,pdfSha256,pd
 
 const B='11111111-1111-4111-8111-111111111111',D='22222222-2222-4222-8222-222222222222',V='33333333-3333-4333-8333-333333333333'
 const snapshot={kind:'invoice' as const,number:'INV-101',revision_created_at:'2026-11-07T12:00:00Z',issue_date:'2026-11-07',subtotal:100,tax_amount:0,total:100,company:{name:'Test Business'},customer:{name:'Test Customer'},items:[{description:'Work completed',quantity:1,unit_price:100,line_total:100}]}
-function store(options:{cached?:Uint8Array;expectedHash?:string;logo?:string;saveFails?:boolean;freezeFails?:boolean}={}){
+function store(options:{cached?:Uint8Array;expectedHash?:string;logo?:string;saveFails?:boolean;freezeFails?:boolean;renderLimited?:boolean}={}){
  const version={version_id:V,business_id:B,kind:'invoice',document_id:D,snapshot:{...snapshot,company:{...snapshot.company,...(options.logo?{logo_path:options.logo}:{})}},pdf_sha256:options.expectedHash}
  const objects=new Map<string,Uint8Array>(),calls:{name:string;args:any}[]=[]
  const path=documentPdfPath(version as any)
@@ -13,6 +13,7 @@ function store(options:{cached?:Uint8Array;expectedHash?:string;logo?:string;sav
   rpc(name:string,args:any){
    calls.push({name,args});let result:any
    if(name==='document_pdf_artifact_context')result={data:version,error:null}
+   else if(name==='reserve_document_pdf_render')result={data:null,error:options.renderLimited?{code:'FINVIANT_DAILY_LIMIT',details:'3600'}:null}
    else if(name==='reserve_document_pdf_artifact')result={data:null,error:null}
    else if(name==='register_document_pdf_artifact')result={data:{ok:true},error:null}
    else if(name==='freeze_document_email_attachment')result=options.freezeFails?{data:null,error:{message:'acknowledgement failed'}}:{data:{to:['customer@example.test'],attachments:[{filename:args.p_filename,content:args.p_content,content_type:'application/pdf'}]},error:null}
@@ -69,4 +70,15 @@ test('already frozen retry payload and legacy operations retain their original p
  const legacy={to:['customer@example.test'],text:'Legacy originally queued text'}
  assert.equal(await prepareQueuedDocumentPdf(f.client,{id:D,lease:B,payload:legacy}),legacy)
  assert.equal(f.calls.length,0)
+})
+
+
+test('render denial stops before new storage writes while cached PDFs remain usable',async()=>{
+ const miss=store({renderLimited:true})
+ await assert.rejects(()=>ensureStoredDocumentPdf(miss.client,V),{code:'FINVIANT_DAILY_LIMIT'})
+ assert.equal(miss.objects.size,0)
+ assert.ok(!miss.calls.some(c=>c.name==='reserve_document_pdf_artifact'))
+ const cached=store({renderLimited:true,cached:new TextEncoder().encode('%PDF-1.7 cached original')})
+ await ensureStoredDocumentPdf(cached.client,V)
+ assert.ok(!cached.calls.some(c=>c.name==='reserve_document_pdf_render'))
 })

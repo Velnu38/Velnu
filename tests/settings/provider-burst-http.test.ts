@@ -46,3 +46,9 @@ test('body deadlines cancel stalled streams and byte bounds ignore a forged smal
  const overflow=new Request('https://local.test',{method:'POST',headers:{'content-length':'1'},body:new ReadableStream({start(c){c.enqueue(new Uint8Array(101));c.close()}}),duplex:'half'} as RequestInit)
  await assert.rejects(readLimitedBytes(overflow,100),/REQUEST_TOO_LARGE/)
 })
+
+test('daily ceilings preserve a safe full-day Retry-After instead of encouraging minute retries',async()=>{
+ const response=burstLimitResponse({code:'FINVIANT_DAILY_LIMIT',details:'43200'}, {})!
+ assert.equal(response.status,429);assert.equal(response.headers.get('retry-after'),'43200')
+ assert.match((await response.json()).error,/Manual work remains available/)
+})
