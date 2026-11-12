@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "8d1db84b80ff7744dde1c376e8ca3c169bfc9279",
+  "auditedCommit": "7b4354b575e5d95f958fa7f5ccbe4c00871a2ef0",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -449,6 +449,12 @@
       "title": "Fin direct navigation implementation awaiting browser and release verification",
       "detail": "Card 03 adds an allowlisted navigation-only resolver, separate Customer Reminders and internal follow-ups, fresh membership/module/plan checks, and existing unsaved-edit protection. Thirteen targeted source tests and TypeScript passed. Local Chromium launch was blocked by the executor socket restriction; hosted CI must verify the new mobile/desktop destination and dictation cases before release. AI-01 real-provider/device and AI-02 usefulness gates remain open.",
       "evidence": "tests/settings/fin-navigation.test.ts; tests/e2e/fin-navigation.spec.mjs",
+      "verifiedAt": "2026-11-11"
+    },
+    {
+      "title": "Fin contextual navigation released to private beta",
+      "detail": "Current verified beta: PR95 merge 7b4354b575e5d95f958fa7f5ccbe4c00871a2ef0, READY deployment dpl_8sveM9z3jFSRJPtp9qc1WFqXc25b on both Finviant domains. Both return HTTP 200 with private no-store and noindex headers. Runtime retains beta Supabase xvybcmyoblfgzokaifsx. Next: card 04, AUTO-01 effective reminder settings. Card 03 passed all eight workflows, including all 22 complete-suite jobs and mobile/desktop navigation. AI-01 real-provider/physical-device and AI-02 measured-usefulness gates remain open. No messages, charges, migrations or provider activation. Tested and merged source trees match. Supersedes earlier pending card 03 observations.",
+      "evidence": "docs/evidence/2026-11-11-fin-navigation.json; https://github.com/Velnu38/Velnu/pull/95",
       "verifiedAt": "2026-11-11"
     }
   ],
@@ -1020,13 +1026,20 @@
     {
       "id": "AI-03",
       "priority": "P1",
-      "status": "open",
+      "status": "done",
       "gate": "advertised",
       "title": "Open the correct destination from clear Fin navigation requests",
       "owner": "Engineering / product owner",
       "why": "Clear contextual typed or voice requests should open the correct supported area without a navigation-only confirmation; customer reminders must not be confused with internal follow-ups.",
       "acceptance": "Exact destination assertions cover context, repeated requests, missing routes, mobile/deep links, Back/Cancel, unsaved edits and tenant/role/plan denial. Ask only for genuine ambiguity or unsaved edits. Navigation alone creates nothing, changes no setting and sends nothing. Consequential actions retain review and permissions. Document unavailable destinations honestly. Record source tests separately from real voice and physical-device acceptance.",
-      "evidence": []
+      "evidence": [
+        {
+          "reference": "2026-11-12 UTC (November 11 ET): source 45da1763d583da1c0bdf105ff70fb621dc7e9acc; 20 targeted source checks and 18 Fin action/security checks; hosted navigation 43124726585 passed 40 navigation/voice plus 12 setup/access cases; complete suite 43124726634 passed all 22 jobs. Exact destinations, context/repeats, missing routes, mobile/deep links, Back/Cancel, unsaved edits and tenant/role/plan denial are covered. Navigation writes nothing; action review remains guarded. See docs/FIN_NAVIGATION_2026-11-11.md and docs/evidence/2026-11-11-fin-navigation.json. Real provider and physical-device acceptance remain AI-01; measured usefulness remains AI-02.",
+          "verifiedAt": "2026-11-11",
+          "commit": "45da1763d583da1c0bdf105ff70fb621dc7e9acc"
+        }
+      ],
+      "completedAt": "2026-11-11"
     }
   ],
   "recommendations": [
@@ -1762,9 +1775,9 @@
   },
   "currentState": [
     "PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.",
-    "Current verified beta: PR94 merge 8d1db84b80ff7744dde1c376e8ca3c169bfc9279, READY deployment dpl_3GCkJYUeGUGxkTdGheLedEDHVgVi on both Finviant domains. Both return HTTP 200, unchanged index-CZTK5yB_.js, private no-store and noindex headers; runtime behavior remains the tested PR93 release.",
+    "Current verified beta: PR95 merge 7b4354b575e5d95f958fa7f5ccbe4c00871a2ef0, READY deployment dpl_8sveM9z3jFSRJPtp9qc1WFqXc25b on both Finviant domains. Both return HTTP 200 with private no-store and noindex headers. Runtime retains beta Supabase xvybcmyoblfgzokaifsx.",
     "PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.",
-    "PR94 is merged and published to private beta. Final candidate c2c9a534dcd1337eb233f2b63ffa518fc816e623 passed assessment 43121197565, pricing 43121197581 and complete suite 43121197572. Tested and merged trees match. All 50 original readiness records survive; AI-03 is added open.",
-    "Next: card 03, Fin contextual navigation, when selected. Cards 01 and 02 release work is complete; do not repeat it. All unmet provider, physical-device and public-launch gates remain open. No runtime, migrations, provider activation, real sends or charges occurred in PR94."
+    "PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.",
+    "Next: card 04, AUTO-01 effective reminder settings. Card 03 passed all eight workflows, including all 22 complete-suite jobs and mobile/desktop navigation. AI-01 real-provider/physical-device and AI-02 measured-usefulness gates remain open. No messages, charges, migrations or provider activation."
   ]
 }

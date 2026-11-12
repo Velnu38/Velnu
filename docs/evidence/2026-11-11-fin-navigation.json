@@ -1,0 +1,71 @@
+{
+  "card": "03",
+  "task": "AI-03",
+  "sourceCommit": "45da1763d583da1c0bdf105ff70fb621dc7e9acc",
+  "sourceTree": "391558a8e52361268c372fa08c1d4535fa1d590e",
+  "pullRequest": 95,
+  "scope": "Navigation only; no backend migration, provider activation, messages, charges or settings writes",
+  "sourceChecks": {
+    "navigationDraftAndEntry": 20,
+    "finActionAndSecurity": 18,
+    "typecheck": "passed"
+  },
+  "browserChecks": {
+    "run": 43124726585,
+    "navigationConversationAndVoice": 40,
+    "setupAccessAndSupport": 12,
+    "realProvider": false,
+    "physicalDevice": false
+  },
+  "preview": {
+    "deployment": "dpl_7cYRdbV8SrUgHD2kAiwF8rhth1kF",
+    "state": "READY",
+    "httpStatus": 200,
+    "indexAsset": "index-DmhJx8bm.js",
+    "applicationAsset": "App-jUe-5wXn.js",
+    "betaBackend": "xvybcmyoblfgzokaifsx",
+    "separateProductionBackendAbsent": true,
+    "cacheControl": "private, no-store, max-age=0",
+    "robots": "noindex, nofollow, noarchive"
+  },
+  "release": {
+    "state": "READY",
+    "deployment": "dpl_8sveM9z3jFSRJPtp9qc1WFqXc25b",
+    "commit": "7b4354b575e5d95f958fa7f5ccbe4c00871a2ef0",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "httpStatus": 200,
+    "indexAsset": "index-BzoP1vBY.js",
+    "applicationAsset": "App-BgIg0TmL.js",
+    "betaBackend": "xvybcmyoblfgzokaifsx",
+    "separateProductionBackendAbsent": true,
+    "privateNoStore": true,
+    "noindex": true,
+    "verifiedAt": "2026-11-12T00:24:17Z"
+  },
+  "remainingExternalGates": [
+    "AI-01 real provider and physical iPhone/Android acceptance",
+    "AI-02 measured usefulness"
+  ],
+  "mergeCommit": "7b4354b575e5d95f958fa7f5ccbe4c00871a2ef0",
+  "testedAndMergedTreeMatch": true,
+  "workflowsPassed": [
+    43124726474,
+    43124726433,
+    43124726462,
+    43124726585,
+    43124726500,
+    43124726416,
+    43124726634,
+    43124726742
+  ],
+  "completeSuiteJobsPassed": 22,
+  "voiceWorkflow": {
+    "run": 43124726742,
+    "focusedBrowser": 72,
+    "fullBrowser": 432,
+    "nativeHandoff": 5
+  }
+}
