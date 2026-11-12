@@ -13,6 +13,8 @@ export type BusinessCard = {
   postal_code: string;
 };
 export type CardState = {
+  live_requests?: { id: string; body: string; created_at: string }[];
+  live_card?: { url: string; published: boolean } | null;
   plan: VelnuTier;
   can_edit: boolean;
   revision: string | null;
@@ -185,3 +187,8 @@ export async function deliverBusinessCard(
     );
   return data as { status: string; warning?: string };
 }
+
+export const setLiveBusinessCard = (business: string, revision: string, published: boolean) =>
+  rpc<{ url: string; published: boolean }>("set_live_business_card", {
+    p_business: business, p_revision: revision, p_published: published,
+  });

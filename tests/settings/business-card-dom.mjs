@@ -107,6 +107,10 @@ try {
         },
         error: null,
       };
+    if (name === "set_live_business_card") {
+      assert.equal(args.p_business,B);assert.equal(args.p_revision,revision);
+      return {data:{url:"https://finviant.com/?business_card=88888888-8888-4888-8888-888888888888",published:args.p_published},error:null};
+    }
     if (name === "get_delivery_setup")
       return { data: { plan: tier, managed_email_ready: true }, error: null };
     if (name === "save_business_card") {
@@ -208,6 +212,11 @@ try {
   );
   await click("Save card");
   assert.equal(saves, 2);
+  await click("Publish live card");
+  assert.ok(document.querySelector('a[href*="business_card="]'));
+  assert.ok(button("Unpublish live card"));
+  await click("Unpublish live card");
+  assert.equal(button("Unpublish live card"),undefined);
   await change("Recipient email", "recipient@example.test");
   await click("Send card email");
   await tick();

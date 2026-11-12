@@ -6,6 +6,7 @@ import { emailDeliveryEnabled } from "../../lib/releaseFlags";
 import { settingsHref } from "../../lib/settingsNavigation";
 import {
   getBusinessCard,
+  setLiveBusinessCard,
   saveBusinessCard,
   exportBusinessCard,
   downloadCard,
@@ -195,7 +196,8 @@ export function CardEditor({
     [file, setFile] = useState<File | null>(null),
     [recipient, setRecipient] = useState(initial.pending_send?.recipient || ""),
     [pending, setPending] = useState(initial.pending_send || null),
-    [accepted, setAccepted] = useState(false);
+    [accepted, setAccepted] = useState(false),
+    [liveCard, setLiveCard] = useState(initial.live_card);
   const saving = useRef(false),
     dirty = JSON.stringify(card) !== JSON.stringify(state.card),
     { setup } = useDeliverySetup(business.id);
@@ -221,7 +223,7 @@ export function CardEditor({
     return () => {
       active = false;
     };
-  }, [business.id, state.revision, currentPlan]);
+  }, [business.id, state.revision, currentPlan, liveCard]);
   function change<K extends keyof BusinessCard>(
     key: K,
     value: BusinessCard[K],
@@ -456,6 +458,24 @@ export function CardEditor({
         saved and forwarded without Finviant limits; future edits do not update
         those copies.
       </p>
+      {editable && <section aria-label="Live business card">
+        <p>Publish only the contact details shown above. The live link keeps its address when you publish updates. Saved contact details remain copies; their live link opens the latest published card.</p>
+        {liveCard?.published && <p><a href={liveCard.url} target="_blank" rel="noreferrer">Open live business card</a></p>}
+        <button className="secondary-button" disabled={busy || dirty || !state.revision} onClick={async () => {
+          setBusy(true); setError("");
+          try { setLiveCard(await setLiveBusinessCard(business.id, state.revision!, true)); setNotice("Current card published. New contact downloads include its live website link."); }
+          catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+        }}>{liveCard?.published ? "Publish card updates" : "Publish live card"}</button>
+        {liveCard?.published && <button className="secondary-button" disabled={busy || !state.revision} onClick={async () => {
+          setBusy(true); setError("");
+          try { setLiveCard(await setLiveBusinessCard(business.id, state.revision!, false)); setNotice("Live card unpublished. Previously saved contact copies remain on recipients’ devices."); }
+          catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+        }}>Unpublish live card</button>}
+      </section>}
+      {!!state.live_requests?.length && <section aria-label="Business card estimate requests">
+        <h3>Estimate requests</h3><p>Review these requests before creating a customer, estimate or job. Refresh this editor to load new requests.</p>
+        {state.live_requests.map(request => <article key={request.id}><time>{new Date(request.created_at).toLocaleString()}</time><p style={{whiteSpace:"pre-wrap"}}>{request.body}</p></article>)}
+      </section>}
       {dirty && (
         <p role="status">Save your changes before downloading or sharing.</p>
       )}

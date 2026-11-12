@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Business card, jobs and recurrence candidate verification",
+      "detail": "November 12 isolated candidate adds owner-opt-in stable card URL/vCard and review-only lead requests, preserving existing actions and private-beta restrictions. Targeted SQL/DOM verification recorded. Jobs/crew suites passed without runtime changes. Explicit recurrence skip/cancel/series-timezone editing and progress billing remain gaps; physical contact import and hosted release verification remain open. Candidate deployment is disabled; PR107 layout remains separate.",
+      "evidence": "docs/BUSINESS_CARD_JOBS_RECURRENCE_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Summary card reference correction — released to private beta",
       "detail": "November 12: PR106 is merged as 0c5a4353bf62af7b22b7fb9ebc3217d4d89e96a9. Summary-only card/font/spacing correction follows the approved reference while retaining real content, notes, actions, permissions and 44px controls. Five application workflows, all 22 complete-suite jobs and 38 focused Chromium/WebKit cases passed; a retained pricing assertion timing failure passed on an isolated shard retry. Live reviewed CSS hash, beta backend, HTTP 200 and private headers verified on both domains. PR97/103/104/105 survive. One card is released before starting the next; Home/Invoices/Estimates/Jobs/More and their downstream layouts remain sequential. UX-01/JOB-01 and physical-phone/owner acceptance remain open.",
       "evidence": "docs/SUMMARY_CARD_REFERENCE_2026-11-12.md; docs/evidence/2026-11-12-summary-card-release.json; docs/evidence/2026-11-12-summary-card-comparison.jpg",
@@ -836,10 +842,11 @@
       "status": "open",
       "title": "Provide complete owner record archives before automated deletion",
       "owner": "Developer",
-      "why": "PR83 supplies the existing owner archive. The v2 follow-up adds missing delivery/job-invoice history and integrity checks, with independent synthetic archive and 50,001-record extraction tests. Controlled hosted owner download acceptance remains open; do not activate automated deletion.",
+      "why": "PR83 supplies the existing owner archive. The v2 follow-up adds missing delivery/job-invoice history and integrity checks, with independent synthetic archive and 50,001-record extraction tests. Controlled hosted owner download acceptance remains open; do not activate automated deletion. Stable-card candidate adds publication/request metadata requiring a versioned archive-catalog follow-up; inbound estimate-request messages are already included. No hosted export regression is claimed before candidate release.",
       "acceptance": "Provide versioned, owner-authorized downloadable archives with customers/addresses, estimates/invoices/change orders and final PDFs, jobs, approval/payment history and balances, receipts/photos/attachments and worker/availability records. Include a manifest/counts; chunk beyond the 50,000-record scan boundary; verify completeness and short-lived download/7-day object expiry, including expired read-only accounts with no paid plan or Fin charge. Keep historical import enhancements in EXPORT-02; do not activate automatic deletion until this archive is verified.",
       "evidence": [
-        "docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md"
+        "docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md",
+        "docs/BUSINESS_CARD_JOBS_RECURRENCE_2026-11-12.md"
       ]
     },
     {
@@ -950,7 +957,9 @@
       "owner": "Developer + owner",
       "why": "Current source already includes tasks/templates, multiple visits and crew assignment, materials statuses, costs/budgets, change orders and completion reports; directory/Overview/Management paging work is separately tracked in PERF-01. Owner's November 10 prompt asks to improve how these capabilities connect and appear, not rebuild or remove them. The source review identified competing Manage/Open job paths, many mobile sections and possible next-action text/button mismatch; new signed-in/physical-device verification remains required.",
       "acceptance": "Follow UX-01's app-wide navigation conventions and review the latest active work first. Create a clear Today / Needs Attention landing view from reliable authorized data: upcoming visits, unassigned work, overdue tasks, missing materials and completed work ready for billing, each with the appropriate direct action and accurate empty/stale/unavailable state. Reconcile Manage versus Open job into one consistent job workspace without losing existing actions, deep links or directory views. In its overview show next visit/crew, task progress, actual blocker, recorded costs versus budget and invoice status together. Flag missing/manual/incomplete cost data and distinguish recorded margin from certified profit. Make primary next-action text and button agree; specifically test remaining-task guidance versus Complete job and retain required-item/completion review safeguards and authorized overrides. Group the existing nine-section mobile navigation into a few intuitive primary areas, with photos, expenses, changes, activity and reports still reachable. Streamline preparation using approved scope, saved services and task templates; preserve manual edits and idempotent one-job/visit/invoice creation. Preserve customer/site, estimates, deposit/invoice/change-order history, notes/photos/reminders and one authorized calendar/scheduling source. Maintain manager-operated employee profiles as distinct from account access: assigning a worker neither grants login nor sends messages. Assess a visual crew/visit timeline only if useful, architecturally compatible, accessible and testable without new paid dependencies; do not silently activate a field portal, inventory/purchasing system or employee self-service. Coordinate JOB-02 cost/billing, JOB-03 access, JOB-04 benchmarking/load and JOB-05 real-device acceptance instead of duplicating them. Validate a realistic approved-estimate → multi-visit crew/task/material work → recorded costs/change order → completion → reviewed final invoice flow, including legacy data, permissions/tenant isolation, conflicts/reschedule/cancel/reopen, duplicate retries and partial failures. Run automated and mobile-browser regressions plus actual phones where available, explicitly retaining unperformed acceptance as open. Record before/after friction and tested/deployed evidence; no paid code/service purchase or automatic send/payment.",
-      "evidence": []
+      "evidence": [
+        "docs/BUSINESS_CARD_JOBS_RECURRENCE_2026-11-12.md"
+      ]
     },
     {
       "id": "JOB-02",
@@ -959,9 +968,11 @@
       "status": "open",
       "title": "Certify job costs, recurrence and progress-to-final billing",
       "owner": "Developer + finance reviewer",
-      "why": "Office time/rate snapshots, budgets, canonical expense allocation and duplicate-cost exclusions, missing-cost indicators and immutable completion PDFs are implemented. Three-visit deposit/approved-change/final-invoice and cost/report replay passed on the real schema with rolled-back synthetic data. Manager UI is deployed to the private beta; final CI and live asset checks passed. Recurrence exceptions, progress billing, actual uploads/providers and certified accounting profit remain open.",
+      "why": "Office time/rate snapshots, budgets, canonical expense allocation and duplicate-cost exclusions, missing-cost indicators and immutable completion PDFs are implemented. Three-visit deposit/approved-change/final-invoice and cost/report replay passed on the real schema with rolled-back synthetic data. Manager UI is deployed to the private beta; final CI and live asset checks passed. Recurrence exceptions, progress billing, actual uploads/providers and certified accounting profit remain open. November 12 targeted review passed existing deposit/partial-payment/approved-change/final-invoice and refund tests plus recurring pause/resume/retry/month-end/timezone snapshot checks. Dedicated skip/cancel/series-timezone editing and quantity-based progress-to-final allocation remain unimplemented; do not certify them from existing final-invoice tests.",
       "acceptance": "After JOB-01 scope selection, add permission-controlled approved time/rate snapshots, budgets, material/direct-cost allocations, missing-cost indicators and separate actual/forecast margin. Reconcile taxes/credits/refunds/deposits/progress quantities to final invoicing and deduplicate receipts/labor. Extend existing recurrence with service-series exceptions and bounded generation without duplicate invoice/job creation; test DST/month-end, changed rates/crews, skips and cancellations. Preserve owner invoice review, signed-event payment verification, existing financial reports and no-Fin-charge deterministic rules. Certify scoped completion PDFs and failed-automation recovery; use actual provider receipts under existing gates where applicable.",
-      "evidence": []
+      "evidence": [
+        "docs/BUSINESS_CARD_JOBS_RECURRENCE_2026-11-12.md"
+      ]
     },
     {
       "id": "JOB-03",
@@ -1071,7 +1082,9 @@
       "owner": "Owner + developer",
       "why": "The manager implementation passed targeted DOM/SQL/PDF checks and a real-beta rollback workflow, plus synthetic 390px phone visit entry in shared Chrome. It retains the newer beta document/availability source and is now deployed, with all seven final PR workflows passing and live assets verified. Shared Chrome reached private sign-in; no authenticated session was available. Authenticated real-tenant browser sessions, physical iPhone camera/touch, actual file upload/providers and measured load remain unverified.",
       "acceptance": "In an authorized signed-in beta account, verify Jobs filters and history, Manage opening the exact job, approved-work single-job creation, task/template edits and retry recovery, mobile materials/photos/receipt capture, sequential visit finish and rebooking, crew conflicts, all linked change scopes, deposit/invoice balances and completion override/reopen. Verify owner versus restricted staff and physical iPhone touch/keyboard/layout. Exercise actual external providers only under their existing authorization and acceptance gates; retain private beta isolation and recorded evidence.",
-      "evidence": []
+      "evidence": [
+        "docs/BUSINESS_CARD_JOBS_RECURRENCE_2026-11-12.md"
+      ]
     },
     {
       "id": "STORE-01",
@@ -1091,9 +1104,11 @@
       "status": "open",
       "title": "Add a persistent live business-card link to saved contacts",
       "owner": "Developer + owner",
-      "why": "Owner-requested to-do, November 10: a QR code is awkward when the digital card is viewed on the same phone. Reuse the existing E-Business Card and contact-download implementation; this records future work only, not a new public launch requirement or claim that the link is implemented.",
+      "why": "November 12 candidate adds opt-in stable publication/unpublication, a standard vCard website link and review-only estimate requests. SQL and DOM checks pass; hosted browser/full-schema replay, signed-in owner-business and physical iPhone/Android import acceptance remain open. Existing contact/share/provider gates are preserved.",
       "acceptance": "Provide a stable HTTPS link to the business's mobile-friendly interactive card, shared directly by text/email/native share. Make Request an Estimate the primary action; retain tappable call/text/email, Save Contact and Share Card. Include that same stable link in the downloaded vCard URL/website field, with a descriptive label where supported; verify actual saved-contact import and tappable website behavior in iPhone Contacts and Android/Google Contacts rather than assuming custom labels survive. Explain that saved contacts are copies and existing downloads do not automatically gain new fields; editing the live card must keep its URL usable, so saved links show updated approved public content. Keep QR as optional for printed cards/trucks/flyers, not the only mobile action. Reuse existing card routes and safe business identifiers; do not expose private customer/job/account data or share/OAuth tokens. Owner-controlled public fields and unpublish/revocation, tenant isolation, sanitized links and spam/rate-limited estimate requests are required; submitted leads should go to the correct business for owner review without auto-creating an approved job or automatically messaging customers. Preserve current tier/provider/consent gates and obtain consent for any follow-up messaging. Test same-phone sharing, vCard download/import/reopen, Unicode/contact fields, stable URL after edits, inactive/unpublished card, cross-business access, duplicate requests, accessibility and physical iPhone/Android behavior. Keep all existing card/contact functions; avoid a new paid plugin or service and disclose costs for owner approval before commitment. Record evidence before marking complete; do not implement or activate from this assessment-only request.",
-      "evidence": []
+      "evidence": [
+        "docs/BUSINESS_CARD_JOBS_RECURRENCE_2026-11-12.md"
+      ]
     },
     {
       "id": "AUTO-02",

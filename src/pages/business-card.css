@@ -220,3 +220,10 @@
     margin-inline: -12px;
   }
 }
+.pbc-card form { display: grid; gap: 12px; margin: 16px 0; text-align: left; }
+.pbc-card form label { display: grid; gap: 6px; font-size: 15px; }
+.pbc-card form input, .pbc-card form textarea {
+  box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px;
+  padding: 10px; color: #153b2c; background: #fff; border: 1px solid #879c91; border-radius: 8px; font: inherit;
+}
+.pbc-card form textarea { min-height: 110px; resize: vertical; }
