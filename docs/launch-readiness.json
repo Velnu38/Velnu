@@ -276,9 +276,9 @@
       "verifiedAt": "2026-11-10"
     },
     {
-      "title": "Provider-independent abuse and cost backpressure candidate",
-      "detail": "Shared burst controls extended to valid document/card reads, PDF cache-miss rendering and email/SMS claim transitions; global daily attempt caps added without changing monthly entitlements. Targeted SQL/handler tests cover rollback, delayed retry, oversized streamed input and cached/manual fallback. Independent-connection replay added; exact-head CI and hosted ingress/signup/IP, invalid-token flood and monetary-budget acceptance remain required. No provider or deployment activation.",
-      "evidence": "docs/ABUSE_COST_CONTROLS_2026-11-12.md",
+      "title": "Provider-independent abuse and cost backpressure released to private beta",
+      "detail": "PR105 merged as 93ff3fa and released after five workflows and all 22 complete-suite jobs passed. Beta migration 20261112222006 and 20 matching Edge versions verified with unchanged JWT modes; rollback-only daily cap/recovery/ACL probes passed. Twenty-connection races and 300-workspace queue recovery passed with zero external provider requests. PR97/102/103/104 retained. SEC-03 remains open for hosted signup/IP/invalid-token ingress and monetary-budget verification; operator recovery/monitor access remains unconfigured. No provider activation or real messages.",
+      "evidence": "docs/evidence/2026-11-12-abuse-cost-release.json",
       "verifiedAt": "2026-11-12"
     },
     {

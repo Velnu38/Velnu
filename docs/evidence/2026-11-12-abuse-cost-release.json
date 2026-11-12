@@ -1,0 +1,226 @@
+{
+  "date": "2026-11-12",
+  "pr": 105,
+  "status": "deployed_private_beta",
+  "testedCommit": "bd38731a98d3711601a96614de3bf0551fb8b7f4",
+  "merge": "93ff3fa251b51e80194da0ca34b039910165b06b",
+  "mergedTree": "31cdca5367a10391f149f7bd8a2905c8aa1f8305",
+  "fullSuite": {
+    "run": 43317307155,
+    "jobs": 22,
+    "conclusion": "success",
+    "migrationJob": 131528789061
+  },
+  "workflows": [
+    {
+      "id": 43317307125,
+      "name": "Document design checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43317306979,
+      "name": "Pricing tier checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43317307227,
+      "name": "Finviant authentication access checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43317306986,
+      "name": "Finviant assessment maintenance",
+      "conclusion": "success"
+    },
+    {
+      "id": 43317307155,
+      "name": "Complete automated test checks",
+      "conclusion": "success"
+    }
+  ],
+  "artifact": {
+    "id": 13988778492,
+    "name": "isolated-abuse-cost-results",
+    "size_in_bytes": 376,
+    "expired": false,
+    "created_at": "2026-11-12T22:15:23Z",
+    "expires_at": "2026-11-19T22:15:22Z",
+    "updated_at": "2026-11-12T22:15:23Z",
+    "digest": "sha256:0f5d9d21e435fd0e56257cc9a5f14e957ec9e79128ee6b9f80909ba3e12a67d4",
+    "workflow_run": {
+      "id": 43317307155,
+      "repository_id": 1434706540,
+      "head_repository_id": 1434706540,
+      "head_branch": "fix/abuse-cost-controls-20261112",
+      "head_sha": "bd38731a98d3711601a96614de3bf0551fb8b7f4"
+    }
+  },
+  "supabase": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "migration": "abuse_cost_backpressure",
+    "sourceMigration": "20261112212813",
+    "appliedMigration": "20261112222006",
+    "functions": [
+      {
+        "name": "document-pdf",
+        "version": 6,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "send-document-email",
+        "version": 22,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "send-invoice-email",
+        "version": 21,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "send-invoice-reminder",
+        "version": 15,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "email-recovery-worker",
+        "version": 18,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "reliability-health",
+        "version": 18,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "tier-delivery-worker",
+        "version": 17,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "work-scheduling",
+        "version": 16,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "business-card-delivery",
+        "version": 5,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "send-business-card",
+        "version": 5,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "ai-command",
+        "version": 25,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "fin-assistant",
+        "version": 15,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "transcribe-voice",
+        "version": 23,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "receipt-scan",
+        "version": 7,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "upload-attachment",
+        "version": 12,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "fin-workflow",
+        "version": 18,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "customer-approval",
+        "version": 18,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "create-approval-link",
+        "version": 17,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "send-document-sms",
+        "version": 10,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      },
+      {
+        "name": "customer-invoice-checkout",
+        "version": 2,
+        "exactFiles": true,
+        "jwtUnchanged": true
+      }
+    ],
+    "preservedOwnerArchiveVersion": 3
+  },
+  "deployment": {
+    "id": "dpl_Be5aVL46sFpFH7bYqawbqvkLBkmn",
+    "state": "READY",
+    "commit": "93ff3fa251b51e80194da0ca34b039910165b06b",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "verification": [
+    "Five workflows and all 22 complete-suite jobs passed",
+    "Seven resource races used 20 independent PostgreSQL connections; six exercised final daily slots and next-day recovery",
+    "300-workspace/four-dispatcher queue recovered in 120605 ms with zero duplicate dispatches and zero external provider requests",
+    "186 tier/approval tests and 14 combined owner-export/abuse tests passed locally; 10 combined assessment checks passed",
+    "All 20 Edge packages are byte-identical after combining PR104 and match deployed readback; JWT modes unchanged",
+    "Hosted rollback-only probes passed six daily caps, rejection rollback, next-day recovery, counter/RPC ACLs and missing-document denial; no probe writes persisted",
+    "Eighteen unauthenticated/malformed endpoint probes returned 400/401; two operator endpoints returned the intentional unconfigured-access 503 before provider work",
+    "Four message-attempt triggers verified; security advisor warning counts unchanged",
+    "Both domains map to READY PR105 deployment; finviant.com HTTP 200 with private no-store and noindex/nofollow/noarchive"
+  ],
+  "retained": [
+    "PR97 reminder history",
+    "PR102 layout",
+    "PR103 session security",
+    "PR104 owner archive v3",
+    "Existing private-beta/provider activation gates"
+  ],
+  "remaining": [
+    "SEC-03 stays open: authoritative hosted signup/IP/invalid-token ingress controls and approved monetary-budget verification",
+    "Attempt ceilings do not guarantee dollar spending limits",
+    "Operator recovery-worker and monitoring access remain unconfigured; no secrets or activation settings changed",
+    "Live-provider and physical-device acceptance are not claimed"
+  ],
+  "safety": {
+    "providerActivations": 0,
+    "realCustomerMessages": 0,
+    "liveProviderTestCalls": 0,
+    "publicLaunch": false
+  }
+}
