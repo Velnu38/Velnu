@@ -5,6 +5,8 @@ export const JOB_PHONE_QUERY = '(max-width: 900px), (max-width: 1100px) and (poi
 export function JobMenuIcon({kind}:{kind:string}) {
   const paths:Record<string,ReactNode>={
     tasks:<><path d="M9 5H5v16h14V5h-4M9 3h6v4H9zM8 12l2 2 5-5M8 18h8"/></>,
+    crew:<><circle cx="8" cy="7" r="3"/><circle cx="18" cy="8" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3m3-8a5 5 0 0 1 5 5v3"/></>,
+    review:<><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></>,
     schedule:<><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 5h3m3 0h3"/></>,
     materials:<><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Zm0 10 9-5M12 12 3 7m9 5v10M7 5l10 5"/></>,
     photos:<><path d="M3 7h4l2-3h6l2 3h4v14H3z"/><circle cx="12" cy="14" r="4"/></>,
@@ -19,7 +21,7 @@ export function JobMenuIcon({kind}:{kind:string}) {
 
 export type JobMenuItem={key:string;label:string;description:string;icon?:string;onClick:()=>void}
 export default function JobMobileMenu({title,items,children}:{title:string;items:JobMenuItem[];children?:ReactNode}){
- return <section className="jm-mobile-menu" aria-label={title}>
+ return <section className={"jm-mobile-menu"+(title==='Job billing'?' jm-billing-menu':'')} aria-label={title}>
    <h3>{title}</h3>
    {title==='Manage the work' && <p className="jm-menu-note">Choose what you need for this job</p>}
    {title==='Job records' && <p className="jm-menu-note">History and saved completion records.</p>}
