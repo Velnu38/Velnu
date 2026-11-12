@@ -141,20 +141,6 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice, onN
     if (mutationInFlight.current) return
     if(plan&&/^yes[.! ]*$/i.test(command.trim())){setText('');await confirm({id:plan.id,version:plan.version});return}
     if(plan&&/^no[.! ]*$/i.test(command.trim())){setText('');await reject();return}
-    const navigation=resolveFinNavigation(command,lastDestination.current)
-    if(navigation){
-      if('clarification' in navigation){setError(navigation.clarification);return}
-      if(plan){setError('Finish or cancel the current action review before opening another page.');return}
-      if(!onNavigate){setError('Direct navigation is unavailable here. Use the workspace navigation.');return}
-      mutationInFlight.current=true;setBusy(true);setError('')
-      try {
-        if(await onNavigate(navigation.destination)){
-          lastDestination.current=navigation.destination;setOpen(false);reset()
-        }
-      } catch(error){if(mounted.current)setError(error instanceof Error?error.message:'Unable to open this page.')}
-      finally{mutationInFlight.current=false;if(mounted.current)setBusy(false)}
-      return
-    }
     setInvoiceSources([])
     const sourceRequest = !plan && namedInvoiceSource(command)
     if (sourceRequest && canAccess(business, 'billing') && (sourceRequest.kind !== 'job' || canAccess(business, 'jobs'))) {
@@ -177,6 +163,20 @@ export default function VoiceAssistant({ business, onChanged, onOpenInvoice, onN
       if (onOpenInvoice(invoice)) {
         setOpen(false); reset()
       }
+      return
+    }
+    const navigation=resolveFinNavigation(command,lastDestination.current)
+    if(navigation){
+      if('clarification' in navigation){setError(navigation.clarification);return}
+      if(plan){setError('Finish or cancel the current action review before opening another page.');return}
+      if(!onNavigate){setError('Direct navigation is unavailable here. Use the workspace navigation.');return}
+      mutationInFlight.current=true;setBusy(true);setError('')
+      try {
+        if(await onNavigate(navigation.destination)){
+          lastDestination.current=navigation.destination;setOpen(false);reset()
+        }
+      } catch(error){if(mounted.current)setError(error instanceof Error?error.message:'Unable to open this page.')}
+      finally{mutationInFlight.current=false;if(mounted.current)setBusy(false)}
       return
     }
     setError('');setMicrophoneFailure(null);setVoiceStatus('');setPlan(null);setExecution(null)

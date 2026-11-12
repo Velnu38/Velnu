@@ -47,7 +47,7 @@ test('dictation opens the invoice editor with saved customer and charges before 
  expect(f.state.calls.filter(c=>c.path.includes('/send-'))).toHaveLength(0)
 })
 
-for (const request of ['Create an invoice', 'Open invoice and create a new invoice for Test Customer']) {
+for (const request of ['Create an invoice', 'Open a new invoice for Test Customer', 'Open invoice and create a new invoice for Test Customer']) {
  test(`typing “${request}” opens the invoice editor`, async ({page}) => {
   const f = await workflow(page)
   await start(page, request)

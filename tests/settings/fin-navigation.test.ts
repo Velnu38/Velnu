@@ -21,7 +21,7 @@ test('context is bounded to a known destination; ambiguity and missing routes ar
  assert.throws(()=>finDestination('__proto__' as any))
 })
 test('consequential actions remain in the review flow',()=>{
- for(const request of ['Send reminders to customers','Enable customer reminders','Create invoice for $200','Open invoices and send them','Delete all jobs','Save reminder settings'])assert.equal(resolveFinNavigation(request),null)
+ for(const request of ['Show me what Jane owes','Show me unpaid invoices','Send reminders to customers','Enable customer reminders','Create invoice for $200','Open invoices and send them','Delete all jobs','Save reminder settings'])assert.equal(resolveFinNavigation(request),null)
 })
 test('fresh tenant, role, module and plan checks fail closed before navigation',()=>{
  assert.equal(assertFinNavigationAccess(owner.id,owner,'customerReminders',usage).href,'/?view=settings&section=customer_reminders')

@@ -42,6 +42,8 @@ export function resolveFinNavigation(text: string, previous?: FinDestination): F
   if(subject==='reminders'||subject==='reminder settings')return {clarification:'Do you mean Customer Reminders (messages to customers) or internal follow-ups?'}
   const destination=Object.hasOwn(aliases,subject)?aliases[subject]:undefined
   if(destination)return {destination}
+  // Non-destination 'show me' requests remain account questions/searches.
+  if(/^show(?: me)? /.test(clean))return null
   // Requests containing consequential verbs belong to the existing review flow.
   if(/\b(send|save|enable|disable|delete|create|charge|pay|update|cancel)\b/.test(subject))return null
   return {clarification:'I cannot open that destination directly. Name a supported page, such as Invoices, Jobs, Customer Reminders, or Calendar Connections. For a specific record, open its directory and select it.'}
