@@ -1,3 +1,4 @@
+import {verifyPublicLinkAbuse} from './public-link-abuse-replay.mjs'
 import {verifyOwnerArchiveReplay} from './owner-archive-replay.mjs'
 import assert from 'node:assert/strict'
 import {createHash,randomBytes,randomUUID} from 'node:crypto'
@@ -239,7 +240,9 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.ok(!(await api('/storage/v1/object/sign/finviant-record-photos/'+photoPath,revokedToken,{method:'POST',body:{expiresIn:60}})).ok)
   await owner.login()
   assert.equal((await json('/rest/v1/invoices?select=id&business_id=eq.'+businessA,owner.token)).length>=1,true)
-  return {logoutRestRpcStorageDenied:true,publicLinkForeignPublishRevokeDenied:true,publicLinkRevocation:true,genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,ownerArchive,recovery}
+  phase='public-link-backpressure'
+  const publicLinkAbuse=await verifyPublicLinkAbuse(db,api,owner.token,businessA,invoice.id)
+  return {publicLinkAbuse,logoutRestRpcStorageDenied:true,publicLinkForeignPublishRevokeDenied:true,publicLinkRevocation:true,genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,ownerArchive,recovery}
  }catch(error){
   console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)

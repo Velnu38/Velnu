@@ -63,6 +63,8 @@ export async function ensureStoredDocumentPdf(admin: SupabaseClient, versionId: 
     if (registration.error) throw new Error('DOCUMENT_PDF_REGISTRATION_FAILED')
     return {bytes,sha256,filename:documentPdfFilename(context.snapshot),versionId}
   }
+  const render = await admin.rpc('reserve_document_pdf_render',{p_version:versionId}).abortSignal(AbortSignal.timeout(5000))
+  if (render.error) throw render.error
   const {generateDocumentPdf} = await import('../../../shared/documentPdf.ts')
   const logo = await versionLogo(admin,context)
   const bytes = await generateDocumentPdf(context.snapshot,{logo}), sha256 = await pdfSha256(bytes)

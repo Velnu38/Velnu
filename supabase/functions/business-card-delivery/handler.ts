@@ -1,9 +1,11 @@
+import { readLimitedRequest } from '../_shared/signedEvents.ts'
+import { burstLimitResponse } from '../_shared/burstLimit.ts'
 export type CardDeliveryDependencies = {
   enabled: (channel: string) => boolean;
-  origins: string[];
+  origins: readonly string[];
   authorize: (auth: string) => Promise<string | null>;
-  prepare: (actor: string, input: any) => Promise<{ data: any; error: any }>;
-  email: (id: string) => Promise<{ status: number; body: any }>;
+  prepare: (actor: string, input: any) => PromiseLike<{ data: any; error: any }>;
+  email: (id: string) => Promise<{ status: number; body: any; headers?: Record<string,string> }>;
   claim: (id: string) => Promise<any>;
   send: (claim: any) => Promise<{ sid: string }>;
   finish: (
@@ -40,22 +42,7 @@ export function businessCardDeliveryHandler(d: CardDeliveryDependencies) {
     try {
       const actor = await d.authorize(auth);
       if (!actor) return reply(401, { error: "Sign in again." });
-      const reader = req.body?.getReader();
-      let raw = "",
-        bytes = 0;
-      if (!reader) return reply(400, { error: "Invalid request." });
-      const decoder = new TextDecoder();
-      while (true) {
-        const r = await reader.read();
-        if (r.done) break;
-        bytes += r.value.length;
-        if (bytes > 4096) {
-          await reader.cancel();
-          return reply(413, { error: "Request too large." });
-        }
-        raw += decoder.decode(r.value, { stream: true });
-      }
-      raw += decoder.decode();
+      const raw = await readLimitedRequest(req,4096);
       let input;
       try {
         input = JSON.parse(raw);
@@ -92,6 +79,7 @@ export function businessCardDeliveryHandler(d: CardDeliveryDependencies) {
             " sending is awaiting provider activation. No new send was started.",
         });
       const { data: prepared, error } = await d.prepare(actor, input);
+      const limited=burstLimitResponse(error,headers);if(limited)return limited
       if (error || !prepared)
         return reply(error?.code === "42501" ? 403 : 409, {
           error:
@@ -102,10 +90,10 @@ export function businessCardDeliveryHandler(d: CardDeliveryDependencies) {
         });
       if (input.channel === "email") {
         const result = await d.email(prepared.id);
-        return reply(result.status, {
+        return new Response(JSON.stringify({
           ...result.body,
           not_started: result.body.beta_send_not_started === true,
-        });
+        }),{status:result.status,headers:{...headers,...result.headers}});
       }
       const claim = await d.claim(prepared.id);
       if (["accepted", "delivered"].includes(claim.status))
@@ -143,7 +131,10 @@ export function businessCardDeliveryHandler(d: CardDeliveryDependencies) {
         });
       }
       return reply(200, { status: "accepted", message_id: result.sid });
-    } catch {
+    } catch (error) {
+      const limited=burstLimitResponse(error,headers);if(limited)return limited
+      if(error instanceof Error&&error.message==='REQUEST_TOO_LARGE')return reply(413,{error:'Request too large.'})
+      if(error instanceof Error&&error.message==='REQUEST_TIMEOUT')return reply(408,{error:'Request timed out. No new send was started.'})
       return reply(503, {
         error:
           "The send outcome is unconfirmed. Keep this same send and check activity before another attempt.",

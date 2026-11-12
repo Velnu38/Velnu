@@ -1,3 +1,4 @@
+import { burstLimitResponse } from '../_shared/burstLimit.ts'
 import { readLimitedRequest } from '../_shared/signedEvents.ts'
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -37,6 +38,7 @@ export function documentPdfHandler(deps:PdfHandlerDependencies){
     if(!authorization.startsWith('Bearer ')||!await deps.authorize(authorization))return reply(401,'Sign in to open this document.')
     result=await deps.ownerVersion(authorization,business,kind,document)
    }
+   const limited=burstLimitResponse(result.error,headers);if(limited)return limited
    const version=result.data as {version_id?:unknown}|null
    if(result.error||!version||typeof version.version_id!=='string'||!UUID.test(version.version_id))return reply(404,'This document is unavailable or this link has been revoked.')
    const artifact=await deps.artifact(version.version_id)
@@ -44,6 +46,7 @@ export function documentPdfHandler(deps:PdfHandlerDependencies){
    const bytes=new Uint8Array(artifact.bytes.length);bytes.set(artifact.bytes)
    return new Response(bytes.buffer,{status:200,headers:{...headers,'content-type':'application/pdf','content-disposition':`inline; filename="${artifact.filename}"`,'etag':'"'+artifact.sha256+'"','x-finviant-revision-id':artifact.versionId}})
   }catch(error){
+   const limited=burstLimitResponse(error,headers);if(limited)return limited
    const code=error instanceof Error?error.message:''
    if(code==='PDF_STORAGE_ALLOWANCE_REACHED')return reply(409,'The business storage allowance is full. Existing saved PDFs remain available; the business needs to free space or upgrade before publishing another PDF.')
    if(/The document font cannot display U\+[0-9A-F]+/.test(code))return reply(409,'This document contains a character the PDF font cannot display. The business needs to review the document text before sending.')

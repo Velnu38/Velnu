@@ -1,13 +1,15 @@
+import { burstLimitResponse } from './burstLimit.ts'
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.57.4'
 import { providerJson, ProviderRequestError } from './providerRequest.ts'
 import { emailDeliveryMode } from './emailRelease.ts'
 import { prepareQueuedDocumentPdf } from './documentPdfArtifact.ts'
-export type DispatchResult={status:number;body:Record<string,unknown>}
+export type DispatchResult={status:number;body:Record<string,unknown>;headers?:Record<string,string>}
 /** Claims one frozen operation. Every entry point shares the same leased dispatcher. */
 export async function dispatchQueuedEmail(admin:SupabaseClient,resend:string,id:string,trace:string):Promise<DispatchResult>{
  const mode=emailDeliveryMode()
  if(mode==='disabled')return {status:503,body:{error:'Email delivery is not enabled. No email was sent.',code:'email_not_enabled'}}
  const {data:claim,error:claimError}=await admin.rpc('claim_document_email',{p_request:id,p_pdf_capable:true}).abortSignal(AbortSignal.timeout(5000))
+ const limited=burstLimitResponse(claimError,{});if(limited)return {status:429,body:{...await limited.json(),send_id:id},headers:Object.fromEntries(limited.headers)}
  if(claimError||!claim)return {status:503,body:{error:'The saved send could not be claimed. Retry the same send, not a new message.'}}
  if(['accepted','delivered'].includes(claim.status))return {status:200,body:{status:claim.status,email_id:claim.provider_id,recipient:claim.recipient||'the saved customer address',already_sent:true,send_id:claim.id}}
  if(claim.status!=='claimed')return {status:409,body:{error:claim.status==='busy'?'This send is already processing or waiting for its retry interval.':'This send needs support review before another attempt.',code:claim.status,send_id:claim.id}}
@@ -29,10 +31,11 @@ export async function dispatchQueuedEmail(admin:SupabaseClient,resend:string,id:
  let payload:Record<string,unknown>
  try{
   payload=await prepareQueuedDocumentPdf(admin,claim)
- }catch{
+ }catch(error){
   // No provider call occurs until the exact saved PDF and payload are confirmed.
   // Retain the operation's idempotency key even when acknowledgement is lost.
   try{await admin.rpc('release_document_pdf_claim',{p_request:claim.id,p_lease:claim.lease}).abortSignal(AbortSignal.timeout(5000))}catch{/* Original lease/outcome must be reconciled. */}
+  const limited=burstLimitResponse(error,{});if(limited)return {status:429,body:{...await limited.json(),send_id:claim.id},headers:Object.fromEntries(limited.headers)}
   return {status:503,body:{error:'The saved PDF could not be prepared. No email was sent by this attempt. Retry this same saved send after its waiting period.',code:'pdf_artifact_unavailable',send_id:claim.id}}
  }
  let sent:Record<string,unknown>

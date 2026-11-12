@@ -272,6 +272,12 @@
       "verifiedAt": "2026-11-10"
     },
     {
+      "title": "Provider-independent abuse and cost backpressure candidate",
+      "detail": "Shared burst controls extended to valid document/card reads, PDF cache-miss rendering and email/SMS claim transitions; global daily attempt caps added without changing monthly entitlements. Targeted SQL/handler tests cover rollback, delayed retry, oversized streamed input and cached/manual fallback. Independent-connection replay added; exact-head CI and hosted ingress/signup/IP, invalid-token flood and monetary-budget acceptance remain required. No provider or deployment activation.",
+      "evidence": "docs/ABUSE_COST_CONTROLS_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Auth/Storage acceptance and product guide deployed",
       "detail": "PR78 final head 03a4da9c22ad8406f48227615d0678826883992e passed all triggered workflows, including full 21-job run 42855522132 and voice review 42855521779. Merged as e8696e1f368b7ed8d73fc52306566b45e65f3434; deployment dpl_4Nd8y54yVqPCeLU3cmMJMNr9CK5z is READY with that SHA and both finviant.com aliases. Fin v16 matches all eight prepared files with JWT verification preserved. No provider evaluation, hosted security certification or physical-device acceptance is claimed.",
       "evidence": "docs/evidence/2026-11-10-auth-storage-rollout.json",
