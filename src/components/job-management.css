@@ -1019,3 +1019,81 @@
   body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog .modal-actions { position: sticky; bottom: -18px; background: white; padding: 14px 0 max(14px, env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; gap: 10px; z-index: 1; }
   body:has(.jobs-module > [role="tabpanel"]:not([hidden]) .job-management) .form-dialog .modal-actions button { flex: 1 1 auto; min-height: 48px; }
 }
+
+/* Match the approved phone composition across the entry, hubs and details. */
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .finviant-workspace:has(.phone-job-page) .topbar { position: relative; top: auto; min-height: 68px; padding: 10px 16px; gap: 12px; }
+ .finviant-workspace:has(.phone-job-page) .topbar .mobile-brand { max-width: 155px; }
+ .finviant-workspace:has(.phone-job-page) .topbar .mobile-brand svg { max-width: 100%; }
+ .finviant-workspace:has(.phone-job-page) .topbar .mobile-brand .brand-tagline { display: none; }
+ .finviant-workspace:has(.phone-job-page) .tier-banner { margin: 0 12px 8px; padding: 8px 12px; gap: 4px 8px; font-size: 11px; border-radius: 12px; min-height: 0; flex-wrap: wrap; }
+ .finviant-workspace:has(.phone-job-page) .tier-banner a { margin-left: auto; font-size: 11px; }
+ .finviant-workspace:has(.phone-job-page) .private-testing-app { padding: 0 12px; }
+ .finviant-workspace .workspace-inner:has(.phone-job-page) { padding-top: 8px; }
+ .finviant-workspace .phone-job-page { gap: 12px; }
+ .phone-job-page > :first-child { margin: 0; font-size: 12px; min-height: 24px; }
+ .finviant-workspace .phone-job-page .module-page-heading { display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap; gap: 8px; margin: 0; }
+ .finviant-workspace .phone-job-page .module-page-heading h1 { font-size: clamp(19px,5.2vw,25px); line-height: 1.2; margin: 0; }
+ .phone-job-page .work-heading-actions { flex: 0 0 auto; gap: 6px; flex-wrap: nowrap; }
+ .finviant-workspace .phone-job-page .module-page-heading .work-heading-actions button { min-height: 40px; padding: 8px; font-size: 12px; width: auto; }
+ .phone-job-page .jobs-workspace-tabs { margin: 0; }
+ .phone-job-page .jobs-workspace-tabs .record-tabs { margin: 0; padding: 0; min-height: 42px; }
+ .phone-job-page .job-management { gap: 10px; }
+ .phone-job-page .jm-summary { order: 3; margin: 0; padding: 0; border: 0; background: transparent; }
+ .phone-job-page .jm-summary > summary { min-height: 40px; padding: 8px; font-size: 13px; }
+ .phone-job-page .jm-metrics { gap: 8px; }
+ .phone-job-page .jm-metrics button { min-height: 78px; padding: 10px; }
+ .phone-job-page .jm-metrics strong { font-size: 24px; }
+ .phone-job-page .jm-mobile-picker { margin: 0; padding: 12px; background: white; border: 1px solid var(--jm-border); border-radius: 14px; }
+ .phone-job-page .jm-mobile-picker label { display: grid; gap: 7px; font-weight: 600; }
+ .phone-job-page .jm-queue, .phone-job-page .jm-welcome { display: none; }
+ .phone-job-page .jm-browsing .jm-queue { display: block; padding: 14px; }
+ .phone-job-page .jm-layout { gap: 10px; }
+ .phone-job-page .jm-phone-workspace { padding: 16px; gap: 14px; }
+ .phone-job-page .jm-phone-workspace .jm-job-header h2 { font-size: clamp(24px,6.3vw,29px); }
+ .phone-job-page .jm-job-header .eyebrow { margin: 0 0 8px; }
+ .phone-job-page .jm-next-action { gap: 10px; padding: 14px; }
+ .phone-job-page .jm-next-action .jm-inline-actions { flex: 0 1 auto; }
+ .phone-job-page .jm-next-action > div:first-child { flex: 1 1 100px; }
+ .phone-job-page .jm-next-action strong { font-size: 16px; }
+ .phone-job-page .jm-mobile-menu h3 { font-size: 21px; }
+ .phone-job-page .jm-quick-tile { min-height: 130px; }
+ .phone-job-page .jm-quick-rows .jm-quick-tile { min-height: 82px; }
+}
+
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .finviant-workspace:has(.phone-job-page) .topbar .fin-brand > span { display: none; }
+ .finviant-workspace:has(.phone-job-page) .topbar .fin-wordmark { font-size: 28px; }
+ .finviant-workspace:has(.phone-job-page) .topbar .fin-wordmark .fin-mark { width: 30px; height: 36px; }
+ .finviant-workspace:has(.phone-job-page) .private-beta-notice { margin: 0 0 6px; padding: 8px 10px; font-size: 11px; }
+ .finviant-workspace:has(.phone-job-page) .private-beta-notice strong { font-size: 11px; }
+ .finviant-workspace:has(.phone-job-page) .private-beta-notice details > summary { min-height: 28px; }
+}
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .phone-job-page .job-management:has(.jm-compact-job) .jm-mobile-picker label { font-size: 0; gap: 0; }
+ .phone-job-page .job-management:has(.jm-compact-job) .jm-mobile-picker select { font-size: 18px; font-weight: 650; min-height: 56px; border: 0; }
+ .phone-job-page .jm-selected:has(.jm-compact-job) .jm-job-header { display: none; }
+ .phone-job-page .jm-compact-job { background: transparent; border: 0; border-radius: 0; padding: 0; }
+ .phone-job-page .jm-mobile-menu { gap: 14px; }
+ .phone-job-page .jm-mobile-menu h3 { font-size: 26px; }
+ .phone-job-page .jm-quick-grid { gap: 10px; }
+ .phone-job-page .jm-quick-tile { padding: 16px 12px; min-height: 144px; }
+ .phone-job-page .jm-quick-tile strong { font-size: 18px; }
+ .phone-job-page .jm-quick-rows .jm-quick-tile { min-height: 88px; }
+}
+
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .finviant-workspace .phone-job-page .module-page-heading > div:first-child { flex: 1 1 auto; min-width: 0; }
+ .finviant-workspace .phone-job-page .module-page-heading h1 { font-size: clamp(17px,4.6vw,22px); overflow-wrap: normal; }
+ .finviant-workspace .phone-job-page .module-page-heading .refresh-button { width: 40px; padding: 10px; flex: 0 0 40px; }
+ .phone-job-page .refresh-button > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading h1 { font-size: 18px !important; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading .refresh-button > span { display: none !important; }
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading .refresh-button { width: 40px !important; min-width: 40px; max-width: 40px; padding: 8px !important; }
+ .finviant-workspace .jobs-module.phone-job-page .module-page-heading .work-heading-actions { gap: 6px; flex-wrap: nowrap; }
+}
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .phone-job-page .jm-phone-workspace:has(.jm-panel:not([hidden]) .jm-section-heading h3) .jm-mobile-heading h3 { display: none; }
+}

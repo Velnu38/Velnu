@@ -58,8 +58,10 @@ export default function JobManagement({
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(0),
     [summaryOpen, setSummaryOpen] = useState(
-      () => !selectedJobId || !window.matchMedia(JOB_PHONE_QUERY).matches,
+      () => !window.matchMedia(JOB_PHONE_QUERY).matches,
     );
+  const [browseOpen,setBrowseOpen]=useState(false);
+  const initialChoice=useRef(false);
   const saving = useRef(false),
     scope = useRef(business.id);
   scope.current = business.id;
@@ -85,8 +87,10 @@ export default function JobManagement({
   const jobs=visible.filter(e=>e.kind==="job").map(e=>e.data);
   const total=data?.total??0;
   const maxPage=Math.max(0,Math.ceil(total/10)-1), currentPage=data?.page??0;
+  useEffect(()=>{if(!data||initialChoice.current)return;initialChoice.current=true;if(!selectedJobId&&window.matchMedia(JOB_PHONE_QUERY).matches&&jobs.length)onSelect(jobs[0].id)},[data,selectedJobId]);
   function choose(id: string) {
     if (!confirmNavigation()) return;
+    setBrowseOpen(false);
     onSelect(id);
     setSummaryOpen(!window.matchMedia(JOB_PHONE_QUERY).matches);
     requestAnimationFrame(() =>
@@ -124,6 +128,7 @@ export default function JobManagement({
     setFilter(value);
     setPage(0);
     setSummaryOpen(true);
+    setBrowseOpen(true);
     if (selectedJobId) onSelect(null);
   }
   const query = new URLSearchParams(location.search),
@@ -154,7 +159,7 @@ export default function JobManagement({
             | "reports");
   return (
     <div
-      className={"job-management" + (selectedJobId ? " has-selected-job" : "")}
+      className={"job-management" + (selectedJobId ? " has-selected-job" : "") + (browseOpen ? " jm-browsing" : "")}
     >
       <details
         className="jm-summary"
@@ -216,6 +221,30 @@ export default function JobManagement({
           </button>
         </p>
       )}
+              <div className="jm-mobile-picker">
+                <label>
+                  Job overview
+                  <select
+                    value={selectedJobId || ""}
+                    aria-label="Selected job"
+                    onChange={(e) => { if(e.target.value === "browse") { if(confirmNavigation()) { initialChoice.current=true; setBrowseOpen(true); onSelect(null); } } else choose(e.target.value); }}
+                  >
+                    {!selectedJobId && <option value="">Select a job</option>}
+                    {selectedJobId && !jobs.some((j) => j.id === selectedJobId) && (
+                      <option value={selectedJobId || ""}>Selected job</option>
+                    )}
+                    <option value="browse">Browse all jobs…</option>
+                    {jobs.map((j) => (
+                      <option key={j.id} value={j.id}>
+                        {j.title} · {customer(j)}
+                        {closed(j) ? " · History" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+              </div>
+
       <div className="jm-layout">
         <aside className="jm-queue" aria-label="Approved and active job queue">
           <header>
@@ -358,27 +387,6 @@ export default function JobManagement({
         <div className="jm-selected">
           {selectedJobId ? (
             <>
-              <div className="jm-mobile-picker">
-                <label>
-                  Selected job
-                  <select
-                    value={selectedJobId}
-                    onChange={(e) => { if(e.target.value === "browse") { if(confirmNavigation()) onSelect(null); } else choose(e.target.value); }}
-                  >
-                    {!jobs.some((j) => j.id === selectedJobId) && (
-                      <option value={selectedJobId}>Selected job</option>
-                    )}
-                    <option value="browse">Browse all jobs…</option>
-                    {jobs.map((j) => (
-                      <option key={j.id} value={j.id}>
-                        {j.title} · {customer(j)}
-                        {closed(j) ? " · History" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-              </div>
               <JobManagementWorkspace
                 key={[
                   business.id,

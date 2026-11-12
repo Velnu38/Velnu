@@ -480,6 +480,12 @@
       "detail": "Current verified application release: PR99 merge 4aa808e79ad49a314b60ed945d9a3c82b035f649, READY deployment dpl_6wMZDuCScLmtuA4nM4CRRkCwgAbo on both Finviant domains. Full-width responsive phone Job Management menus, focused detail screens and full-viewport editors. All five required workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified. All 51 task records and their acceptance criteria remain unchanged. Responsive browser checks cover 320/390/430/768px, 844px landscape, simulated iPhone WebKit and desktop resize; actual physical phones are not certified. No backend/provider changes, real messages, charges or public launch. PR97 and the sequential queue remain paused.",
       "evidence": "docs/evidence/2026-11-12-job-phone-flow.json",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Phone visual fidelity correction",
+      "detail": "Owner screenshot shows PR99 entry still dominated by shared chrome, expanded overview and queue. Correcting the phone composition: compact header/actions, disclosure of beta notice, collapsed overview, job selector before details, first available existing job shown on initial phone entry, retained explicit Browse all jobs and all detail destinations. Hosted visual and CI verification pending. All task records and broader gates remain unchanged.",
+      "evidence": "docs/evidence/2026-11-12-phone-visual-correction.json",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
