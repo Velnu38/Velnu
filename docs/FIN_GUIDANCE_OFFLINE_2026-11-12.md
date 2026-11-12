@@ -1,0 +1,19 @@
+# Fin guidance and controlled offline verification
+
+Base: `7875381635b7f9a7b96a38b80cdc5156d0dbbd80`; candidate only, no Edge deployment. No shared visual components, direct-navigation code or provider configuration changed.
+
+The guide was compared with current source screens, services, account catalog and the readiness registry. Existing team-seat/worker separation, recurring draft review, manager availability, restricted job details and navigation-only handoffs remain correct. Updates clarify features and limits the previous guide omitted or left too broad:
+
+| Topic | Source evidence | Guide correction |
+| --- | --- | --- |
+| Invoice reminder history | InvoiceDetail, InvoiceReminderHistory, invoiceReminderHistory service | History is on invoice detail; acceptance, delivery, draft opening and user-reported sends are different. Fin has no history lookup tool. Viewing history sends nothing. |
+| Saved document questions | fin-workflow lookup contract and protocol | Retrieve the current exact invoice/estimate for saved lines. Reading a saved record does not mean an uploaded PDF was read or an issued copy changed. |
+| Calendar | Calendar settings and current calendar acceptance gates | Authorization/settings/local appointments do not prove two-way Google/Outlook sync, fresh remote availability or completed consent. |
+| Payments | PaymentsPage/SquareReturnPage and payment acceptance gates | A control/preference is not merchant connection, checkout, callback or physical-device acceptance. Fin cannot charge/refund/connect/Tap to Pay. |
+| Bookkeeping | BookkeepingPage and current connection workflow | QuickBooks consent and fresh imported data require evidence; code/connection labels alone are insufficient. |
+
+`tests/settings/fin-guidance-offline.test.ts` adds 15 deterministic cases: six representative questions each through typed-text and simulated-transcript inputs, a scoped current-invoice lookup with saved line items/source link and foreign-business rejection, denied lookup/navigation handling, and direct-navigation/current-account checks. These execute the actual handler with controlled authorization, record and provider dependencies. They test instructions, contracts and permissions; canned provider output does **not** establish an actual model's response accuracy or usefulness. Transcripts test the common text path, not a microphone, speech service or real device.
+
+The existing product-knowledge tests verify every guide source exists, permitted areas only, unsupported tools stay unavailable and worker/login separation. Existing database fixtures test account capabilities, foreign/module denial, reviewed writes, stale values and idempotency. Their selected migrations/PGlite environment are not a full hosted Auth/session or production RLS certificate.
+
+Local validation: 42 Fin product/guidance/navigation/workflow/account-database cases passed; six customer-history/capacity-guard cases passed; TypeScript compilation passed. The local production build passed, but all eight browser-navigation cases were blocked before page creation: Chromium process_singleton_posix socket() failed with Operation not permitted. This is an environment launch failure, not a passing browser result. The focused CI then passed all eight browser-navigation cases on the standard Ubuntu runner, including 390/1440px layouts, unsaved-edit protection, access denial and synthetic browser dictation. Run [43327772463](https://github.com/Velnu38/Velnu/actions/runs/43327772463), job 131564491546, tested commit `006bc7a3285acdd6fdf2a9807ba5af528e16367b`; its 42 Fin cases, profiler and ten assessment cases also passed. Receipt: `docs/evidence/2026-11-12-fin-guidance-offline.json`. The local launch failure is retained separately. No production-model, microphone/provider, physical-device, hosted capacity or paid integration acceptance is claimed. AI-01 and AI-02 remain open. No reminder engine work is resumed or changed by this task.
