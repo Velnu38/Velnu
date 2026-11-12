@@ -1,7 +1,10 @@
 name: Focused phone visual review
 on:
   push:
-    branches: [ux/job-phone-mockup-match-20261112, ux/summary-card-reference-20261112]
+    branches: [ux/job-phone-mockup-match-20261112]
+  pull_request:
+    branches: [ux/private-testing-20261029]
+    paths: [src/components/job-phone.css, tests/e2e/job-phone-flow.spec.mjs, .github/workflows/job-phone-visual-review.yml]
 permissions:
   contents: read
 concurrency:
