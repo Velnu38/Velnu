@@ -44,7 +44,9 @@
  .phone-job-page .jm-queue,.phone-job-page .jm-welcome{display:none}
  .phone-job-page .jm-browsing .jm-queue{display:block;padding:16px;margin-top:12px}
  .phone-job-page .jm-mobile-picker{display:block;margin:0;padding:8px 12px 10px;background:white;border:1px solid #d2dce2;border-radius:14px 14px 0 0}
- .phone-job-page .jm-mobile-picker label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:4px;font-size:16px;font-weight:700}
+ .phone-job-page .jm-mobile-picker label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;overflow:hidden;gap:4px;font-size:16px;font-weight:700}
+ /* Contain WebKit native selected-option text, not the page or native picker popup. */
+ .phone-job-page .jm-mobile-picker:focus-within{outline:3px solid #137d69;outline-offset:2px}
  .phone-job-page .jm-mobile-picker select{width:100%;max-width:100%;min-width:0;min-height:44px;font-size:16px;border:1px solid #c9d4db;border-radius:9px;background:white;padding:8px 10px;color:#243442}
  .phone-job-page .jm-phone-workspace{width:100%;min-width:0;display:flex;flex-direction:column;padding:12px;gap:10px;border:1px solid #cbd5df;border-radius:12px;background:white;box-shadow:0 2px 5px #1734450a;margin-top:-8px;color:#15283b}
  .phone-job-page .jm-job-header{display:block;margin:0}

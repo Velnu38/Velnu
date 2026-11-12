@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises'
 import {mock,B,C,J,U,customer} from './audit-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 const cors={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'}
-async function fixture(page,{restricted=false,populated=false,completed=false}={}){
+async function fixture(page,{restricted=false,populated=false,completed=false,longTitle=false}={}){
  const state=await mock(page,{ai:true})
  const job={id:J,customer_id:C,customers:[customer],properties:[],title:'Kitchen renovation',description:'Keep the side gate closed.',status:'in_progress',scheduled_start:null,scheduled_end:null,assigned_user_ids:[U],updated_at:'2026-11-12T01:00:00Z',active_appointment:null,invoice:null}
  const data={tasks:[{id:'task-1',title:'Install cabinet doors',completed:false,version:1,priority:'high',worker_id:U,due_on:null}],materials:[],templates:[],visits:[],activity:[],financial_access:!restricted,billing_access:!restricted,calendar_access:!restricted,time:[],recorded_expenses:0,documents:[],changes:[],budget:null,pending_time_minutes:0,uncalculated_expenses:0}
@@ -15,6 +15,7 @@ async function fixture(page,{restricted=false,populated=false,completed=false}={
   data.materials=[{id:'material-1',name:'Cabinet hardware',quantity:12,unit:'pieces',supplier:'',estimated_cost:96,status:'received',version:1}];
   data.visits=[{...job.active_appointment,job_id:J,title:'Kitchen installation',worker_ids:[U],version:1}];
  }
+ if(longTitle)job.title='TEST ONLY - estimate and approval-link delivery check with a long service description';
  if(completed){job.status='completed';job.active_appointment=null;data.visits=[]}
  await mockJobDirectory(page,()=>[job])
  await page.route('**/rest/v1/jobs?**',route=>route.fulfill({headers:cors,json:new URL(route.request().url()).searchParams.has('id')?job:[job]}))
@@ -129,4 +130,10 @@ test('phone mockup existing edit and completion forms retain controls',async({pa
  expect(state.calls.some(c=>/send-|create_dispatched|complete_job|manage_job_workspace/.test(c.path))).toBe(false);
  await fixture(page,{populated:true,completed:true});await page.goto(`/?view=work&workspace=management&job=${J}&section=reports`);await expect(page.getByRole('button',{name:'+ Create report version',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'+ Create report version',exact:true}).click();await expect(page.getByRole('dialog',{name:'Create completion report',exact:true})).toBeVisible();await fits(page);await shot(page,'editor-completion-report-390');await page.keyboard.press('Escape');
+});
+
+for(const width of [320,390])test(`phone mockup long job names retain full viewport at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});await fixture(page,{populated:true,longTitle:true});await page.goto(`/?view=work&workspace=management&job=${J}`);
+ await expect(page.getByRole('region',{name:'Job summary',exact:true})).toBeVisible();await fits(page);await expect(page.locator('.jm-job-header h2')).toContainText('with a long service description');await shot(page,`long-title-${width}`);
+ await page.locator('.jm-mobile-picker select').selectOption('browse');await expect(page.getByRole('searchbox',{name:'Find a job',exact:true})).toBeVisible();await fits(page);
 });
