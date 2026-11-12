@@ -26,6 +26,8 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update.
 
+- Phone reference candidate: Summary, Work, Billing, Records and Tasks compared at equal content width; shared detail/editor controls and native WebKit selector overflow corrected. Layout-only browser verification covers 320–844px, long titles, roles, deep links and Back/Cancel. Required release checks and deployment remain pending; PR97 and sequential queue stay paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open.
+
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
 ## Focused task cards

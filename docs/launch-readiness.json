@@ -504,6 +504,18 @@
       "detail": "The published focused queue already includes PR94, AI-03 and subsequent releases. The older Word checkpoint describing PR93 as unmerged is historical. Reconciled the repository guide release scope with the owner instruction to merge and deploy requested changes to private beta after checks. Owner-dependent acceptance remains at the bottom; no paused work is resumed by this report. PR101 deployment does not establish owner or physical-phone acceptance. Visual comparison against the approved mockups must precede any further visual release.",
       "evidence": "docs/CURRENT_HANDOFF.md; docs/FOCUSED_TASK_CARDS.md; docs/evidence/2026-11-12-phone-shell-width.json; owner instructions in Finviant dot conversation",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "PR101 phone visual acceptance rejected; beta release hold",
+      "detail": "Owner reports inconsistent button sizes/spacing/shapes and continued small-screen rendering. Direct comparison of five approved references with final PR101 WebKit captures fails visual acceptance. Confirmed task-title selector mismatch leaves 12px inherited label text; only Tasks/Add task had detailed downstream captures. No runtime change or beta publication in this assessment. Require populated same-width comparisons across every affected destination/editor and unresolved actual-phone viewport evidence before another beta release.",
+      "evidence": "docs/PHONE_MOCKUP_ASSESSMENT_2026-11-12.md; run 43150250682 artifact 13913053753",
+      "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Phone reference match candidate and visual evidence",
+      "detail": "Phone reference candidate: Summary, Work, Billing, Records and Tasks compared at equal content width; shared detail/editor controls and native WebKit selector overflow corrected. Layout-only browser verification covers 320–844px, long titles, roles, deep links and Back/Cancel. Rendered reference comparison passed with preserved controls and documented content differences. Required release checks and deployment remain pending; PR97 and sequential queue stay paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open.",
+      "evidence": "docs/PHONE_REFERENCE_MATCH_2026-11-12.md; app 73534fdf49537ea1ea010d5ef58dc66d88f26afb; focused run 43219850066, 36 passing cases; artifacts 13944597861 and 13945207361",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
@@ -1842,6 +1854,7 @@
     "PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.",
     "Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.",
     "PR101 phone composition is deployed. All 51 task records and acceptance criteria remain unchanged. PR97 and the sequential queue remain paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open; the separate desktop document contrast finding under iPhone WebKit is recorded as an unresolved follow-up.",
-    "Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update."
+    "Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update.",
+    "Phone reference candidate: Summary, Work, Billing, Records and Tasks compared at equal content width; shared detail/editor controls and native WebKit selector overflow corrected. Layout-only browser verification covers 320–844px, long titles, roles, deep links and Back/Cancel. Required release checks and deployment remain pending; PR97 and sequential queue stay paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open."
   ]
 }
