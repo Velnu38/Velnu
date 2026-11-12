@@ -88,3 +88,11 @@ create table private.invoice_reminder_preferences(business_id uuid,invoice_id uu
 create table public.service_packages(id uuid,business_id uuid,name text,items jsonb,active boolean,created_at timestamp with time zone);
 create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
 create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,metadata jsonb,updated_at timestamptz default now());alter table storage.objects enable row level security;
+
+create table private.delivery_tasks(id uuid,business_id uuid,actor_id uuid,kind text,document_id uuid,due_at timestamptz,snapshot jsonb,reminder boolean,status text,last_error text,created_at timestamptz);
+create table private.finviant_email_outbox(id uuid,business_id uuid,actor_id uuid,document_kind text,document_id uuid,payload jsonb,status text,attempts integer,provider_id text,created_at timestamptz,next_attempt_at timestamptz,last_code text,last_event_at timestamptz,document_version_id uuid,pdf_sha256 text,pdf_frozen_at timestamptz);
+create table private.finviant_delivery_events(event_id text,provider_id text,event_type text,occurred_at timestamptz,received_at timestamptz);
+create table private.managed_sms(id uuid,business_id uuid,actor_id uuid,kind text,document_id uuid,phone text,sender text,body text,token_hash text,segments integer,status text,provider_id text,created_at timestamptz,updated_at timestamptz);
+create table private.business_card_sms(id uuid,business_id uuid,actor_id uuid,revision uuid,phone text,sender text,body text,token_hash text,segments integer,status text,provider_id text,customer_id uuid,created_at timestamptz,updated_at timestamptz);
+create table private.appointment_reminder_queue(id uuid,business_id uuid,appointment_id uuid,occurrence_id uuid,starts_at timestamptz,due_at timestamptz,channel text,status text,provider_id text,last_error text,created_at timestamptz,updated_at timestamptz,snapshot jsonb);
+create table private.job_invoice_results(job_id uuid,business_id uuid,invoice_id uuid,error_code text,updated_at timestamptz);

@@ -1,5 +1,5 @@
 // Version 1 uses explicit fields. Review this catalog whenever a business record schema changes.
-export const archiveCatalog=[
+export const archiveCatalogV1=[
   {
     "collection": "private.appointment_reminder_overrides",
     "columns": [
@@ -1226,4 +1226,118 @@ export const archiveCatalog=[
       "created_at"
     ]
   }
+] as const
+
+// Version 2 adds delivery history without bearer links, payloads or worker leases.
+export const archiveCatalog = [...archiveCatalogV1,
+{
+  "collection": "private.delivery_tasks",
+  "columns": [
+    "id",
+    "business_id",
+    "actor_id",
+    "kind",
+    "document_id",
+    "due_at",
+    "reminder",
+    "status",
+    "last_error",
+    "created_at"
+  ]
+},
+{
+  "collection": "private.finviant_email_outbox",
+  "columns": [
+    "id",
+    "business_id",
+    "actor_id",
+    "document_kind",
+    "document_id",
+    "status",
+    "attempts",
+    "provider_id",
+    "created_at",
+    "next_attempt_at",
+    "last_code",
+    "last_event_at",
+    "document_version_id",
+    "pdf_sha256",
+    "pdf_frozen_at",
+    "recipient"
+  ]
+},
+{
+  "collection": "private.finviant_delivery_events",
+  "columns": [
+    "event_id",
+    "provider_id",
+    "event_type",
+    "occurred_at",
+    "received_at"
+  ]
+},
+{
+  "collection": "private.managed_sms",
+  "columns": [
+    "id",
+    "business_id",
+    "actor_id",
+    "kind",
+    "document_id",
+    "phone",
+    "sender",
+    "segments",
+    "status",
+    "provider_id",
+    "created_at",
+    "updated_at"
+  ]
+},
+{
+  "collection": "private.business_card_sms",
+  "columns": [
+    "id",
+    "business_id",
+    "actor_id",
+    "revision",
+    "phone",
+    "sender",
+    "segments",
+    "status",
+    "provider_id",
+    "customer_id",
+    "created_at",
+    "updated_at"
+  ]
+},
+{
+  "collection": "private.appointment_reminder_queue",
+  "columns": [
+    "id",
+    "business_id",
+    "appointment_id",
+    "occurrence_id",
+    "starts_at",
+    "due_at",
+    "channel",
+    "status",
+    "provider_id",
+    "last_error",
+    "created_at",
+    "updated_at",
+    "actor_id",
+    "customer_id",
+    "recipient"
+  ]
+},
+{
+  "collection": "private.job_invoice_results",
+  "columns": [
+    "job_id",
+    "business_id",
+    "invoice_id",
+    "error_code",
+    "updated_at"
+  ]
+}
 ] as const
