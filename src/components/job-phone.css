@@ -341,3 +341,7 @@
  .phone-job-page .jm-compact-job:has(.jm-back-button) .jm-job-header h2{font-size:24px;line-height:1.2;margin:0 0 4px;color:#101a2c}
  .phone-job-page .jm-compact-job:has(.jm-back-button) .jm-job-header p{font-size:17px;color:#596170;margin:0 0 2px}
 }
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .phone-job-page .jm-compact-job .jm-section-groups button{min-height:44px}
+ .phone-job-page .jm-menu-context>.secondary-button,.phone-job-page .jm-compact-job .jm-workspace-footer .record-more>summary{min-height:44px}
+}
