@@ -20,6 +20,7 @@ import {
 } from "../services/jobManagement";
 import JobManagementWorkspace from "./JobManagementWorkspace";
 import "./job-management.css";
+import "./job-phone.css";
 const customer = (job: ManagementJob) => {
   const c = Array.isArray(job.customers) ? job.customers[0] : job.customers;
   return c
@@ -221,9 +222,11 @@ export default function JobManagement({
           </button>
         </p>
       )}
+              <div className="jm-context-heading"><button type="button" onClick={()=>{if(confirmNavigation()){initialChoice.current=true;setBrowseOpen(true);onSelect(null)}}}>‹ All jobs</button><strong>Job Management</strong></div>
               <div className="jm-mobile-picker">
                 <label>
-                  Job overview
+                  <span className="jm-picker-label">Job overview</span>
+                  <span className="jm-picker-identity" aria-hidden="true"><strong>{jobs.find(j=>j.id===selectedJobId)?.title || "Selected job"}</strong><span>{jobs.find(j=>j.id===selectedJobId) ? customer(jobs.find(j=>j.id===selectedJobId)!) : "Choose another job"}</span></span>
                   <select
                     value={selectedJobId || ""}
                     aria-label="Selected job"
