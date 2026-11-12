@@ -1,6 +1,12 @@
 /* Home uses the same record controls; explicit spans keep live counts from moving cards. */
-/* Each remaining card is reviewed separately against its mockup and completed
-   Job Management. Keep these changes scoped to Home's calendar card. */
+/* Each card is compared only to its approved mockup. */
+.home-view .home-calendar-team{margin:0 22px 8px;font-size:13px;color:#52677b}
+.home-view .home-calendar-team>summary{cursor:pointer;min-height:44px;align-content:center}
+.home-view .home-calendar-team .worker-select{margin:0 0 12px}
+.home-view .home-calendar-compact .calendar-heading h2 svg{width:22px;height:22px;flex-shrink:0}
+.home-view .home-calendar-compact .calendar-heading h2{display:flex;align-items:center;gap:8px}
+.home-view .home-calendar-compact .calendar-add svg{width:20px;height:20px;flex-shrink:0}
+.home-view .home-calendar-compact .calendar-add{display:inline-flex;align-items:center;gap:6px}
 .home-view .dashboard-business-header{align-items:center}
 .home-view .home-header-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .home-view .dashboard-page .home-create-button{width:auto;min-width:142px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;text-align:center;font-size:16px;padding:12px 22px;border-radius:12px}
@@ -112,37 +118,51 @@
  .home-view .home-calendar-compact .calendar-day{min-height:62px}
 }
 
-/* Calendar card: Job Management's control geometry, with Home's approved
-   calendar composition. Scope prevents changes to the completed Jobs screens. */
+/* Phone calendar composition follows the approved Home mockup only. */
 @media(max-width:900px),(max-width:1100px) and (pointer:coarse){
- .home-view .home-calendar-compact{font-family:Arial,sans-serif;border:1px solid #cbd5df;border-radius:14px;background:#fff;box-shadow:none;color:#182b3d}
- .home-view .home-calendar-compact .calendar-heading{padding:14px 12px 10px;gap:10px}
- .home-view .home-calendar-compact .calendar-heading h2{font-size:22px;line-height:1.2;color:#12243c}
- .home-view .home-calendar-compact .calendar-heading-actions{flex-wrap:wrap;gap:8px}
- .home-view .home-calendar-compact .view-switch{padding:0;gap:0;background:#fff;border:1px solid #cbd5df;border-radius:10px}
- .home-view .home-calendar-compact .view-switch button{min-height:44px;font-size:14px;padding:8px 14px;border-radius:8px;color:#182b3d}
- .home-view .home-calendar-compact .view-switch button[aria-pressed=true]{background:#e5f5ef;color:#006a55;box-shadow:inset 0 -3px #008673}
- .home-view .home-calendar-compact :is(.calendar-add,.text-button,.secondary-button,.primary-button){min-height:44px;font-size:14px;line-height:1.3;border-radius:10px;padding:8px 12px;white-space:normal}
- .home-view .home-calendar-compact .calendar-add{background:white;color:#006b57;border:1px solid #00715c}
- .home-view .home-calendar-compact .calendar-period-nav{padding:0 12px 12px;gap:8px;flex-wrap:wrap}
- .home-view .home-calendar-compact .calendar-period-title{width:100%;gap:8px;flex-wrap:wrap}
- .home-view .home-calendar-compact .calendar-period-title strong{flex:1;font-size:16px;line-height:1.3;text-align:center;color:#182b3d}
- .home-view .home-calendar-compact .calendar-arrow{width:44px;height:44px;min-width:44px;border-radius:10px;color:#182b3d}
- .home-view .home-calendar-compact>.worker-select{margin:0 12px 12px;max-width:calc(100% - 24px);font-size:14px}
- .home-view .home-calendar-compact :is(input,select){font-size:16px;min-height:44px;min-width:0;max-width:100%;border-radius:10px}
- .home-view .home-calendar-compact .calendar-grid{padding-inline:12px;gap:4px}
- .home-view .home-calendar-compact .calendar-day{border-color:#cbd5df;border-radius:8px;background:#fff;color:#182b3d;min-height:62px}
- .home-view .home-calendar-compact .calendar-day[aria-pressed=true]{background:#008673;border-color:#008673;color:white;box-shadow:none}
- .home-view .home-calendar-compact .calendar-weekday{font-size:12px}
- .home-view .home-calendar-compact .calendar-day strong{font-size:18px}
- .home-view .home-calendar-compact .calendar-agenda{padding:12px}
- .home-view .home-calendar-compact .calendar-agenda-date>strong{font-size:16px;line-height:1.3;color:#182b3d}
- .home-view .home-calendar-compact .calendar-agenda-date>span{font-size:12px}
- .home-view .home-calendar-compact .home-agenda-row{gap:8px;padding:10px 0}
- .home-view .home-calendar-compact .calendar-event{gap:8px;flex-wrap:wrap;color:#182b3d}
- .home-view .home-calendar-compact .calendar-event :is(time,strong){font-size:14px}
- .home-view .home-calendar-compact .calendar-event small{font-size:13px;line-height:1.4}
- .home-view .home-calendar-compact .home-calendar-extras{padding:8px 12px;gap:8px 12px;font-size:14px}
+ .home-view .home-calendar-compact{font-family:Arial,sans-serif;border:1px solid #d5dce4;border-radius:12px;background:#fff;box-shadow:0 1px 2px #102c4b10;color:#172332}
+ .home-view .home-calendar-compact .calendar-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;padding:8px 10px 0;align-items:center}
+ .home-view .home-calendar-compact .calendar-heading h2{font-size:18px;line-height:1.2;letter-spacing:-.03em;color:#102c4b;gap:6px}
+ .home-view .home-calendar-compact .calendar-heading h2 svg{width:20px;height:20px}
+ .home-view .home-calendar-compact .calendar-heading-actions{display:contents}
+ .home-view .home-calendar-compact .view-switch{grid-column:2;grid-row:1;gap:0;padding:0;border:1px solid #d5dce4;border-radius:7px;background:#f8fafc}
+ .home-view .home-calendar-compact .view-switch button{min-height:44px;padding:6px 9px;border-radius:6px;font-size:13px;color:#172332}
+ .home-view .home-calendar-compact .view-switch button[aria-pressed=true]{background:#008673;color:white;box-shadow:none}
+ .home-view .home-calendar-compact .calendar-add{grid-row:2;grid-column:1/-1;justify-self:start;min-height:44px;padding:4px 0;background:transparent;border:0;border-radius:0;color:#102c4b;font-size:14px;text-decoration:underline;text-underline-offset:3px}
+ .home-view .home-calendar-team{margin:0 10px 4px;font-size:12px}
+ .home-view .home-calendar-team>summary{min-height:32px}
+ .home-view .home-calendar-team .worker-select{font-size:14px}
+ .home-view .home-calendar-team select{min-height:44px;font-size:16px;max-width:100%;min-width:0}
+ .home-view .home-calendar-compact .calendar-period-nav{padding:0 10px 8px}
+ .home-view .home-calendar-compact .calendar-period-title{display:flex;width:100%;gap:6px;flex-wrap:nowrap}
+ .home-view .home-calendar-compact .calendar-period-title strong{order:2;flex:1;text-align:center;font-size:14px;line-height:1.25;color:#172332}
+ .home-view .home-calendar-compact .calendar-arrow{width:32px;height:44px;min-width:32px;border-radius:7px;font-size:24px;background:#f5f7fa;color:#172332}
+ .home-view .home-calendar-compact .calendar-arrow:first-child{order:1}
+ .home-view .home-calendar-compact .calendar-arrow:nth-of-type(2){order:4}
+ .home-view .home-calendar-compact .calendar-period-title .text-button{order:3;min-height:44px;padding:4px;font-size:13px;color:#102c4b}
+ .home-view .home-calendar-compact .calendar-grid{padding-inline:10px;gap:3px}
+ .home-view .home-calendar-compact .calendar-day{min-height:44px;padding:4px 1px;gap:1px;border:1px solid #d5dce4;border-radius:6px;background:#fff;color:#172332;box-shadow:none}
+ .home-view .home-calendar-compact .calendar-day[aria-pressed=true]{background:#008673;border-color:#008673;color:white}
+ .home-view .home-calendar-compact .calendar-weekday{font-size:11px;padding:0;font-weight:400}
+ .home-view .home-calendar-compact .calendar-day strong{font-size:14px}
+ .home-view .home-calendar-compact .calendar-day-count{font-size:9px;min-height:0;line-height:1}
+ .home-view .home-calendar-compact .calendar-day-count:has(.calendar-empty-dot){display:none}
+ .home-view .home-calendar-compact .calendar-agenda{padding:10px;border-top:0}
+ .home-view .home-calendar-compact .calendar-agenda-date{justify-content:flex-start;gap:5px;margin-bottom:6px}
+ .home-view .home-calendar-compact .calendar-agenda-date>strong{font-size:14px;color:#172332}
+ .home-view .home-calendar-compact .calendar-agenda-date>span{font-size:11px}
+ .home-view .home-calendar-compact .calendar-list-heading{font-size:11px;margin-bottom:4px}
+ .home-view .home-calendar-compact .home-agenda-row{padding:6px 0;gap:6px}
+ .home-view .home-calendar-compact .home-agenda-row>.calendar-event{padding:4px 0 4px 7px;border-left:3px solid #12ad91;gap:4px;flex-wrap:wrap;color:#172332}
+ .home-view .home-calendar-compact .calendar-event :is(time,strong){font-size:13px;line-height:1.3}
+ .home-view .home-calendar-compact .calendar-event small{font-size:12px;line-height:1.3}
+ .home-view .home-calendar-compact .home-agenda-row>button{min-height:44px;font-size:13px;border-radius:7px;padding:6px 10px;flex:0 0 auto}
+ .home-view .home-calendar-compact .home-calendar-extras{padding:4px 10px;gap:0 10px;font-size:12px}
  .home-view .home-calendar-compact .home-calendar-extras :is(summary,a){min-height:44px}
- .home-view .home-calendar-compact :is(.calendar-empty,.calendar-status){font-size:14px;line-height:1.5}
+ .home-view .home-calendar-compact .calendar-empty{font-size:13px;padding:8px 0}
+}
+@media(max-width:360px){
+ .home-view .home-calendar-compact .calendar-heading h2{font-size:16px;gap:4px}
+ .home-view .home-calendar-compact .calendar-heading h2 svg{width:17px;height:17px}
+ .home-view .home-calendar-compact .view-switch button{padding-inline:6px;font-size:12px}
 }

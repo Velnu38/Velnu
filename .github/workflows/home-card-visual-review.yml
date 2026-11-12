@@ -23,7 +23,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npx playwright test tests/e2e/home-screen.spec.mjs --config=${{ matrix.engine == 'webkit' && 'playwright.mobile.config.mjs' || 'playwright.config.mjs' }} --grep='Home keeps financial|Home keeps calendar creation|Home preserves' --workers=2
+      - run: npx playwright test tests/e2e/home-screen.spec.mjs tests/e2e/home-calendar-reference.spec.mjs --config=${{ matrix.engine == 'webkit' && 'playwright.mobile.config.mjs' || 'playwright.config.mjs' }} --grep='Home keeps financial|Home keeps calendar creation|Home preserves|Home calendar mockup' --workers=2
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
