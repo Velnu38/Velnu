@@ -1,3 +1,4 @@
+import {recordInvoiceReminderDraft} from '../services/invoiceReminderHistory'
 import { useEffect, useRef, useState } from 'react'
 import { confirmPersonalSent, nativeDocumentDraft, preparePersonalDocument, readPendingPersonalSend, releasePersonalApproval, storePendingPersonalSend, type PendingPersonalSend, type PersonalChannel, type PreparedShare } from '../services/personalDelivery'
 import { canShareDocumentPdf, downloadDocumentPdf, getDocumentPdf, shareDocumentPdf, type DocumentPdfArtifact } from '../services/documentPdf'
@@ -77,6 +78,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
         try { await navigator.clipboard.writeText(share.url); setNotice(ready + 'Link copied.') }
         catch { setCopyUrl(share.url); setNotice(ready + 'Copy the link below.') }
       } else if (href) {
+        if(reminder&&kind==='invoice')await recordInvoiceReminderDraft(businessId,share.token,channel)
         const next = { token: share.token, channel }
         await storePendingPersonalSend(businessId, kind, documentId, next)
         onPendingChange?.(next)
@@ -97,6 +99,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
       const result = await shareDocumentPdf(preparedPdf.pdf, preparedPdf.share.subject, 'Please review the attached document. ' + preparedPdf.share.url)
       if (result === 'cancelled') { setNotice('Sharing cancelled. No send was recorded.'); return }
       if (result === 'unsupported') { setNotice('Download the PDF and attach it in your email app.'); return }
+      if(reminder&&kind==='invoice')await recordInvoiceReminderDraft(businessId,preparedPdf.share.token,'email')
       const next: PendingPersonalSend = { token: preparedPdf.share.token, channel: 'email' }
       await storePendingPersonalSend(businessId, kind, documentId, next)
       setPending(next); onPendingChange?.(next)
@@ -110,6 +113,7 @@ export default function PersonalDocumentDelivery({ businessId, kind, documentId,
     flight.current = true; setBusy(true); onBusyChange?.(true); setError('')
     try {
       if (sent) await confirmPersonalSent(businessId, pending.token, pending.channel)
+      else if(reminder&&kind==='invoice')await recordInvoiceReminderDraft(businessId,pending.token,pending.channel,true)
       await storePendingPersonalSend(businessId, kind, documentId, null)
       onPendingChange?.(null)
       setPending(null)

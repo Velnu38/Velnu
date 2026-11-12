@@ -1,3 +1,4 @@
+import InvoiceReminderHistory from './InvoiceReminderHistory'
 import PersonalDocumentDelivery from './PersonalDocumentDelivery'
 import {useDeliverySetup} from '../lib/useDeliverySetup'
 import {useEffect,useRef,useState} from 'react'
@@ -20,6 +21,7 @@ export default function InvoiceReminderDialog({business,invoiceId,onClose,onSent
   void readPendingPersonalSend(business.id,'invoice',invoiceId).then(saved=>{if(active){setPending(saved);setCheckingPending(false)}})
   return()=>{active=false}
  },[business.id,invoiceId])
+ const [history,setHistory]=useState(false)
  const flight=useRef(false)
  async function load(){setLoading(true);setError('');try{setReview(await getInvoiceReminderReview(business.id,invoiceId))}catch(e){setReview(null);setError(e instanceof Error?e.message:'Unable to load reminder.')}finally{setLoading(false)}}
  useEffect(()=>{let active=true;void getInvoiceReminderReview(business.id,invoiceId).then(r=>{if(active)setReview(r)}).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[business.id,invoiceId])
@@ -37,12 +39,14 @@ export default function InvoiceReminderDialog({business,invoiceId,onClose,onSent
  }
  return <FormDialog label="Send invoice reminder" busy={busy} onClose={onClose} wide autoFocusFields={false}>
  <div className="modal-head"><div><p className="eyebrow">Overdue invoice</p><h2>Send Reminder</h2></div><button type="button" className="icon-button" aria-label="Close reminder" disabled={busy} onClick={onClose}>×</button></div>
+ <button type="button" className="text-button" onClick={()=>setHistory(value=>!value)}>{history?'Hide reminder history':'View reminder history'}</button>
+ {history&&<InvoiceReminderHistory businessId={business.id} invoiceId={invoiceId} timezone={business.timezone}/>}
  {loading&&<p role="status">Preparing reminder…</p>}
  {error&&<p role="alert" className="error-text">{error}</p>}
  {setupError&&<p role="alert" className="error-text">{setupError} <button type="button" className="text-button" disabled={busy} onClick={()=>void refreshSetup().catch(()=>{})}>Retry sending setup</button></p>}
  {!busy&&!receipt&&<button type="button" className="text-button" onClick={()=>void load()} disabled={loading}>Reload reminder details</button>}
  {review&&<><div className="reminder-facts"><strong>{review.number||'Invoice'}</strong><span>Due {review.due_date}</span><span>Remaining balance: {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(review.balance))}</span></div>
- <p className="quiet">{review.last_reminder?`Last reminder: ${new Date(review.last_reminder.at).toLocaleString(undefined,{timeZone:business.timezone||'America/New_York'})} · ${review.last_reminder.channel.toUpperCase()} · ${review.last_reminder.status==='sent'?'accepted for delivery':review.last_reminder.status}`:'No successful reminders recorded for this invoice.'}</p>
+ <p className="quiet">{review.last_reminder?`Last reminder: ${new Date(review.last_reminder.at).toLocaleString(undefined,{timeZone:business.timezone||'America/New_York'})} (${business.timezone||'America/New_York'}) · ${review.last_reminder.channel.toUpperCase()} · ${review.last_reminder.status==='sent'?'accepted for delivery':review.last_reminder.status}`:'No successful reminders recorded for this invoice.'}</p>
  <section className="reminder-message" aria-label="Reminder preview"><strong>Subject: {review.subject}</strong><p>{review.body}</p></section>
  {!receipt&&<button type="button" className="text-button" disabled={busy} onClick={()=>setEditContact(true)}>Edit customer contact</button>}
  {!setup&&!setupError&&<p role="status">Checking sending options…</p>}

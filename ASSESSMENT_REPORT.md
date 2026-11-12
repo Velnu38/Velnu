@@ -28,6 +28,8 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.
 
+- Owner resumed PR97 reminder history on November 12. Reconciled with the latest private-beta branch and preserved PR102 layout. Targeted SQL/DOM/build checks pass; required CI, additive migration and coordinated release remain pending. The other sequential cards stay paused. No providers activated, real messages sent or charges.
+
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
 ## Focused task cards
