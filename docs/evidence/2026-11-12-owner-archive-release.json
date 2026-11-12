@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-12",
+  "pr": 104,
+  "status": "deployed_private_beta",
+  "testedHead": "8fef466c4c22e3080496e142a85a3f84b4ed97a0",
+  "merge": "647195708b19c73d9296941ed0fd18ff258e6384",
+  "testedAndMergedTree": "ecc41b0a4518b8aab28d00f72eeff9ec8349aebd",
+  "ci": {
+    "fullSuite": 43316105756,
+    "jobs": 22,
+    "allPassed": true,
+    "otherPassedRuns": [
+      43316105545,
+      43316105562,
+      43316105763
+    ],
+    "syntheticArchiveArtifact": 13987684458
+  },
+  "supabase": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "function": "owner-archive",
+    "version": 3,
+    "verifyJwt": true,
+    "deployedFilesMatchTestedPackage": true,
+    "migration": "20261112221244_owner_archive_completeness",
+    "sourceMigration": "20261112212349_owner_archive_completeness.sql",
+    "newSnapshotVersion": 2,
+    "permissionsUnchanged": true,
+    "missingIdentityDenied": true,
+    "unauthenticatedHttp": 401
+  },
+  "rollout": "Installed backward-compatible v1/v2 Edge package before enabling v2 database snapshots, avoiding old-code/new-snapshot window. PR103 currentSessionActor retained.",
+  "deployment": {
+    "id": "dpl_FthCghTR3uS5wYc24swfb3jTk6rK",
+    "state": "READY",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "httpStatus": 200,
+    "cacheControl": "private, no-store, max-age=0",
+    "robots": "noindex, nofollow, noarchive",
+    "betaDatabase": true,
+    "productionDatabase": false
+  },
+  "retained": [
+    "PR97 reminder history",
+    "PR102 layout",
+    "PR103 session revocation",
+    "51 readiness records",
+    "existing data and retention"
+  ],
+  "open": [
+    "EXPORT-01 controlled hosted owner-download acceptance and realistic hosted capacity",
+    "OPS-01 full hosted backup and restore drill",
+    "No automatic archive import/restore is provided"
+  ],
+  "restrictions": "No provider activation, customer sends, charges, production database changes or public launch."
+}
