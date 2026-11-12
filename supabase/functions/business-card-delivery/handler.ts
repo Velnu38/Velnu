@@ -2,9 +2,9 @@ import { readLimitedRequest } from '../_shared/signedEvents.ts'
 import { burstLimitResponse } from '../_shared/burstLimit.ts'
 export type CardDeliveryDependencies = {
   enabled: (channel: string) => boolean;
-  origins: string[];
+  origins: readonly string[];
   authorize: (auth: string) => Promise<string | null>;
-  prepare: (actor: string, input: any) => Promise<{ data: any; error: any }>;
+  prepare: (actor: string, input: any) => PromiseLike<{ data: any; error: any }>;
   email: (id: string) => Promise<{ status: number; body: any; headers?: Record<string,string> }>;
   claim: (id: string) => Promise<any>;
   send: (claim: any) => Promise<{ sid: string }>;
