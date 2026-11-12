@@ -19,3 +19,5 @@ Checked November 12, 2026 UTC.
 - All 51 readiness records and acceptance criteria survive. Broader JOB-01/UX-01, physical iPhone/Android and provider gates remain open. PR97 and the earlier sequential queue remain paused. See [phone flow evidence](evidence/2026-11-12-job-phone-flow.json). Hosted screenshots and CI receipts are linked in that evidence; local Chromium could not launch in this environment, so real browser verification used hosted Chromium and WebKit.
 
 - PR100 phone shell/entry correction is merged and verified in beta. Do not treat automated visual review as physical-device or owner acceptance. See [correction evidence](evidence/2026-11-12-phone-visual-correction.json).
+
+- PR101 replaces owner-rejected PR100 phone composition. Focused Chromium/WebKit run 43148027441 passed; rendered screen family reviewed. Final required release checks and deployment pending. No functionality or provider changes. Physical-device and owner acceptance remain open.

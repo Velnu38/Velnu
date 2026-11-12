@@ -90,6 +90,7 @@
  .phone-job-page .jm-compact-job{padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;gap:16px}
  .phone-job-page .jm-compact-job .jm-job-header{display:none}
  .phone-job-page .jm-mobile-menu{display:grid;gap:16px}
+ .phone-job-page :is(h1,h2,h3,.jm-context-heading strong,.jm-picker-identity strong,.jm-quick-tile strong,.jm-next-action strong){font-weight:700}
  .phone-job-page .jm-mobile-menu h3{font-size:26px;line-height:1.2;letter-spacing:-.025em;margin:0}
  .phone-job-page .jm-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
  .phone-job-page .jm-quick-tile{display:grid;grid-template-columns:1fr auto;align-content:start;gap:10px;padding:14px;min-height:140px;border:1px solid #cbd5df;border-radius:13px;background:white;color:#182b3d;text-align:left;font:inherit}
