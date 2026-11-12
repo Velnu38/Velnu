@@ -1,3 +1,4 @@
+import {verifyPublicLinkAbuse} from './public-link-abuse-replay.mjs'
 import {verifyOwnerArchiveReplay} from './owner-archive-replay.mjs'
 import assert from 'node:assert/strict'
 import {createHash,randomBytes,randomUUID} from 'node:crypto'
@@ -212,7 +213,9 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.ok(!(await api(object,office.token)).ok,'Revoked billing access must not read invoice files with the existing session')
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
-  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,ownerArchive,recovery}
+  phase='public-link-backpressure'
+  const publicLinkAbuse=await verifyPublicLinkAbuse(db,api,owner.token,businessA,invoice.id)
+  return {publicLinkAbuse,genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,ownerArchive,recovery}
  }catch(error){
   console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)
