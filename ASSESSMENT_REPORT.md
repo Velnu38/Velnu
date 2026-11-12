@@ -22,6 +22,8 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges.
 
+- The sequential task queue and unmerged PR97 are paused by the owner. Current authorized work is the phone Job Management layout only, isolated from PR97 on the deployed beta baseline. No new functionality.
+
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
 ## Focused task cards

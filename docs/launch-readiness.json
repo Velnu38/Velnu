@@ -468,6 +468,12 @@
       "detail": "Current verified beta: PR96 merge d9e954783ab838050ad354f7584879425e77cfae, READY deployment dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ on both Finviant domains. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified. Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges. Tested and merged source trees are identical. Fresh disabled defaults and saved overrides are preserved.",
       "evidence": "docs/evidence/2026-11-12-effective-reminders.json; https://github.com/Velnu38/Velnu/pull/96",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Phone Job Management layout only",
+      "detail": "Owner-authorized mobile CSS refresh retains all existing sections, controls, guards and data paths. Cleaner selector, job heading, green next-action panel, Summary/Work/Billing/Records styling and flatter overview cards apply only at 820px and below. No application logic, backend, permissions, messaging or billing changes. Local targeted tests pass; hosted browser/CI and private-beta deployment are pending. JOB-01/UX-01 broader acceptance and physical-device gates remain open. Earlier sequential queue and PR97 remain paused.",
+      "evidence": "docs/evidence/2026-11-12-job-mobile-layout.json",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [
@@ -1791,6 +1797,7 @@
     "Current verified beta: PR96 merge d9e954783ab838050ad354f7584879425e77cfae, READY deployment dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ on both Finviant domains. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.",
     "PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.",
     "PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.",
-    "Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges."
+    "Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Next: card 05, AUTO-02 invoice reminder history. No provider activation, real sends or charges.",
+    "The sequential task queue and unmerged PR97 are paused by the owner. Current authorized work is the phone Job Management layout only, isolated from PR97 on the deployed beta baseline. No new functionality."
   ]
 }
