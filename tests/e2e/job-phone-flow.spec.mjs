@@ -12,8 +12,8 @@ async function fixture(page,{restricted=false,populated=false}={}){
   job.customers=[{...customer,first_name:'Taylor',last_name:'Morgan',phone:'+17575550100'}];job.properties=[{address_line1:'124 Oak Street',city:'Chesapeake',state:'VA',postal_code:'23320'}];job.status='scheduled';job.scheduled_start='2099-11-16T19:00:00Z';job.scheduled_end='2099-11-16T21:00:00Z';job.active_appointment={id:'77777777-7777-4777-8777-777777777777',starts_at:job.scheduled_start,ends_at:job.scheduled_end,status:'scheduled'};
   data.tasks=[{...data.tasks[0],due_on:'2099-11-16'},{id:'task-2',title:'Final inspection',completed:false,version:1,priority:'normal',worker_id:null,due_on:'2099-11-17'},...[3,4,5].map(n=>({id:'task-'+n,title:'Completed preparation '+n,completed:true,version:1,priority:'normal',worker_id:U,due_on:null}))];
   data.activity=[{id:1,event:'Visit scheduled',created_at:'2026-11-12T15:30:00Z',actor:'Alex Carter'}];
-  data.materials=[{id:'material-1',label:'Cabinet hardware',quantity:12,unit_cost:8,status:'received',version:1}];
-  data.visits=[{...job.active_appointment,job_id:J,title:'Kitchen installation',assigned_worker_ids:[U],updated_at:job.updated_at}];
+  data.materials=[{id:'material-1',name:'Cabinet hardware',quantity:12,unit:'pieces',supplier:'',estimated_cost:96,status:'received',version:1}];
+  data.visits=[{...job.active_appointment,job_id:J,title:'Kitchen installation',worker_ids:[U],version:1}];
  }
  await mockJobDirectory(page,()=>[job])
  await page.route('**/rest/v1/jobs?**',route=>route.fulfill({headers:cors,json:new URL(route.request().url()).searchParams.has('id')?job:[job]}))
