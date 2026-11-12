@@ -17,6 +17,10 @@ The comparison shows a much closer card boundary, hierarchy, shortcut treatment 
 - Local production build and all 95 startup checks pass. Targeted phone, job-management and execution DOM scenarios and all 10 registry checks pass.
 - Local Chromium cannot launch because the operating system denies its socket creation. Hosted browser results supply the rendered evidence.
 - Protected preview dpl_HXjYxHiroxF1L7yWDBpj7hjbETu3 serves the reviewed Summary JS/CSS, HTTP 200, private no-store/noindex and the beta backend. Reviewed JobsPage CSS SHA-256: 860fc9763bcbbba37e7fb2c06b69ba9179b6808883b3e3c494d71f8af303727f.
-- PR104 export and PR105 cost controls advanced beta during verification. Their changes are reconciled into this candidate without altering the Summary implementation. Final combined required checks remain necessary before release.
+- PR104 export and PR105 cost controls advanced beta during verification. Their changes are reconciled into this candidate without altering the Summary implementation. Final combined application checks passed: five workflows, all 22 complete-suite jobs and all 38 focused cases. The first pricing-plan state assertion failed once and passed on an isolated shard rerun; no application edit was made to force a pass.
 
 The scope of the owner's eventual layout work includes Home, Invoices, Estimates, Jobs, More and their downstream screens. This release completes only the current Summary step. Do not proceed to the next card until this one is deployed and verified. No providers, customer messages, charges, production backend or public launch changes are authorized here.
+
+## Private-beta release
+
+PR106 merged as 0c5a4353bf62af7b22b7fb9ebc3217d4d89e96a9 and READY deployment dpl_DMgX8MqsN74hPUPnwqSAimiNiHKa serves both Finviant domains. HTTP 200, private no-store/noindex, the beta backend and exact reviewed Summary CSS hash are verified. Four concurrent PR105 documentation receipt files were reconciled after application checks; runtime source remained identical. See [release receipt](evidence/2026-11-12-summary-card-release.json). The next layout card can begin from this baseline; physical-device/owner acceptance remains open.

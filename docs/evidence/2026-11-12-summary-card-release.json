@@ -1,0 +1,131 @@
+{
+  "date": "2026-11-12",
+  "scope": "Sequential layout release: Job Management Summary only",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/106",
+  "status": "Merged and deployed to protected private beta",
+  "testedApplicationHead": "4d63847bff9979f8dcd655da043893d3555bf004",
+  "testedApplicationTree": "b2983022f0817b875a41ed4b6b4e2a4a8261a82f",
+  "documentationReconciliationHead": "860e7e94bc41dbf80b08f5218d8c7013686fa994",
+  "documentationOnlyChanges": [
+    "docs/ABUSE_COST_CONTROLS_2026-11-12.md",
+    "docs/CURRENT_HANDOFF.md",
+    "docs/evidence/2026-11-12-abuse-cost-release.json",
+    "docs/launch-readiness.json"
+  ],
+  "merge": "0c5a4353bf62af7b22b7fb9ebc3217d4d89e96a9",
+  "mergedTree": "c30b90aeee600d72498c43ad862003f45da59ab4",
+  "runtimeSourceUnchangedAfterTests": true,
+  "workflows": [
+    {
+      "id": 43319265262,
+      "name": "Finviant authentication access checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43319265254,
+      "name": "Finviant assessment maintenance",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43319265309,
+      "name": "Focused phone visual review",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43319265419,
+      "name": "Pricing tier checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43319265281,
+      "name": "Complete automated test checks",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "completeSuiteJobs": 22,
+  "focusedCases": 38,
+  "focusedRun": 43319265309,
+  "artifacts": [
+    {
+      "id": 13990171137,
+      "name": "phone-visual-chromium"
+    },
+    {
+      "id": 13988514956,
+      "name": "phone-visual-webkit"
+    }
+  ],
+  "comparison": "docs/evidence/2026-11-12-summary-card-comparison.jpg",
+  "metrics": {
+    "viewportWidth": 390,
+    "cardWidth": 362,
+    "cardHeight": 432.671875,
+    "firstCandidateCardHeight": 538.44,
+    "minimumTouchTarget": 44
+  },
+  "localChecks": [
+    "production build and 95 startup checks",
+    "phone, job-management and execution DOM scenarios",
+    "assessment sync/test/check; 10 tests"
+  ],
+  "retainedFailure": {
+    "run": 43319265281,
+    "job": 131535532177,
+    "test": "pricing-tiers owner plan switch",
+    "failure": "Immediate async plan assertion expected basic, received free",
+    "retryJob": 131541545814,
+    "retry": "Only failed browser shard rerun; passed without application edits",
+    "independentPricingWorkflow": 43319265419
+  },
+  "deployment": {
+    "id": "dpl_DMgX8MqsN74hPUPnwqSAimiNiHKa",
+    "state": "READY",
+    "target": "preview/private beta",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "protection": "SSO on all deployments"
+  },
+  "live": [
+    {
+      "domain": "finviant.com",
+      "status": 200,
+      "index": "/assets/index-C7UysnnO.js",
+      "cache": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "app": "App-DrtsgJNA.js",
+      "beta": true,
+      "production": false,
+      "css": "JobsPage-CtBIr8g_.css",
+      "cssSHA256": "860fc9763bcbbba37e7fb2c06b69ba9179b6808883b3e3c494d71f8af303727f",
+      "summary": true
+    },
+    {
+      "domain": "www.finviant.com",
+      "status": 200,
+      "index": "/assets/index-C7UysnnO.js",
+      "cache": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    }
+  ],
+  "preserved": [
+    "PR97 reminder history",
+    "PR103 tenant session security",
+    "PR104 owner exports",
+    "PR105 abuse/cost controls",
+    "all existing readiness task acceptance criteria",
+    "all existing job actions, permissions and unsaved notes"
+  ],
+  "remaining": [
+    "Signed-in owner-business and actual iPhone/Android acceptance",
+    "Broader UX-01/JOB-01 acceptance",
+    "Sequential Work/Billing/Records/Tasks and Home/Invoices/Estimates/Jobs/More layout work"
+  ],
+  "limitations": "Hosted synthetic Chromium/WebKit screenshots and direct deployed asset/header checks are not physical-device or real-business acceptance. Native widgets and truthful content differ from the generated reference. Local browser launch is blocked by OS socket permissions. No providers, real messages, charges, production backend or public launch changes."
+}
