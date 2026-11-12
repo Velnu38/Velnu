@@ -1097,3 +1097,11 @@
 @media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
  .phone-job-page .jm-phone-workspace:has(.jm-panel:not([hidden]) .jm-section-heading h3) .jm-mobile-heading h3 { display: none; }
 }
+/* Keep the phone shell itself full-width, including Safari zoom/web views. */
+@media (max-width: 900px), (max-width: 1100px) and (pointer: coarse) {
+ .app-shell.finviant-workspace:has(.phone-job-page) { display: block; width: 100%; max-width: none; min-width: 0; }
+ .app-shell.finviant-workspace:has(.phone-job-page) > .workspace { display: block; width: 100%; max-width: none; min-width: 0; margin: 0; }
+ .app-shell.finviant-workspace:has(.phone-job-page) > .sidebar { display: none; }
+ .app-shell.finviant-workspace:has(.phone-job-page) .topbar,
+ .app-shell.finviant-workspace:has(.phone-job-page) .workspace-inner { width: 100%; max-width: none; }
+}

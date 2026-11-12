@@ -30,6 +30,7 @@ for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,
  await page.goto(`/?view=work&workspace=management&job=${J}`)
  await expect(page.getByRole('region',{name:'Job summary',exact:true})).toBeVisible()
  const workspace=page.getByRole('region',{name:'Selected job workspace',exact:true})
+ for(const selector of ['.app-shell','.workspace','.topbar']){const shell=await page.locator(selector).boundingBox();expect(Math.abs(shell.width-viewport.width)).toBeLessThan(2)}
  const box=await workspace.boundingBox();expect(box.width).toBeGreaterThanOrEqual(viewport.width-28)
  await expect(workspace.getByRole('tab',{name:'Overview',exact:true})).toHaveCount(0)
  await fits(page);await shot(page,`summary-${viewport.width}`)

@@ -486,6 +486,12 @@
       "detail": "Current verified application release: PR100 merge d79a30b87e8e786ecaf11e53d0aa25753dd0d7c7, READY deployment dpl_EDfcuYfpdx2atGNYfLBqAY3Ff1pf on both Finviant domains. Phone visual correction covers compact shared chrome, initial existing-job selection, full-width selector, Summary/Work/Billing/Records, focused detail headings and full-screen editors. All six workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified. All 51 task records remain unchanged. Earlier screenshots exposed header overlap from inherited CSS specificity; final candidate fixes it and passes explicit entry/non-overlap checks. Browsing retains search/filter/paging; selected-job reads remain bounded. No backend/provider changes or new business functionality. Physical-device acceptance remains open.",
       "evidence": "docs/evidence/2026-11-12-phone-visual-correction.json",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Phone shell width correction",
+      "detail": "Owner physical screenshot shows PR100 loading but the header/content occupying only the left part of the browser while bottom navigation spans the viewport. Normalize the phone Job Management shell and main workspace to full-width block layout, and explicitly assert shell/header widths in browser tests. Hosted verification/release pending; physical acceptance remains open. No business/provider behavior changed.",
+      "evidence": "docs/evidence/2026-11-12-phone-shell-width.json",
+      "verifiedAt": "2026-11-12"
     }
   ],
   "tasks": [

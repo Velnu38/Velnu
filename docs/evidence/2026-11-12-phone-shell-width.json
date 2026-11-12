@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-12",
+  "base": "bc5b888c156b173eb99683e82534ae61222dd809",
+  "scope": "Phone shell full-width block layout; no business operations or provider changes",
+  "status": "hosted validation pending",
+  "open": [
+    "Physical Safari acceptance",
+    "Provider acceptance",
+    "Broader JOB-01/UX-01"
+  ],
+  "paused": "PR97 and sequential queue"
+}
