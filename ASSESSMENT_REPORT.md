@@ -28,6 +28,8 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.
 
+- PR97 reminder history is merged as 1e6d4a8088cf9df40332bcfbb1e115db4f647026 and released to private beta on both Finviant domains using READY deployment dpl_144zwRNoNEGAqwsTddfDnYvYNSfi. All five workflows passed at d74dab7; tested and merged trees match. Beta migration invoice_reminder_history applied as 20261112214051 from source 20261112004157; do not reapply it. ACL/missing-identity checks and live HTTP 200, no-store/noindex, beta database and history assets verified. AUTO-02 remains open for hosted owner/provider/physical-device acceptance. PR103, PR104 and app-wide layout work remain separate; future releases must preserve this merge. No providers activated, real messages or charges.
+
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
 ## Focused task cards
