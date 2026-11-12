@@ -205,6 +205,18 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.deepEqual(actualUsage.map(r=>({feature:r.feature,used:Number(r.used)})),[{feature:'ai',used:10},{feature:'voice',used:24}])
   phase='owner-archive'
   const ownerArchive=await verifyOwnerArchiveReplay({db,api,json,owner,outsider,office,business:businessA,service:status.SERVICE_ROLE_KEY,sourceBytes:png})
+  phase='public-link-authorization'
+  const card=await json('/rest/v1/rpc/save_business_card',owner.token,{method:'POST',body:{p_business:businessA,p_details:{name:'Synthetic card',phone:'7575550123',email:'card@example.test',website:'https://example.test',tagline:'Controlled test',include_address:false,street:'',city:'',region:'',postal_code:''},p_expected_revision:null}})
+  const cardToken=randomBytes(32).toString('hex')
+  const publishCard={p_business:businessA,p_revision:card.revision,p_token:cardToken}
+  assert.equal((await api('/rest/v1/rpc/publish_business_card',outsider.token,{method:'POST',body:publishCard})).status,403)
+  await json('/rest/v1/rpc/publish_business_card',owner.token,{method:'POST',body:publishCard})
+  const readCard=()=>json('/rest/v1/rpc/get_shared_business_card',status.ANON_KEY,{method:'POST',body:{p_token:cardToken}})
+  assert.equal((await readCard()).card.name,'Synthetic card')
+  const revokeCard={p_business:businessA,p_token:cardToken}
+  assert.equal((await api('/rest/v1/rpc/revoke_business_card_link',outsider.token,{method:'POST',body:revokeCard})).status,403)
+  assert.equal((await api('/rest/v1/rpc/revoke_business_card_link',owner.token,{method:'POST',body:revokeCard})).status,204)
+  assert.equal(await readCard(),null)
   phase='access-revocation'
   await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner.id])
   await db.query("update public.business_members set access_modules=array['jobs'] where business_id=$1 and user_id=$2",[businessA,office.id])
@@ -212,7 +224,20 @@ export async function verifyAuthStorageReplay(db,status,restoreDrill,cleanupFixt
   assert.ok(!(await api(object,office.token)).ok,'Revoked billing access must not read invoice files with the existing session')
   await db.query('delete from public.business_members where business_id=$1 and user_id=$2',[businessA,office.id])
   assert.deepEqual(await json('/rest/v1/customers?select=id&business_id=eq.'+businessA,office.token),[])
-  return {genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,ownerArchive,recovery}
+  phase='session-logout-revocation'
+  // Keep the exact issued JWT to prove logout is enforced before JWT expiry.
+  const revokedToken=owner.token
+  assert.equal((await json('/rest/v1/rpc/current_session_actor',owner.token,{method:'POST',body:{}})),owner.id)
+  assert.equal((await api('/auth/v1/logout?scope=local',owner.token,{method:'POST'})).status,204)
+  for(const path of ['/rest/v1/invoices?select=id&business_id=eq.'+businessA,'/rest/v1/rpc/current_session_actor']){
+   const response=await api(path,revokedToken,path.includes('/rpc/')?{method:'POST',body:{}}:{})
+   assert.ok([401,403].includes(response.status),'Logged-out JWT must fail before any REST/RPC response')
+  }
+  assert.ok(!(await api(object,revokedToken)).ok,'Logged-out JWT must not fetch private bytes')
+  assert.ok(!(await api('/storage/v1/object/sign/finviant-record-photos/'+photoPath,revokedToken,{method:'POST',body:{expiresIn:60}})).ok)
+  await owner.login()
+  assert.equal((await json('/rest/v1/invoices?select=id&business_id=eq.'+businessA,owner.token)).length>=1,true)
+  return {logoutRestRpcStorageDenied:true,publicLinkForeignPublishRevokeDenied:true,publicLinkRevocation:true,genuinePasswordSessions:3,ownerInvoiceRetry:true,crossTenantReadWriteDenied:true,directUploadBypassDenied:true,serverQuotaReservation:true,privateFileHashVerified:true,anonymousFileDenied:true,foreignSigningDenied:true,moduleRevocation:true,membershipRevocation:true,concurrentReceiptReservations:6,burstRequestsDenied:14,atomicFinVoiceAllowance:true,recurringOwnerCreateRetry:true,recurringForeignOfficeDenied:true,recurringDepositRejected:true,recurringKeysetRows:27,ownerArchive,recovery}
  }catch(error){
   console.error(JSON.stringify({phase:'auth-storage-'+phase,errorCode:/^(?:[0-9A-Z]{5}|ERR_ASSERTION)$/.test(error.code??'')?error.code:'unknown',...(Number.isInteger(error.httpStatus)?{httpStatus:error.httpStatus}:{})}))
   throw Error('Genuine Auth/Storage replay failed at '+phase)

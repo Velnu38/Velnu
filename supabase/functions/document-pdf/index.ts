@@ -1,3 +1,4 @@
+import {currentSessionActor} from '../_shared/currentSession.ts'
 import {createClient} from 'npm:@supabase/supabase-js@2.57.4'
 import {documentPdfHandler} from './handler.ts'
 import {ensureStoredDocumentPdf} from '../_shared/documentPdfArtifact.ts'
@@ -12,7 +13,7 @@ if(!environment||!anon||!service){
  const caller=(authorization:string)=>createClient(url,anon,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}})
  Deno.serve(documentPdfHandler({
   origins:environment.origins,
-  authorize:async authorization=>{const{data,error}=await caller(authorization).auth.getUser();return error?null:data.user?.id||null},
+  authorize:authorization=>currentSessionActor(caller(authorization)),
   ownerVersion:async(authorization,business,kind,document)=>await caller(authorization).rpc('get_owner_document_version',{p_business:business,p_kind:kind,p_document:document}).abortSignal(AbortSignal.timeout(8000)),
   customerVersion:async(token,type)=>await admin.rpc('get_document_pdf_version',{p_token:token,p_token_type:type}).abortSignal(AbortSignal.timeout(8000)),
   artifact:versionId=>ensureStoredDocumentPdf(admin,versionId),
