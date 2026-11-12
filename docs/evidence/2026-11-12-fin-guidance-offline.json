@@ -20,5 +20,16 @@
     "No physical-device or real voice acceptance",
     "No hosted capacity or full restore acceptance",
     "No deployment performed"
-  ]
+  ],
+  "testedCommit": "006bc7a3285acdd6fdf2a9807ba5af528e16367b",
+  "ci": {
+    "run": "https://github.com/Velnu38/Velnu/actions/runs/43327772463",
+    "job": 131564491546,
+    "conclusion": "success",
+    "finCasesPassed": 42,
+    "assessmentCasesPassed": 10,
+    "queryProfile": "passed",
+    "browserNavigationPassed": 8,
+    "browserScope": "Chromium desktop/mobile widths and synthetic browser dictation; intercepted services, not real speech or devices"
+  }
 }
