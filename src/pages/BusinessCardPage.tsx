@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { supabase } from "../lib/supabase";
 import { businessLogoUrl } from "../lib/business";
 import { downloadCard, type BusinessCard } from "../services/businessCard";
@@ -8,7 +8,8 @@ type SharedCard = {
   branding: { accent: string; logo_path: string | null };
   vcard: string;
   filename: string;
-  expires_at: string;
+  expires_at: string | null;
+  url?: string;
 };
 const demoCard: SharedCard = {
   card: {
@@ -40,12 +41,20 @@ const demoCard: SharedCard = {
   expires_at: "2099-01-01",
 };
 export default function BusinessCardPage({ token }: { token: string }) {
+  const currentToken = useRef(token);
+  currentToken.current = token;
+  const live = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(token);
+  const [requestOpen, setRequestOpen] = useState(false), [requestBusy, setRequestBusy] = useState(false);
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [data, setData] = useState<SharedCard | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [retry, setRetry] = useState(0),
     [logoFailed, setLogoFailed] = useState(false);
+  useEffect(() => {
+    setRequestBusy(false); setRequestOpen(false); setRequestId(crypto.randomUUID()); setLogoFailed(false);
+  }, [token]);
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -57,12 +66,12 @@ export default function BusinessCardPage({ token }: { token: string }) {
       setLoading(false);
       return;
     }
-    if (!/^[a-f0-9]{64}$/.test(token)) {
+    if (!live && !/^[a-f0-9]{64}$/.test(token)) {
       setLoading(false);
       return;
     }
     void Promise.resolve(
-      supabase.rpc("get_shared_business_card", { p_token: token }),
+      supabase.rpc(live ? "get_live_business_card" : "get_shared_business_card", live ? { p_public_id: token } : { p_token: token }),
     )
       .then(({ data, error }) => {
         if (!active) return;
@@ -81,7 +90,7 @@ export default function BusinessCardPage({ token }: { token: string }) {
     return () => {
       active = false;
     };
-  }, [token, retry]);
+  }, [token, retry, live]);
   const card = data?.card,
     phone = normalizeMobile(card?.phone || ""),
     validEmail =
@@ -104,9 +113,7 @@ export default function BusinessCardPage({ token }: { token: string }) {
       const fresh =
         token === "demo"
           ? { data: demoCard, error: null }
-          : await supabase.rpc("get_shared_business_card", {
-              p_token: token,
-            });
+          : await supabase.rpc(live ? "get_live_business_card" : "get_shared_business_card", live ? { p_public_id: token } : { p_token: token });
       if (fresh.error)
         throw Error("Unable to download this contact. Try again.");
       if (!fresh.data) {
@@ -180,6 +187,31 @@ export default function BusinessCardPage({ token }: { token: string }) {
             <h1>{card.name}</h1>
             {card.tagline && <p className="pbc-tagline">{card.tagline}</p>}
             <div className="pbc-gold-line" />
+            {live && <>
+              <button className="primary-button" onClick={() => setRequestOpen(v => !v)}>Request an Estimate</button>
+              {requestOpen && <form onSubmit={async e => {
+                e.preventDefault(); if(requestBusy) return;
+                const form = new FormData(e.currentTarget); setRequestBusy(true); setNotice("");
+                try {
+                  const result = await supabase.rpc("request_business_card_estimate", {p_public_id:token,p_request:requestId,p_name:form.get("name"),p_email:form.get("email"),p_details:form.get("details")});
+                  if(currentToken.current !== token) return;
+                  if(result.error) throw Error(result.error.message);
+                  setNotice("Request received for business review. No booking or payment has been made."); setRequestOpen(false); setRequestId(crypto.randomUUID());
+                } catch(e) { if(currentToken.current === token) setNotice((e as Error).message); } finally {if(currentToken.current === token) setRequestBusy(false);}
+              }}>
+                <label>Your name<input name="name" required maxLength={160} disabled={requestBusy}/></label>
+                <label>Your email<input name="email" type="email" required maxLength={254} disabled={requestBusy}/></label>
+                <label>What do you need?<textarea name="details" required maxLength={2000} disabled={requestBusy}/></label>
+                <p>Your details go to this business for review. This does not authorize automated messages.</p>
+                <button disabled={requestBusy}>{requestBusy ? "Submitting…" : "Submit estimate request"}</button>
+              </form>}
+              <button onClick={async () => {
+                try {
+                  if(navigator.share) await navigator.share({title:card.name,url:data?.url});
+                  else {await navigator.clipboard.writeText(data!.url!);setNotice("Card link copied.");}
+                } catch(e) {if((e as Error).name !== "AbortError") setNotice("Sharing unavailable. Copy the card address from your browser.");}
+              }}>Share Card</button>
+            </>}
             <dl>
               {card.phone && (
                 <div>
@@ -249,7 +281,7 @@ export default function BusinessCardPage({ token }: { token: string }) {
               Opens a contact file. Confirm Add to Contacts on your phone.
             </p>
             <div className="pbc-secondary">
-              {phone && <a href={"tel:" + phone}>Call Business</a>}
+              {phone && <><a href={"tel:" + phone}>Call Business</a><a href={"sms:" + phone}>Text Business</a></>}
               {validEmail && (
                 <a href={"mailto:" + card.email}>Email Business</a>
               )}
@@ -266,7 +298,7 @@ export default function BusinessCardPage({ token }: { token: string }) {
             <small>
               {token === "demo"
                 ? "Example business details. Saving contacts requires your confirmation."
-                : `Preview link available until ${new Date(data!.expires_at).toLocaleDateString()}. Saved contacts do not expire.`}
+                : data!.expires_at ? `Preview link available until ${new Date(data!.expires_at).toLocaleDateString()}. Saved contacts do not expire.` : "Live business card. Saved contact details are copies; this link shows published updates."}
             </small>
           </footer>
         </>
