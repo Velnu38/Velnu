@@ -12,7 +12,8 @@ Shared owner, member, role, module, terms, field and Fin authorization helpers a
 
 ## Regression evidence
 
-- 27 targeted Node/PGlite/handler tests passed: two controlled business fixtures, foreign membership/role/file denial, deleted/expired/missing/malformed/other-user session denial, metadata spoof rejection, same-session role/membership removal, restricted session-table/RPC grants, fail-closed upload authentication, existing storage quota/role checks, business-card revocation/expiry, approval-handler authorization and error contracts.
+- 28 targeted Node/PGlite/handler tests passed: two controlled business fixtures, foreign membership/role/file denial, deleted/expired/missing/malformed/other-user session denial, metadata spoof rejection, same-session role/membership removal, restricted session-table/RPC grants, fail-closed upload authentication, existing storage quota/role checks, business-card revocation/expiry, approval-handler authorization and error contracts.
+- 13 existing canonical-document revision/link tests passed, including rotation, revocation, expiration and immutable publication.
 - Six existing disposable-runner safety tests passed. SQL-only replay fixtures now explicitly create synthetic session rows and claims; they remain SQL simulations, not genuine Auth evidence.
 - The existing genuine Auth/REST/Storage replay is extended, not replaced: two businesses and three password-sign-in actors, foreign card publication/revocation denial, anonymous card access and explicit revocation, actual logout with the identical old JWT, REST/RPC/private bytes/signed-URL creation denial, and fresh sign-in recovery. It keeps no raw JWTs, capability tokens, identities or file contents in receipts.
 
