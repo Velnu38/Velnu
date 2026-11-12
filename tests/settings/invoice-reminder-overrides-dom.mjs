@@ -28,11 +28,11 @@ try{
  await render('invoice')
  assert.match(text(),/Default: 2 days after the due date, then every 7 days, up to 3 reminders/)
  assert.match(text(),/paused business-wide/);assert.equal(saved,0)
- await select('custom');assert.deepEqual([...document.querySelectorAll('input[type=number]')].map(e=>e.value),['2','7','3']);assert.equal(saved,0)
+ await select('custom');assert.match(text(),/Saved preference: Use business defaults/);assert.deepEqual([...document.querySelectorAll('input[type=number]')].map(e=>e.value),['2','7','3']);assert.equal(saved,0)
  await act(async()=>{const form=document.querySelector('form');form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))})
  assert.equal(saved,1);assert.equal(document.querySelector('button').disabled,true)
  await act(async()=>saveResolve());assert.match(text(),/No message was sent now/)
- await select('off');assert.equal(document.querySelectorAll('input').length,0);await submit();await act(async()=>saveResolve());assert.equal(state.mode,'off');assert.equal(saved,2)
+ await select('off');assert.equal(document.querySelectorAll('input').length,0);await submit();await act(async()=>saveResolve());assert.equal(state.mode,'off');assert.match(text(),/Saved preference: Off/);assert.equal(saved,2)
  await render('slow');assert.match(text(),/Loading reminder settings/)
  state={...state,mode:'custom',after_days:9,repeat_days:10,max_reminders:4}
  await render('new-invoice');assert.deepEqual([...document.querySelectorAll('input')].map(e=>e.value),['9','10','4'])

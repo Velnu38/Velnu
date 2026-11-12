@@ -148,3 +148,15 @@ test('NULL channel preference is unspecified, not opt-out, and permits reminder'
  await fixture();assert.equal((await db.query<{preferred_contact:string|null}>('select preferred_contact from customers')).rows[0].preferred_contact,null)
  assert.equal(await schedule(),1);assert.equal((await claim(await task())).status,'claimed')
 })
+
+test('fresh invoice defaults stay disabled and reads preserve existing custom enabled rules',async()=>{
+ await fixture()
+ await db.exec(`create function private.is_primary_owner(uuid) returns boolean language sql as $$select private.is_primary_owner($1,auth.uid())$$;update private.reminder_rules set after_days=6,repeat_days=10,max_reminders=2`)
+ await db.exec(await readFile('supabase/migrations/20261109220000_customer_reminder_defaults.sql','utf8'))
+ const defaults=async()=>(await db.query<{v:any}>(`select public.get_delivery_automation('${B}') v`)).rows[0].v
+ assert.deepEqual((await defaults()).rule,{enabled:true,after_days:6,repeat_days:10,max_reminders:2})
+ await db.exec('delete from private.reminder_rules')
+ for(let i=0;i<2;i++)assert.deepEqual((await defaults()).rule,{enabled:false,after_days:2,repeat_days:7,max_reminders:3})
+ assert.equal((await db.query('select * from private.reminder_rules')).rows.length,0)
+ assert.equal(await schedule(),0);assert.equal((await db.query('select * from private.finviant_email_outbox')).rows.length,0)
+})
