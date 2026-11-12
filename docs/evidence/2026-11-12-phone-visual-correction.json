@@ -2,11 +2,59 @@
   "date": "2026-11-12",
   "base": "534fdd9c8068e1e2ea09a9fe660c153859cdb835",
   "scope": "Phone presentation and initial existing-job selection only. No business mutations or provider changes.",
-  "status": "targeted validation; hosted visual acceptance and release pending",
+  "status": "verified private beta",
   "open": [
     "Physical phones",
     "Broader JOB-01/UX-01",
     "Provider acceptance"
   ],
-  "paused": "PR97 and sequential queue"
+  "paused": "PR97 and sequential queue",
+  "candidate": "96ebca54b2ac4a78b8805aab44667f3b1c775fc1",
+  "merge": "d79a30b87e8e786ecaf11e53d0aa25753dd0d7c7",
+  "tree": "3d83c4dc21abd51bec43a9cb3526e488285ec8ac",
+  "pullRequest": 100,
+  "validation": {
+    "local": "7 service/database checks, 5 management DOM scenarios, 2 phone DOM scenarios, TypeScript and 10 registry checks passed",
+    "workflows": [
+      43144924274,
+      43144924258,
+      43144924421,
+      43144924292,
+      43144924308,
+      43144924326
+    ],
+    "result": "All six workflows and 22 release jobs passed",
+    "browser": "320/390/430/768 widths, 844px landscape, Chromium and iPhone WebKit, desktop resize, role limits, unsaved edits, queue search/paging and all section destinations",
+    "visual": "Reviewed entry, Summary, Work, Billing, Records, Tasks and editor captures. Entry card position and header non-overlap have explicit browser assertions; repeated detail heading removed. Actual physical phones remain unverified.",
+    "screenshots": {
+      "run": "https://github.com/Velnu38/Velnu/actions/runs/43144924326",
+      "artifacts": [
+        13911950318,
+        13911312748,
+        13911445929
+      ]
+    }
+  },
+  "deployment": {
+    "id": "dpl_EDfcuYfpdx2atGNYfLBqAY3Ff1pf",
+    "state": "READY",
+    "target": null,
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "status": 200,
+    "headers": [
+      "private, no-store, max-age=0",
+      "noindex, nofollow, noarchive"
+    ],
+    "assets": [
+      "index-DRRUORtP.js",
+      "App-nhw5BgXe.js",
+      "JobsPage-DulcjO8q.css"
+    ],
+    "betaSupabase": "xvybcmyoblfgzokaifsx",
+    "productionSupabaseAbsent": true
+  },
+  "preserved": "All 51 task records, business operations, permissions, balances, deep links, beta restrictions and worker/login separation. No provider writes/messages/charges."
 }

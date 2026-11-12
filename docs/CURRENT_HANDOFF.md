@@ -4,7 +4,7 @@ Checked November 12, 2026 UTC.
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified application release: PR99 merge 4aa808e79ad49a314b60ed945d9a3c82b035f649, READY deployment dpl_6wMZDuCScLmtuA4nM4CRRkCwgAbo on both Finviant domains. Full-width responsive phone Job Management menus, focused detail screens and full-viewport editors. All five required workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Current verified application release: PR100 merge d79a30b87e8e786ecaf11e53d0aa25753dd0d7c7, READY deployment dpl_EDfcuYfpdx2atGNYfLBqAY3Ff1pf on both Finviant domains. Phone visual correction covers compact shared chrome, initial existing-job selection, full-width selector, Summary/Work/Billing/Records, focused detail headings and full-screen editors. All six workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
@@ -18,4 +18,4 @@ Checked November 12, 2026 UTC.
 
 - All 51 readiness records and acceptance criteria survive. Broader JOB-01/UX-01, physical iPhone/Android and provider gates remain open. PR97 and the earlier sequential queue remain paused. See [phone flow evidence](evidence/2026-11-12-job-phone-flow.json). Hosted screenshots and CI receipts are linked in that evidence; local Chromium could not launch in this environment, so real browser verification used hosted Chromium and WebKit.
 
-- Owner rejected PR99 visual fidelity. Phone shell/entry correction is in targeted validation; do not treat PR99 visual review as owner acceptance. See [correction evidence](evidence/2026-11-12-phone-visual-correction.json).
+- PR100 phone shell/entry correction is merged and verified in beta. Do not treat automated visual review as physical-device or owner acceptance. See [correction evidence](evidence/2026-11-12-phone-visual-correction.json).

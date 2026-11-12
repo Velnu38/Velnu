@@ -14,7 +14,7 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
-- Current verified application release: PR99 merge 4aa808e79ad49a314b60ed945d9a3c82b035f649, READY deployment dpl_6wMZDuCScLmtuA4nM4CRRkCwgAbo on both Finviant domains. Full-width responsive phone Job Management menus, focused detail screens and full-viewport editors. All five required workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Current verified application release: PR100 merge d79a30b87e8e786ecaf11e53d0aa25753dd0d7c7, READY deployment dpl_EDfcuYfpdx2atGNYfLBqAY3Ff1pf on both Finviant domains. Phone visual correction covers compact shared chrome, initial existing-job selection, full-width selector, Summary/Work/Billing/Records, focused detail headings and full-screen editors. All six workflows and 22 release jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
 
 - PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
 
@@ -22,7 +22,7 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.
 
-- PR99 replaces the rejected PR98 phone density with the approved Summary/Work/Billing/Records concept. Existing operations, permissions, deep links and unsaved-change safeguards remain. PR97 and the sequential queue stay paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open.
+- PR100 corrects owner-rejected PR99 phone presentation. Compact entry, selected existing job, quick menus and focused details are deployed. All 51 task records and acceptance criteria remain unchanged. PR97 and the sequential queue remain paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
