@@ -1,3 +1,4 @@
+import { currentSessionActor } from '../_shared/currentSession.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 import { resolveAppEnvironment } from '../_shared/appEnvironment.ts'
 import { attachmentHandler } from './handler.ts'
@@ -8,8 +9,8 @@ Deno.serve(environment ? attachmentHandler({
   origins: environment.origins,
   async authorize(header) {
     if (!header.startsWith('Bearer ')) return null
-    const { data, error } = await admin.auth.getUser(header.slice(7))
-    return error ? null : data.user?.id || null
+    const caller = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: header } }, auth: { persistSession: false, autoRefreshToken: false } })
+    return currentSessionActor(caller)
   },
   reserve: async (actor, bucket, path, bytes) => await admin.rpc('reserve_attachment', { p_actor: actor, p_bucket: bucket, p_path: path, p_bytes: bytes }),
   upload: async (bucket, path, bytes, type) => await admin.storage.from(bucket).upload(path, bytes, { contentType: type, upsert: false, cacheControl: '3600' }),

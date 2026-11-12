@@ -1,3 +1,4 @@
+import {currentSessionActor} from '../_shared/currentSession.ts'
 import {createClient} from 'npm:@supabase/supabase-js@2.57.4'
 import {resolveAppEnvironment} from '../_shared/appEnvironment.ts'
 import {ownerArchiveHandler} from './handler.ts'
@@ -5,7 +6,7 @@ const url=Deno.env.get('SUPABASE_URL')||'',anon=Deno.env.get('SUPABASE_ANON_KEY'
 const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}}),client=(auth:string)=>createClient(url,anon,{global:{headers:{Authorization:auth}},auth:{persistSession:false,autoRefreshToken:false}})
 const bucket='finviant-owner-archives'
 Deno.serve(!env?()=>new Response('Archive service unavailable',{status:503}):ownerArchiveHandler({origins:env.origins,
- authorize:async auth=>{const {data,error}=await client(auth).auth.getUser();return error?null:data.user?.id||null},
+ authorize:auth=>currentSessionActor(client(auth)),
  caller:async(auth,name,args)=>await client(auth).rpc(name,args).abortSignal(AbortSignal.timeout(15000)),
  source:async file=>{
   const check=()=>admin.rpc('validate_owner_archive_source',{p_bucket:file.bucket,p_path:file.path,p_updated_at:file.updated_at,p_bytes:file.byte_size}).abortSignal(AbortSignal.timeout(5000))
