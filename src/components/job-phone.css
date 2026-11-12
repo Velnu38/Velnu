@@ -113,6 +113,8 @@
  .phone-job-page .jm-mobile-heading{display:grid;gap:12px;outline:none;scroll-margin-top:12px}
  .phone-job-page .jm-mobile-heading h3{font-size:28px;margin:0}
  .phone-job-page .jm-phone-workspace:has(.jm-panel:not([hidden]) .jm-section-heading h3) .jm-mobile-heading h3{display:none}
+ .phone-job-page .jm-phone-workspace:has(.jm-panel:not([hidden])>h3) .jm-mobile-heading h3{display:none}
+ .phone-job-page .jm-panel>h3:first-child{font-size:28px;margin:0 0 12px}
  .phone-job-page .jm-back-button{justify-self:start;border:0;background:transparent;color:#00715c;min-height:44px;padding:8px 0;font-size:16px;font-weight:600}
  .phone-job-page .jm-panel{padding:0;min-width:0}
  .phone-job-page .jm-section-heading{flex-wrap:wrap;gap:10px}
