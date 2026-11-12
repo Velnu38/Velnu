@@ -125,6 +125,6 @@ test('phone mockup existing edit and completion forms retain controls',async({pa
  await page.getByRole('button',{name:'‹ Back to Work',exact:true}).click();await tile(page,'Visits & crew').click();
  await page.getByRole('button',{name:'Edit visit',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await shot(page,'editor-existing-visit-390');await page.keyboard.press('Escape');
  expect(state.calls.some(c=>/send-|create_dispatched|complete_job|manage_job_workspace/.test(c.path))).toBe(false);
- await fixture(page,{populated:true,completed:true});await page.reload();await area(page,'Records').click();await tile(page,'Completion reports').click();
+ await fixture(page,{populated:true,completed:true});await page.goto(`/?view=work&workspace=management&job=${J}&section=reports`);await expect(page.getByRole('button',{name:'+ Create report version',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'+ Create report version',exact:true}).click();await expect(page.getByRole('dialog',{name:'Create completion report',exact:true})).toBeVisible();await fits(page);await shot(page,'editor-completion-report-390');await page.keyboard.press('Escape');
 });
