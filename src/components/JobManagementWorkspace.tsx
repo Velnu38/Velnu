@@ -1,4 +1,4 @@
-import JobMobileMenu, { JOB_PHONE_QUERY, type JobMenuItem } from './JobMobileMenu'
+import JobMobileMenu, { JOB_PHONE_QUERY, JobMenuIcon, type JobMenuItem } from './JobMobileMenu'
 import {jobNextStep} from '../lib/jobNextStep'
 import {
   lazy,
@@ -639,6 +639,7 @@ export default function JobManagementWorkspace({
           </JobMobileMenu>}
           {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{date(job.active_appointment!.starts_at)}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
           {data && mobileHome && activeGroup.label==='Records' && data.activity.length>0 && <section className="jm-menu-context"><h4>Latest activity</h4><Activity entries={data.activity.slice(0,1)} zone={zone}/></section>}
+          {data && mobileHome && activeGroup.label==='Records' && <button type="button" className="jm-record-details" onClick={()=>setDetails(true)}><JobMenuIcon kind="billing"/><strong>Job details</strong><span aria-hidden="true">›</span></button>}
 
           {data && (
             <>

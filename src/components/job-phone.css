@@ -149,7 +149,12 @@
  .phone-job-page .jm-workspace-footer .record-more>summary{font-size:16px;font-weight:700;min-height:44px;border-radius:10px}
  .phone-job-page .jm-menu-note{margin:-8px 0 0;font-size:16px;color:#566273}
  .phone-job-page .jm-menu-context{padding:14px;border:1px solid #cbd5df;border-radius:12px;font-size:16px;display:grid;gap:8px}
- .phone-job-page .jm-menu-context h4{font-size:20px;margin:0;color:#075c4c}
+ .phone-job-page .jm-record-details{display:grid;grid-template-columns:50px 1fr auto;align-items:center;gap:14px;width:100%;min-height:64px;padding:12px;border:1px solid #cbd5df;border-radius:12px;background:white;color:#182b3d;text-align:left;font-size:20px}
+ .phone-job-page .jm-record-details svg{width:32px;height:32px;color:#007661}
+ .phone-job-page .jm-record-details strong{border-left:1px solid #cbd5df;padding-left:14px}
+ .phone-job-page .jm-menu-context:has(>h4){overflow:hidden;padding-top:0}
+ .phone-job-page .jm-menu-context h4{background:#e5f5ef;margin:0 -14px;padding:8px 14px}
+ .phone-job-page .jm-menu-context h4{font-size:20px;color:#075c4c}
  .phone-job-page .jm-menu-context .jm-activity{margin:0;padding:0;list-style:none}
  .phone-job-page .jm-menu-context .jm-activity li{padding:0;border:0}
  .phone-job-page .jm-menu-context .jm-activity small{font-size:14px}
