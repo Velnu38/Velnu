@@ -44,6 +44,7 @@ for(const width of [390,1440])test(`Management queue pages and searches complete
   return r.fulfill({json:{entries,signals:entries.map(e=>({job_id:e.data.id,tasks_total:2,tasks_completed:1,due_tasks:0,materials_needed:0,pending_changes:0})),total,page:n,page_size:10,counts,checked_at:new Date().toISOString()}});
  });
  await page.goto('/?view=work&workspace=management');const queue=page.getByRole('complementary',{name:'Approved and active job queue'});
+ if(width===390)await page.locator('.jm-mobile-picker select').selectOption('browse');
  await expect(queue.locator('.jm-queue-count')).toHaveText('50001 jobs');await expect(queue.locator('.jm-job-option')).toHaveCount(10);await expect(page.locator('.jm-summary summary')).toContainText('50001 active jobs');
  await queue.getByRole('button',{name:'Next',exact:true}).click();await expect(queue.locator('.jm-pagination')).toContainText('2 / 5001');await expect(queue.locator('.jm-job-option').first()).toContainText('Managed job 10');
  const search=queue.getByRole('searchbox',{name:'Find a job'});await search.fill('100%');await expect(queue.locator('.jm-queue-count')).toHaveText('1 job');await expect(queue.locator('.jm-job-option')).toHaveCount(1);await expect(queue).toContainText('Needle 100% repair');expect(calls.at(-1).p_search).toBe('100%');expect(calls.at(-1).p_page).toBe(0);
