@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Invoice creation controls \u2014 local development only",
+      "detail": "November 13: removed the separate Overdue summary action and moved Create invoice into its position beside Total Outstanding. Recurring setup is now an owner-only option in the new-invoice form, with existing schedule management retained there. Saving the invoice opens the existing explicit schedule confirmation; checking the option alone creates no schedule. Synthetic Chromium tests cover phone/desktop creation, owner restrictions, schedule review and pause/resume. No hosted changes, provider activation, sending, charges, deployment or physical-device acceptance. All existing launch criteria remain open as previously recorded.",
+      "evidence": "docs/evidence/2026-11-13-invoice-creation-controls.json",
+      "verifiedAt": "2026-11-13"
+    },
+    {
       "title": "Estimate and shared document mockups \u2014 beta deployed",
       "detail": "November 12: PR113 merged as eb0057142f3bce99984ae00a220119acdcbb4276, exact reviewed tree 317382cc2df5ab38d55b1f77a866694752480327 from candidate 976bf64042a1b0498e387722c063c11b18db9139. Focused run 43341779976 passed 16 cases per Chromium/WebKit engine with final 320/390/430px captures and primary-action visibility. TypeScript, build with 95 startup checks, estimate actions/record DOM, invoice lifecycle DOM and assessment passed. Both beta domains resolve to READY Vercel dpl_3ZnhT117recH7woHCvYVsHZKs76M, HTTP200; live shared document and bootstrap CSS exactly match reviewed build. Beta backend/privacy headers retained. Existing provider, approval, payment/refund, booking, revision, deposit, conversion and unsaved-edit guards remain. No physical-device/signed-in owner or actual provider acceptance claim.",
       "evidence": "docs/INVOICE_ESTIMATE_MOCKUPS_2026-11-12.md"

@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-13",
+  "scope": "Local invoice controls and recurring creation handoff",
+  "baseCommit": "b5fd68351edc445d0bb0107ba8b9cb64299b80ab",
+  "branch": "dev/finviant-cloud-20261113",
+  "validation": {
+    "build": "npm run build; 95 startup/deployment tests passed",
+    "browser": "9 targeted synthetic Chromium tests passed, covering recurring creation and management at 390/1440px, owner controls, and invoice list/detail/creation at 320/390/430px",
+    "dom": [
+      "tests/settings/recurring-invoices-dom.mjs passed",
+      "tests/settings/invoice-detail-actions-dom.mjs passed"
+    ],
+    "assessment": "10 tests passed; sync/check consistent"
+  },
+  "testSources": [
+    "tests/e2e/document-calendar-contacts.spec.mjs",
+    "tests/e2e/document-phone-mockups.spec.mjs"
+  ],
+  "limits": [
+    "Local synthetic data only; no hosted deployment or data changes",
+    "No provider activation, messages or charges",
+    "No physical-device or WebKit acceptance claim",
+    "Previously documented unrelated customer-navigation and completion failures remain unresolved"
+  ]
+}
