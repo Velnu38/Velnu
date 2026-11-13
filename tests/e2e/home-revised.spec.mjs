@@ -28,7 +28,7 @@ for(const width of [320,390,430,1440])test(`revised Home matches approved cards 
  const calendar=page.getByRole('region',{name:'Work calendar',exact:true}),attention=page.getByRole('region',{name:'Needs attention overview',exact:true}),finance=page.getByRole('region',{name:'Financial Performance',exact:true})
  await expect(calendar.getByRole('heading',{name:'Today',exact:true})).toBeVisible();await expect(calendar.getByText('Taylor Morgan',{exact:true})).toBeVisible();await expect(calendar.getByText('Avery Ellis',{exact:true})).toBeVisible()
  await expect(attention.getByRole('button',{name:/Invoice review/})).toBeVisible();await expect(attention.getByRole('button',{name:/Work blockers/})).toBeVisible();await expect(attention.locator('.home-count')).toHaveText('3')
- await expect(finance.getByText('$8,250.00',{exact:true})).toBeVisible();await expect(finance.getByText('$2,100.00',{exact:true})).toBeVisible();await expect(finance.getByText('$6,150.00',{exact:true})).toBeVisible();await expect(finance).toContainText('Outstanding $1,200.00 · $250.00 overdue')
+ await expect(finance.locator('.home-period-label')).toContainText('USD');await expect(finance.getByText('$8,250.00',{exact:true})).toBeVisible();await expect(finance.getByText('$2,100.00',{exact:true})).toBeVisible();await expect(finance.getByText('$6,150.00',{exact:true})).toBeVisible();await expect(finance).toContainText('Outstanding $1,200.00 · $250.00 overdue')
  await expect(page.getByRole('button',{name:'Quick Links',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'+ New',exact:true})).toHaveCount(0);await expect(calendar.getByRole('button',{name:'Month',exact:true})).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await mkdir('tmp/home-revised',{recursive:true});await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:`tmp/home-revised/home-${width}.png`,fullPage:true})
@@ -37,6 +37,7 @@ for(const width of [320,390,430,1440])test(`revised Home matches approved cards 
  await finance.getByRole('button',{name:'View finances',exact:true}).click();await expect(finance.getByRole('heading',{name:'Financial Performance',exact:true})).toBeFocused();await expect(finance.getByRole('button',{name:'Add transaction',exact:true})).toBeVisible();await page.getByRole('button',{name:'‹ Back to overview',exact:true}).click();await expect(finance.getByRole('button',{name:'View finances',exact:true})).toBeFocused()
  await attention.getByRole('button',{name:/Invoice review/}).click();await expect(page.getByRole('group',{name:'Home work queue'})).toBeVisible();await page.getByRole('button',{name:'‹ Back to Needs Attention',exact:true}).click();await expect(page.getByRole('button',{name:/Invoice review/})).toBeFocused()
  await page.getByRole('button',{name:/Work blockers/}).click();await expect(page.getByRole('region',{name:'Work needs attention',exact:true}).getByRole('link',{name:/Kitchen cabinet repair/})).toHaveAttribute('href',/section=tasks/)
+ expect(state.networkPaths.filter(path=>path.endsWith('/rpc/get_financial_overview'))).toHaveLength(1)
  expect(state.calls.some(c=>/send-|create_document|set_job_status|work-scheduling/.test(c.path))).toBe(false)
 })
 test('revised Home preserves permissions and does not read financial queues for a worker',async({page})=>{

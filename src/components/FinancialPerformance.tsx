@@ -90,9 +90,9 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
   function expand(kind: Detail) { setDetail(value => value === kind ? null : kind); resetFilters() }
   function selectBucket(key: string) { setSelected(value => value === key ? null : key); setDetail('all'); resetFilters() }
   if(summary&&!expanded)return <section ref={card} className="financial-performance dashboard-tile home-financial-card" aria-labelledby="financial-performance-title">
-    <h2 className="dashboard-tile-title" id="financial-performance-title" tabIndex={summary?-1:undefined}>Financial Performance</h2><p className="home-period-label">{restricted?'Last 30 days':'This month'}</p>
+    <h2 className="dashboard-tile-title" id="financial-performance-title" tabIndex={summary?-1:undefined}>Financial Performance</h2><p className="home-period-label">{restricted?'Last 30 days':'This month'} · USD</p>
     {error?<p role="alert">{error} <button type="button" className="text-button" onClick={()=>setVersion(v=>v+1)}>Retry financial data</button></p>:!ready?<p role="status">Loading financial transactions…</p>:<dl className="home-financial-values"><div><dt>Income</dt><dd>{usd.format(totals.income)}</dd></div><div><dt>Expenses</dt><dd>{usd.format(totals.expenses)}</dd></div><div><dt>Net cash</dt><dd className={totals.net<0?'is-negative':'is-positive'}>{usd.format(totals.net)}</dd></div></dl>}
-    <FinancialInsights business={business} refreshVersion={refreshVersion+version} summary onOverview={onReceivables}/>
+    <FinancialInsights key="receivables" business={business} refreshVersion={refreshVersion+version} summary onOverview={onReceivables}/>
     <button type="button" className="text-button home-financial-open" aria-label="View finances" onClick={()=>{setExpanded(true);setPeriod(1);setSelected(null);setDetail(null);resetFilters()}}>View finances <span aria-hidden="true">›</span></button>
   </section>
   return <section ref={card} className={`financial-performance interactive-performance dashboard-tile${compact ? ' performance-compact' : ''}`} aria-labelledby="financial-performance-title">
@@ -102,7 +102,7 @@ export default function FinancialPerformance({ business, onOpenWorkbook, refresh
     {notice&&<p role="status" className="form-message">{notice}</p>}
     {loading&&ready&&<p role="status" className="quiet">Refreshing financial transactions. Showing the last successful update.</p>}
     {newEntry&&<FinancialEntryDialog business={business} onClose={()=>setNewEntry(false)} onSaved={(date,direction,payment)=>{setNewEntry(false);setSelected(null);resetFilters();setNotice(`${payment?'Payment recorded':direction==='income'?'Income saved':'Expense saved'}.${date<range.from||date>=range.to?' This transaction is outside the selected period. View all income & expenses to find it.':' Totals are refreshing.'}`);setVersion(v=>v+1)}}/>}
-    <FinancialInsights business={business} refreshVersion={refreshVersion+version} compact={compact} rows={ready?scopeRows:[]} onOverview={onReceivables}/>
+    <FinancialInsights key="receivables" business={business} refreshVersion={refreshVersion+version} compact={compact} rows={ready?scopeRows:[]} onOverview={onReceivables}/>
     <div className="insight-section-heading"><div><h3>Cash activity</h3><p className="quiet">Recorded income and expenses · {scopeLabel}</p></div></div>
     {error ? <div className="performance-unavailable" role="alert"><p>{error}</p><button className="secondary-button" onClick={() => setVersion(value => value + 1)}>Retry financial data</button></div> : !ready ? <div className="performance-loading" role="status">Loading financial transactions…</div> : !compact ? <FinancialTrend buckets={buckets} selected={bucket?.key || null} onSelect={selectBucket}/> : null}
     <div className="performance-scope"><span>{!ready ? loading ? 'Loading financial data…' : 'Financial data unavailable' : bucket ? `Viewing ${scopeLabel}` : `Period total · ${scopeRows.length} transactions`}</span>{bucket && <button className="text-button" onClick={() => { setSelected(null); resetFilters() }}>Show entire period</button>}</div>

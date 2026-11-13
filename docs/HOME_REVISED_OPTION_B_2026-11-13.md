@@ -8,7 +8,7 @@ The owner approved revised Option B and requested beta deployment after the invo
 - Today shows the first two active scheduled visits with local times, job names and customer names. Calendar opens the full existing calendar. Further visits, reminders, connected events and calendar issues remain reachable and visible as appropriate.
 - Needs Attention uses the same icon-and-chevron tile treatment as Job Management → Work: Invoice review and Work blockers. Invoice overdue money reuses the verified Financial Performance receivables result, rather than adding another finance query. Waiting approvals, scheduling follow-ups, payment processing safeguards and reconciliation remain in the existing review queues.
 - Financial Performance shows the current allowed cash period, income, expenses, net cash and outstanding/overdue balances. Free-plan history limits remain enforced. View finances opens the existing periods, chart, transaction drill-down, entry forms and workbook route.
-- The bottom navigation, private-beta/account disclosure, roles, unsaved-edit protections, explicit send/charge confirmations and underlying service APIs are retained. Manual Home refresh is available inside Quick Links.
+- Configured company logos and the shared Ask Fin header position remain visible and stable between workspaces. The bottom navigation, private-beta/account disclosure, roles, unsaved-edit protections, explicit send/charge confirmations and underlying service APIs are retained. Manual Home refresh is available inside Quick Links.
 
 ## Preserved behavior
 

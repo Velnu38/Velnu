@@ -51,7 +51,7 @@
  body:has(.home-revised) .private-testing-app{padding-inline:14px}
  body:has(.home-revised) .workspace-inner{padding-inline:0;padding-top:18px}
  .home-revised{gap:14px!important}
- .home-revised .dashboard-business-logo{display:none}
+ .home-revised .dashboard-business-logo{display:block;width:40px;height:40px;max-width:40px;object-fit:contain;flex-shrink:0}
  .home-revised .dashboard-business-identity h1{font-size:24px}
  .home-revised .home-header-actions .home-create-button{min-width:0;min-height:44px;width:auto;padding-inline:12px}
  .home-revised .home-date{font-size:14px}
@@ -63,7 +63,6 @@
 .dashboard-page.home-revised .home-header-actions{width:auto;flex:0 0 auto;justify-content:flex-end}
 @media(max-width:900px),(max-width:1100px) and (pointer:coarse){.finviant-workspace .workspace-inner:has(>.home-revised){padding-inline:14px}.dashboard-page.home-revised .dashboard-business-header{gap:10px}.dashboard-page.home-revised .dashboard-business-identity h1{text-align:left}.dashboard-page.home-revised .home-header-actions .home-create-button{width:auto;flex:none}}
 @media(max-width:900px),(max-width:1100px) and (pointer:coarse){
- body:has(.home-revised) .topbar{min-height:64px;padding-block:6px}
  body:has(.home-revised) .mobile-brand .fin-brand>span{display:none}
  .dashboard-page.home-revised .dashboard-business-identity h1{font-size:22px}
  .home-revised .home-card-heading{margin-bottom:6px}
@@ -83,3 +82,5 @@
  .home-view .jm-account-banner .private-beta-notice,.home-view .jm-account-banner .tier-banner{margin:8px 0;font-size:12px;flex-wrap:wrap}
  .home-view .jm-account-banner>summary:focus-visible{outline:3px solid #007762;outline-offset:3px}
 }
+
+.home-revised .dashboard-business-identity>div{min-width:0}

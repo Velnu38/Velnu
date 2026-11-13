@@ -10,7 +10,11 @@
     "focusedBrowser": "15 synthetic Chromium cases passed at 320/390/430/1440px: layout, accessibility, keyboard focus, permissions, detailed destinations, calendar return date, payment reconciliation and billing return path",
     "earlierWorkflowSelection": "26 cases passed; one calendar-entry test needed its new visible Calendar entry point and subsequently passed",
     "dom": "Home layout/review/calendar regression passed",
-    "assessment": "10 tests passed; generated report and registry consistent"
+    "assessment": "10 tests passed; generated report and registry consistent",
+    "initialCI": "Focused Chromium and WebKit Home visual reviews passed at aa48665664bc994189f4137466199980fbb083f7 (run 43466199482). The full gate failed; it is superseded only by a passing final candidate.",
+    "regressionCorrections": "Broader checks caught hidden configured phone logos, Ask Fin shifting between Home and Customers, and a stale More-to-finances test entry point. Logos and launcher positioning are restored; More uses View finances. FinancialInsights retains its component identity across summary/detail transitions to reuse its read.",
+    "localCorrections": "19 Home, More-navigation and native synthetic-audio cases passed after the header correction. Four previously failing attention paging and estimate review cases, plus phone logo coverage, passed against a stable customer-actions-enabled fixture build.",
+    "localLimit": "The personal-email external-app test reaches a managed-browser mailto policy block locally; required CI must verify its normal browser handoff. No provider was invoked."
   },
   "requiredReleaseGate": "Pending full CI on the final candidate; do not promote before all required checks pass",
   "limits": [
