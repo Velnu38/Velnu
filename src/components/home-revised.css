@@ -84,3 +84,8 @@
 }
 
 .home-revised .dashboard-business-identity>div{min-width:0}
+@media(max-width:360px){
+ .home-revised .home-financial-values{gap:6px}
+ .home-revised .home-financial-values>div+div{padding-left:6px}
+ .home-revised .home-financial-values dd{font-size:15px}
+}
