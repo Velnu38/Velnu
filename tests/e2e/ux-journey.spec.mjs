@@ -1,3 +1,4 @@
+import {reviewDocument} from './invoice-creation-navigation.mjs'
 import {openHomePanels} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
@@ -31,10 +32,10 @@ for(const width of [390,1440])test(`Home, chooser, customer and saved review acc
   await page.getByRole('combobox',{name:'Customer',exact:true}).fill('Test')
   await page.getByRole('option').first().click()
   await scan(page,'.customer-entry')
-  await page.getByPlaceholder('Description',{exact:true}).fill('Reviewed work')
-  await page.getByPlaceholder('Unit price',{exact:true}).fill('100')
-  await page.getByRole('button',{name:'Preview',exact:true}).click()
-  await expect(page.getByText('Draft saved. Review the PDF before choosing a delivery option.',{exact:true})).toBeVisible()
+  await page.getByLabel('Line 1 description',{exact:true}).fill('Reviewed work')
+  await page.getByLabel('Line 1 unit price',{exact:true}).fill('100')
+  await reviewDocument(page)
+  await expect(page.getByText('Draft saved · Not sent. Check the invoice and recipient before sending.',{exact:true})).toBeVisible()
   await expect(page.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
   await scan(page,'.creation-preview > [role=status]');await scan(page,'.creation-review-bar')
   expect(state.documents).toHaveLength(1)

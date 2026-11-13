@@ -12,7 +12,8 @@ import { customerRecordsHref } from '../lib/customerRecords'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {useBusinessRefresh} from '../lib/useBusinessRefresh'
 import {readableError} from '../lib/errors'
-import DocumentLineEditor from '../components/DocumentLineEditor'
+import InvoiceLineEditor, {InvoiceTaxOptions} from '../components/InvoiceLineEditor'
+import '../components/invoice-create.css'
 import {CreatedStamp,type DocumentDates} from '../components/DocumentRecord'
 import FormDialog from '../components/FormDialog'
 import WorkspaceBack from '../components/WorkspaceBack'
@@ -62,6 +63,8 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   const [statusFilter, setStatusFilter] = useState<InvoiceFilter>(()=>{const requested=new URLSearchParams(location.search).get('filter');return requested&&['all','open','draft','sent','paid','overdue'].includes(requested)?requested as InvoiceFilter:'all'})
   const [showForm, setShowForm] = useState(false)
   const [repeatInvoice,setRepeatInvoice]=useState(false)
+  const [optionsOpen,setOptionsOpen]=useState(false)
+  const [editedByControls,setEditedByControls]=useState(false)
   const [repeatSavedInvoice,setRepeatSavedInvoice]=useState<string|null>(null)
   const [editCreatedInvoice,setEditCreatedInvoice]=useState(false)
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('document'))
@@ -74,6 +77,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   const [creationPreview,setCreationPreview]=useState(false)
   const savedCreation=useRef<string|null>(null)
   const [savedCustomerId,setSavedCustomerId]=useState('')
+  const [creationNumber,setCreationNumber]=useState<string|null>(null)
   const [editCreationCustomer,setEditCreationCustomer]=useState<'email'|'phone'|'all'|null>(null)
   const dateEdited=useRef(false)
   const [defaultPayments,setDefaultPayments]=useState<DocumentPayments>({payment_links:[],payment_instructions:''})
@@ -88,7 +92,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   const [adjustPrices,setAdjustPrices] = useState(false)
   const [defaultsReady,setDefaultsReady] = useState(false)
   useEffect(() => { let active=true; void getDocumentSettings(business.id).then(d=>{if(active){setDefaultTax(Number(d.default_tax_rate));setDocumentTax(String(d.default_tax_rate));setDefaultPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setDocumentPayments({payment_links:d.payment_links,payment_instructions:d.payment_instructions});setPricingAdjustment(Number(d.pricing_adjustment_percent));setDefaultsReady(true)}}).catch(()=>{if(active)setError('Unable to load document defaults. Reload before creating a document.')}); return()=>{active=false} },[business.id])
-  const quickCreate=useRef(new URLSearchParams(window.location.search).get('new')==='1')
+  const quickCreate=useRef(new URLSearchParams(window.location.search).get('new')==='1'&&!new URLSearchParams(window.location.search).has('job'))
   useEffect(()=>{if(defaultsReady&&quickCreate.current&&canManageFinances(business.role)){quickCreate.current=false;resetForm();setCustomerId(customerScope);setShowForm(true);const url=new URL(location.href);url.searchParams.delete('new');history.replaceState(history.state,'',url.pathname+url.search)}},[defaultsReady,business.role])
   const [handoff,setHandoff]=useState('')
   useEffect(()=>{if(!showForm||!new URLSearchParams(location.search).has('handoff'))return;try{const raw=sessionStorage.getItem(`finviant:invoice-handoff:${business.id}`);if(raw){const data=JSON.parse(raw);setHandoff(data.command);setNotes('Dictated request: '+data.command);setCustomerDraft({...emptyCustomerDraft(),name:data.customerName||''});setLines([{...blankLine(),description:data.description||'',tax_rate:String(defaultTax)}]);sessionStorage.removeItem(`finviant:invoice-handoff:${business.id}`)}}catch{setError('Unable to restore the dictated request. Paste it into the notes before continuing.')}const u=new URL(location.href);u.searchParams.delete('handoff');history.replaceState(history.state,'',u.pathname+u.search)},[showForm,business.id,defaultTax])
@@ -130,12 +134,13 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   const [serviceAddress,setServiceAddress]=useState('')
   const [sourceJob,setSourceJob]=useState<{id:string;title:string}|null>(null)
   const openingJob=useRef(false)
+  const [loadingJob,setLoadingJob]=useState(()=>new URLSearchParams(location.search).has('job'))
   useEffect(()=>{
     const jobId=new URLSearchParams(window.location.search).get('job')
     if(!jobId||openingJob.current||!defaultsReady||!canManageFinances(business.role))return
     let active=true
-    void getJob(business.id,jobId).then(job=>{if(!active)return;openingJob.current=true;setSourceJob({id:job.id,title:job.title});setCustomerId(job.customer_id);setPropertyId(job.properties[0]?.id || '');setServiceAddress(job.properties[0] ? formatServiceAddress(job.properties[0]) : '');setNotes(job.description || '');setLines([{description:job.title,quantity:'1',unit_price:'',tax_rate:String(defaultTax)}]);setShowForm(true)})
-      .catch(e=>{if(active)setError(e.message)})
+    void getJob(business.id,jobId).then(job=>{if(!active||new URLSearchParams(location.search).get('job')!==jobId)return;openingJob.current=true;if(job.invoice&&job.invoice.status!=='void'){setSelectedInvoiceId(job.invoice.id);history.replaceState(history.state,'',customerRecordsHref('invoices',customerScope,job.invoice.id));return}if(job.source_estimate_id){window.location.assign('/?view=estimates&document='+encodeURIComponent(job.source_estimate_id));return}setSourceJob({id:job.id,title:job.title});setCustomerId(job.customer_id);setPropertyId(job.properties[0]?.id || '');setServiceAddress(job.properties[0] ? formatServiceAddress(job.properties[0]) : '');setNotes(job.description || '');setLines([{description:job.title,quantity:'1',unit_price:'',tax_rate:String(defaultTax)}]);setShowForm(true)})
+      .catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoadingJob(false)})
     return()=>{active=false}
   },[business.id,business.role,defaultsReady,defaultTax])
 
@@ -182,7 +187,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   }
 
   function resetForm() {
-    setRepeatInvoice(false);setCreationPreview(false); savedCreation.current=null;setSavedCustomerId(''); dateEdited.current=false; setDocumentTax(String(defaultTax))
+    setEditedByControls(false);setOptionsOpen(false);setRepeatInvoice(false);setCreationPreview(false);setCreationNumber(null); savedCreation.current=null;setSavedCustomerId(''); dateEdited.current=false; setDocumentTax(String(defaultTax))
     setFinRequest(''); setFinWarnings([]); setSpokenTotal(null); setHandoff('')
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setDueDate(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'invoice')); setNotes(''); setCustomerReference(''); setLines([newLine()]); setAdjustPrices(false); setError(''); setSourceJob(null); setPropertyId(''); setServiceAddress(''); retryRef.current = null
   }
@@ -222,6 +227,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       }
       const created = sourceJob ? await createJobInvoice(sourceJob.id,retryRef.current.requestId,input.items,dueDate || undefined,{issue_date:issueDate,notes,customer_reference:customerReference,...payments}) : await createInvoice(business.id,input)
       savedCreation.current=created.id
+      if('invoice_number' in created)setCreationNumber(typeof created.invoice_number==='string'?created.invoice_number:null)
       if(stayOnPreview){
         setSavedCustomerId(customer.customer_id)
         history.replaceState(history.state,'',customerRecordsHref('invoices',customerScope,created.id))
@@ -261,10 +267,11 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
   return <div className="page-stack workspace-module invoice-module document-phone-page"><WorkspaceBack />
     <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Invoices</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div></div>
     {showRecurring&&isPrimaryOwner(business)&&<Suspense fallback={<p role="status">Opening recurring schedules…</p>}><RecurringSchedulesDialog key={business.id} business={business} onClose={()=>{setShowRecurring(false);const url=new URL(location.href);url.searchParams.delete("recurring");history.replaceState(history.state,"",url.pathname+url.search)}}/></Suspense>}
+    {loadingJob&&<p role="status">Loading saved job and invoice details…</p>}
     <CustomerRecordScope customerId={customerScope} customers={customers} view="invoices"/>
     <section className="module-summary-grid" aria-label="Invoice summary">
       <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'open'} onClick={() => chooseFilter('open')}><span>Total Outstanding</span><strong>{invoiceMoney.format(openInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))}</strong><small>{openInvoices.length} unpaid {openInvoices.length === 1 ? 'invoice' : 'invoices'} · {invoiceMoney.format(overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.balance_due || 0), 0))} overdue</small></button>
-      {canManageFinances(business.role) && <button type="button" className="module-summary-card invoice-create-card" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true" className="invoice-create-icon">＋</span><span>Create invoice</span></button>}
+      {canManageFinances(business.role) && <button type="button" className="module-summary-card invoice-create-card" disabled={!defaultsReady||loadingJob} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true" className="invoice-create-icon">＋</span><span>Create invoice</span></button>}
       <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'paid'} onClick={() => chooseFilter('paid')}><span>Paid invoices</span><strong>{invoiceMoney.format(paidInvoices.reduce((sum, invoice) => sum + Number(invoice.amount_paid || invoice.total || 0), 0))}</strong><small>{paidInvoices.length} {paidInvoices.length === 1 ? 'invoice' : 'invoices'} collected</small></button>
     </section>
     <nav className="module-status-filters" aria-label="Filter invoices">
@@ -289,26 +296,44 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
     </section>
     <RecordListPagination label="invoices" list={recordList} className="invoice-bottom-pagination" />
     {showForm && <FormDialog label="Create an invoice" autoFocusFields={false} busy={busy} cleanVersion={savedCreation.current} onClose={() => { if(savedCreation.current)void finishCreation(savedCreation.current);else {setShowForm(false);resetForm()} }} wide>
-      <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New invoice</p><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'Create an invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
+      <div className="invoice-simple-create" data-review={creationPreview}>
+      <div className="modal-head" hidden={creationPreview}><div><h2>{sourceJob ? `Invoice for ${sourceJob.title}` : 'New invoice'}</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
       {!creationPreview && finRequest && <details className="quiet"><summary>Original request to Fin</summary><p>{finRequest}</p></details>}
       {!creationPreview && finRequest && customerLoad === 'failed' && <p role="alert">Saved customers could not load. <button type="button" className="text-button" onClick={() => void refresh().catch(() => setError('Could not refresh the invoice list or saved customers.'))}>Retry loading saved customers</button></p>}
       {!creationPreview && finWarnings.length > 0 && <ul className="form-message">{finWarnings.map(warning => <li key={warning}>{warning}</li>)}</ul>}
       {!creationPreview && spokenTotal && previewTotal !== null && Math.round(Number(spokenTotal) * 100) !== Math.round(previewTotal * 100) && <p role="status" className="form-message">Your stated total was {invoiceMoney.format(Number(spokenTotal))}. Check it against the calculated total below.</p>}
       {handoff&&<p className="form-message">Dictated request: {handoff}. Review each charge as a separate line.</p>}
-      <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
-        <div className="form-grid"><CustomerEntry loading={customerLoad==='loading'} error={customerLoad==='failed'?'Saved customers could not load.':''} onRetry={()=>void refresh().catch(()=>setError('Could not refresh saved customers.'))} customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setCustomerId(id);setPropertyId('');setServiceAddress('')}} onDraft={setCustomerDraft} showSuggestions={!!finRequest && !!customerDraft.name && !customerId} disabled={busy||!!sourceJob||!!finRequest&&customerLoad!=='ready'}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setDueDate(documentEndDate(e.target.value,'invoice'))}} /></label><PaymentTerms issued={issueDate} value={dueDate} onChange={value=>{dateEdited.current=true;setDueDate(value)}}/><label>Due date<input type="date" required min={issueDate} value={dueDate} onChange={(e) => {dateEdited.current=true;setDueDate(e.target.value)}} /></label><label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={e=>setCustomerReference(e.target.value)} /></label><label>Internal notes<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label></div>
-        {isPrimaryOwner(business)&&<section className="invoice-recurring-option" aria-label="Recurring invoice options"><label className="settings-checkbox"><input type="checkbox" checked={repeatInvoice} onChange={event=>setRepeatInvoice(event.target.checked)} disabled={busy}/>Make this a recurring invoice</label><p className="quiet">{repeatInvoice?'Save this invoice, then choose the repeat schedule. Future invoices stay as drafts for review.':'Create a one-time invoice or repeat it on a schedule.'}</p><button type="button" className="text-button" disabled={busy} onClick={()=>setShowRecurring(true)}>Manage existing schedules</button></section>}
-        {!sourceJob&&<CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/>}
-        {sourceJob&&<p className="quiet">Customer and scope carried over from the job. Review the work, price and tax before saving the invoice draft.</p>}
-        <DocumentLineEditor businessId={business.id} lines={lines} onChange={setLines} newLine={newLine} taxOptions taxDefault={{ rate: documentTax, onChange: setDocumentTax }}/>
-        {isPrimaryOwner(business) && pricingAdjustment>0 && <label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={e=>setAdjustPrices(e.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
-        <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved.</small></div>
-        {error && <p className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>Preview</button><button type="submit" value="draft" className="secondary-button" disabled={busy}>Save Draft</button></div>
+      <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form invoice-essential-form" hidden={creationPreview} data-unsaved={!savedCreation.current&&editedByControls?'true':undefined}>
+        <CustomerEntry compact loading={customerLoad==='loading'} error={customerLoad==='failed'?'Saved customers could not load.':''} onRetry={()=>void refresh().catch(()=>setError('Could not refresh saved customers.'))} customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setEditedByControls(true);setCustomerId(id);setPropertyId('');setServiceAddress('')}} onDraft={setCustomerDraft} showSuggestions={!!finRequest && !!customerDraft.name && !customerId} disabled={busy||!!sourceJob||!!finRequest&&customerLoad!=='ready'}/>
+        {sourceJob&&<p className="invoice-source-note">From {sourceJob.title}. Customer and work are filled in; enter the agreed price if it is not already available.</p>}
+        <InvoiceLineEditor businessId={business.id} lines={lines} onChange={next=>{setEditedByControls(true);setLines(next)}} newLine={()=>({...newLine(),tax_rate:documentTax})}/>
+        <details className="invoice-more-options" open={optionsOpen} onToggle={event=>setOptionsOpen(event.currentTarget.open)}>
+          <summary><span><strong>More options</strong><small>Dates, tax, reference &amp; repeat</small></span></summary>
+          <div className="invoice-options-content">
+            <PaymentTerms customDate issued={issueDate} value={dueDate} onChange={value=>{dateEdited.current=true;setDueDate(value)}}/>
+            <label>Invoice date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={event=>{setIssueDate(event.target.value);if(!dateEdited.current)setDueDate(documentEndDate(event.target.value,'invoice'))}}/></label>
+            <InvoiceTaxOptions lines={lines} onChange={next=>{setEditedByControls(true);setLines(next)}} rate={documentTax} onRate={setDocumentTax}/>
+            <label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={event=>setCustomerReference(event.target.value)}/></label>
+            <label>Internal note <small>Only your business can see this</small><textarea maxLength={4000} value={notes} onChange={event=>setNotes(event.target.value)}/></label>
+            {!sourceJob&&<CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/>}
+            {customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}
+            {isPrimaryOwner(business)&&<section className="invoice-recurring-option" aria-label="Recurring invoice options"><label className="settings-checkbox"><input type="checkbox" checked={repeatInvoice} onChange={event=>setRepeatInvoice(event.target.checked)} disabled={busy}/>Repeat this invoice</label><p className="quiet">{repeatInvoice?'After saving, review and confirm the repeat schedule. Future invoices stay as drafts.':'Future invoices stay as drafts for review.'}</p></section>}
+            {isPrimaryOwner(business)&&pricingAdjustment>0&&<label className="settings-checkbox"><input type="checkbox" checked={adjustPrices} onChange={event=>setAdjustPrices(event.target.checked)}/>Include payment costs in line prices (+{pricingAdjustment}%) for all payment methods</label>}
+          </div>
+        </details>
+        <p className="invoice-defaults-summary">{dueDate===issueDate?'Due on invoice date':`Due ${DateTime.fromISO(dueDate).toFormat('MMM d, yyyy')}`} · {lines.some(line=>Number(line.tax_rate)!==Number(documentTax))?'Item tax rates':Number(documentTax)?`${documentTax}% tax`:'No tax'} · {repeatInvoice?'Repeats after schedule confirmation':'One-time invoice'}{serviceAddress&&` · ${serviceAddress}`}</p>
+        {error&&<p role="alert" className="form-message error-text">{error}</p>}
+        <div className="invoice-create-footer">
+          <div className="invoice-create-total"><span>Total</span><strong>{previewTotal===null?'Check amounts':invoiceMoney.format(previewTotal)}</strong></div>
+          {adjustPrices&&<p className="quiet">Includes the selected {pricingAdjustment}% line-price adjustment.</p>}
+          <button type="submit" className="primary-button" disabled={busy}>Review invoice</button>
+          <button type="submit" value="draft" className="text-button" disabled={busy}>Save draft</button>
+        </div>
       </form>
 
       {editCreationCustomer&&creationContactId&&<CustomerEditDialog businessId={business.id} customerId={creationContactId} contactField={editCreationCustomer==='all'?undefined:editCreationCustomer} onClose={()=>setEditCreationCustomer(null)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',customer:creationCustomer,customerReference,serviceAddress,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
+      {creationPreview&&<CreationPreview simple onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'invoice',number:creationNumber,customer:creationCustomer,customerReference,serviceAddress,issued:issueDate,ending:dueDate,items:pricedLines,...previewAmounts(pricedLines),message:'',paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
+      </div>
     </FormDialog>}
   </div>
 }

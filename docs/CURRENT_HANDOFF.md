@@ -2,6 +2,11 @@
 
 Checked November 13, 2026 UTC.
 
+## Current simplified invoice implementation — development only
+
+- Owner requested implementation of the simpler creator, then replaced Choose delivery with direct Send Finviant Email/SMS actions. The new branch `ux/invoice-simple-creation-20261113` starts from the latest beta source, preserving the Home receipt and newer calendar assessment observations. Customer/work/amount are primary; quantity and advanced details expand only when needed. Saved services/packages, job/approved pricing paths, tax, location, recurring confirmation, canonical PDF, explicit sends and safe retries are retained. See [scope and mockup](INVOICE_SIMPLE_CREATION_2026-11-13.md) and [validation receipt](evidence/2026-11-13-invoice-simple-creation.json).
+- This candidate has not been released to beta. No hosted data, migration, provider activation, customer send or charge occurred. The earlier three-screen creation proposal is superseded by this two-stage implementation. Existing beta releases below remain the last recorded application releases. Full release CI and physical-device/owner/provider acceptance are not established by local synthetic checks.
+
 ## Current verified Home release
 
 - Home — revised Option B is released through PR115, merged as 69445e74360417f40d178a9c220998f94d828be4. All eleven candidate workflows and all 22 full-suite jobs passed at 3d9f3af2b26183c1c2211c8fe8973239b46d9a15; tested and merged trees match. Vercel deployment 8pEQUNZMfHn3mzyZ7Mstfa1GEq48 serves both Finviant domains. Home layout, narrow-phone currency CSS, retained invoice controls, beta backend and private no-store/noindex headers are verified. No hosted data changes, migrations, provider activation, sends or charges. See [release receipt](evidence/2026-11-13-home-beta-release.json).

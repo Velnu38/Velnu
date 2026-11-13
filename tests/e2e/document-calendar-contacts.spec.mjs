@@ -1,3 +1,5 @@
+import {openInvoiceOptions} from './invoice-creation-navigation.mjs'
+import {reviewDocument} from './invoice-creation-navigation.mjs'
 import {openHomePanels} from './navigation.mjs'
 import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
@@ -91,9 +93,9 @@ for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typ
  await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view='+kind+'s');await createWork(page, kind)
  await page.getByRole('button',{name:'Create a new customer',exact:true}).click()
  await page.getByLabel('Customer name',{exact:true}).fill('New Typed Customer')
- await page.getByPlaceholder('Description',{exact:true}).fill('Only this work');await page.getByPlaceholder('Unit price',{exact:true}).fill('250')
- await page.getByRole('button',{name:'Preview',exact:true}).click()
- await expect(page.getByRole('region',{name:kind==='invoice'?'Invoice PDF':'Estimate PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled();await expect.poll(()=>state.documents.length).toBe(1)
+ await page.getByLabel('Line 1 description',{exact:true}).fill('Only this work');await page.getByLabel('Line 1 unit price',{exact:true}).fill('250')
+ await reviewDocument(page)
+ await expect(page.getByRole('region',{name:kind==='invoice'?'Invoice PDF':'Estimate PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true})).toBeEnabled();await expect.poll(()=>state.documents.length).toBe(1)
  const input=state.documents[0].payload;expect(input.new_customer.first_name).toBe('New');expect(input.new_customer.last_name).toBe('Typed Customer');expect(input.payment_links).toEqual([{provider:'stripe',url:'https://buy.stripe.com/owner-link'}]);expect(input.items[0].description).toBe('Only this work')
  expect(state.calls.filter(c=>c.path.endsWith('/customers')&&c.method==='POST')).toHaveLength(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
@@ -297,8 +299,7 @@ for(const width of [1440,390])test(`owner recurring invoice setup and pause rema
  await expect.poll(()=>state.recurringPlans.length).toBe(1)
  await dialog.getByRole('button',{name:'Close',exact:true}).click()
  await page.getByRole('button',{name:'← Invoices',exact:true}).click()
- await page.getByRole('button',{name:'Create invoice',exact:true}).click()
- await page.getByRole('button',{name:'Manage existing schedules',exact:true}).click()
+ await page.goto('/?view=settings&section=documents');await page.getByRole('link',{name:'Manage recurring schedules',exact:true}).click()
  const schedules=page.getByRole('dialog',{name:'Recurring invoices',exact:true})
  await expect(schedules.getByRole('heading',{name:'Monthly service'})).toBeVisible()
  page.once('dialog',d=>d.dismiss());await schedules.getByRole('button',{name:'Pause schedule'}).click();expect(state.recurringPlans[0].status).toBe('active')
@@ -324,11 +325,11 @@ for(const width of [390,1440])test(`invoice creation card hands recurring drafts
  const create=summary.getByRole('button',{name:'Create invoice',exact:true});await expect(create).toBeInViewport()
  const outstanding=await summary.getByRole('button',{name:/Total Outstanding/}).boundingBox(),action=await create.boundingBox();expect(Math.abs(outstanding.y-action.y)).toBeLessThan(2)
  await create.click();const form=page.getByRole('dialog',{name:'Create an invoice',exact:true})
- const repeat=form.getByRole('checkbox',{name:'Make this a recurring invoice',exact:true});await expect(repeat).not.toBeChecked();await repeat.check()
+ await openInvoiceOptions(form);const repeat=form.getByRole('checkbox',{name:'Repeat this invoice',exact:true});await expect(repeat).not.toBeChecked();await repeat.check()
  expect(state.recurringPlans).toHaveLength(0)
  await form.getByRole('button',{name:'Create a new customer',exact:true}).click();await form.getByLabel('Customer name',{exact:true}).fill('Synthetic Customer')
  await form.getByLabel('Line 1 description',{exact:true}).fill('Monthly maintenance');await form.getByLabel('Line 1 unit price',{exact:true}).fill('250')
- await form.getByRole('button',{name:'Save Draft',exact:true}).click()
+ await form.getByRole('button',{name:/^Save draft$/i,exact:true}).click()
  const schedule=page.getByRole('dialog',{name:'Repeat invoice',exact:true});await expect(schedule).toBeVisible()
  expect(state.documents).toHaveLength(1);expect(state.recurringPlans).toHaveLength(0)
  await schedule.getByRole('button',{name:'Create recurring schedule',exact:true}).click();await expect(schedule.getByRole('status')).toContainText('Schedule created')

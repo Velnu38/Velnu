@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Simplified invoice creation and direct sending \u2014 development implementation",
+      "detail": "November 13: owner authorized implementation of the simplified phone invoice flow and direct Finviant Email/SMS buttons on review. The new development branch keeps customer/work/amount primary, quantity and advanced settings optional, one item chooser and one tax section, draft-only save without contact, existing job/approved-pricing paths, canonical PDF/revision and send-retry safeguards. Review itself never sends; available send buttons act directly, with existing SMS consent. New design and actual synthetic phone/desktop captures accompany local validation. This change is not deployed to beta; full candidate release CI, owner/physical-device and provider acceptance remain separate gates. All 51 task records and acceptance criteria are retained. No hosted data edits, migrations, provider activation, actual sends or charges.",
+      "evidence": "docs/INVOICE_SIMPLE_CREATION_2026-11-13.md",
+      "verifiedAt": "2026-11-13"
+    },
+    {
       "title": "Home revised Option B \u2014 beta released",
       "detail": "November 13: PR115 merged as 69445e74360417f40d178a9c220998f94d828be4 after all eleven candidate workflows and all 22 full-suite jobs passed at 3d9f3af2b26183c1c2211c8fe8973239b46d9a15. Tested and merged trees match. Vercel deployment 8pEQUNZMfHn3mzyZ7Mstfa1GEq48 completed successfully. Both Finviant domains serve the approved Today appointment list, Work-style Needs Attention tiles and Financial Performance summary, with Quick Links, Ask Fin, configured company logos and original detailed tools retained. Live Home CSS includes the tested currency-fit correction; invoice creation/recurring controls, beta backend and private no-store/noindex headers remain. No hosted data edits, migrations, provider activation, messages or charges. All 51 task records and criteria remain; no physical-device/owner or provider acceptance is claimed.",
       "evidence": "docs/evidence/2026-11-13-home-beta-release.json",

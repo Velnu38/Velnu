@@ -30,7 +30,7 @@ test('Fin suggests duplicate names with contact details and opens the invoice ed
  await suggestions.getByRole('button').filter({hasText:'other@example.test'}).click()
  const editor=page.getByRole('dialog',{name:'Create an invoice'})
  await expect(page).toHaveURL(/view=invoices/)
- await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('Test Customer')
+ await expect(editor.locator('.invoice-customer-choice')).toContainText('Test Customer')
  await expect(editor.locator('.customer-picker-selected')).toContainText('other@example.test')
  await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('100')
  await expect(request).toHaveCount(0)
