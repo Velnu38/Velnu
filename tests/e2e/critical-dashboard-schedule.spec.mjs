@@ -905,12 +905,10 @@ test('dashboard layout uses the business name, presents calendar and financials 
   await expect(page.getByRole('article',{name:'Jobs overview',exact:true})).toHaveCount(0)
   await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
   await expect(page.getByRole('heading', { name: 'Jobs', exact:true })).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Jobs and schedule views' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: '+ New job', exact: true })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'List', exact: true })).toHaveAttribute('aria-pressed','true')
-  await page.getByRole('button', { name: 'List', exact: true }).click()
-  await page.getByText('Filter jobs · Active work', { exact: true }).click()
-  await expect(page.getByRole('navigation', { name: 'Job timing' })).toContainText('History')
+  await expect(page.getByRole('navigation', { name: 'Job workspace views' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'New job', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Open filters', exact: true }).click()
+  await expect(page.getByRole('navigation', { name: 'Additional job filters' })).toContainText('History')
 })
 
 for (const kind of ['job', 'estimate', 'invoice']) {
