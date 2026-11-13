@@ -1,6 +1,6 @@
 # Finviant Assessment Report
 
-**Reviewed: 2026-11-12 (America/New_York).** Focused work queue; acceptance records are not counts of unbuilt features.
+**Reviewed: 2026-11-13 (America/New_York).** Focused work queue; acceptance records are not counts of unbuilt features.
 
 > Generated from [docs/launch-readiness.json](docs/launch-readiness.json). Completed tasks are removed from this report automatically; evidence/history remains in the registry and Git history. Do not edit this generated file directly.
 
@@ -12,23 +12,19 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 ## Current state and next action
 
-- PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
+- Read-only report checkpoint November 13, 2026: beta branch and both Vercel aliases remain at 46aa23c6af52b65e897ca0abd4af3f4441ccf292 (PR112). Deployment is not a passing release: final candidate full run 43345387938 and deployed-head full run 43345439848 failed, including release validation. Prior passing releases do not certify this newer candidate.
 
-- Previous application release: PR101 merge e0ca5aeaec4cd5ceb80749ecf2a942139fc514d4, READY deployment dpl_BgbMjq6wmhBKh9C4o6QcSiphS7NG on both Finviant domains. Full-width phone shell, compact account disclosure, joined Summary picker/card, prominent next action, compact working-screen identity, large quick buttons and full-screen editors. All seven workflows and 22 complete-suite jobs passed; tested and merged trees match. HTTP 200, private no-store/noindex and beta Supabase xvybcmyoblfgzokaifsx verified.
+- Highest priority: diagnose and repair only the current Jobs/customer-navigation/completion-to-invoice failures, distinguishing stale selectors from actual regressions using observed behavior. No active remediation is established by this report. PR107 Home and PR108 Fin/performance remain draft work; coordinate with their existing chats rather than duplicating them. PR111 and PR113 candidate full runs passed; that alone does not establish deployment or owner acceptance.
 
-- PR92 recovery and its additive lookup/Square Edge rollout are complete. Merchant activation, real-provider and physical-device acceptance remain open; do not repeat integration or rollout.
+- PR97 reminder history is already merged and beta-deployed; the old pause/open-PR97 instructions are historical and superseded. Preserve its migration and receipts without reapplying. AUTO-02 still needs hosted owner/provider/physical-device acceptance. PR103 security, PR104 archive and PR105 abuse/cost work have implementation/release evidence, not full hosted isolation, restore, capacity, provider or operating-owner acceptance.
 
-- PR94 remains merged and deployed; all 50 original readiness records survive. AI-03 contextual navigation is now complete after PR95 targeted and required CI and live verification.
+- PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design.
 
-- Card 04 implementation is merged and deployed: saved effective reminder rules are visible and stale-business responses are guarded. All four required workflows passed, including all 22 complete-suite jobs. AUTO-01 stays open only for separately gated provider/device acceptance. Card 05 / PR97 and subsequent cards remain paused by the owner. No provider activation, real sends or charges.
+- Visual work follows the latest owner-approved mockups, one selected card/screen at a time, preserving functionality. Job Management and the separate Jobs directory must not be conflated. Capture actual signed-in candidate comparisons before further visual deployment, and record exact commit, viewport, CI and beta verification. Required failing checks remain blockers, even if targeted visual checks pass.
 
-- PR101 phone composition is deployed. All 51 task records and acceptance criteria remain unchanged. PR97 and the sequential queue remain paused. Physical-device, provider and broader JOB-01/UX-01 gates remain open; the separate desktop document contrast finding under iPhone WebKit is recorded as an unresolved follow-up.
+- All 51 canonical task records and their criteria/history are retained unchanged. AI-03 remains the sole formally completed record; this is not a measure of total application completion. No other requested change is removed merely for implementation, merge or deployment. Provider setup, real-device acceptance, security, full hosted restore/load, commercial decisions and public launch remain separately gated.
 
-- Guide reconciliation: Cards 01–04 retain released evidence instead of restarting completed implementation. Card 30 explicitly retains phone Job Management mockup fidelity and acceptance; PR101 is deployed, not owner-accepted. PR97 and the subsequent sequential queue remain paused. Owner/provider inputs are separated at the bottom of the guide. No task status, acceptance criterion or evidence history was removed by this report update.
-
-- PR102 phone reference correction is merged as 7d827a9aad76a6a7d1dec3d8fa444606462a53b4, READY deployment dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7 on both Finviant domains. All seven workflows and 22 complete-suite jobs passed at a681df30fed16d372abf669563e8f95aa66b51c5; tested and merged trees match. Five reference comparisons and downstream editors were reviewed before release. Full-width phone layout, shared controls and WebKit selector overflow are corrected. All 51 task records survive; physical-device/owner, provider and broader JOB-01/UX-01 gates remain open. PR97 and sequential queue remain paused.
-
-- PR97 reminder history is merged as 1e6d4a8088cf9df40332bcfbb1e115db4f647026 and released to private beta on both Finviant domains using READY deployment dpl_144zwRNoNEGAqwsTddfDnYvYNSfi. All five workflows passed at d74dab7; tested and merged trees match. Beta migration invoice_reminder_history applied as 20261112214051 from source 20261112004157; do not reapply it. ACL/missing-identity checks and live HTTP 200, no-store/noindex, beta database and history assets verified. AUTO-02 remains open for hosted owner/provider/physical-device acceptance. PR103, PR104 and app-wide layout work remain separate; future releases must preserve this merge. No providers activated, real messages or charges.
+- Hero/introduction claims must be checked against verified enabled beta capabilities and approved plan terms. This checkpoint does not establish new hero verification or a pricing decision. No application code, provider settings, activation, customer sends, purchases or costs changed in this report.
 
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
@@ -38,14 +34,14 @@ This index summarizes scope and blockers; detailed Task and Done when text lives
 
 | Card | Selected work | Boundary / input |
 | --- | --- | --- |
-| 01 | [Retain PR93 release evidence](docs/FOCUSED_TASK_CARDS.md#card-01-retain-pr93-release-evidence) | Released; verify only a new regression or changed release candidate |
+| 01 | [Retain PR93 release evidence](docs/FOCUSED_TASK_CARDS.md#card-01-retain-pr93-release-evidence) | PR93 historical release retained; current PR112 regression/CI triage takes priority |
 | 02 | [Make the report a focused work queue](docs/FOCUSED_TASK_CARDS.md#card-02-make-the-report-a-focused-work-queue) | Published via PR94; maintain source and regenerate, no old snapshot |
 | 03 | [Open the right page from Fin](docs/FOCUSED_TASK_CARDS.md#card-03-open-the-right-page-from-fin) | AI-03 verified and closed; broader voice/provider acceptance remains open |
 | 04 | [Finish effective reminder settings](docs/FOCUSED_TASK_CARDS.md#card-04-finish-effective-reminder-settings) | Implementation deployed; provider/device acceptance remains open |
-| 05 | [Expose accurate reminder history](docs/FOCUSED_TASK_CARDS.md#card-05-expose-accurate-reminder-history) | PR97 open and paused; do not duplicate or resume without owner direction |
+| 05 | [Expose accurate reminder history](docs/FOCUSED_TASK_CARDS.md#card-05-expose-accurate-reminder-history) | PR97 merged and beta-deployed; owner/provider/device acceptance open, do not reimplement |
 | 06 | [Guide rescheduling safely](docs/FOCUSED_TASK_CARDS.md#card-06-guide-rescheduling-safely) | Ready; notification activation separate |
 | 07 | [Replace surcharge entry with a flat fee](docs/FOCUSED_TASK_CARDS.md#card-07-replace-surcharge-entry-with-a-flat-fee) | Legacy-draft policy and compliance gates |
-| 08 | [Add the persistent live-card link](docs/FOCUSED_TASK_CARDS.md#card-08-add-the-persistent-live-card-link) | Implementation plus physical-contact acceptance |
+| 08 | [Add the persistent live-card link](docs/FOCUSED_TASK_CARDS.md#card-08-add-the-persistent-live-card-link) | PR109 release evidence; real contact-import and owner acceptance remain open |
 | 09 | [Close document and finance gaps](docs/FOCUSED_TASK_CARDS.md#card-09-close-document-and-finance-gaps) | Existing shortcuts, designs and ledger retained |
 | 10 | [Certify costs and recurring work](docs/FOCUSED_TASK_CARDS.md#card-10-certify-costs-and-recurring-work) | Existing implementation; remaining exceptions |
 | 11 | [Scope recurring dispatch and autopay](docs/FOCUSED_TASK_CARDS.md#card-11-scope-recurring-dispatch-and-autopay) | Decision first; no charge activation |
@@ -67,7 +63,7 @@ This index summarizes scope and blockers; detailed Task and Done when text lives
 | 27 | [Finish real-device journey acceptance](docs/FOCUSED_TASK_CARDS.md#card-27-finish-real-device-journey-acceptance) | After current UI candidate is releasable |
 | 28 | [Run the explicit release audit](docs/FOCUSED_TASK_CARDS.md#card-28-run-the-explicit-release-audit) | Release audit only after scoped work |
 | 29 | [Keep optional work separate](docs/FOCUSED_TASK_CARDS.md#card-29-keep-optional-work-separate) | Deferred or separately selected; no automatic implementation |
-| 30 | [Verify the phone Job Management design](docs/FOCUSED_TASK_CARDS.md#card-30-verify-the-phone-job-management-design) | PR101 deployed; mockup fidelity and owner/physical-phone acceptance remain open |
+| 30 | [Verify the phone Job Management design](docs/FOCUSED_TASK_CARDS.md#card-30-verify-the-phone-job-management-design) | PR110/112 release evidence; current required CI fails, phone discrepancy and owner acceptance open |
 
 ## Open acceptance records
 

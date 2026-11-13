@@ -1,15 +1,23 @@
 # Focused task cards
 
-Select one card per batch. Read `AGENTS.md`, [current handoff](CURRENT_HANDOFF.md), and only the relevant canonical readiness entries. Check concurrent work before edits. Preserve functionality, private beta, approved decisions and document branding. Worker profiles remain separate from logins. Run targeted tests and report changed, tested, blocked, next. Report queued CI promptly without repeated polling. For a selected, authorized implementation, merge and deploy to private beta after required checks pass. Report blocked checks promptly and continue only independent authorized work. Do not resume the owner-paused queue, activate providers, charge, send, or change production scope through this guide.
+Select one card per batch. Read `AGENTS.md`, [current handoff](CURRENT_HANDOFF.md), and only the relevant canonical readiness entries. Check concurrent work before edits. Preserve functionality, private beta, approved decisions and document branding. Worker profiles remain separate from logins. Run targeted tests and report changed, tested, blocked, next. Report queued CI promptly without repeated polling. For a selected, authorized implementation, merge and deploy to private beta after required checks pass. Report blocked checks promptly and continue only independent authorized work. Select only owner-authorized work and coordinate concurrent chats. This guide does not activate providers, charge, send, or change public-launch scope.
 
 Source: owner-maintained Finviant_Complete_Stage_Prompts.docx, November 11, 2026. Current release facts below supersede its historical checkpoint. Full acceptance and evidence remain in `launch-readiness.json`; cards are scoped execution guidance.
 
 
-Current checkpoint: PR101 is deployed in private beta. The former PR93 failures are resolved; AI-03 is complete. PR97 and the sequential queue remain paused. A deployed visual change is not accepted merely because functional CI passed. Compare the actual signed-in candidate with the approved mockups on every affected screen before any further visual deployment. Retain physical-phone and owner acceptance as separate evidence.
+Current checkpoint (November 13, 2026): Read-only report checkpoint November 13, 2026: beta branch and both Vercel aliases remain at 46aa23c6af52b65e897ca0abd4af3f4441ccf292 (PR112). Deployment is not a passing release: final candidate full run 43345387938 and deployed-head full run 43345439848 failed, including release validation. Prior passing releases do not certify this newer candidate.
+
+Highest priority: diagnose and repair only the current Jobs/customer-navigation/completion-to-invoice failures, distinguishing stale selectors from actual regressions using observed behavior. No active remediation is established by this report. PR107 Home and PR108 Fin/performance remain draft work; coordinate with their existing chats rather than duplicating them. PR111 and PR113 candidate full runs passed; that alone does not establish deployment or owner acceptance.
+
+PR97 reminder history is already merged and beta-deployed; the old pause/open-PR97 instructions are historical and superseded. Preserve its migration and receipts without reapplying. AUTO-02 still needs hosted owner/provider/physical-device acceptance. PR103 security, PR104 archive and PR105 abuse/cost work have implementation/release evidence, not full hosted isolation, restore, capacity, provider or operating-owner acceptance.
+
+PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design.
+
+Visual work follows the latest owner-approved mockups, one selected card/screen at a time, preserving functionality. Job Management and the separate Jobs directory must not be conflated. Capture actual signed-in candidate comparisons before further visual deployment, and record exact commit, viewport, CI and beta verification. Required failing checks remain blockers, even if targeted visual checks pass.
 
 ## Implementation and isolated verification cards
 
-These reusable prompts do not restart paused work. Only the provider-independent part may proceed without the matching owner input; use synthetic fixtures and preserve existing authorized settings.
+These reusable prompts do not automatically restart unselected work. Only the provider-independent part may proceed without the matching owner input; use synthetic fixtures and preserve existing authorized settings.
 
 ## Card 01: Retain PR93 release evidence
 
@@ -53,9 +61,9 @@ AUTO-01 | Implementation deployed; provider/device acceptance open
 
 ## Card 05: Expose accurate reminder history
 
-AUTO-02 | PR97 is open and owner-paused; do not duplicate or resume
+AUTO-02 | PR97 merged and beta-deployed; hosted owner/provider/device acceptance remains open
 
-**Task:** Expose invoice reminder history from the invoice and Send Reminder entry point using existing message records. Show manual/automatic attempts, local time and timezone, permitted recipient, initiator, last reminder and status/failure detail.
+**Task:** Preserve the released PR97 reminder-history implementation and migration; do not rebuild or reapply it. Verify only remaining acceptance or a newly evidenced regression. The implementation exposes invoice reminder history from the invoice and Send Reminder entry point using existing message records. Show manual/automatic attempts, local time and timezone, permitted recipient, initiator, last reminder and status/failure detail.
 
 **Done when:** Queued, sending, accepted, delivered, failed, canceled, suppressed and uncertain remain distinct; native handoff says Draft opened. Refresh/relogin, paging, tenant/role limits, missing reads, duplicate/out-of-order callbacks and paid suppression pass. Opening history never resends. Controlled provider evidence remains open until separately authorized and obtained.
 
@@ -143,9 +151,9 @@ EXPORT-01 | Existing archive; completeness and real download acceptance
 
 ## Card 30: Verify the phone Job Management design
 
-JOB-01, UX-01, JOB-05, DEVICE-01 | PR101 deployed; visual and physical-phone acceptance open
+JOB-01, UX-01, JOB-05, DEVICE-01 | PR110/112 release evidence; current CI failures and phone discrepancy unresolved
 
-**Task:** Preserve all existing functionality and the owner-approved mockup concept. Verify the full-width phone presentation and quick buttons against those mockups across the entry screen, Summary, Work, Billing, Records and each reachable detail/editor. Do not merely shrink the desktop layout, hide required actions, add capabilities, or treat passing functional tests as visual fidelity. Inspect the actual signed-in release and viewport, not an obsolete screenshot or unrelated preview. Reuse the current active work chat; do not start a competing redesign.
+**Task:** First resolve current PR112 required-check failures and establish the phone build being observed; do not presume cache or declare visual acceptance. Keep Job Management distinct from Jobs. Preserve all existing functionality and the owner-approved mockup concept. Verify the full-width phone presentation and quick buttons against those mockups across the entry screen, Summary, Work, Billing, Records and each reachable detail/editor. Do not merely shrink the desktop layout, hide required actions, add capabilities, or treat passing functional tests as visual fidelity. Inspect the actual signed-in release and viewport, not an obsolete screenshot or unrelated preview. Reuse the current active work chat; do not start a competing redesign.
 
 **Done when:** Dated side-by-side evidence shows the selected candidate matches the approved visual hierarchy, proportions, spacing and quick actions at representative phone widths, with no horizontal clipping or inaccessible actions. Existing navigation, permissions, unsaved changes, completion safeguards and all functionality remain. Required functional checks still pass. Record exact tested commit and private-beta deployment. Owner acceptance and physical iPhone/Android testing remain open until obtained. Track the desktop document-creation primary-button contrast finding separately under UX-01; a phone-only exclusion does not fix it.
 
@@ -322,4 +330,5 @@ EXPORT-02, GROW-01/02/03, PORTAL-01, TAP-01, JOB-03, STORE-01 | Deferred or sepa
 **Done when:** The selected recommendation states demand, exact scope, dependencies, licensing/data rights, cost, security and one next decision. Import includes dry-run/duplicate/restore safeguards; new products need demand and delivery/billing acceptance. Field access needs revocable assigned-job-only permissions; native/store work needs device/platform approval. No outreach, purchase, vendor signup, development or sale is implied by this assessment.
 
 **Release scope:** For a selected authorized application change, merge and deploy to private beta after required checks pass. Documentation/verification alone does not authorize an application change. Preserve provider, physical-device and public-launch gates; paused work remains paused.
+
 

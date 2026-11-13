@@ -1,6 +1,24 @@
 # Current repository handoff
 
-Checked November 12, 2026 UTC.
+Checked November 13, 2026 UTC.
+
+## Current read-only assessment checkpoint
+
+- Read-only report checkpoint November 13, 2026: beta branch and both Vercel aliases remain at 46aa23c6af52b65e897ca0abd4af3f4441ccf292 (PR112). Deployment is not a passing release: final candidate full run 43345387938 and deployed-head full run 43345439848 failed, including release validation. Prior passing releases do not certify this newer candidate.
+
+- Highest priority: diagnose and repair only the current Jobs/customer-navigation/completion-to-invoice failures, distinguishing stale selectors from actual regressions using observed behavior. No active remediation is established by this report. PR107 Home and PR108 Fin/performance remain draft work; coordinate with their existing chats rather than duplicating them. PR111 and PR113 candidate full runs passed; that alone does not establish deployment or owner acceptance.
+
+- PR97 reminder history is already merged and beta-deployed; the old pause/open-PR97 instructions are historical and superseded. Preserve its migration and receipts without reapplying. AUTO-02 still needs hosted owner/provider/physical-device acceptance. PR103 security, PR104 archive and PR105 abuse/cost work have implementation/release evidence, not full hosted isolation, restore, capacity, provider or operating-owner acceptance.
+
+- PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design.
+
+- Visual work follows the latest owner-approved mockups, one selected card/screen at a time, preserving functionality. Job Management and the separate Jobs directory must not be conflated. Capture actual signed-in candidate comparisons before further visual deployment, and record exact commit, viewport, CI and beta verification. Required failing checks remain blockers, even if targeted visual checks pass.
+
+- All 51 canonical task records and their criteria/history are retained unchanged. AI-03 remains the sole formally completed record; this is not a measure of total application completion. No other requested change is removed merely for implementation, merge or deployment. Provider setup, real-device acceptance, security, full hosted restore/load, commercial decisions and public launch remain separately gated.
+
+- Hero/introduction claims must be checked against verified enabled beta capabilities and approved plan terms. This checkpoint does not establish new hero verification or a pricing decision. No application code, provider settings, activation, customer sends, purchases or costs changed in this report.
+
+## Historical release handoffs (preserved; later evidence supersedes older state)
 
 - PR93 is merged as 4339c3a559cb14164ea273efa79ee1fba2b1c399. All ten workflows passed at final candidate 4846fc9635f4c090e8f2ec2548980ee70beb543f; tested and merged trees are identical. No further selector or archive-runner repair is pending.
 
@@ -41,3 +59,4 @@ Checked November 12, 2026 UTC.
 - PR109 stable business-card contact links are merged as fe172baeed69da721876a6614560637b2d875b47 and deployed to protected private beta on both Finviant domains using READY deployment dpl_9zDF1a4nxGRiiquuBtpjHe2dLvBJ. All four workflows and 22 complete-suite jobs passed at 452b464; tested/merged trees match. Stable-card migration applied as 20261112233355 from source 20261112231049; do not reapply. Hosted rollback privacy/unpublish/retry/routing/ACL/missing-session checks, anonymous gateway rejection, live assets, beta backend, HTTP 200 and no-store/noindex verified. No cards auto-published; no providers, messages, charges or public launch. Physical contact import, owner-business acceptance, archive metadata catalog and recurrence/progress-billing gaps remain open. PR107/108 and app-wide layout remain separate. See [release receipt](evidence/2026-11-12-business-card-beta-release.json).
 
 - PR110 attached Job Management mockup correction is merged as 7604d8db957b2d2eed937081dc8ce44b68b28143 and released to private beta on both Finviant domains via READY deployment dpl_Fjmeo72sK2LqzGhES9HtyXfJtE83. All five workflows, all 22 complete-suite jobs and 38 focused Chromium/WebKit cases passed at 937a7c4; tested/merged trees match. Summary identity shell, Work/Billing/Records and downstream presentation reviewed against attached Work/Billing/Records/Tasks references. Live Jobs CSS exactly matches reviewed build (SHA256 2f821ed1dce82d5bebad27672015f69173474c3d2e1186a5c96cf6395a1c6495); updated shortcuts/returns, beta backend and private headers verified. No backend, scheduling, calculation, persistence or permission changes. Existing account disclosures, deposits, removal controls and all 51 readiness task records retained. Physical-phone/signed-in owner acceptance remains open. PR107 Home and PR108 Fin/performance stay separate. No providers/messages/charges/migrations/public launch. See [release evidence](evidence/2026-11-12-job-management-attached-layout.json).
+
