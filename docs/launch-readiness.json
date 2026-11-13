@@ -8,15 +8,15 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
-      "title": "Simplified estimate creation and approval controls \u2014 beta candidate",
-      "detail": "November 13: owner approved mockups then requested beta deployment. Single top Create estimate, one Customer approval disclosure preserving separate awaiting/approved filters and noninteractive pending value, essential fields and one item chooser, optional validity/tax/reference/notes/terms, direct reviewed sending, fewer duplicate detail shortcuts. Approval, expiry, canonical PDF, explicit scheduling/conversion, deposits and send safeguards remain. Candidate validation and required release checks gate promotion; no hosted writes, migrations, provider activation or real send/charge. All 51 tasks and criteria retained.",
-      "evidence": "docs/ESTIMATE_SIMPLE_CREATION_2026-11-13.md",
+      "title": "Simplified estimate creation and approval controls \u2014 beta released",
+      "detail": "PR117 merged as cc594261abb9aea23cf02872e8175b2085d55127 after all nine applicable workflows and all 22 full-suite jobs passed at e6ad0dd46749221251f966329e3946556018f297. One transient browser-shard retry is recorded. Both Finviant domains serve the combined approval control, top Create estimate, essential form and direct review actions; retained Home/invoice features, private headers and beta backend are verified. No hosted data edits, migrations, provider activation, real sends or charges. All 51 tasks/criteria are retained; physical-device, owner and live-provider gates remain separate.",
+      "evidence": "docs/evidence/2026-11-13-estimate-simple-beta-release.json",
       "verifiedAt": "2026-11-13"
     },
     {
-      "title": "Simplified invoice creation and direct sending \u2014 beta release candidate",
-      "detail": "November 13: owner authorized implementation of the simplified phone invoice flow and direct Finviant Email/SMS buttons on review. The new development branch keeps customer/work/amount primary, quantity and advanced settings optional, one item chooser and one tax section, draft-only save without contact, existing job/approved-pricing paths, canonical PDF/revision and send-retry safeguards. Review itself never sends; available send buttons act directly, with existing SMS consent. New design and actual synthetic phone/desktop captures accompany local validation. This change is not deployed to beta; full candidate release CI, owner/physical-device and provider acceptance remain separate gates. All 51 task records and acceptance criteria are retained. No hosted data edits, migrations, provider activation, actual sends or charges. Owner subsequently authorized beta deployment. Final candidate CI (including Chromium/WebKit visual checks) and live verification are now required before promotion. Initial release CI exposed send-button contrast/readiness fading in WebKit and two stale advanced-workflow assertions. These are corrected without removing any gate; focused PDF reviews are serialized to reduce contention. See the release-candidate correction receipt.",
-      "evidence": "docs/INVOICE_SIMPLE_CREATION_2026-11-13.md",
+      "title": "Simplified invoice creation and direct sending \u2014 beta released",
+      "detail": "PR116 merged as 277a8bfe295a579ca8f497a45f3efaa1eca6a3cc after all ten workflows and all 22 full-suite jobs passed at cbf9157745be884711153f105764ee717466ea85; tested and merged trees match. Vercel deployment Gxb8fZTNP3DWFi8gptRKRnmk6sJq and both Finviant domains were verified for the essential creator, direct send controls, recurring option and retained Home layout. No hosted data edits, migrations, provider activation, real sends or charges. All 51 task records remain; owner/physical-device and live-provider gates are separate.",
+      "evidence": "docs/evidence/2026-11-13-invoice-simple-beta-release.json",
       "verifiedAt": "2026-11-13"
     },
     {

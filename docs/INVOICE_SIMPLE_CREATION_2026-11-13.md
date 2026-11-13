@@ -1,6 +1,6 @@
 # Simplified invoice creation and direct sending
 
-Implemented in development on `ux/invoice-simple-creation-20261113`, based on beta commit `e6b2476a4a39194a18ec43fa310da408b5947cc5` and retaining the verified Home release receipt. This is a new invoice-creation implementation; it has not been released to beta.
+Implemented in development on `ux/invoice-simple-creation-20261113`, based on beta commit `e6b2476a4a39194a18ec43fa310da408b5947cc5` and retaining the verified Home release receipt. It is now released to Finviant beta through PR116; see the [release receipt](evidence/2026-11-13-invoice-simple-beta-release.json).
 
 The owner approved the simplified creation recommendations, requested implementation and new mockups, then explicitly replaced Choose delivery with direct Finviant Email/SMS actions. Opening Review saves one draft and prepares its canonical PDF; it never sends. Clicking an available Send action sends directly through the existing workflow, without a delivery chooser or another confirmation screen. SMS retains its existing recipient-consent requirement.
 
@@ -26,9 +26,9 @@ Direct Finviant actions appear only for the configured plan/channel and a valid 
 
 ![Direct-send design reference, synthetic example](reference/invoice-simple-direct-send.png)
 
-The design reference uses illustrative terms and provider readiness. Actual rendered captures use synthetic fixtures and are under `tmp/invoice-simple/`, with copies in `/workspace/finviant-setup/invoice-simple-screenshots/`. Viewports cover 320, 390, 430 and 1440 pixels. The validation receipt is [here](evidence/2026-11-13-invoice-simple-creation.json). It distinguishes local implementation, Chromium/DOM checks and still-pending release/physical-device/provider gates.
+The design reference uses illustrative terms and provider readiness. Actual rendered captures use synthetic fixtures and are under `tmp/invoice-simple/`, with copies in `/workspace/finviant-setup/invoice-simple-screenshots/`. Viewports cover 320, 390, 430 and 1440 pixels. The validation receipt is [here](evidence/2026-11-13-invoice-simple-creation.json). It distinguishes local implementation, Chromium/DOM checks and historical release preparation and separate physical-device/provider gates. The final beta release receipt above supersedes the candidate status.
 
-The previous three-screen proposal is superseded by this two-stage Create → Review flow with optional inline settings and direct Send actions. All existing launch records and acceptance criteria remain; implementation is not a beta release or physical-device/live-provider acceptance.
+The previous three-screen proposal is superseded by this two-stage Create → Review flow with optional inline settings and direct Send actions. All existing launch records and acceptance criteria remain; the verified beta release does not establish physical-device/live-provider acceptance.
 
 ## Actual rendered phone screens
 

@@ -1,0 +1,658 @@
+{
+  "date": "2026-11-13",
+  "verifiedAt": "2026-11-13T20:22:58.580857+00:00",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/116",
+  "testedHead": "cbf9157745be884711153f105764ee717466ea85",
+  "mergeCommit": "277a8bfe295a579ca8f497a45f3efaa1eca6a3cc",
+  "testedAndMergedTreesIdentical": true,
+  "requiredWorkflows": [
+    {
+      "name": "Document design checks",
+      "id": 43497787172,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497787172",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Finviant authentication access checks",
+      "id": 43497783521,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497783521",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Finviant assessment maintenance",
+      "id": 43497783731,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497783731",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Predictive customer checks",
+      "id": 43497783614,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497783614",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Home screen checks",
+      "id": 43497783627,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497783627",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Simplified invoice visual review",
+      "id": 43497784017,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497784017",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Focused document mockup review",
+      "id": 43497784003,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497784003",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Pricing tier checks",
+      "id": 43497783671,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497783671",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Complete automated test checks",
+      "id": 43497783811,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497783811",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Voice review delivery checks",
+      "id": 43497783861,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43497783861",
+      "conclusion": "success",
+      "run_attempt": 1
+    }
+  ],
+  "fullSuiteJobs": [
+    {
+      "id": 132135309350,
+      "name": "node-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309695,
+      "name": "DOM checks (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309696,
+      "name": "desktop-and-scheduling / checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309698,
+      "name": "private-beta-email",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309711,
+      "name": "isolated-provider-workload",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309793,
+      "name": "DOM checks (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309811,
+      "name": "migrations / postgres-17",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309820,
+      "name": "iPhone WebKit (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309845,
+      "name": "pure-deno-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309879,
+      "name": "DOM checks (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309883,
+      "name": "iPhone WebKit (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309897,
+      "name": "desktop-and-scheduling / Full browser regression (1/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309912,
+      "name": "desktop-and-scheduling / Full browser regression (5/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309932,
+      "name": "desktop-and-scheduling / Full browser regression (4/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309947,
+      "name": "iPhone WebKit (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309967,
+      "name": "iPhone WebKit (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135309974,
+      "name": "desktop-and-scheduling / Full browser regression (2/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135310080,
+      "name": "native-app-handoffs",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135310115,
+      "name": "desktop-and-scheduling / Full browser regression (3/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135310173,
+      "name": "desktop-and-scheduling / Full browser regression (6/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132135310177,
+      "name": "DOM checks (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132140470184,
+      "name": "Release validation",
+      "conclusion": "success"
+    }
+  ],
+  "requiredJobs": 22,
+  "deployment": "https://vercel.com/mbarone5-1747/finviant-office/Gxb8fZTNP3DWFi8gptRKRnmk6sJq",
+  "deploymentStatus": "success",
+  "liveVerification": [
+    {
+      "origin": "https://finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "assets": [
+        {
+          "path": "/assets/index-CAM-0Rnf.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/react-ByobQcLz.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/App-95pcN16S.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": true,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/supabase-CB7MGzWB.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/DashboardPage-BPRPW83l.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/FinancialPerformance-B4S6z11S.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/DashboardPage-B0S_uzJA.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": true,
+          "logoVisible": true,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/DocumentLineEditor-BzsHFl38.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/ApprovalLinkDialog-BOAUGxkL.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/CustomerEntry-DidcHfOi.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": true,
+          "directSms": true
+        },
+        {
+          "path": "/assets/CustomerEntry-GfKV8LDX.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": true,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/InvoicesPage-W_tlVJ8P.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": true,
+          "recurringCreation": true,
+          "betaBackend": false,
+          "simpleCreator": true,
+          "essentialForm": true,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/InvoicesPage-BUZqJ_gK.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": true,
+          "essentialForm": true,
+          "directEmail": false,
+          "directSms": false
+        }
+      ],
+      "verified": true
+    },
+    {
+      "origin": "https://www.finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "assets": [
+        {
+          "path": "/assets/index-CAM-0Rnf.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/react-ByobQcLz.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/App-95pcN16S.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": true,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/supabase-CB7MGzWB.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/DashboardPage-BPRPW83l.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/FinancialPerformance-B4S6z11S.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/DashboardPage-B0S_uzJA.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": true,
+          "logoVisible": true,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/DocumentLineEditor-BzsHFl38.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/ApprovalLinkDialog-BOAUGxkL.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/CustomerEntry-DidcHfOi.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": true,
+          "directSms": true
+        },
+        {
+          "path": "/assets/CustomerEntry-GfKV8LDX.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": true,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": false,
+          "essentialForm": false,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/InvoicesPage-W_tlVJ8P.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": true,
+          "recurringCreation": true,
+          "betaBackend": false,
+          "simpleCreator": true,
+          "essentialForm": true,
+          "directEmail": false,
+          "directSms": false
+        },
+        {
+          "path": "/assets/InvoicesPage-BUZqJ_gK.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false,
+          "simpleCreator": true,
+          "essentialForm": true,
+          "directEmail": false,
+          "directSms": false
+        }
+      ],
+      "verified": true
+    }
+  ],
+  "limits": "Synthetic automated coverage and live asset/header verification only; owner/physical-device and provider acceptance remain separate. No hosted data edits, migration, provider activation, real send or charge."
+}
