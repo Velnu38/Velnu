@@ -905,7 +905,10 @@ test('dashboard layout uses the business name, presents calendar and financials 
   await expect(page.getByRole('article',{name:'Jobs overview',exact:true})).toHaveCount(0)
   await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
   await expect(page.getByRole('heading', { name: 'Jobs', exact:true })).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Job workspace views' })).toHaveCount(0)
+  const phoneLayout=await page.evaluate(()=>matchMedia('(max-width:900px), (max-width:1100px) and (pointer:coarse)').matches)
+  const jobViews=page.getByRole('navigation', { name: 'Job workspace views' })
+  if(phoneLayout)await expect(jobViews).toHaveCount(0)
+  else {await expect(jobViews).toBeVisible();await expect(jobViews.getByRole('button',{name:'List',exact:true})).toBeVisible();await expect(jobViews.getByRole('button',{name:'Board',exact:true})).toBeVisible()}
   await expect(page.getByRole('button', { name: 'New job', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Open filters', exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Additional job filters' })).toContainText('History')

@@ -37,6 +37,13 @@
     "externalRequirements": [
       "Read access to results-receiver.actions.githubusercontent.com for detailed CI logs (saved in environment draft).",
       "Vercel API credential for authorized beta domain promotion (saved VERCEL_TOKEN requirement; no value supplied)."
-    ]
+    ],
+    "desktopNavigationRepair": {
+      "failure": "The desktop dashboard test incorrectly required the desktop List/Board navigation to be absent, which is only the intended phone layout.",
+      "correction": "Assert hidden navigation on phone and visible List/Board controls on desktop. No application UI change.",
+      "validation": "Serial calendar/browser selection: 34 passed and this single assertion failed; corrected case then passed locally. All four iPhone WebKit shards and all four DOM CI shards passed at 223733e. Desktop shard 2/6 and calendar integration remained blocked on the desktop assertion.",
+      "priorRun": "https://github.com/Velnu38/Velnu/actions/runs/43455059758",
+      "status": "Required CI must be rerun on the corrected head before beta promotion."
+    }
   }
 }
