@@ -55,3 +55,17 @@ test('job overview preserves timezone totals and crew counts beyond its four-car
   await asAnon(db);await assert.rejects(()=>val(db,'select public.get_jobs_overview($1) value',[ids.business]),(e:any)=>e.code==='42501')
  }finally{await db.close()}
 })
+
+test('job directory search includes scoped service address fields',async()=>{
+ const db=await recordFixture();try{
+  await db.exec('reset role')
+  await db.exec(await readFile('supabase/migrations/20261110174500_jobs_directory_pagination.sql','utf8'))
+  await db.exec(await readFile('supabase/migrations/20261113004358_job_directory_location_search.sql','utf8'))
+  await db.query("insert into public.properties(id,business_id,customer_id,label,address_line1,city,state,postal_code) values($1,$2,$3,'Primary','1400 Cedar Lane','Chesapeake','VA','23320')",['47000000-0000-4000-8000-000000000001',ids.business,ids.customer])
+  await db.query("insert into public.jobs(id,business_id,customer_id,property_id,title,status) values($1,$2,$3,$4,'Kitchen repair','lead')",['47000000-0000-4000-8000-000000000002',ids.business,ids.customer,'47000000-0000-4000-8000-000000000001'])
+  await asUser(db)
+  const byCity=await page(db,'all','Chesapeake');assert.equal(byCity.total,1);assert.equal(byCity.items[0].title,'Kitchen repair')
+  const byStreet=await page(db,'all','Cedar Lane');assert.equal(byStreet.total,1)
+  const other=await page(db,'all','Norfolk');assert.equal(other.total,0)
+ }finally{await db.close()}
+})
