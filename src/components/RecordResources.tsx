@@ -2,7 +2,7 @@ import { AttachmentStorageWarning } from './StorageUsage'
 import FormDialog from './FormDialog'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
 import { canAccess } from '../lib/workspaceAccess'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { DateTime } from 'luxon'
 import { canManageFinances, canWrite, type CurrentBusiness } from '../lib/business'
 import { readableError } from '../lib/errors'
@@ -18,7 +18,7 @@ import './record-resources.css'
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const emptyExpense = (zone: string) => ({ date: DateTime.now().setZone(zone).toISODate()!, amount: '', category: 'Materials', description: '' })
 
-export default function RecordResources({ business, target, active = true }: { business: CurrentBusiness; target: RecordTarget; active?: boolean }) {
+export default function RecordResources({ business, target, active = true, photoInputRef }: { business: CurrentBusiness; target: RecordTarget; active?: boolean;photoInputRef?:RefObject<HTMLInputElement|null> }) {
   const finance = canManageFinances(business.role) && canAccess(business,'finances')
   const plan = useTierUsage(business.id)?.plan
   const [receipt, setReceipt] = useState<ReceiptFile | null>(null)
@@ -133,7 +133,7 @@ export default function RecordResources({ business, target, active = true }: { b
       disabled={busy||scanning} onClick={()=>setShowExpense(true)}>Add expense manually</button>}
     {photoWrite && <label className={`secondary-button photo-upload${busy||scanning ? ' disabled' : ''}`}>
       {target.kind === 'job' ? 'Add job photos' : 'Add photos'}
-      <input ref={uploadInput} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy||scanning}
+      <input ref={node=>{uploadInput.current=node;if(photoInputRef)photoInputRef.current=node}} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy||scanning}
         onChange={event => { const files = Array.from(event.target.files || []); if (files.length) void upload(files) }} />
     </label>}
   </div>

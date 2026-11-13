@@ -1,311 +1,129 @@
-import {supabase} from '../lib/supabase'
-import {jobsPreferenceKey,preferredJobsWorkspace,type JobsWorkspace} from '../lib/jobWorkspacePreference'
-import JobManagement from '../components/JobManagement'
-import {RecordTabs} from '../components/RecordDetail'
+import {flushSync} from 'react-dom'
+import {useEffect,useRef,useState,type FormEvent} from 'react'
+import {DateTime} from 'luxon'
+import {canWrite,type CurrentBusiness} from '../lib/business'
+import {canAccess,isPrimaryOwner} from '../lib/workspaceAccess'
 import {confirmNavigation} from '../lib/unsavedChanges'
-import JobsOverview, {type JobsOverviewFilter} from '../components/JobsOverview'
-import '../components/operations.css'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
+import {localInstant} from '../lib/calendarTime'
+import {readableError} from '../lib/errors'
+import {formatServiceAddress} from '../lib/googleMaps'
+import {hasActiveJobAppointment,jobNeedsStatusUpdate,jobStatusLabels,linkedJobInvoiceAction,type JobStatus} from '../lib/jobActions'
+import {createJob,getJobDirectoryPage,updateJobStatus,type JobDirectoryFilter} from '../services/jobs'
+import {getScheduleTeam,type Worker} from '../services/schedulingWorkflow'
+import type {ReminderJob} from '../services/reminders'
+import {useTierUsage} from '../lib/useTierUsage'
+import JobManagementWorkspace from '../components/JobManagementWorkspace'
+import ApprovedJobQueue from '../components/ApprovedJobQueue'
+import JobCustomerPicker from '../components/JobCustomerPicker'
+import QuickCustomer from '../components/scheduling/QuickCustomer'
+import CustomerPropertySelect from '../components/CustomerPropertySelect'
+import FormDialog from '../components/FormDialog'
+import WorkspaceBack from '../components/WorkspaceBack'
+import CustomerRecordScope from '../components/CustomerRecordScope'
 import RefreshButton from '../components/RefreshButton'
 import PlanRestriction from '../components/PlanRestriction'
-import {useBusinessRefresh} from '../lib/useBusinessRefresh'
-import CustomerRecordScope from '../components/CustomerRecordScope'
-import QuickCustomer from '../components/scheduling/QuickCustomer'
-import FormDialog from '../components/FormDialog'
-import JobDetailsDialog from '../components/JobDetailsDialog'
-import WorkspaceBack from '../components/WorkspaceBack'
-import { localInstant } from '../lib/calendarTime'
-import { DateTime } from 'luxon'
-import RecordListControls, { RecordListPagination, useRecordList } from '../components/RecordListControls'
-import { FormEvent, useEffect, useId, useRef, useState } from 'react'
-import { canWrite, type CurrentBusiness } from '../lib/business'
-import { searchJobCustomers } from '../services/customers'
-import { createJob, getJob, getJobsOverview, getJobDirectoryPage, updateJobStatus, type JobWorkflow } from '../services/jobs'
-import CustomerPropertySelect from '../components/CustomerPropertySelect'
-import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
-import { jobGroup, type JobGroup } from '../lib/jobGroups'
-import type { ReminderJob } from '../services/reminders'
-import { readableError } from '../lib/errors'
-import { canAccess,isPrimaryOwner } from '../lib/workspaceAccess'
-import { useTierUsage } from '../lib/useTierUsage'
-import DispatchJobDialog from '../components/scheduling/DispatchJobDialog'
-import { getScheduleTeam, type Worker } from '../services/schedulingWorkflow'
-import { hasActiveJobAppointment, jobInvoiceAction, jobNeedsStatusUpdate, jobStatusConfirmation, jobStatusLabels, jobStatusNotice, linkedJobInvoiceAction, nextJobAction, type JobStatus } from '../lib/jobActions'
-import JobCustomerPicker from '../components/JobCustomerPicker'
+import {RecordListPagination} from '../components/RecordListControls'
+import '../components/operations.css'
+import '../components/job-management.css'
+import '../components/job-phone.css'
 import '../components/jobs-directory.css'
+import '../components/unified-jobs.css'
 
-type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
-type Property = ServiceAddress & { id: string; label: string | null }
-type Job = ReminderJob & JobWorkflow & { status: string; scheduled_start: string | null; scheduled_end?: string | null; completed_at?: string | null; assigned_user_ids?: string[]; customers: Customer | Customer[] | null; properties?: Property[] | null }
-type JobQuickFilter = Exclude<JobsOverviewFilter,'all'|'history'> | null
-
-export default function JobsPage({ business, embedded = false, onCreateReminder }: { business: CurrentBusiness; embedded?: boolean; onCreateReminder?: (job: ReminderJob) => void }) {
-  const customerScope = new URLSearchParams(window.location.search).get('customer') || ''
-  const timezone = business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
-  const Heading = embedded ? 'h2' : 'h1'
-  const [layout,setLayout]=useState<'overview'|'list'|'board'>('list')
-  const initialQuery=new URLSearchParams(window.location.search)
-  const managementKey=['finviant-job-selection',business.id,business.role,business.access_modules?.join(','),customerScope].join(':')
-  const [workspace,setWorkspace]=useState<'jobs'|'management'>(initialQuery.get('workspace')==='management'?'management':'jobs')
-  const [managementOpened,setManagementOpened]=useState(workspace==='management')
-  const [managementComplete,setManagementComplete]=useState(false)
-  const preference=useRef<{key:string|null;touched:boolean}>({key:null,touched:false});
-  useEffect(()=>{let active=true;const search=location.search;preference.current={key:null,touched:false};
-    void supabase.auth.getSession().then(({data})=>{if(!active||!data.session?.user.id)return;const key=jobsPreferenceKey(data.session.user.id,business.id);preference.current.key=key;
-      if(preference.current.touched)return;
-      let saved:string|null=null;try{saved=localStorage.getItem(key)}catch{/* Preferences are optional. */}
-      const next=preferredJobsWorkspace(search,saved);setWorkspace(next);setManagementOpened(next==='management');
-    }).catch(()=>{});return()=>{active=false}
-  },[business.id]);
-  function rememberWorkspace(next:JobsWorkspace){preference.current.touched=true;try{if(preference.current.key)localStorage.setItem(preference.current.key,next)}catch{/* Navigation still works. */}}
-
-  const [selectedJob,setSelectedJob]=useState<string|null>(()=>{if(initialQuery.get('workspace')==='management')return initialQuery.get('job')||initialQuery.get('document');try{return sessionStorage.getItem(managementKey)}catch{return null}})
-  const workspaceId=useId()
-  function selectManagedJob(id:string|null){
-    setSelectedJob(id);setManagementComplete(false)
-    try{if(id)sessionStorage.setItem(managementKey,id);else sessionStorage.removeItem(managementKey)}catch{/* Selection still works when browser storage is unavailable. */}
-    const url=new URL(location.href);url.searchParams.set('workspace','management');url.searchParams.delete('document');url.searchParams.delete('section');url.searchParams.delete('panel');url.searchParams.delete('billing');if(id)url.searchParams.set('job',id);else url.searchParams.delete('job');history.replaceState(history.state,'',url.pathname+url.search)
-  }
-  function changeWorkspace(next:'jobs'|'management'){
-    if(next===workspace||!confirmNavigation())return
-    setWorkspace(next);setManagementOpened(next==='management');rememberWorkspace(next)
-    const url=new URL(location.href);if(next==='management'){url.searchParams.set('workspace','management');if(selectedJob)url.searchParams.set('job',selectedJob)}else{url.searchParams.delete('workspace');url.searchParams.delete('job');url.searchParams.delete('section');url.searchParams.delete('panel');url.searchParams.delete('billing')}history.replaceState(history.state,'',url.pathname+url.search)
-  }
-  function openManagement(id:string,complete=false){if(!confirmNavigation())return;selectManagedJob(id);setManagementComplete(complete);setWorkspace('management');setManagementOpened(true);rememberWorkspace('management')}
-  const [detailsJob,setDetailsJob]=useState<{id:string;initialPhotos?:boolean;initialSchedule?:boolean;initialPlan?:boolean}|null>(null)
-  const [group, setGroup] = useState<JobGroup | 'all'>('all')
-  const [quickFilter, setQuickFilter] = useState<JobQuickFilter>(customerScope ? null : 'active')
-  const [overviewRevision,setOverviewRevision]=useState(0)
-  const [clock,setClock]=useState(Date.now())
-  useEffect(()=>{const timer=window.setInterval(()=>setClock(Date.now()),60000);return()=>window.clearInterval(timer)},[])
-  const [loading, setLoading] = useState(true)
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [directory,setDirectory]=useState<Awaited<ReturnType<typeof getJobDirectoryPage>>|null>(null)
-  const [directorySearch,setDirectorySearch]=useState(''),[directoryPage,setDirectoryPage]=useState(0)
-  const [directoryQuery,setDirectoryQuery]=useState('')
-  const [filtersOpen,setFiltersOpen]=useState(false)
-  useEffect(()=>{const timer=window.setTimeout(()=>setDirectoryQuery(directorySearch),200);return()=>window.clearTimeout(timer)},[directorySearch])
-  const accessKey=[business.id,business.role,business.access_modules?.join(',')].join(':')
-  const useDirectory=workspace==='jobs'&&layout!=='overview'
-  const useOverview=workspace==='jobs'&&layout==='overview'
-  const [overviewData,setOverviewData]=useState<Awaited<ReturnType<typeof getJobsOverview>>|null>(null)
-  const [showForm, setShowForm] = useState(()=>new URLSearchParams(window.location.search).get('new')==='1'&&canWrite(business.role))
-  useEffect(()=>{const url=new URL(location.href);if(url.searchParams.has('new')){url.searchParams.delete('new');url.searchParams.delete('day');url.searchParams.delete('schedule');history.replaceState(history.state,'',url.pathname+url.search)}},[])
-  const [noAddress,setNoAddress]=useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [newCrew,setNewCrew]=useState<string[]>([]),[newDuration,setNewDuration]=useState(120)
-  const [notice,setNotice]=useState(''),[dispatch,setDispatch]=useState<Job|null>(null),[team,setTeam]=useState<Worker[]>([]),[workerFilter,setWorkerFilter]=useState('all')
-  const usage = useTierUsage(business.id)
-  const teamScheduling = usage?.plan === 'pro' || usage?.plan === 'basic'
-  const bookingLimit=usage?.plan==='free'&&usage.jobs_limit!==null&&usage.jobs_used>=usage.jobs_limit
-  const assignedWorkers = teamScheduling ? newCrew : team.filter(worker => worker.is_you).map(worker => worker.id)
-  const canDispatch=['owner','admin','office'].includes(business.role)&&canAccess(business,'calendar')&&canAccess(business,'jobs')
-  useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);setNewCrew(rows.filter(w=>w.is_you&&w.active!==false).map(w=>w.id))}}).catch(()=>{});return()=>{active=false}},[business.id])
-  const query = new URLSearchParams(window.location.search)
-  const [requireAppointment,setRequireAppointment]=useState(()=>canDispatch&&query.get('schedule')==='1')
-  const jobFormLabel = requireAppointment ? 'Add a job to the calendar' : 'Create a job'
-  function closeJobForm() { setShowForm(false); setRequireAppointment(false) }
-  const requestedJob = useRef(query.get('view') === 'work' && query.get('workspace')!=='management' ? query.get('document') : null)
-  const requestedSchedule = useRef(query.get('schedule') === '1')
-  const pendingSave = useRef<{ fingerprint: string; id: string } | null>(null)
-  const saving = useRef(false)
-  const mounted = useRef(false)
-  const requestId = useRef(0)
-  const [form, setForm] = useState(() => {
-    const day = query.get('day')
-    return { customer_id: customerScope, property_id: '', title: '', description: '', scheduled_end: '',
-      scheduled_start: canDispatch && day && /^\d{4}-\d{2}-\d{2}$/.test(day) && DateTime.fromISO(day).isValid ? day + 'T09:00' : '' }
-  })
-  const [invoiceAction, setInvoiceAction] = useState<ReturnType<typeof jobInvoiceAction>>(null)
-  function openNewJob() {
-    if (customerScope && customers.some(customer => customer.id === customerScope)) {
-      setForm(current => current.customer_id ? current : { ...current, customer_id: customerScope })
-    }
-    setShowForm(true)
-  }
-
-  async function refresh(background=false,_directoryOnly=false) {
-    const request = ++requestId.current
-    if(!background)setLoading(true)
-    try {
-    const [jobResult, customerRows, linkedJob] = await Promise.all([useDirectory?getJobDirectoryPage(business.id,{customerId:customerScope,filter:quickFilter||group,workerId:teamScheduling&&workerFilter!=='all'?workerFilter:undefined,search:directoryQuery,page:directoryPage}):useOverview?getJobsOverview(business.id,customerScope,teamScheduling&&workerFilter!=='all'?workerFilter:undefined):Promise.resolve(null), customerScope?searchJobCustomers(business.id,'',customerScope).then(d=>d.selected?[d.selected]:[]):Promise.resolve([]), requestedJob.current ? getJob(business.id, requestedJob.current) : Promise.resolve(null)])
-    if (!mounted.current || request !== requestId.current) return
-    if (linkedJob) {
-      setDetailsJob({id:linkedJob.id,initialPhotos:query.get('tab')==='photos-expenses',initialSchedule:requestedSchedule.current})
-      if (requestedSchedule.current) { const url = new URL(location.href); url.searchParams.delete('schedule'); history.replaceState(history.state, '', url.pathname + url.search + url.hash); requestedSchedule.current = false }
-      setGroup('all'); setQuickFilter(null); requestedJob.current = null
-    }
-    if(useDirectory){const page=jobResult as Awaited<ReturnType<typeof getJobDirectoryPage>>;setDirectory(page);setJobs(page.items as Job[])}else if(useOverview){const summary=jobResult as Awaited<ReturnType<typeof getJobsOverview>>;setOverviewData(summary);setJobs([...new Map([...summary.focus,...summary.agenda].map(j=>[j.id,j])).values()] as Job[])}else setJobs([])
-    setOverviewRevision(v=>v+1)
-    setCustomers(customerRows as Customer[])
-    setError('')
-    } finally { if (mounted.current && request === requestId.current) setLoading(false) }
-  }
-
-  const overviewMinute=useRef(Math.floor(clock/60000))
-  useEffect(()=>{const minute=Math.floor(clock/60000);if(minute===overviewMinute.current)return;overviewMinute.current=minute;if(useOverview)void refresh(true,true).catch(err=>setError(readableError(err,'Unable to refresh the job overview.')))},[Math.floor(clock/60000)])
-
-  useBusinessRefresh(business.id,()=>refresh(true).catch(err=>setError(readableError(err,'Unable to refresh jobs.'))))
-
-  useEffect(() => {
-    mounted.current = true
-    void refresh(false,true).catch(err => { if (mounted.current) setError(readableError(err, 'Unable to load jobs')) })
-    return () => { mounted.current = false; requestId.current++ }
-  }, [accessKey,customerScope,useDirectory,useOverview,useDirectory?quickFilter:null,useDirectory?group:null,workspace==='jobs'?workerFilter:null,workspace==='jobs'?teamScheduling:null,useDirectory?directoryQuery:null,useDirectory?directoryPage:null])
-
-  async function submit(event: FormEvent) {
-    event.preventDefault()
-    if (saving.current) return
-    saving.current = true
-    const fingerprint = JSON.stringify({form,requireAppointment,workers:requireAppointment?undefined:assignedWorkers,duration:requireAppointment?undefined:newDuration})
-    if (!pendingSave.current || pendingSave.current.fingerprint !== fingerprint) pendingSave.current = { fingerprint, id: crypto.randomUUID() }
-    setBusy(true)
-    setError('')
-    try {
-      const start = form.scheduled_start ? localInstant(form.scheduled_start, timezone) : undefined
-      const end = requireAppointment && form.scheduled_end ? localInstant(form.scheduled_end, timezone) : undefined
-      if (requireAppointment && !start) throw new Error('Choose a start time for this appointment.')
-      if (start && end && Date.parse(end) <= Date.parse(start)) throw new Error('End time must be after the start time')
-      await createJob(business.id, {
-        request_id: pendingSave.current.id,
-        customer_id: form.customer_id,
-        property_id: form.property_id || undefined,
-        title: form.title,
-        description: form.description,
-        scheduled_start: start,
-        ...(requireAppointment?{scheduled_end:end}:start&&canDispatch?{
-          assigned_user_ids:assignedWorkers,scheduled_end:DateTime.fromISO(start).plus({minutes:newDuration}).toISO()!
-        }:{}),
-      })
-      pendingSave.current = null
-      setInvoiceAction(null);setNotice(requireAppointment ? 'Appointment saved.' : 'Job saved.')
-      setGroup('all'); setQuickFilter('active'); setWorkerFilter('all'); recordList.setSearch('')
-      setForm({ customer_id: '', property_id: '', title: '', description: '', scheduled_start: '', scheduled_end: '' })
-      closeJobForm()
-      await refresh()
-    } catch (err) {
-      setError(readableError(err, 'Unable to create job'))
-    } finally {
-      saving.current = false
-      setBusy(false)
-    }
-  }
-
-  async function changeStatus(jobId: string, status: JobStatus) {
-    if(saving.current)return
-    const confirmation = jobStatusConfirmation(status)
-    if(confirmation&&!window.confirm(confirmation))return
-    saving.current=true;setBusy(true);setError('');setNotice('');setInvoiceAction(null)
-    try { const result=await updateJobStatus(jobId, status); setNotice(jobStatusNotice(status,result)); setInvoiceAction(jobInvoiceAction(result)); await refresh().catch(()=>setError('The job status was saved, but the list could not refresh. Select Refresh to load the updated jobs.')) }
-    catch (err) { setError(err instanceof Error ? err.message : 'Unable to update the job') }
-    finally{saving.current=false;setBusy(false)}
-  }
-
-  const filteredJobs = jobs.filter(job => !teamScheduling || workerFilter === 'all' || job.assigned_user_ids?.includes(workerFilter))
-  const grouped: Record<JobGroup | 'all', Job[]> = { all: [], current: [], upcoming: [], history: [] }
-  const now = new Date(clock)
-  for (const job of filteredJobs) { grouped[jobGroup({...job,scheduled_start:hasActiveJobAppointment(job)?job.active_appointment!.starts_at:null}, now, timezone)].push(job); grouped.all.push(job) }
-  const todayDate = DateTime.fromJSDate(now,{zone:timezone}).toISODate()
-  const todayJobs = filteredJobs.filter(job => hasActiveJobAppointment(job) && DateTime.fromISO(job.active_appointment!.starts_at).setZone(timezone).toISODate() === todayDate && !['completed','canceled'].includes(job.status))
-  const activeJobs = filteredJobs.filter(job => ['lead','scheduled','in_progress'].includes(job.status))
-    .sort((a,b) => Number(jobNeedsStatusUpdate(b,now,timezone)) - Number(jobNeedsStatusUpdate(a,now,timezone)))
-  const unscheduledJobs = filteredJobs.filter(job => ['lead','scheduled'].includes(job.status) && !hasActiveJobAppointment(job))
-  const inProgressJobs=filteredJobs.filter(j=>j.status==='in_progress')
-  const billingJobs=canAccess(business,'billing')?filteredJobs.filter(j=>j.status==='completed'&&(!j.invoice||['draft','void'].includes(j.invoice.status))):[]
-  const attentionJobs=activeJobs.filter(j=>jobNeedsStatusUpdate(j,now,timezone))
-  const unassignedJobs=activeJobs.filter(j=>!j.assigned_user_ids?.length)
-  const scheduledJobs=activeJobs.filter(j=>j.status!=='in_progress'&&hasActiveJobAppointment(j))
-  const completedJobs=filteredJobs.filter(j=>j.status==='completed')
-  const legacySelectedJobs = quickFilter === 'today' ? todayJobs
-    : quickFilter === 'active' ? activeJobs
-      : quickFilter === 'unscheduled' ? unscheduledJobs
-      : quickFilter === 'in_progress' ? inProgressJobs
-      : quickFilter === 'billing' ? billingJobs
-      : quickFilter === 'attention' ? attentionJobs
-      : quickFilter === 'unassigned' ? unassignedJobs
-      : quickFilter === 'scheduled' ? scheduledJobs
-      : quickFilter === 'completed' ? completedJobs
-        : grouped[group]
-  const selectedJobs=useDirectory?jobs:legacySelectedJobs
-  const localList = useRecordList(legacySelectedJobs, row => [row.title, row.status, jobStatusLabels[row.status as JobStatus], ...(Array.isArray(row.customers) ? row.customers : row.customers ? [row.customers] : []).map(c => [c.first_name,c.last_name,c.company].join(' '))].join(' '))
-
-  const recordList={...localList,...(useDirectory?{visible:jobs,search:directorySearch,page:directory?.page??0,pages:Math.max(1,Math.ceil((directory?.total??0)/25)),total:directory?.total??0}:{}),
-    setSearch:(value:string)=>{setDirectorySearch(value.slice(0,200));setDirectoryPage(0);localList.setSearch(value.slice(0,200))},
-    setPage:(value:Parameters<typeof localList.setPage>[0])=>{setDirectoryPage(value);localList.setPage(value)}}
-
-  return (
-    <div className={"page-stack workspace-module jobs-module"+(workspace==='management'?' phone-job-page':'')}><WorkspaceBack />
-      <div className="page-heading split-heading module-page-heading">
-        <div><p className="eyebrow">Jobs</p><Heading>{workspace==='management'?'Job Management':'Jobs'}</Heading><p className="module-page-intro">{workspace==='management'?'Approved work. Organized execution.':'Find and track jobs across your business.'}</p></div>
-        <div className="work-heading-actions"><RefreshButton aria-label="Refresh" busy={loading} onClick={() => void refresh().catch(err => setError(readableError(err, 'Unable to load jobs')))}/>{canWrite(business.role)&&<button type="button" className="primary-button compact" onClick={openNewJob}><span aria-hidden="true">＋</span> New job</button>}</div>
-      </div>
-      {error && !showForm && <p className="form-message error-text" role="alert">{error}</p>}
-      <CustomerRecordScope customerId={customerScope} customers={customers} view="work"/>
-      <div className="jobs-workspace-tabs"><RecordTabs label="Jobs workspace" tabs={[{id:workspaceId+'-jobs',label:'Jobs'},{id:workspaceId+'-management',label:'Job Management'}]} active={workspaceId+'-'+workspace} onChange={id=>changeWorkspace(id===workspaceId+'-management'?'management':'jobs')}/></div>
-      <div role="tabpanel" id={workspaceId+'-management-panel'} aria-labelledby={workspaceId+'-management-tab'} hidden={workspace!=='management'}>{managementOpened&&<JobManagement key={managementKey} business={business} team={team} customerScope={customerScope} selectedJobId={selectedJob} onSelect={selectManagedJob} initialComplete={managementComplete} revision={overviewRevision} onUpdated={()=>void refresh(true,true).catch(err=>setError(readableError(err,'Unable to refresh jobs')))}/>}</div>
-      <div role="tabpanel" id={workspaceId+'-jobs-panel'} aria-labelledby={workspaceId+'-jobs-tab'} hidden={workspace!=='jobs'}>
-      <nav className="jobs-hub-navigation" aria-label="Job workspace views"><div className="view-switch" role="group" aria-label="Job view">{(['list','board'] as const).map(view=><button type="button" key={view} aria-pressed={layout===view} onClick={()=>setLayout(view)}>{view==='list'?'List':'Board'}</button>)}</div><span>Find and track your work</span></nav>
-      {notice&&<p role="status" className="guided-success">{notice} {invoiceAction&&canAccess(business,"billing")&&<a href={invoiceAction.href}>{invoiceAction.label}</a>}</p>}
-      {layout==='overview'&&(loading?<p role="status">Loading job dashboard…</p>:error?<p>Select Refresh to load the job dashboard.</p>:overviewData?<JobsOverview business={business} data={overviewData} team={team} now={now} revision={overviewRevision} canCreate={canWrite(business.role)&&canAccess(business,'jobs')} onCreate={openNewJob} onOpen={(id,initialPlan)=>setDetailsJob({id,initialPlan})} onFilter={filter=>{setLayout('list');setWorkerFilter('all');recordList.setSearch('');recordList.setPage(0);if(filter==='all'||filter==='history'){setQuickFilter(null);setGroup(filter)}else{setQuickFilter(filter);setGroup('all')}}}/>:<p role="status">Loading job dashboard…</p>)}
-      {layout!=='overview'&&<>
-      <nav className="jobs-status-strip" aria-label="Filter jobs by status">{([
-        {id:'active',label:'Active'},
-        {id:'unscheduled',label:'Needs scheduling'},
-        {id:'in_progress',label:'In progress'},
-        {id:'completed',label:'Completed'},
-      ] as const).map(item=><button type="button" key={item.id} aria-pressed={quickFilter===item.id} onClick={()=>{setQuickFilter(item.id);setGroup('all');recordList.setPage(0)}}><span>{item.label}</span><strong>{loading?'—':directory?.counts[item.id]??0}</strong></button>)}</nav>
-      {(useDirectory||(!loading&&!error))&&<div className="jobs-search-filter-row"><RecordListControls label="jobs" list={recordList} showPagination={false} placeholder="Search jobs, customers, locations" className="jobs-directory-search"/><button type="button" className={'jobs-filter-toggle'+(filtersOpen?' is-active':'')} aria-label={filtersOpen?'Close filters':'Open filters'} aria-expanded={filtersOpen} aria-controls="jobs-filter-panel" onClick={()=>setFiltersOpen(value=>!value)}><span aria-hidden="true">▽</span></button></div>}
-      <details id="jobs-filter-panel" className="jobs-filter-panel" open={filtersOpen} onToggle={event=>setFiltersOpen(event.currentTarget.open)}><summary aria-label="Filters"><span>Filters</span></summary>
-      <div className="jobs-alternate-view"><span>View</span><div role="group" aria-label="Job view">{(['list','board'] as const).map(view=><button type="button" key={view} aria-pressed={layout===view} onClick={()=>setLayout(view)}>{view==='list'?'List':'Board'}</button>)}</div></div>
-      <nav className="work-filters module-job-filters" aria-label="Additional job filters">{([{id:'today',label:'Today',count:todayJobs.length},{id:'all',label:'All jobs',count:grouped.all.length},{id:'upcoming',label:'Upcoming',count:grouped.upcoming.length},{id:'history',label:'History',count:grouped.history.length}] as const).map(item=><button type="button" key={item.id} aria-pressed={quickFilter===item.id||quickFilter===null&&group===item.id} onClick={()=>{if(item.id==='all'||item.id==='upcoming'||item.id==='history'){setQuickFilter(null);setGroup(item.id)}else{setQuickFilter(item.id);setGroup('all')}recordList.setPage(0)}}>{item.label}<span>{loading?'—':useDirectory?(directory?.counts[item.id]??0):item.count}</span></button>)}</nav>
-      {teamScheduling&&team.length>0&&<label className="worker-select">Assigned team member<select value={workerFilter} onChange={e=>{setWorkerFilter(e.target.value);recordList.setPage(0)}}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.is_you?'My jobs · ':''}{w.label}</option>)}</select></label>}
-      <p className="work-group-description">Filter by date or assigned team member. Completed and canceled jobs remain in History.</p></details>
-      </>}
-      {layout==='board'&&!loading&&!error&&<section className="job-board" aria-label="Job progress board">{[{id:'lead',label:'Needs scheduling'},{id:'scheduled',label:'Scheduled'},{id:'in_progress',label:'In progress'},{id:'finished',label:'Finished'}].filter(stage=>stage.id!=='finished'||selectedJobs.some(j=>['completed','canceled'].includes(j.status))).map(stage=>{const column=recordList.visible.filter(j=>stage.id===(['completed','canceled'].includes(j.status)?'finished':j.status==='in_progress'?'in_progress':hasActiveJobAppointment(j)?'scheduled':'lead'));return <section key={stage.id} className="job-board-column"><h3>{stage.label}<span>{column.length}</span></h3>{column.map(j=>{const c=Array.isArray(j.customers)?j.customers[0]:j.customers;return <article className="job-board-card" key={j.id}><strong>{j.title}</strong><span>{c?[c.first_name,c.last_name].filter(Boolean).join(' ')||c.company:'Customer'}</span>{j.properties?.[0]&&<small>{formatServiceAddress(j.properties[0])}</small>}{hasActiveJobAppointment(j)&&<small>{DateTime.fromISO(j.active_appointment!.starts_at).setZone(timezone).toFormat('MMM d · h:mm a')}</small>}<div className="jm-inline-actions"><button type="button" className="primary-button compact" onClick={()=>['completed','canceled'].includes(j.status)?setDetailsJob({id:j.id}):openManagement(j.id)}>{['completed','canceled'].includes(j.status)?'View job':'Manage job'}</button></div></article>})}{!column.length&&<p className="quiet">No jobs on this page.</p>}</section>})}</section>}
-      {layout==='board'&&loading&&<p role="status">Loading job board…</p>}
-      {layout==='list'&&<section className="module-record-list jobs-record-list" aria-label={`${quickFilter || group} jobs`} aria-busy={loading}>
-        {loading ? <p className="work-list-message" role="status">Loading jobs…</p> : error ? <p className="work-list-message">Select Refresh to try again.</p> : selectedJobs.length === 0 ? <div className="empty-state"><div className="empty-icon">J</div><h3>{quickFilter === 'today' ? 'No jobs scheduled today' : quickFilter === 'active' ? 'No active jobs' : quickFilter === 'unscheduled' ? 'Nothing needs scheduling' : quickFilter === 'completed' ? 'No completed jobs' : group === 'all' ? 'No jobs yet' : group === 'history' ? 'No past jobs' : quickFilter ? 'No jobs in this view' : `No ${group} jobs`}</h3><p>{quickFilter === 'today' ? 'Appointments scheduled for today will appear here.' : quickFilter === 'active' ? 'Current and upcoming jobs will appear here.' : quickFilter === 'unscheduled' ? 'Jobs without an appointment will appear here.' : group === 'upcoming' ? 'Future scheduled work will appear here.' : group === 'history' ? 'Completed and canceled jobs will appear here.' : 'Choose another filter or create a job.'}</p></div> : recordList.visible.map((job) => {
-          const customer = Array.isArray(job.customers) ? job.customers[0] : job.customers
-          const customerName = customer ? ([customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.company || 'Customer') : 'Customer'
-          const crew = team.filter(worker => job.assigned_user_ids?.includes(worker.id)).map(worker => worker.label)
-          const booked = hasActiveJobAppointment(job)
-          const needsUpdate = jobNeedsStatusUpdate(job,now,timezone)
-          return <article className="module-job-card jobs-directory-card" key={job.id}>
-            <div className="jobs-directory-copy">
-              <strong className="job-card-title">{job.title}</strong>
-              <span className="jobs-directory-customer">{customerName}</span>
-              {job.properties?.[0]&&<span className="jobs-directory-location">{formatServiceAddress(job.properties[0])}</span>}
-              <div className="jobs-directory-meta"><span className={`module-record-status ${job.status==='completed'?'is-positive':job.status==='lead'?'is-pending':''}`}>{jobStatusLabels[job.status as JobStatus]||job.status.replaceAll('_',' ')}</span><span className="jobs-directory-visit">{job.status==='completed'&&job.completed_at?DateTime.fromISO(job.completed_at).setZone(timezone).toFormat('MMM d, yyyy'):booked&&job.active_appointment?`Next visit · ${DateTime.fromISO(job.active_appointment.starts_at).setZone(timezone).toFormat('MMM d · h:mm a')}`:'No visit scheduled'}</span></div>
-              {(teamScheduling||crew.length>0)&&<small className="module-job-crew">{crew.length?`Crew · ${crew.join(', ')}`:'Crew not assigned'}</small>}
-            </div>
-            <div className="jobs-directory-actions">
-              {needsUpdate&&<span className="module-record-status is-overdue">Needs attention · Confirm past appointment</span>}
-              <button type="button" className="primary-button compact" onClick={()=>job.status==='completed'?setDetailsJob({id:job.id}):openManagement(job.id)}>{job.status==='completed'?'View job':'Manage job'} <span aria-hidden="true">→</span></button>
-            </div>
-          </article>
-        })}
-      </section>}
-      {layout!=='overview' && !loading && !error && <RecordListPagination label="jobs" list={recordList} className="jobs-bottom-pagination" />}
-      </div>
-      {detailsJob&&<JobDetailsDialog key={detailsJob.id} business={business} jobId={detailsJob.id} initialPhotos={detailsJob.initialPhotos} initialSchedule={detailsJob.initialSchedule} initialPlan={detailsJob.initialPlan} onCreateReminder={onCreateReminder} onUpdated={()=>void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))} onClose={()=>{setDetailsJob(null);void refresh().catch(err=>setError(readableError(err,'Unable to refresh jobs')))}}/>}
-      {dispatch&&<DispatchJobDialog business={business} job={dispatch} needsAppointmentRepair={!hasActiveJobAppointment(dispatch)} onClose={()=>setDispatch(null)} onSaved={()=>{setInvoiceAction(null);setNotice('Appointment saved. Confirm the time with your customer.');void refresh().catch(()=>setError('The schedule was saved, but the list could not refresh. Select Refresh to load the updated jobs.'))}}/>}
-      {showForm && <FormDialog label={jobFormLabel} busy={busy} onClose={closeJobForm}>
-        <div className="modal-head"><div><p className="eyebrow">New job</p><h2>{jobFormLabel}</h2></div><button className="icon-button" onClick={closeJobForm} aria-label="Close" type="button">×</button></div>
-        <form className="form-grid" onSubmit={submit}>
-          <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace water heater" required /></label>
-          <JobCustomerPicker key={accessKey} businessId={business.id} seed={customers.find(c=>c.id===form.customer_id)} value={form.customer_id} disabled={busy} onChange={customer_id => setForm(prev => ({ ...prev, customer_id, property_id: '' }))} />
-          <QuickCustomer businessId={business.id} onCreated={customer=>{setCustomers(value=>[...value,customer]);setForm(value=>({...value,customer_id:customer.id,property_id:''}))}}/>
-          <CustomerPropertySelect selectSingle businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
-          <label className="full jobs-no-address">{!requireAppointment&&!form.property_id&&<span><input type="checkbox" checked={noAddress} onChange={e=>setNoAddress(e.target.checked)}/> Continue with no service address (for remote work or an address to confirm)</span>}</label>
-          <label className="full">Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-          {bookingLimit&&<PlanRestriction plan="free" required="basic" feature="new job bookings" limit canUpgrade={isPrimaryOwner(business)}/>}
-          <label className="full">{requireAppointment?'Starts':'Schedule ('+timezone+')'}<input type="datetime-local" required={requireAppointment} disabled={!canDispatch||bookingLimit} value={form.scheduled_start} onChange={(e) => setForm({ ...form, scheduled_start: e.target.value })} /></label>
-          {requireAppointment&&<label className="full">Ends<input type="datetime-local" value={form.scheduled_end} disabled={bookingLimit} onChange={event=>setForm({...form,scheduled_end:event.target.value})}/></label>}
-          {!requireAppointment&&form.scheduled_start&&canDispatch&&<><label>Job length<select value={newDuration} onChange={e=>setNewDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n<60?`${n} minutes`:`${n/60} hours`}</option>)}</select></label>{teamScheduling && <fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.filter(w=>w.active!==false).map(w=><label key={w.id}><input type="checkbox" checked={newCrew.includes(w.id)} onChange={e=>setNewCrew(value=>e.target.checked?[...value,w.id]:value.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}</>}{error && <p className="form-message error-text full">{error}</p>}
-          <div className="modal-actions full"><button type="button" className="secondary-button" onClick={closeJobForm}>Cancel</button><button className="primary-button" disabled={busy||bookingLimit&&(requireAppointment||!!form.scheduled_start)||!requireAppointment&&!!form.scheduled_start&&(!form.property_id&&!noAddress||!assignedWorkers.length)}>{busy ? 'Saving…' : requireAppointment ? 'Schedule job' : 'Save job'}</button></div>
-        </form>
-      </FormDialog>}
-    </div>
-  )
+type Job=Awaited<ReturnType<typeof getJobDirectoryPage>>['items'][number]
+const views:{id:JobDirectoryFilter|'approved';label:string}[]=[{id:'active',label:'Active jobs'},{id:'all',label:'All jobs'},{id:'today',label:'Today'},{id:'upcoming',label:'Upcoming'},{id:'unscheduled',label:'Needs scheduling'},{id:'in_progress',label:'In progress'},{id:'attention',label:'Needs attention'},{id:'unassigned',label:'Crew not assigned'},{id:'scheduled',label:'Scheduled'},{id:'billing',label:'Ready to invoice'},{id:'approved',label:'Approved work'},{id:'history',label:'History'},{id:'completed',label:'Completed'}]
+const sections=['tasks','schedule','materials','photos','changes','billing','activity','reports'] as const
+export default function JobsPage({business,embedded=false,onCreateReminder}:{business:CurrentBusiness;embedded?:boolean;onCreateReminder?:(job:ReminderJob)=>void}){
+ const initial=useRef(new URLSearchParams(location.search)).current,customerScope=initial.get('customer')||''
+ const zone=business.timezone||'UTC',canEdit=canWrite(business.role)&&canAccess(business,'jobs'),canSchedule=canEdit&&canAccess(business,'calendar')&&['owner','admin','office'].includes(business.role),canBill=canAccess(business,'billing')&&['owner','admin','office'].includes(business.role)
+ const accessKey=[business.id,business.role,business.access_modules?.join(','),customerScope].join(':')
+ const active=useRef(true),scope=useRef(accessKey);scope.current=accessKey
+ useEffect(()=>{active.current=true;return()=>{active.current=false}},[accessKey])
+ const [selected,setSelected]=useState(initial.get('job')||initial.get('document'))
+ const requestedSection=initial.get('section')||initial.get('tab')||''
+ const [section,setSection]=useState<(typeof sections)[number]|'overview'>(requestedSection==='photos-expenses'?'photos':sections.includes(requestedSection as any)?requestedSection as (typeof sections)[number]:initial.get('plan')==='1'?'tasks':'overview')
+ const [intent,setIntent]=useState<'schedule'|undefined>(selected&&initial.get('schedule')==='1'?'schedule':undefined)
+ const [filter,setFilter]=useState<JobDirectoryFilter|'approved'>(views.some(v=>v.id===initial.get('jobFilter'))?initial.get('jobFilter') as JobDirectoryFilter:customerScope?'all':'active')
+ const effectiveFilter=filter==='billing'&&!canBill?'active':filter
+ const [search,setSearch]=useState(initial.get('jobSearch')||''),[query,setQuery]=useState(search),[page,setPage]=useState(Math.max(0,Number(initial.get('jobPage'))||0)),[worker,setWorker]=useState(initial.get('jobWorker')||'all'),[layout,setLayout]=useState<'list'|'board'>(initial.get('layout')==='board'?'board':'list'),[filtersOpen,setFiltersOpen]=useState(false)
+ const [result,setResult]=useState<{key:string;data:Awaited<ReturnType<typeof getJobDirectoryPage>>}|null>(null),[error,setError]=useState(''),[revision,setRevision]=useState(0),[notice,setNotice]=useState('')
+ const [team,setTeam]=useState<Worker[]>([]),[now,setNow]=useState(Date.now())
+ useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),60000);return()=>window.clearInterval(timer)},[])
+ const usage=useTierUsage(business.id),teamScheduling=usage?.plan==='pro'||usage?.plan==='basic',limit=usage?.plan==='free'&&usage.jobs_limit!==null&&usage.jobs_used>=usage.jobs_limit
+ const scroll=useRef(Number(history.state?.jobListScroll)||0),restore=useRef(!selected&&Number.isFinite(history.state?.jobListScroll)),heading=useRef<HTMLHeadingElement>(null)
+ const key=JSON.stringify([accessKey,effectiveFilter,query,page,teamScheduling?worker:'all',revision])
+ const data=result?.key===key?result.data:null,loading=!data&&!error&&effectiveFilter!=='approved'
+ useEffect(()=>{const t=setTimeout(()=>setQuery(search.trim()),200);return()=>clearTimeout(t)},[search])
+ useEffect(()=>{let active=true;setError('');if(effectiveFilter!=='approved'&&!selected)void getJobDirectoryPage(business.id,{customerId:customerScope,filter:effectiveFilter,workerId:teamScheduling&&worker!=='all'?worker:undefined,search:query,page}).then(data=>{if(active)setResult({key,data})}).catch(e=>{if(active)setError(readableError(e,'Could not load jobs.'))});return()=>{active=false}},[key,selected])
+ useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(rows=>{if(active){setTeam(rows);setCrew(rows.filter(w=>w.is_you&&w.active!==false).map(w=>w.id))}}).catch(()=>{});return()=>{active=false}},[accessKey])
+ useBusinessRefresh(business.id,()=>setRevision(v=>v+1))
+ useEffect(()=>{if(selected)return;const url=new URL(location.href);url.searchParams.set('jobFilter',effectiveFilter);for(const [name,value]of [['jobSearch',search],['jobPage',String(page)],['jobWorker',worker],['layout',layout]]){if(value&&value!=='0'&&value!=='all'&&value!=='list')url.searchParams.set(name,value);else url.searchParams.delete(name)}history.replaceState(history.state,'',url.pathname+url.search)},[effectiveFilter,search,page,worker,layout,selected])
+ useEffect(()=>{if(!selected&&!loading&&restore.current){restore.current=false;requestAnimationFrame(()=>window.scrollTo({top:scroll.current}))}},[selected,loading])
+ function openJob(id:string,next:typeof section='overview',action?:'schedule'){
+  if(!confirmNavigation())return
+  scroll.current=window.scrollY;history.replaceState({...history.state,jobListScroll:scroll.current},'',location.href);setSection(next);setIntent(action);setSelected(id)
+  const url=new URL(location.href);url.searchParams.set('view','work');url.searchParams.set('job',id);url.searchParams.set('section',next);for(const name of ['document','workspace','panel','billing','new','schedule'])url.searchParams.delete(name)
+  if(action)url.searchParams.set('schedule','1')
+  history.pushState({...history.state,finviantIndex:(Number(history.state?.finviantIndex)||0)+1},'',url.pathname+url.search)
+  requestAnimationFrame(()=>window.scrollTo({top:0}))
+ }
+ function backToJobs(){if(!confirmNavigation())return;const url=new URL(location.href);for(const name of ['job','document','workspace','section','panel','billing','schedule','tab','complete'])url.searchParams.delete(name);history.replaceState(history.state,'',url.pathname+url.search);restore.current=true;setSelected(null);setIntent(undefined)}
+ const [showForm,setShowForm]=useState(initial.get('new')==='1'&&canEdit),[addVisit,setAddVisit]=useState(!selected&&(initial.get('schedule')==='1'||!!initial.get('day'))),[busy,setBusy]=useState(false),[formError,setFormError]=useState(''),[crew,setCrew]=useState<string[]>([]),[duration,setDuration]=useState(120),[noAddress,setNoAddress]=useState(false)
+ const [form,setForm]=useState({title:'',customer_id:customerScope,property_id:'',description:'',start:initial.get('day')?initial.get('day')+'T09:00':'',end:''})
+ const formRequest=useRef<{signature:string;id:string}|null>(null),saving=useRef(false),created=useRef<string|null>(null)
+ const assigned=teamScheduling?crew:team.filter(w=>w.is_you&&w.active!==false).map(w=>w.id)
+ useEffect(()=>{if(initial.get('new')){const url=new URL(location.href);for(const name of ['new','day','schedule'])url.searchParams.delete(name);history.replaceState(history.state,'',url.pathname+url.search)}},[])
+ function closeForm(){if(busy)return;setShowForm(false);created.current=null;setFormError('');setAddVisit(false);setForm({title:'',customer_id:customerScope,property_id:'',description:'',start:'',end:''});formRequest.current=null}
+ async function submit(event:FormEvent){
+  event.preventDefault();if(saving.current||!canEdit)return;const submittedScope=accessKey;saving.current=true;setBusy(true);setFormError('')
+  try{
+   if(created.current){setShowForm(false);openJob(created.current);return}
+   if(addVisit&&(!canSchedule||limit))throw Error('Scheduling is not available for this job.')
+   if(addVisit&&!assigned.length)throw Error('Choose an active crew member.')
+   if(addVisit&&!form.property_id&&!noAddress)throw Error('Choose a service location or confirm no service address.')
+   const start=addVisit?localInstant(form.start,zone):undefined,end=start?(form.end?localInstant(form.end,zone):DateTime.fromISO(start).plus({minutes:duration}).toISO()!):undefined
+   if(start&&end&&Date.parse(end)<=Date.parse(start))throw Error('The end time must be after the start time.')
+   const payload={customer_id:form.customer_id,property_id:form.property_id||undefined,title:form.title,description:form.description,scheduled_start:start,scheduled_end:end,...(start?{assigned_user_ids:assigned}:{})},signature=JSON.stringify(payload)
+   if(formRequest.current?.signature!==signature)formRequest.current={signature,id:crypto.randomUUID()}
+   const job=await createJob(business.id,{...payload,request_id:formRequest.current.id});if(!active.current||scope.current!==submittedScope)return;created.current=job.id
+   setNotice(addVisit?'Job and first visit saved.':'Job saved.');flushSync(()=>setShowForm(false));setRevision(v=>v+1);openJob(job.id)
+   setForm({title:'',customer_id:customerScope,property_id:'',description:'',start:'',end:''});formRequest.current=null
+  }catch(e){if(active.current&&scope.current===submittedScope)setFormError(readableError(e,'Could not save this job. Retry this same form.'))}finally{saving.current=false;if(active.current&&scope.current===submittedScope)setBusy(false)}
+ }
+ async function startJob(job:Job){
+  if(saving.current||!canEdit||!hasActiveJobAppointment(job)||!job.scheduled_start||Date.parse(job.scheduled_start)>Date.now())return
+  const submittedScope=accessKey;saving.current=true;setBusy(true);setError('')
+  try{await updateJobStatus(job.id,'in_progress');if(active.current&&scope.current===submittedScope){setNotice('Job started.');setRevision(v=>v+1)}}catch(e){if(active.current&&scope.current===submittedScope)setError(readableError(e,'Could not start this job. Refresh before retrying.'))}finally{saving.current=false;if(active.current&&scope.current===submittedScope)setBusy(false)}
+ }
+ const list={visible:data?.items||[],search,page:data?.page??page,pages:Math.max(1,Math.ceil((data?.total||0)/25)),total:data?.total||0,setSearch:(v:string)=>{setSearch(v.slice(0,200));setPage(0)},setPage:(v:number|((p:number)=>number))=>setPage(v)}
+ function card(job:Job){const person=job.customers[0],name=person?[person.first_name,person.last_name].filter(Boolean).join(' ')||person.company:'Customer',booked=hasActiveJobAppointment(job),needsUpdate=jobNeedsStatusUpdate(job,new Date(now),zone),invoice=canBill?linkedJobInvoiceAction(job.invoice):null
+  return <article className="module-job-card jobs-directory-card" key={job.id}><div className="jobs-directory-copy"><button type="button" className="unified-job-title" onClick={()=>openJob(job.id)} aria-label={'Open job '+job.title}>{job.title}<span aria-hidden="true">›</span></button><span className="jobs-directory-customer">{name}</span>{job.properties[0]&&<span className="jobs-directory-location">{formatServiceAddress(job.properties[0])}</span>}<div className="jobs-directory-meta"><span className="module-record-status">{jobStatusLabels[job.status as JobStatus]||job.status}</span><span className="jobs-directory-visit">{booked?'Next visit · '+DateTime.fromISO(job.active_appointment!.starts_at).setZone(zone).toFormat('MMM d · h:mm a'):'No active visit'}</span></div>{job.assigned_user_ids?.length>0&&<small>Crew · {job.assigned_user_ids.map((id:string)=>team.find(w=>w.id===id)?.label||'Team member').join(', ')}</small>}</div><div className="jobs-directory-actions">{needsUpdate&&<span className="module-record-status is-overdue">Past visit · Confirm job status</span>}
+   {canSchedule&&!booked&&['lead','scheduled'].includes(job.status)?<button type="button" className="primary-button" onClick={()=>openJob(job.id,'schedule','schedule')}>Schedule visit</button>:canEdit&&booked&&['lead','scheduled'].includes(job.status)?<button type="button" className="secondary-button" disabled={busy} onClick={()=>needsUpdate?openJob(job.id):Date.parse(job.scheduled_start||'')<=now?void startJob(job):openJob(job.id,'schedule')}>{needsUpdate?'Review job status':Date.parse(job.scheduled_start||'')<=now?'Start job':'Review visit'}</button>:job.status==='in_progress'&&canEdit?<button type="button" className="secondary-button" onClick={()=>openJob(job.id,'tasks')}>Open checklist</button>:job.status==='completed'&&canBill?<a className="primary-button" href={invoice?.href||'/?view=invoices&job='+job.id}>{invoice?.label||'Review charges'}</a>:null}
+  </div></article>
+ }
+ const Heading=embedded?'h2':'h1'
+ return <div className={'page-stack workspace-module jobs-module unified-jobs'+(selected?' phone-job-page':'')}>
+  {selected?<><div className="unified-job-heading"><button type="button" className="back-button" onClick={backToJobs}>‹ All jobs</button><span>Job Management</span></div><JobManagementWorkspace key={accessKey+':'+selected} business={business} jobId={selected} team={team} revision={revision} onUpdated={()=>setRevision(v=>v+1)} initialSection={section} initialComplete={canEdit&&initial.get('complete')==='1'} initialIntent={intent} onCreateReminder={onCreateReminder}/></>:<>
+   <WorkspaceBack/><header className="page-heading module-page-heading"><Heading ref={heading}>Job Management</Heading>{canEdit&&<button type="button" className="primary-button" onClick={()=>{created.current=null;setShowForm(true)}}>＋ New job</button>}</header>
+   <CustomerRecordScope customerId={customerScope} customers={[]} view="work"/>{notice&&<p role="status">{notice}</p>}
+   <div className="jobs-search-filter-row"><div className="record-list-controls jobs-directory-search"><label>Search jobs<input type="search" aria-label="Search jobs" value={search} maxLength={200} onChange={e=>{setSearch(e.target.value);setPage(0)}} placeholder="Job, customer or location"/></label></div><button type="button" className="jobs-filter-toggle" aria-label={filtersOpen?'Close filters':'Open filters'} aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}><span aria-hidden="true">▽</span></button></div>
+   <div className="unified-view-row"><label><span className="sr-only">Job view</span><select value={effectiveFilter} onChange={e=>{setFilter(e.target.value as typeof filter);setPage(0)}}>{views.filter(v=>v.id!=='billing'||canBill).map(v=><option key={v.id} value={v.id}>{v.label}{v.id!=='approved'&&data?.counts[v.id]!==undefined?' · '+data.counts[v.id]:''}</option>)}</select></label><span>{effectiveFilter==='approved'?'Approved work':data?data.total+' jobs':'Loading…'}</span></div>
+   {filtersOpen&&<section className="unified-filters" aria-label="Job filters">{teamScheduling&&<label>Assigned team member<select value={worker} onChange={e=>{setWorker(e.target.value);setPage(0)}} disabled={effectiveFilter==='approved'}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.label}</option>)}</select></label>}<div role="group" aria-label="Job layout">{(['list','board'] as const).map(v=><button type="button" key={v} className="secondary-button" aria-pressed={layout===v} onClick={()=>setLayout(v)}>{v==='list'?'List':'Board'}</button>)}</div><RefreshButton busy={loading} onClick={()=>setRevision(v=>v+1)}/></section>}
+   {error&&<p role="alert">{error} <button type="button" className="text-button" onClick={()=>setRevision(v=>v+1)}>Retry jobs</button></p>}
+   {effectiveFilter==='approved'?<ApprovedJobQueue page={page} onPage={setPage} business={business} customerScope={customerScope} search={query} revision={revision} onOpen={id=>openJob(id)}/>:<>
+    {loading?<p role="status">Loading jobs…</p>:!error&&<section className={layout==='board'?'job-board':'module-record-list jobs-record-list'} aria-label="Jobs">{layout==='board'?['lead','scheduled','in_progress','completed','canceled'].map(status=><section key={status} className="job-board-column"><h2>{jobStatusLabels[status as JobStatus]}</h2>{(data?.items||[]).filter(j=>(['lead','scheduled'].includes(j.status)&&!hasActiveJobAppointment(j)?'lead':j.status)===status).map(card)}</section>):(data?.items||[]).map(card)}{!data?.items.length&&<p>No matching jobs. Choose another view, change your search or create a job.</p>}</section>}
+    {!loading&&!error&&<><RecordListPagination label="jobs" list={list}/>{layout==='board'&&<p className="quiet">Board shows this page of results. Use pagination to see more jobs.</p>}</>}
+   </>}
+  </>}
+  {showForm&&<FormDialog label="Create a job" busy={busy} onClose={closeForm} autoFocusFields={false}><header className="modal-head"><h2>New job</h2><button type="button" className="icon-button" aria-label="Close" disabled={busy} onClick={closeForm}>×</button></header><form className="form-grid" onSubmit={submit}>
+   <JobCustomerPicker key={accessKey} businessId={business.id} value={form.customer_id} disabled={busy} onChange={id=>setForm(v=>({...v,customer_id:id,property_id:''}))}/><QuickCustomer businessId={business.id} onCreated={c=>setForm(v=>({...v,customer_id:c.id,property_id:''}))}/>
+   <label className="full">Job title<input required maxLength={240} value={form.title} onChange={e=>setForm(v=>({...v,title:e.target.value}))}/></label>
+   <CustomerPropertySelect selectSingle businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={property_id=>setForm(v=>({...v,property_id}))} disabled={busy}/>
+   <details className="full"><summary>Notes &amp; access instructions</summary><label>Description<textarea maxLength={4000} value={form.description} onChange={e=>setForm(v=>({...v,description:e.target.value}))}/></label></details>
+   {canSchedule&&<label className="full settings-checkbox"><input type="checkbox" checked={addVisit} disabled={busy||!!limit} onChange={e=>setAddVisit(e.target.checked)}/>Add first visit</label>}
+   {limit&&<PlanRestriction plan="free" required="basic" feature="new job bookings" limit canUpgrade={isPrimaryOwner(business)}/>}
+   {addVisit&&canSchedule?<><label className="full">Starts ({zone})<input type="datetime-local" required value={form.start} onChange={e=>setForm(v=>({...v,start:e.target.value}))}/></label><label>Job length<select value={duration} onChange={e=>setDuration(Number(e.target.value))}>{[30,60,90,120,180,240,360,480,720].map(n=><option key={n} value={n}>{n} minutes</option>)}</select></label><details><summary>Custom end time</summary><label>Ends<input type="datetime-local" value={form.end} onChange={e=>setForm(v=>({...v,end:e.target.value}))}/></label></details>{teamScheduling&&<fieldset className="guided-workers full"><legend>Assigned crew</legend>{team.filter(w=>w.active!==false).map(w=><label key={w.id}><input type="checkbox" checked={crew.includes(w.id)} onChange={e=>setCrew(v=>e.target.checked?[...v,w.id]:v.filter(id=>id!==w.id))}/>{w.label}{w.is_you?' (you)':''}</label>)}</fieldset>}{!form.property_id&&<label className="full settings-checkbox"><input type="checkbox" checked={noAddress} onChange={e=>setNoAddress(e.target.checked)}/>Continue with no service address (remote work or address to confirm)</label>}</>:<p className="quiet full">You can schedule this job later.</p>}
+   {formError&&<p role="alert" className="full">{formError}</p>}<div className="modal-actions full"><button type="submit" className="primary-button" disabled={busy||!!limit&&addVisit}>{busy?'Saving…':addVisit?'Create & schedule':'Create job'}</button></div>
+  </form></FormDialog>}
+ </div>
 }

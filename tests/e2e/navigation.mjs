@@ -7,7 +7,7 @@ export async function openWorkArea(page, area) {
     await openHomePanels(page,['finances'])
     await page.getByRole('button', { name: 'View all income & expenses', exact: true }).click()
   } else {
-    await page.getByRole('button', { name: area, exact: true }).click()
+    await page.getByRole('button', { name: area === 'Jobs' ? 'Job Management' : area, exact: true }).click()
   }
 }
 

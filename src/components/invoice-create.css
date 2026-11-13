@@ -84,7 +84,7 @@
  .form-dialog:has(.invoice-simple-create){margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:18px 16px;overflow-y:auto;overscroll-behavior:contain}
  .form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar{display:flex;align-items:center;padding:0 0 14px;margin-bottom:18px;border-bottom:1px solid #d8e1e7}
  .form-dialog:has(.invoice-simple-create) .form-dialog-brand{display:block}
- .form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help{display:none}
+ .form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help{display:flex;flex:0 0 auto;margin:0 0 0 auto;padding:0;border:0;gap:0}
  .invoice-simple-create .invoice-create-footer{bottom:-18px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
  .invoice-simple-create .invoice-create-total{font-size:22px}
  .invoice-simple-create .modal-head h2{font-size:25px}
@@ -117,3 +117,12 @@
 
 .invoice-simple-create .invoice-customer-choice strong{min-width:0;overflow-wrap:anywhere}
 .invoice-simple-create .invoice-customer-choice small{display:block;font-size:13px;font-weight:400;margin-top:5px;color:#586577}
+
+/* Fin stays in the original document-dialog header, above the fields. */
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help{display:flex;margin:0;padding:0;border:0;flex:0 0 auto}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help>small{display:none}
+
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help{grid-column:2;margin:0}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar::after{grid-column:1/-1;font-size:13px;padding:6px 10px}

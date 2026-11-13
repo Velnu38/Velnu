@@ -1,0 +1,181 @@
+{
+  "observedAt": "2026-11-13",
+  "status": "local development candidate; not beta deployed",
+  "branch": "ux/unified-job-management-20261113",
+  "baseBetaCommit": "cc594261abb9aea23cf02872e8175b2085d55127",
+  "baseHandoffCommit": "9250a49",
+  "scope": [
+    "One canonical job directory/workspace and direct next actions",
+    "Same Summary/Work/Billing/Records navigation on phones and desktop",
+    "Atomic creation/booking, retry identity, role and completion guards preserved",
+    "Calendar and list state restored through browser history",
+    "Existing Fin entry points restored in New Invoice and New Estimate",
+    "Approved-work preparation error remains visible in its review dialog and retries the same approved source"
+  ],
+  "checks": [
+    {
+      "name": "Production TypeScript/build and startup",
+      "result": "passed",
+      "startupCases": 95,
+      "log": "/workspace/finviant-setup/unified-jobs-accepted-build.log"
+    },
+    {
+      "name": "Current-source Chromium browser coverage",
+      "result": "32 unique cases verified across main run and bounded recheck; not a clean single-run result",
+      "cases": 32,
+      "jobAndFinCases": 24,
+      "sharedDocumentCases": 8,
+      "widths": [
+        320,
+        390,
+        430,
+        1440
+      ],
+      "accessibility": "No WCAG A/AA axe violations for the tested 390px unified Jobs fixture",
+      "mainRun": {
+        "passed": 29,
+        "unsuccessful": 3,
+        "log": "/workspace/finviant-setup/unified-all-final.log",
+        "report": "/workspace/finviant-setup/unified-results-before-bounded-recheck.json",
+        "details": "Two cases exceeded the 30-second whole-test deadline (shared estimate journey and desktop estimate Fin screenshot); the new approved-work failure test expected the provider phrase although the product deliberately displays its generic retry guidance."
+      },
+      "boundedRecheck": {
+        "passed": 3,
+        "failed": 0,
+        "wholeTestDeadlineMs": 60000,
+        "durationSeconds": 29.1,
+        "log": "/workspace/finviant-setup/unified-bounded-recheck.log",
+        "details": "Same built application. Approved-work test now checks the visible retry guidance, no workspace on failure and successful canonical-job retry. Both timed-out cases passed. No product assertion or business safeguard removed."
+      }
+    },
+    {
+      "name": "Job, approval, actions, directory and report domain",
+      "result": "passed",
+      "cases": 21,
+      "log": "/workspace/finviant-setup/unified-domain-final.log"
+    },
+    {
+      "name": "Management and phone component scenarios",
+      "result": "passed",
+      "scenarios": 7,
+      "logs": [
+        "/workspace/finviant-setup/unified-management-final.log",
+        "/workspace/finviant-setup/unified-phone-final.log"
+      ]
+    },
+    {
+      "name": "Shared document/PDF component acceptance",
+      "result": "passed",
+      "log": "/workspace/finviant-setup/unified-document-final.log"
+    },
+    {
+      "name": "Canonical assessment maintenance",
+      "result": "passed",
+      "cases": 10,
+      "sync": true,
+      "consistent": true,
+      "all51TaskRecordsStatusesAndCriteriaUnchanged": true
+    }
+  ],
+  "source": [
+    {
+      "path": "src/components/AppShell.tsx",
+      "sha256": "2601817bab3e1530b76fca3e027960f38404bce38c87ce56231632753069304c"
+    },
+    {
+      "path": "src/components/JobManagementWorkspace.tsx",
+      "sha256": "85e0081f92fbcbcdbccfea8261d390eebd3a7ccdf711b20114eae35a8f03d993"
+    },
+    {
+      "path": "src/components/JobWorkPlan.tsx",
+      "sha256": "f53815623b80770f35061af94cb7dba17bec1740b309f751cd7443ca38740a7a"
+    },
+    {
+      "path": "src/components/RecordResources.tsx",
+      "sha256": "672a1e05edb7b3fe82ae08d78fd85c4123aab456f647f921a44addf06e9e12c8"
+    },
+    {
+      "path": "src/components/calendar/DailyCalendar.tsx",
+      "sha256": "469f98e03c8db9059c0c115f454c8a4e07ccb43c98ddfbfd02b6da2ad1bb3ea6"
+    },
+    {
+      "path": "src/components/invoice-create.css",
+      "sha256": "19fc4d3b19db5612c9d6be83d1cafce03f5fc9106046c541e6fa9f0032a81fc9"
+    },
+    {
+      "path": "src/pages/JobsPage.tsx",
+      "sha256": "90a3b5626503f0485fbdc6bf6d38e6296c8f6ba9f1cba29b7fdd42174cd4389f"
+    },
+    {
+      "path": "src/components/ApprovedJobQueue.tsx",
+      "sha256": "c84fbe248c5b3b745fadcbbdb84e4cee314819cc659b726aa9c417c9980437fe"
+    },
+    {
+      "path": "src/components/JobReminderDialog.tsx",
+      "sha256": "24b7ecdc9ae1d1c96a3d37b79432db8d228fdcd0e9a0dfe87ef15d5a0d2e521d"
+    },
+    {
+      "path": "src/components/unified-jobs.css",
+      "sha256": "b1056dcdeefc9752bbc4c74c4f2713fb62afddbd5fad6e8778f3cefd47e92758"
+    },
+    {
+      "path": "tests/e2e/unified-job-management.spec.mjs",
+      "sha256": "f16a9993d798c08fd6c962eeae9432c241359d529258136145b8881fd35d6759"
+    },
+    {
+      "path": "tests/e2e/navigation.mjs",
+      "sha256": "5626c8ed99fdd3137fdf703f2423f0ce0444c4a9fff76a3904d8edd1694c3622"
+    },
+    {
+      "path": "tests/operations/job-management-dom.mjs",
+      "sha256": "f0c6fa1525b5b7ddd1ed85c8876a836e9c5c8411cd6e8374366e83197f51163a"
+    },
+    {
+      "path": "tests/operations/job-phone-dom.mjs",
+      "sha256": "2ef1451060a6d80aca72e374a0c8da443bb9f3067ec20c581ad2effc2267591d"
+    }
+  ],
+  "captures": [
+    {
+      "path": "docs/reference/unified-jobs-list-390.png",
+      "sha256": "c1cc38b5704a496bd3de718b18be77b16177a96fe91ab1cac0753e910786fdd2"
+    },
+    {
+      "path": "docs/reference/unified-jobs-summary-390.png",
+      "sha256": "4f05f02d081c2c22fca52f9905375ae5a82631b6be78aedf6967a3d411e8b0e7"
+    },
+    {
+      "path": "docs/reference/unified-jobs-work-390.png",
+      "sha256": "09540b77f1c5044c1d9833a9b070855835da28660bbebf6870cba45464e682a2"
+    },
+    {
+      "path": "docs/reference/unified-jobs-billing-390.png",
+      "sha256": "b9248562cfe822837c5c78be60afe9ff5e7228c44133c4902094555d4b8b398e"
+    },
+    {
+      "path": "docs/reference/unified-jobs-new-job-390.png",
+      "sha256": "4d7d7517334b10bf5086e66c58e23a6e8d79bdc05f028a87985a585376f19644"
+    },
+    {
+      "path": "docs/reference/unified-jobs-list-1440.png",
+      "sha256": "2f442471a436294d2cf5904c66f69dbe87913aa08963b8caad99fdab2a24084d"
+    },
+    {
+      "path": "docs/reference/unified-jobs-fin-invoice-320.png",
+      "sha256": "fd5b83738b877e7685acce63ff0eaf6992220777ac7345b5b488ac01f5129672"
+    },
+    {
+      "path": "docs/reference/unified-jobs-fin-estimate-320.png",
+      "sha256": "1c030b9d6427b3a746dcbe4fc1595d016289113ab2edc367f696643e5c8bc980"
+    }
+  ],
+  "visualReview": "Actual synthetic screenshots reviewed: job Summary at 390px and New Invoice/Fin at 320px; no horizontal overflow or header overlap. Browser suite checks additional widths and downstream screens.",
+  "limitations": [
+    "No beta merge, deployment or environment publication",
+    "No hosted data write, migration, provider activation, real message or payment",
+    "Full release regression and WebKit CI not run for this candidate; older broad navigation fixtures still need migration before promotion",
+    "Synthetic browser fixtures do not certify authenticated owner, physical iPhone/Android, provider behavior or cross-tenant hosted acceptance",
+    "No claim of general job-completion autosend, worker notifications or field portal; existing completion/invoice review remains"
+  ],
+  "readiness": "All 51 task records, statuses and acceptance criteria remain unchanged; JOB-01/JOB-02/JOB-05/UX-01 and provider/launch gates remain open."
+}

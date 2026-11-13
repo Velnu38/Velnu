@@ -2,6 +2,16 @@
 
 Checked November 13, 2026 UTC.
 
+## Current end-to-end automation assessment
+
+- The owner requested assessment only of the customer → scheduling → crew → work completion → invoicing → payment journey. The [assessment](END_TO_END_AUTOMATION_ASSESSMENT_2026-11-13.md) distinguishes existing transactional handoffs/outboxes from missing lifecycle features and unverified providers. Beta branch rechecked at cc594261abb9aea23cf02872e8175b2085d55127. No new automation implementation, provider activation, hosted data write, message, charge or public release is authorized by this conceptual guide.
+- Key gaps: selected billable-price/progress model, completion autosend policy, customer/worker notification coverage, guided rescheduling, invoice-link view tracking/owner alert, four-stage payment reminder policy and a verified payment → receipt/financial closure journey. Existing fresh defaults remain disabled: appointment reminder 48 elapsed hours, overdue invoice email 2/7/3; saved account rules can differ. Last recorded calendar dead queue/Outlook error remains unverified, not newly checked or repaired. All 51 task records and criteria are retained.
+
+## Local unified Job Management and Fin candidate — not beta deployed
+
+- The owner's subsequent instruction to combine Jobs/Job Management supersedes historical separate-workspace guidance below. One canonical list/workspace now retains server search/paging, Board/history, approved-work preparation, direct next actions, calendar/deep links, unsaved edits, roles and completion safeguards. Summary / Work / Billing / Records open actual working sections; duplicate cost/detail/navigation controls are removed. Existing Fin buttons are restored in New Invoice and New Estimate, including narrow phones. See [implementation](UNIFIED_JOB_MANAGEMENT_2026-11-13.md).
+- Current-source local verification passed production TypeScript/build plus 95 startup checks, 32 focused/shared Chromium cases across the main run and bounded recheck at 320/390/430/1440 widths, 21 domain cases, seven management/phone component scenarios and shared PDF/document acceptance. [Development receipt and synthetic captures](evidence/2026-11-13-unified-job-management.json). Full release regression, stale broad navigation test migration, WebKit CI and physical-device/owner acceptance remain; no beta merge/deployment or provider change has occurred for this candidate. Do not describe local screenshots as the deployed site.
+
 ## Current verified simplified estimate release
 
 - PR117 is released to Finviant beta as cc594261abb9aea23cf02872e8175b2085d55127. All nine applicable workflows and all 22 full-suite jobs passed at e6ad0dd46749221251f966329e3946556018f297; the tested and merged trees match. One bounded browser-shard retry at the same head is recorded in the [release receipt](evidence/2026-11-13-estimate-simple-beta-release.json). Both Finviant domains serve the combined Customer approval control, top Create estimate, essential fields, optional validity/tax/notes/terms and direct reviewed sending. Duplicate detail shortcuts are removed; approval, expiry, scheduling, revisions, deposits and explicit invoice conversion remain. See [scope and phone captures](ESTIMATE_SIMPLE_CREATION_2026-11-13.md).

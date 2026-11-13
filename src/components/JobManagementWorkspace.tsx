@@ -1,4 +1,9 @@
-import JobMobileMenu, { JOB_PHONE_QUERY, JobMenuIcon, type JobMenuItem } from './JobMobileMenu'
+import {flushSync} from 'react-dom'
+import JobReminderDialog from './JobReminderDialog'
+import GoogleReviewRequest from './GoogleReviewRequest'
+import {useTierUsage} from '../lib/useTierUsage'
+import type {ReminderJob} from '../services/reminders'
+import { JOB_PHONE_QUERY, JobMenuIcon } from './JobMobileMenu'
 import {jobNextStep} from '../lib/jobNextStep'
 import {
   lazy,
@@ -46,7 +51,7 @@ import {
   JobTaskList,
   materialLabels,
 } from "./JobManagementEditors";
-import { RecordTabs, RecordMoreMenu } from "./RecordDetail";
+import { RecordMoreMenu } from "./RecordDetail";
 import JobWorkPlan from "./JobWorkPlan";
 import JobVisits from "./JobVisits";
 import JobCostReview from "./JobCostReview";
@@ -58,7 +63,7 @@ import DispatchJobDialog, {
 } from "./scheduling/DispatchJobDialog";
 import GoogleMapTools from "./GoogleMapTools";
 import FormDialog from "./FormDialog";
-import JobDetailsDialog from "./JobDetailsDialog";
+
 const ScheduleEstimateDialog = lazy(
   () => import("./scheduling/ScheduleEstimateDialog"),
 );
@@ -109,6 +114,8 @@ export default function JobManagementWorkspace({
   onUpdated,
   initialSection = "overview",
   initialComplete = false,
+  initialIntent,
+  onCreateReminder,
 }: {
   business: CurrentBusiness;
   jobId: string;
@@ -117,6 +124,8 @@ export default function JobManagementWorkspace({
   onUpdated: () => void;
   initialSection?: Section;
   initialComplete?: boolean;
+  initialIntent?: 'schedule';
+  onCreateReminder?: (job:ReminderJob)=>void;
 }) {
   const [job, setJob] = useState<Awaited<ReturnType<typeof getJob>> | null>(
       null,
@@ -128,13 +137,12 @@ export default function JobManagementWorkspace({
     [busy, setBusy] = useState(false);
   const [compactSections,setCompactSections]=useState(()=>window.matchMedia(JOB_PHONE_QUERY).matches);
   useEffect(()=>{const media=window.matchMedia(JOB_PHONE_QUERY);const update=()=>setCompactSections(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update)},[]);
-  const [mobileDetail, setMobileDetail] = useState(initialSection !== 'overview' && new URLSearchParams(location.search).get('panel') !== 'menu');
   const [mobileBilling, setMobileBilling] = useState<'invoices'|'costs'>(new URLSearchParams(location.search).get('billing') === 'costs' ? 'costs' : 'invoices');
   const [section, setSection] = useState<Section>(initialSection),
     [notes, setNotes] = useState(""),
-    [details, setDetails] = useState(false),
+    [showReminder,setShowReminder]=useState(false),
     [bookingOptions, setBookingOptions] = useState(false),
-    [dispatch, setDispatch] = useState<JobScheduleMode | null>(null);
+    [dispatch, setDispatch] = useState<JobScheduleMode | null>(initialIntent==='schedule'&&canWrite(business.role)&&canAccess(business,'calendar')&&['owner','admin','office'].includes(business.role)?'appointment':null);
   const [taskEditor, setTaskEditor] = useState<JobTask | "new" | null>(null),
     [materialEditor, setMaterialEditor] = useState<JobMaterial | "new" | null>(
       null,
@@ -149,6 +157,10 @@ export default function JobManagementWorkspace({
     [invoiceAction, setInvoiceAction] =
       useState<ReturnType<typeof jobInvoiceAction>>(null),
     [approvedValue, setApprovedValue] = useState<number | null>(null);
+  useEffect(()=>{if(initialIntent||initialComplete){const url=new URL(location.href);url.searchParams.delete('schedule');url.searchParams.delete('complete');history.replaceState(history.state,'',url.pathname+url.search)}},[])
+  const plan=useTierUsage(business.id)?.plan
+  const photoInput=useRef<HTMLInputElement|null>(null),notesDisclosure=useRef<HTMLDetailsElement|null>(null)
+  const [focusTime,setFocusTime]=useState(0)
   const mounted = useRef(true),
     request = useRef(0),
     saving = useRef(false),
@@ -171,6 +183,7 @@ export default function JobManagementWorkspace({
   const canBill =
     canAccess(business, "billing") &&
     ["owner", "admin", "office"].includes(business.role);
+  useEffect(()=>{if(section==='billing'&&!canBill&&data?.financial_access){setMobileBilling('costs');setCostsOpened(true)}},[section,canBill,data?.financial_access])
   async function refresh() {
     const n = ++request.current;
     try {
@@ -243,21 +256,22 @@ export default function JobManagementWorkspace({
     }
   }
   function selectSection(next: Section, detail = true, billingView: 'invoices'|'costs' = 'invoices') {
-    if (next === section && (!compactSections || (detail === mobileDetail && billingView === mobileBilling))) return;
+    if(next===section&&billingView===mobileBilling)return;
     if (!confirmNavigation()) return;
     if (dirty) {
       setNotes(job?.description || "");
       guard.markClean();
     }
-    if (next !== "billing") setCostsOpened(false);
-    if (next !== "photos") setPhotosOpened(false);
+
+
+    if(next!=="billing")setCostsOpened(false);
+    if(next!=="photos")setPhotosOpened(false);
     setSection(next);
-    setMobileDetail(detail && next !== "overview");
     setMobileBilling(billingView);
     const url=new URL(location.href);url.searchParams.set('section',next);if(detail)url.searchParams.delete('panel');else url.searchParams.set('panel','menu');if(next==='billing'&&billingView==='costs')url.searchParams.set('billing','costs');else url.searchParams.delete('billing');history.replaceState(history.state,'',url.pathname+url.search);
     if (next === "photos") setPhotosOpened(true);
     if (next === "billing") setCostsOpened(true);
-    if (compactSections) requestAnimationFrame(() => { const heading=document.getElementById(id + "-mobile-heading"); heading?.focus({preventScroll:true}); heading?.scrollIntoView?.({block:"start"}); });
+
   }
   async function saveNotes(e: FormEvent) {
     e.preventDefault();
@@ -394,7 +408,7 @@ export default function JobManagementWorkspace({
     DateTime.fromISO(value).setZone(zone).toFormat("EEE, MMM d · h:mm a");
   const phoneDate = (value: string) => DateTime.fromISO(value).setZone(zone).toFormat("MMM d · h:mm a");
   const tabs = (Object.keys(sectionLabels) as Section[]).filter(
-    (s) => !["billing", "changes"].includes(s) || canBill,
+    (s) => s==='billing'?canBill||!!data?.financial_access:s!=='changes'||canBill,
   );
   const groups = [
     {label:'Summary',sections:['overview']},
@@ -403,23 +417,8 @@ export default function JobManagementWorkspace({
     {label:'Records',sections:['activity','reports']},
   ].map(group=>({...group,sections:group.sections.filter(s=>tabs.includes(s as Section))})).filter(group=>group.sections.length);
   const activeGroup=groups.find(group=>group.sections.includes(section))||groups[0];
-  const showPanel = (name:Section) => section === name && (!compactSections || mobileDetail);
-  const mobileHome = compactSections && !mobileDetail;
+  const showPanel = (name:Section) => section === name;
   const alertCount = Number(missingMaterials.length > 0 && !closed) + Number(outstandingTasks.some(t=>t.due_on && t.due_on < DateTime.now().setZone(zone).toISODate()!) && !closed) + Number(unbilledChanges.length > 0) + Number(pendingChanges.length > 0) + Number(!closed && !job?.assigned_user_ids?.length && canSchedule);
-  const menuItems:JobMenuItem[] = activeGroup.label === 'Work' ? [
-    {key:'tasks',label:'Tasks & templates',description:data ? `${data.tasks.filter(t=>t.completed).length} of ${data.tasks.length} complete` : 'Work checklist',onClick:()=>selectSection('tasks')},
-    {key:'schedule',icon:'crew',label:'Visits & crew',description:booked ? phoneDate(job!.active_appointment!.starts_at) : 'Review visits and assignments',onClick:()=>selectSection('schedule')},
-    {key:'materials',label:'Materials',description:missingMaterials.length ? `${missingMaterials.length} not received` : data?.materials.length ? 'All received' : 'No materials recorded',onClick:()=>selectSection('materials')},
-    {key:'photos',label:'Photos & expenses',description:'View job records',onClick:()=>selectSection('photos')},
-  ] : activeGroup.label === 'Billing' ? [
-    {key:'billing',label:'Invoices',description:'Review linked invoice',onClick:()=>selectSection('billing',true,'invoices')},
-    ...(data?.financial_access ? [{key:'costs',label:'Costs & budget',description:'Review job costs',onClick:()=>selectSection('billing',true,'costs')}] : []),
-    {key:'changes',label:'Change orders',description:'Review changes',onClick:()=>selectSection('changes')},
-    ...(data?.financial_access ? [{key:'review',icon:'review',label:'Cost review',description:'Labor and expenses',onClick:()=>selectSection('billing',true,'costs')}] : []),
-  ] : [
-    {key:'activity',label:'Activity history',description:'Changes, updates and job events',onClick:()=>selectSection('activity')},
-    {key:'reports',label:'Completion reports',description:'Review saved reports',onClick:()=>selectSection('reports')},
-  ];
   const step=jobNextStep({status:job?.status||'',ready:!!data&&!loading&&!error,canEdit,canSchedule,canBill,booked,
     crew:!!job?.assigned_user_ids?.length,futureVisit:!!job?.scheduled_start&&Date.parse(job.scheduled_start)>Date.now(),
     remainingVisits,tasks:outstandingTasks.length,materials:missingMaterials.length,changes:pendingChanges.length+unbilledChanges.length,invoice:billingInvoice});
@@ -453,38 +452,14 @@ export default function JobManagementWorkspace({
                     )}
                   </form>
   );
-  const quickActions = job && (
-            <div className="jm-job-actions">
-              {job.customers[0]?.phone && (
-                <a
-                  className="secondary-button compact"
-                  aria-label="Call customer"
-                  href={"tel:" + job.customers[0].phone}
-                >
-                  Call customer
-                </a>
-              )}
-              {job.properties[0] && (
-                <GoogleMapTools
-                  address={job.properties[0]}
-                  compact
-                  directionsOnly
-                />
-              )}
-              <button
-                type="button"
-                className="secondary-button compact"
-                aria-label="Job details"
-                onClick={() => setDetails(true)}
-              >
-                Job details
-              </button>
-            </div>
-  );
-  const summaryCard = !!(job && data && mobileHome && section === "overview");
+  function addPhoto(){if(!confirmNavigation())return;flushSync(()=>selectSection('photos'));photoInput.current?.click()}
+  function logTime(){if(!confirmNavigation())return;selectSection('billing',true,'costs');setFocusTime(v=>v+1)}
+  function editNotes(){if(!confirmNavigation())return;flushSync(()=>selectSection('overview'));if(notesDisclosure.current){notesDisclosure.current.open=true;notesDisclosure.current.querySelector('textarea')?.focus()}}
+  const quickActions=job&&<div className="jm-job-actions">{job.customers[0]?.phone&&<a className="secondary-button" aria-label="Call customer" href={'tel:'+job.customers[0].phone}>Call customer</a>}{job.properties[0]&&<GoogleMapTools address={job.properties[0]} compact directionsOnly/>}</div>
+  const summaryCard = !!(job && data && section === "overview");
   const jobActions = <footer className="jm-workspace-footer">
             <RecordMoreMenu label="Job actions" disabled={busy}>
-              {compactSections && action === 'complete' && step.action !== 'complete' && <button type="button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
+              {action === 'complete' && step.action !== 'complete' && <button type="button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
               {canEdit && !closed && (
                 <button
                   type="button"
@@ -522,9 +497,10 @@ export default function JobManagementWorkspace({
                   Reopen job
                 </button>
               )}
-              <button type="button" onClick={() => setDetails(true)}>
-                Open full job details
-              </button>
+              {section!=='overview'&&<button type="button" onClick={editNotes}>Job notes &amp; information</button>}
+              {canEdit&&canAccess(business,'calendar')&&<button type="button" onClick={()=>{if(onCreateReminder&&job)onCreateReminder({id:job.id,title:job.title,customer_id:job.customer_id});else setShowReminder(true)}}>Add reminder</button>}
+              {closed&&job?.status==='completed'&&canBill&&canEdit&&plan&&<GoogleReviewRequest business={business} plan={plan} customer={job.customers[0]}/>}
+
             </RecordMoreMenu>
           </footer>;
   const tab = (s: string) => id + "-" + s;
@@ -545,7 +521,7 @@ export default function JobManagementWorkspace({
   return (
     <>
     <section
-      className={"jm-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections ? " jm-compact-job" : "")}
+      className={"jm-workspace jm-unified-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections ? " jm-compact-job" : "")}
       aria-label="Selected job workspace"
       aria-busy={loading || busy}
     >
@@ -591,7 +567,7 @@ export default function JobManagementWorkspace({
                 <p className="quiet">Service address to confirm</p>
               )}
             </div>
-            {!compactSections && quickActions}
+
           </header>
           {notice && (
             <p role="status" className="guided-success">
@@ -601,13 +577,13 @@ export default function JobManagementWorkspace({
               )}
             </p>
           )}
-          {(!compactSections || (mobileHome && section === "overview")) && <>
+          {section === "overview" && <>
           <div className="jm-next-action">
             <div><small>Next action</small><strong title={step.detail}>{compactSections && step.label==='Review visit' ? 'Upcoming visit' : step.detail}</strong></div>
             <div className="jm-inline-actions">
               {step.action==='invoice'?<a className="primary-button" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>{step.label}</a>:
                 <button type="button" className="primary-button" disabled={busy||!data||loading||!!error} onClick={takeNextStep}>{step.label}</button>}
-              {!compactSections&&action==='complete'&&step.action!=='complete'&&<button type="button" className="secondary-button" disabled={busy||!data||loading||!!error} onClick={reviewCompletion}>Review completion</button>}
+
             </div>
           </div>
           {data && alertCount > 0 && (
@@ -652,15 +628,12 @@ export default function JobManagementWorkspace({
             </div></details>
           )}
           </>}
-          {compactSections&&!mobileDetail&&<div className="jm-section-groups" role="group" aria-label="Job workspace areas">{groups.map(group=><button type="button" key={group.label} aria-pressed={group===activeGroup} onClick={()=>selectSection(group.sections[0] as Section,false)}>{group.label}</button>)}</div>}
-          {!compactSections && <RecordTabs
-            label="Job management sections"
-            active={tab(section)}
-            tabs={tabs.map((s) => ({ id: tab(s), label: sectionLabels[s] }))}
-            onChange={(value) =>
-              selectSection(tabs.find((s) => tab(s) === value) || "overview")
-            }
-          />}
+          <div className="jm-section-groups" role="group" aria-label="Job workspace areas">{groups.map(group=><button type="button" key={group.label} aria-pressed={group===activeGroup} onClick={()=>selectSection(group.sections[0] as Section,true)}>{group.label}</button>)}</div>
+          {activeGroup.label!=='Summary'&&<nav className="jm-direct-sections" aria-label={activeGroup.label+' sections'}>{(activeGroup.label==='Work'?[
+            {key:'tasks',label:'Tasks & templates',section:'tasks'}, {key:'schedule',label:'Visits & crew',section:'schedule'}, {key:'materials',label:'Materials',section:'materials'}, {key:'photos',label:'Photos & expenses',section:'photos'}
+          ]:activeGroup.label==='Billing'?[
+            ...(canBill?[{key:'invoices',label:'Invoices',section:'billing'}]:[]),...(data?.financial_access?[{key:'costs',label:'Costs & budget',section:'billing'}]:[]),...(canBill?[{key:'changes',label:'Change orders',section:'changes'}]:[])
+          ]:[{key:'activity',label:'Activity history',section:'activity'},{key:'reports',label:'Completion reports',section:'reports'}]).map(item=><button type="button" key={item.key} className="secondary-button" aria-pressed={section===item.section&&(item.section!=='billing'||mobileBilling===(item.key==='costs'?'costs':'invoices'))} onClick={()=>selectSection(item.section as Section,true,item.key==='costs'?'costs':'invoices')}><JobMenuIcon kind={item.key}/>{item.label}</button>)}</nav>}
           {!data && !loading && !error && (
             <p role="alert">
               The work plan is unavailable.{" "}
@@ -669,244 +642,15 @@ export default function JobManagementWorkspace({
               </button>
             </p>
           )}
-          {compactSections && <div className="jm-mobile-heading" id={id + '-mobile-heading'} tabIndex={-1}>
-            {mobileDetail && <button type="button" className="jm-back-button" onClick={()=>selectSection(activeGroup.sections[0] as Section,false)}>‹ Back to {activeGroup.label}</button>}
-            {mobileDetail && <h3>{section === 'billing' ? (mobileBilling === 'costs' ? 'Costs & budget' : 'Invoices') : sectionLabels[section]}</h3>}
-          </div>}
-          {data && mobileHome && section === 'overview' && <section className="jm-phone-summary" aria-label="Job summary">
-            <dl className="jm-visit-facts"><div><dt>Next visit</dt><dd>{booked ? phoneDate(job.active_appointment!.starts_at) : 'Not scheduled'}</dd></div><div><dt>Assigned crew</dt><dd>{job.assigned_user_ids?.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ') || 'Not assigned'}</dd></div></dl>
-            {quickActions}
-            <p className="jm-progress-line">Tasks {data.tasks.filter(t=>t.completed).length}/{data.tasks.length} complete · {missingMaterials.length ? `${missingMaterials.length} materials not received` : 'No outstanding materials'}</p>
+          {data&&section==='overview'&&<section className="jm-phone-summary" aria-label="Job summary"><dl className="jm-visit-facts"><div><dt>Next visit</dt><dd>{booked?phoneDate(job.active_appointment!.starts_at):'Not scheduled'}</dd></div><div><dt>Assigned crew</dt><dd>{job.assigned_user_ids?.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ')||'Not assigned'}</dd></div></dl>{quickActions}<p className="jm-progress-line">Tasks {data.tasks.filter(t=>t.completed).length}/{data.tasks.length} complete · {missingMaterials.length?`${missingMaterials.length} materials not received`:'No outstanding materials'}</p>
+           {canEdit&&!closed&&<div className="jm-create-actions" aria-label="Quick job actions"><button type="button" className="secondary-button" disabled={busy} onClick={()=>setTaskEditor('new')}>＋ Add task</button><button type="button" className="secondary-button" disabled={busy} onClick={addPhoto}>＋ Add photo</button>{data.financial_access&&<button type="button" className="secondary-button" disabled={busy} onClick={logTime}>Log time</button>}</div>}
           </section>}
-          {data && mobileHome && section !== 'overview' && <JobMobileMenu title={activeGroup.label === 'Work' ? 'Manage the work' : activeGroup.label === 'Billing' ? 'Job billing' : 'Job records'} items={menuItems}>
-            {activeGroup.label === 'Billing' && <div className="jm-menu-finances"><dl className="jm-financial-lines">
-              {data.source_estimate && <div><dt>{approvedValue === null ? 'Original estimate' : 'Approved scope'}</dt><dd>{money(approvedValue ?? Number(data.source_estimate.total))}</dd></div>}
-              {data.financial_access && <div><dt>Recorded costs</dt><dd>{money(costs)}</dd></div>}
-              {data.billing_access && <><div><dt>Deposit received</dt><dd>{money(depositPaid)}</dd></div><div><dt>Issued invoice balance</dt><dd>{money(balance)}</dd></div></>}
-            </dl><p className="quiet">Recorded costs may be incomplete. Drafts are excluded from the issued balance.</p></div>}
-          </JobMobileMenu>}
-          {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{phoneDate(job.active_appointment!.starts_at)}{job.assigned_user_ids?.length ? <><br/>{job.assigned_user_ids.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ')}</> : null}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
-          {data && mobileHome && activeGroup.label==='Records' && data.activity.length>0 && <section className="jm-menu-context"><h4>Latest activity</h4><Activity entries={data.activity.slice(0,1)} zone={zone}/></section>}
-          {data && mobileHome && activeGroup.label==='Billing' && canBill && <a className="primary-button jm-billing-primary" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>Review invoice</a>}
-          {data && mobileHome && activeGroup.label==='Records' && <button type="button" className="jm-record-details" onClick={()=>setDetails(true)}><JobMenuIcon kind="billing"/><strong>Job details</strong><span aria-hidden="true">›</span></button>}
-
           {data && (
             <>
               <div
                 role="tabpanel"
-                id={tab("overview") + "-panel"}
-                aria-labelledby={compactSections ? undefined : tab("overview") + "-tab"}
-                aria-label={compactSections ? sectionLabels["overview"] : undefined}
-                hidden={compactSections || section !== "overview"}
-                className="jm-overview-grid"
-              >
-                <section className="jm-card">
-                  <header>
-                    <h3>Work checklist</h3>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => selectSection("tasks")}
-                    >
-                      Manage tasks
-                    </button>
-                  </header>
-                  <p>
-                    {data.tasks.filter((t) => t.completed).length} of{" "}
-                    {data.tasks.length} complete
-                  </p>
-                  {data.tasks.length > 0 && (
-                    <progress
-                      max={data.tasks.length}
-                      value={data.tasks.filter((t) => t.completed).length}
-                      aria-label="Job checklist progress"
-                    />
-                  )}
-                  {outstandingTasks.length ? (
-                    <ul className="jm-summary-list">
-                      {outstandingTasks.slice(0, 3).map((t) => (
-                        <li key={t.id}>{t.title}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="quiet">
-                      {data.tasks.length
-                        ? "All checklist items complete."
-                        : "Add the steps needed to finish this job."}
-                    </p>
-                  )}
-                  {canEdit && !closed && (
-                    <button
-                      type="button"
-                      className="secondary-button compact"
-                      onClick={() => setTaskEditor("new")}
-                    >
-                      + Add task
-                    </button>
-                  )}
-                </section>
-                <section className="jm-card">
-                  <header>
-                    <h3>Schedule &amp; Crew</h3>
-                    {canSchedule && !closed && (
-                      <button
-                        type="button"
-                        className="text-button"
-                        onClick={() => setDispatch("appointment")}
-                      >
-                        {booked ? "Reschedule" : "Schedule"}
-                      </button>
-                    )}
-                  </header>
-                  <strong>
-                    {booked
-                      ? date(job.active_appointment!.starts_at)
-                      : "No active appointment"}
-                  </strong>
-                  <p>
-                    {job.assigned_user_ids
-                      ?.map(
-                        (worker: string) =>
-                          team.find((w) => w.id === worker)?.label ||
-                          "Worker unavailable",
-                      )
-                      .join(", ") || "Crew not assigned"}
-                  </p>
-                  <p className="quiet">
-                    {booked
-                      ? "Appointment saved. Confirm arrangements with your customer."
-                      : "Book the next visit without creating another job."}
-                  </p>
-                  <button
-                    type="button"
-                    className="secondary-button compact"
-                    onClick={() => selectSection("schedule")}
-                  >
-                    View visits & crew
-                  </button>
-                </section>
-                <section className="jm-card">
-                  <header>
-                    <h3>Materials</h3>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => selectSection("materials")}
-                    >
-                      Manage materials
-                    </button>
-                  </header>
-                  {data.materials.length ? (
-                    <ul className="jm-summary-list">
-                      {data.materials.slice(0, 3).map((m) => (
-                        <li key={m.id}>
-                          {m.name}
-                          <span
-                            className={
-                              "jm-status " +
-                              (m.status === "needed" ? "is-warning" : "")
-                            }
-                          >
-                            {materialLabels[m.status]}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="quiet">
-                      Track supplies, quantities and order status.
-                    </p>
-                  )}
-                  {canEdit && !closed && (
-                    <button
-                      type="button"
-                      className="secondary-button compact"
-                      onClick={() => setMaterialEditor("new")}
-                    >
-                      + Add material
-                    </button>
-                  )}
-                </section>
-                {(data.financial_access || data.billing_access) && (
-                  <section className="jm-card">
-                    <header>
-                      <h3>Job financials</h3>
-                      {canBill && (
-                        <button
-                          type="button"
-                          className="text-button"
-                          onClick={() => selectSection("billing")}
-                        >
-                          Review billing
-                        </button>
-                      )}
-                    </header>
-                    <dl className="jm-financial-lines">
-                      {data.source_estimate && (
-                        <div>
-                          <dt>
-                            {approvedValue === null
-                              ? "Original estimate"
-                              : "Approved scope"}
-                          </dt>
-                          <dd>
-                            {money(
-                              approvedValue ??
-                                Number(data.source_estimate.total),
-                            )}
-                          </dd>
-                        </div>
-                      )}
-                      {data.financial_access && (
-                        <div>
-                          <dt>Recorded costs</dt>
-                          <dd>{money(costs)}</dd>
-                        </div>
-                      )}
-                      {data.billing_access && (
-                        <>
-                          <div>
-                            <dt>Deposit paid</dt>
-                            <dd>{money(depositPaid)}</dd>
-                          </div>
-                          <div>
-                            <dt>Issued invoice balance</dt>
-                            <dd>{money(balance)}</dd>
-                          </div>
-                        </>
-                      )}
-                    </dl>
-                    <p className="quiet">
-                      Recorded costs may be incomplete. Drafts are excluded from
-                      the issued balance.
-                    </p>
-                  </section>
-                )}
-                <section className="jm-card jm-card-wide">
-                  <header>
-                    <h3>Job notes &amp; access instructions</h3>
-                  </header>
-                  {!compactSections && notesEditor}
-                </section>
-                <section className="jm-card jm-card-wide">
-                  <header>
-                    <h3>Recent activity</h3>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => selectSection("activity")}
-                    >
-                      View history
-                    </button>
-                  </header>
-                  <Activity entries={data.activity.slice(0, 3)} zone={zone} />
-                </section>
-              </div>
-              <div
-                role="tabpanel"
                 id={tab("tasks") + "-panel"}
-                aria-labelledby={compactSections ? undefined : tab("tasks") + "-tab"}
-                aria-label={compactSections ? sectionLabels["tasks"] : undefined}
+                aria-label={sectionLabels["tasks"]}
                 hidden={!showPanel("tasks")}
                 className="jm-panel"
               >
@@ -981,8 +725,7 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("schedule") + "-panel"}
-                aria-labelledby={compactSections ? undefined : tab("schedule") + "-tab"}
-                aria-label={compactSections ? sectionLabels["schedule"] : undefined}
+                aria-label={sectionLabels["schedule"]}
                 hidden={!showPanel("schedule")}
                 className="jm-panel"
               >
@@ -1045,8 +788,7 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("materials") + "-panel"}
-                aria-labelledby={compactSections ? undefined : tab("materials") + "-tab"}
-                aria-label={compactSections ? sectionLabels["materials"] : undefined}
+                aria-label={sectionLabels["materials"]}
                 hidden={!showPanel("materials")}
                 className="jm-panel"
               >
@@ -1146,13 +888,12 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("photos") + "-panel"}
-                aria-labelledby={compactSections ? undefined : tab("photos") + "-tab"}
-                aria-label={compactSections ? sectionLabels["photos"] : undefined}
+                aria-label={sectionLabels["photos"]}
                 hidden={!showPanel("photos")}
                 className="jm-panel"
               >
                 {photosOpened && (
-                  <RecordResources
+                  <RecordResources photoInputRef={photoInput}
                     business={business}
                     target={{ kind: "job", id: jobId }}
                     active={section === "photos"}
@@ -1163,8 +904,7 @@ export default function JobManagementWorkspace({
                 <div
                   role="tabpanel"
                   id={tab("changes") + "-panel"}
-                  aria-labelledby={compactSections ? undefined : tab("changes") + "-tab"}
-                aria-label={compactSections ? sectionLabels["changes"] : undefined}
+                aria-label={sectionLabels["changes"]}
                   hidden={!showPanel("changes")}
                   className="jm-panel"
                 >
@@ -1261,16 +1001,15 @@ export default function JobManagementWorkspace({
                     ))}
                 </div>
               )}
-              {canBill && (
+              {(canBill||data.financial_access) && (
                 <div
                   role="tabpanel"
                   id={tab("billing") + "-panel"}
-                  aria-labelledby={compactSections ? undefined : tab("billing") + "-tab"}
-                aria-label={compactSections ? sectionLabels["billing"] : undefined}
+                aria-label={sectionLabels["billing"]}
                   hidden={!showPanel("billing")}
                   className="jm-panel"
                 >
-                  <div hidden={compactSections && mobileBilling === "costs"}>
+                  <div hidden={!canBill||mobileBilling === "costs"}>
                   <header className="jm-section-heading">
                     <div>
                       <h3>Billing &amp; job costs</h3>
@@ -1356,7 +1095,7 @@ export default function JobManagementWorkspace({
                     </p>
                   )}
                   </div>
-                  {data.financial_access && costsOpened && (!compactSections || mobileBilling === "costs") && (
+                  {data.financial_access && costsOpened && mobileBilling === "costs" && (
                     <>
                       <JobWorkPlan
                         business={business}
@@ -1365,6 +1104,7 @@ export default function JobManagementWorkspace({
                         canEdit={canEdit}
                         closed={closed}
                         section="costs"
+                        focusTime={focusTime}
                       />
                       <JobCostReview
                         business={business}
@@ -1379,8 +1119,7 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("reports") + "-panel"}
-                aria-labelledby={compactSections ? undefined : tab("reports") + "-tab"}
-                aria-label={compactSections ? sectionLabels["reports"] : undefined}
+                aria-label={sectionLabels["reports"]}
                 hidden={!showPanel("reports")}
                 className="jm-panel"
               >
@@ -1397,8 +1136,7 @@ export default function JobManagementWorkspace({
               <div
                 role="tabpanel"
                 id={tab("activity") + "-panel"}
-                aria-labelledby={compactSections ? undefined : tab("activity") + "-tab"}
-                aria-label={compactSections ? sectionLabels["activity"] : undefined}
+                aria-label={sectionLabels["activity"]}
                 hidden={!showPanel("activity")}
                 className="jm-panel"
               >
@@ -1410,8 +1148,6 @@ export default function JobManagementWorkspace({
               </div>
             </>
           )}
-          {compactSections && mobileDetail && <button type="button" className="jm-detail-return" onClick={()=>selectSection(activeGroup.sections[0] as Section,false)}>Back to {activeGroup.label}</button>}
-          {!summaryCard && jobActions}
         </>
       )}
       {taskEditor && (
@@ -1444,17 +1180,7 @@ export default function JobManagementWorkspace({
           onClose={() => setTemplates(false)}
         />
       )}
-      {details && (
-        <JobDetailsDialog
-          business={business}
-          jobId={jobId}
-          onUpdated={changed}
-          onClose={() => {
-            setDetails(false);
-            changed();
-          }}
-        />
-      )}
+      {showReminder&&job&&<JobReminderDialog business={business} job={{id:job.id,title:job.title,customer_id:job.customer_id}} onClose={()=>setShowReminder(false)} onSaved={()=>{setShowReminder(false);setNotice('Reminder saved for this job.')}}/>}
       {bookingOptions && data?.source_estimate && (
         <Suspense fallback={<p role="status">Loading booking options…</p>}>
           <ScheduleEstimateDialog
@@ -1478,7 +1204,7 @@ export default function JobManagementWorkspace({
           onClose={() => setDispatch(null)}
         />
       )}
-      {completion && data && job && (
+      {completion && data && job && canEdit && !closed && (
         <FormDialog
           label="Complete job review"
           busy={busy}
@@ -1578,7 +1304,8 @@ export default function JobManagementWorkspace({
         </FormDialog>
       )}
     </section>
-    {summaryCard && <div className="jm-summary-secondary"><details className="jm-notes-disclosure"><summary>Job notes &amp; access instructions</summary>{notesEditor}</details>{jobActions}</div>}
+    {!summaryCard&&job&&jobActions}
+    {summaryCard && <div className="jm-summary-secondary"><details ref={notesDisclosure} className="jm-notes-disclosure"><summary>Job notes &amp; access instructions</summary>{notesEditor}<dl className="jm-job-timestamps"><div><dt>Created</dt><dd>{job?.created_at?date(job.created_at):'Unavailable'}</dd></div><div><dt>Updated</dt><dd>{job?.updated_at?date(job.updated_at):'Unavailable'}</dd></div>{job?.completed_at&&<div><dt>Completed</dt><dd>{date(job.completed_at)}</dd></div>}</dl></details>{jobActions}</div>}
     </>
   );
 }

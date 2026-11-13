@@ -16,7 +16,6 @@ import { jobStatusConfirmation,jobStatusNotice,type JobStatus } from '../../lib/
 import { getScheduleTeam, type Worker } from '../../services/schedulingWorkflow'
 
 const ReminderDetailsDialog=lazy(()=>import('../ReminderDetailsDialog'))
-const JobDetailsDialog=lazy(()=>import('../JobDetailsDialog'))
 const CalendarEntryDialog=lazy(()=>import('./CalendarEntryDialog'))
 type Agenda = Awaited<ReturnType<typeof loadCalendarRange>>
 export default function DailyCalendar({ business, refreshVersion = 0, showReminders = true, compact = false, summary = false }: {
@@ -24,9 +23,12 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
 }) {
   const zone = business.timezone || 'America/New_York'
   const [today, setToday] = useState(() => DateTime.now().setZone(zone).toISODate()!)
-  const [day, setDay] = useState(today)
-  const [view, setView] = useState<CalendarView>('week')
-  const [expanded, setExpanded] = useState(false)
+  const contextKey=[business.id,business.role,summary?'home':'calendar'].join(':')
+  const savedContext=history.state?.finviantCalendar?.[contextKey]
+  const [day,setDay]=useState<string>(()=>DateTime.fromISO(savedContext?.day||'').isValid&&(!summary||savedContext?.expanded)?String(savedContext.day):today)
+  const [view,setView]=useState<CalendarView>(()=>['day','week','month'].includes(savedContext?.view)?savedContext.view:'week')
+  const [expanded, setExpanded] = useState<boolean>(()=>!!savedContext?.expanded)
+  useEffect(()=>{history.replaceState({...history.state,finviantCalendar:{...history.state?.finviantCalendar,[contextKey]:{day,view,expanded}}},'',location.href)},[contextKey,day,view,expanded])
   const card=useRef<HTMLElement>(null),previousExpanded=useRef(false)
   useEffect(()=>{if(!summary||expanded===previousExpanded.current)return;previousExpanded.current=expanded;card.current?.querySelector<HTMLElement>(expanded?'h2':'button[aria-label="Calendar"]')?.focus()},[expanded,summary])
   const [version, setVersion] = useState(0)
@@ -44,7 +46,6 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [team,setTeam]=useState<Worker[]>([]),[worker,setWorker]=useState('all')
   useEffect(()=>{let active=true;void getScheduleTeam(business.id).then(value=>{if(!active)return;setTeam(value);if(business.role==='technician')setWorker(value.find(item=>item.is_you)?.id || 'all')}).catch(()=>{});return()=>{active=false}},[business.id,business.role])
   const [entry,setEntry]=useState<{day:string;id?:string}|null>(null)
-  const [jobId,setJobId]=useState<string|null>(null)
   const [reminderId,setReminderId]=useState<string|null>(null)
   const previousToday = useRef(today)
   function refreshCalendar() {
@@ -114,7 +115,6 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const periodLabel = view === 'month' ? selected.toFormat('MMMM yyyy') : `${range.start.toFormat('MMM d')} – ${range.end.minus({ days: 1 }).toFormat('MMM d, yyyy')}`
   const editors = <>
     {reminderId&&<Suspense fallback={<p role="status">Opening reminder…</p>}><ReminderDetailsDialog key={business.id+reminderId} business={business} reminderId={reminderId} onClose={()=>setReminderId(null)}/></Suspense>}
-    {jobId&&<Suspense fallback={<p role="status">Opening job…</p>}><JobDetailsDialog business={business} jobId={jobId} onClose={()=>setJobId(null)}/></Suspense>}
     {entry&&<Suspense fallback={<p role="status">Opening calendar entry…</p>}><CalendarEntryDialog business={business} day={entry.day} entryId={entry.id} onClose={()=>setEntry(null)} onSaved={()=>setVersion(v=>v+1)}/></Suspense>}
   </>
   if(summary&&!expanded){
@@ -122,7 +122,7 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
     return <section ref={card} className="dashboard-calendar dashboard-tile home-today-card" aria-label="Work calendar" aria-busy={loading}>
       <div className="home-card-heading"><h2 className="dashboard-tile-title">Today</h2><button type="button" className="text-button" aria-label="Calendar" onClick={()=>setExpanded(true)}>Calendar <span aria-hidden="true">›</span></button></div>
       {loading&&!agenda?<p role="status">Loading your schedule…</p>:error?<p role="alert">{error} <button type="button" className="text-button" onClick={()=>setVersion(v=>v+1)}>Retry</button></p>:agenda&&<>
-        {visits.length?<ul className="home-today-list">{visits.slice(0,2).map(item=><li key={item.source_key}><a href={`/?view=${item.document_kind==='invoice'?'invoices':item.document_kind==='estimate'?'estimates':'work'}&document=${encodeURIComponent(item.document_id)}`} onClick={event=>{if(item.job_id){event.preventDefault();setJobId(item.job_id)}else if(item.source_key.startsWith('appointment:')&&item.document_kind==='work'){event.preventDefault();setEntry({day:today,id:item.source_key.slice(12)})}}}><time dateTime={item.starts_at}>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm')}<small>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('a')}</small></time><span><strong>{item.title}</strong><small>{item.customer_name||item.status.replaceAll('_',' ')}</small></span></a></li>)}</ul>:<p className="home-card-empty">No upcoming visits today.</p>}
+        {visits.length?<ul className="home-today-list">{visits.slice(0,2).map(item=><li key={item.source_key}><a href={item.job_id?'/?view=work&job='+encodeURIComponent(item.job_id):`/?view=${item.document_kind==='invoice'?'invoices':item.document_kind==='estimate'?'estimates':'work'}&document=${encodeURIComponent(item.document_id)}`} onClick={event=>{if(!item.job_id&&item.source_key.startsWith('appointment:')&&item.document_kind==='work'){event.preventDefault();setEntry({day:today,id:item.source_key.slice(12)})}}}><time dateTime={item.starts_at}>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm')}<small>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('a')}</small></time><span><strong>{item.title}</strong><small>{item.customer_name||item.status.replaceAll('_',' ')}</small></span></a></li>)}</ul>:<p className="home-card-empty">No upcoming visits today.</p>}
         {visits.length>2&&<button type="button" className="text-button" onClick={()=>setExpanded(true)}>View all {visits.length} visits</button>}
         {!!reminders.length&&<button type="button" className="text-button home-today-note" onClick={()=>setExpanded(true)}>{reminders.length} {reminders.length===1?'reminder':'reminders'} today <span aria-hidden="true">›</span></button>}
         {(connectedError||!!connected?.issues.length)&&<p role="status" className="home-today-note">Connected calendar needs review. <button type="button" className="text-button" onClick={()=>setExpanded(true)}>Review calendar</button></p>}
@@ -163,10 +163,10 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
       <div className="calendar-agenda-columns">
         <div><div className="calendar-list-heading"><h3>Scheduled work</h3><span>{work.length}</span></div>
           {!work.length ? <p className="calendar-empty">No work scheduled for this day.</p> : <ul className="calendar-work-list">{work.map(item => <li key={item.source_key} className={compact?'home-agenda-row':undefined}>
-            <a onClick={event=>{if(item.job_id){event.preventDefault();setJobId(item.job_id);return}if(item.source_key.startsWith('appointment:')&&!item.job_id&&item.document_kind==='work'){event.preventDefault();setEntry({day,id:item.source_key.slice(12)})}}} className={`calendar-event ${item.document_kind}`} href={`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
+            <a onClick={event=>{if(item.source_key.startsWith('appointment:')&&!item.job_id&&item.document_kind==='work'){event.preventDefault();setEntry({day,id:item.source_key.slice(12)})}}} className={`calendar-event ${item.document_kind}`} href={item.job_id?'/?view=work&job='+encodeURIComponent(item.job_id):`/?view=${item.document_kind === 'invoice' ? 'invoices' : item.document_kind === 'estimate' ? 'estimates' : 'work'}&document=${encodeURIComponent(item.document_id)}`}>
               <time>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm a')}</time><span><strong>{item.title}</strong><small>{DateTime.fromISO(item.starts_at).setZone(zone).toISODate() !== day ? `Started ${DateTime.fromISO(item.starts_at).setZone(zone).toFormat('MMM d')} · ` : ''}{item.status.replaceAll('_',' ')}{item.ends_at ? ` · Until ${DateTime.fromISO(item.ends_at).setZone(zone).toFormat('MMM d, h:mm a')}` : ''}</small>{item.customer_name && <small>{item.customer_name}</small>}{item.address && <small className="calendar-address">{item.address}</small>}{item.description && <small className="calendar-description">{item.description}</small>}{item.assigned_user_ids?.length?<small>Assigned: {item.assigned_user_ids.map(id=>team.find(person=>person.id===id)?.label || 'Team member').join(', ')}</small>:null}</span><span aria-hidden="true">↗</span>
             </a>
-            {compact&&item.job_id&&(workAction(item)?<button type="button" className="primary-button compact" disabled={busy!==null} onClick={()=>void changeWork(item,workAction(item)!)}>{busy===item.job_id?'Updating…':workAction(item)==='completed'?'Mark complete':'Start job'}</button>:<button type="button" className="secondary-button compact" onClick={()=>setJobId(item.job_id!)}>Open job</button>)}
+            {compact&&item.job_id&&(workAction(item)==='completed'?<a className="primary-button compact" href={'/?view=work&job='+encodeURIComponent(item.job_id!)+'&complete=1'}>Review completion</a>:workAction(item)?<button type="button" className="primary-button compact" disabled={busy!==null} onClick={()=>void changeWork(item,workAction(item)!)}>{busy===item.job_id?'Updating…':workAction(item)==='completed'?'Mark complete':'Start job'}</button>:<a className="secondary-button compact" href={'/?view=work&job='+encodeURIComponent(item.job_id!)}>Open job</a>)}
           </li>)}</ul>}
         </div>
         {!compact&&showReminders&&reminderSection}
