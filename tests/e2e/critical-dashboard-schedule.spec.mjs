@@ -549,7 +549,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     await expect(tile.getByText('No items need attention.')).toBeVisible()
     await expect(tile.locator('.invoice-overdue-badge')).toHaveCount(0)
     await page.getByRole('navigation').getByRole('button', { name:'Invoices',exact:true }).click()
-    await expect(page.getByRole('heading', { name: 'Invoices' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Invoices', exact:true })).toBeVisible()
   })
 }
 
