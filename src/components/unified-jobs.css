@@ -53,6 +53,7 @@
 .unified-jobs .jm-workspace-footer{margin:0;padding:0;position:static;background:transparent}
 .unified-jobs .jm-workspace-footer>.record-more{width:100%}
 .unified-jobs .jm-workspace-footer>.record-more>summary{min-height:46px}
+.unified-jobs .jm-workspace-footer .record-more-content{position:static;width:100%;max-width:none;box-sizing:border-box;margin-top:6px}
 .unified-jobs [hidden]{display:none!important}
 @media(max-width:900px){
  .finviant-workspace .unified-jobs>.module-page-heading{display:grid;grid-template-columns:1fr;gap:12px}

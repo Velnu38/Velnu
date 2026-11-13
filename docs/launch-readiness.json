@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Job actions phone overlap corrected — release still gated",
+      "detail": "Candidate cb27392 passed the Chromium and focused Chromium/WebKit checks but full iPhone WebKit shard 4 reproduced the bottom dock intercepting Request a Google review in the absolute-positioned Job actions menu. The unified Jobs footer now expands its menu in document flow so all actions and nested controls can scroll above the dock. Existing pointer-action assertion is retained; no forced click, skipped test or provider call. Fresh final-head full CI remains required before beta promotion. All 51 task statuses/criteria retained.",
+      "evidence": "https://github.com/Velnu38/Velnu/pull/118",
+      "verifiedAt": "2026-11-13"
+    },
+    {
       "title": "Unified Jobs beta release preparation — PR118",
       "detail": "Owner authorized beta deployment. Migrating broad browser/component tests from retired split Jobs/Management and Job details navigation to the actual canonical workspace, preserving business assertions. Readiness checks also found and corrected missing customer-name context on filtered Jobs pages using bounded selected-customer lookup and current result fallback. First PR run exposes old navigation assertions; no checks bypassed and no beta merge yet. Existing completion, pricing, provider and paid/physical-device gates remain. The future supported customer journey remains specification only.",
       "evidence": "https://github.com/Velnu38/Velnu/pull/118",
