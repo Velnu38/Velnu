@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {DateTime} from 'luxon'
 import type {CurrentBusiness} from '../lib/business'
 import {canOpenView} from '../lib/workspaceAccess'
@@ -8,15 +8,19 @@ import type {WorkbookLine} from '../services/bookkeeping'
 import './operations.css'
 const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n))
 const buckets=['current','1–30 days','31–60 days','61–90 days','91+ days']
-export default function FinancialInsights({business,refreshVersion=0,compact=false,rows=[]}:{business:CurrentBusiness;refreshVersion?:number;compact?:boolean;rows?:WorkbookLine[]}){
+export default function FinancialInsights({business,refreshVersion=0,compact=false,rows=[],summary=false,onOverview}:{business:CurrentBusiness;refreshVersion?:number;compact?:boolean;rows?:WorkbookLine[];summary?:boolean;onOverview?:(value:FinanceOverview|null)=>void}){
+ const overviewCallback=useRef(onOverview);overviewCallback.current=onOverview
  const [result,setResult]=useState<{key:string;value:FinanceOverview}|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[version,setVersion]=useState(0),[detail,setDetail]=useState(false)
  const key=[business.id,business.role,business.access_modules?.join(',')].join(':')
  useBusinessRefresh(business.id,()=>setVersion(v=>v+1))
- useEffect(()=>{let active=true;setLoading(true);setError('');getFinancialOverview(business.id).then(value=>{if(active)setResult({key,value})}).catch(()=>{if(active){setResult(null);setError('Receivables could not load. Refresh to retry.')}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[key,refreshVersion,version])
+ useEffect(()=>{let active=true;setLoading(true);setError('');overviewCallback.current?.(null);getFinancialOverview(business.id).then(value=>{if(active){setResult({key,value});overviewCallback.current?.(value)}}).catch(()=>{if(active){setResult(null);setError('Receivables could not load. Refresh to retry.')}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[key,refreshVersion,version])
  const value=result?.key===key&&!error&&!loading?result.value:null
  const categories=new Map<string,number>();for(const row of rows)if(row.direction==='expense'&&row.currency==='USD')categories.set(row.category,(categories.get(row.category)||0)+Math.round(Number(row.amount)*100))
  const InvoiceLink=canOpenView(business,'invoices')?'a':'div'
  const costs=[...categories].sort((a,b)=>b[1]-a[1]).slice(0,6),max=Math.max(1,...costs.map(c=>c[1]))
+  if(summary)return <div className="home-receivables" aria-busy={loading}>
+    {error?<p role="alert">{error} <button type="button" className="text-button" onClick={()=>setVersion(v=>v+1)}>Retry receivables</button></p>:!value?<p role="status">Loading invoice balances…</p>:value.currency_supported===false?<p>Receivables currently support USD businesses.</p>:<p>Outstanding <strong>{money(value.receivables.outstanding)}</strong><span> · {money(value.receivables.overdue)} overdue</span></p>}
+  </div>
  return <div className={'finance-insights'+(compact?' is-compact':'')}>
   <div className="insight-section-heading"><div><p className="eyebrow">Money coming in</p><h3>Receivables</h3><p className="quiet">{value?.as_of?'As of '+DateTime.fromISO(value.as_of).toFormat('MMM d, yyyy'):'Current invoice balances'} · separate from the cash period below</p></div><button type="button" className="text-button" onClick={()=>setDetail(v=>!v)} aria-expanded={detail}>{detail?'Hide breakdown':'View breakdown'}</button></div>
   {error&&<p role="alert">{error} <button type="button" className="text-button" onClick={()=>setVersion(v=>v+1)}>Retry</button></p>}

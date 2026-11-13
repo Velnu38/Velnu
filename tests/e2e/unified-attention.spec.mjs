@@ -1,3 +1,4 @@
+import {openHomePanels} from './navigation.mjs'
 import {customerSearchResponse} from './job-customer-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 import {attentionPage} from './attention-fixture.mjs'
@@ -65,7 +66,7 @@ async function mock(page,{signedIn=true,conflict=false}={}){
 }
 
 for(const width of [1440,390])test(`one attention area below billing and shared job notes at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=dashboard')
+ await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=dashboard');await openHomePanels(page)
  const billing=page.getByRole('article',{name:'Needs attention overview'})
  const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention).toContainText('Test Customer')

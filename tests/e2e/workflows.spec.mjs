@@ -1,3 +1,4 @@
+import {openHomePanels} from './navigation.mjs'
 import {readFile} from 'node:fs/promises'
 import {generateDocumentPdf} from '../../shared/documentPdf.ts'
 import {pdfHeaders} from './document-pdf-fixture.mjs'
@@ -345,6 +346,7 @@ test('dashboard uses one tenant-scoped aggregate RPC instead of downloading invo
     ],
   })
   await page.goto('/?view=dashboard')
+  await openHomePanels(page,['finances'])
   await expect(page.getByRole('region',{name:'Financial Performance',exact:true}).getByRole('link',{name:/^Outstanding/})).toContainText('$125.00')
   const aggregates = state.requests.filter(r => r.path.endsWith('/rpc/get_dashboard_invoice_totals'))
   expect(aggregates).toHaveLength(1)

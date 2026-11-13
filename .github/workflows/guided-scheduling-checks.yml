@@ -75,6 +75,9 @@ jobs:
         run: npx playwright test --grep-invert @native-handoff --fully-parallel --workers=2 --shard=${{ matrix.shard }}/6
         env:
           FINVIANT_TEST_CHANNEL: chrome
+      - name: Annotate failed browser assertions
+        if: failure()
+        run: node scripts/qa/annotate-browser-failures.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: failure() && !startsWith(github.head_ref, 'review/')
         with:

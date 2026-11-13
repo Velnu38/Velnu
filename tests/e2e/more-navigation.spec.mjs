@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { mock, B, business } from './audit-fixture.mjs'
+import {openHomePanels} from './navigation.mjs'
 
 const setupLinks = ['Company Profile', 'Team Management', 'Email & Text Setup', 'Invoice & Estimate Setup', 'Calendar Connections']
 const moreButton = page => page.locator(page.viewportSize().width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', {name: 'More', exact: true})
@@ -29,6 +30,7 @@ for (const width of [320, 390, 1440]) test(`More consolidates setup and preserve
   await page.goBack()
   await expect(page.getByRole('link', {name: 'Manage Reminders', exact: true})).toBeVisible()
   await page.locator(width > 900 ? '.sidebar' : '.mobile-nav').getByRole('button', {name: 'Home', exact: true}).click()
+  await openHomePanels(page,['finances'])
   await page.getByRole('button',{name:/^View all income & expenses/}).click()
   await page.getByRole('link', {name: 'Payment history', exact: true}).click()
   await expect(page).toHaveURL(/view=payments/)

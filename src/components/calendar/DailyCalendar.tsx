@@ -19,13 +19,16 @@ const ReminderDetailsDialog=lazy(()=>import('../ReminderDetailsDialog'))
 const JobDetailsDialog=lazy(()=>import('../JobDetailsDialog'))
 const CalendarEntryDialog=lazy(()=>import('./CalendarEntryDialog'))
 type Agenda = Awaited<ReturnType<typeof loadCalendarRange>>
-export default function DailyCalendar({ business, refreshVersion = 0, showReminders = true, compact = false }: {
-  business: CurrentBusiness; refreshVersion?: number; showReminders?: boolean; compact?: boolean
+export default function DailyCalendar({ business, refreshVersion = 0, showReminders = true, compact = false, summary = false }: {
+  business: CurrentBusiness; refreshVersion?: number; showReminders?: boolean; compact?: boolean; summary?: boolean
 }) {
   const zone = business.timezone || 'America/New_York'
   const [today, setToday] = useState(() => DateTime.now().setZone(zone).toISODate()!)
   const [day, setDay] = useState(today)
   const [view, setView] = useState<CalendarView>('week')
+  const [expanded, setExpanded] = useState(false)
+  const card=useRef<HTMLElement>(null),previousExpanded=useRef(false)
+  useEffect(()=>{if(!summary||expanded===previousExpanded.current)return;previousExpanded.current=expanded;card.current?.querySelector<HTMLElement>(expanded?'h2':'button[aria-label="Calendar"]')?.focus()},[expanded,summary])
   const [version, setVersion] = useState(0)
   const [result, setResult] = useState<{ key: string; agenda: Agenda } | null>(null)
   const [error, setError] = useState('')
@@ -109,9 +112,30 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
           {!reminders.length ? <p className="calendar-empty">No reminders for this day.</p> : <ul className="calendar-reminders">{reminders.map(item => <li key={item.id} className={item.status === 'completed' ? 'completed' : undefined}><button type="button" className="reminder-open" aria-label={`Open reminder ${item.note || 'Follow up'}`} onClick={()=>setReminderId(item.id)}><strong>{item.note || 'Follow up'}</strong><span>{item.status === 'completed' ? 'Completed · ' : DateTime.fromISO(item.due_at).toMillis() < Date.now() ? 'Overdue · ' : ''}{DateTime.fromISO(item.due_at).setZone(zone).toFormat('MMM d, h:mm a')}</span><small>{business.role==='viewer'?'View reminder':'Edit reminder'} →</small></button>{business.role !== 'viewer' && item.status !== 'completed' && <button className="calendar-done" disabled={busy !== null} onClick={() => void complete(item.id)} aria-label={`Complete ${item.note || 'reminder'}`}>{busy === item.id ? '…' : 'Done'}</button>}</li>)}</ul>}
         </div>)
   const periodLabel = view === 'month' ? selected.toFormat('MMMM yyyy') : `${range.start.toFormat('MMM d')} – ${range.end.minus({ days: 1 }).toFormat('MMM d, yyyy')}`
-  return <section className={`dashboard-calendar dashboard-tile calendar-no-print${compact?' home-calendar-compact':''}`} aria-label="Work calendar">
+  const editors = <>
+    {reminderId&&<Suspense fallback={<p role="status">Opening reminder…</p>}><ReminderDetailsDialog key={business.id+reminderId} business={business} reminderId={reminderId} onClose={()=>setReminderId(null)}/></Suspense>}
+    {jobId&&<Suspense fallback={<p role="status">Opening job…</p>}><JobDetailsDialog business={business} jobId={jobId} onClose={()=>setJobId(null)}/></Suspense>}
+    {entry&&<Suspense fallback={<p role="status">Opening calendar entry…</p>}><CalendarEntryDialog business={business} day={entry.day} entryId={entry.id} onClose={()=>setEntry(null)} onSaved={()=>setVersion(v=>v+1)}/></Suspense>}
+  </>
+  if(summary&&!expanded){
+    const visits=work.filter(item=>!['completed','canceled'].includes(item.status))
+    return <section ref={card} className="dashboard-calendar dashboard-tile home-today-card" aria-label="Work calendar" aria-busy={loading}>
+      <div className="home-card-heading"><h2 className="dashboard-tile-title">Today</h2><button type="button" className="text-button" aria-label="Calendar" onClick={()=>setExpanded(true)}>Calendar <span aria-hidden="true">›</span></button></div>
+      {loading&&!agenda?<p role="status">Loading your schedule…</p>:error?<p role="alert">{error} <button type="button" className="text-button" onClick={()=>setVersion(v=>v+1)}>Retry</button></p>:agenda&&<>
+        {visits.length?<ul className="home-today-list">{visits.slice(0,2).map(item=><li key={item.source_key}><a href={`/?view=${item.document_kind==='invoice'?'invoices':item.document_kind==='estimate'?'estimates':'work'}&document=${encodeURIComponent(item.document_id)}`} onClick={event=>{if(item.job_id){event.preventDefault();setJobId(item.job_id)}else if(item.source_key.startsWith('appointment:')&&item.document_kind==='work'){event.preventDefault();setEntry({day:today,id:item.source_key.slice(12)})}}}><time dateTime={item.starts_at}>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('h:mm')}<small>{DateTime.fromISO(item.starts_at).setZone(zone).toFormat('a')}</small></time><span><strong>{item.title}</strong><small>{item.customer_name||item.status.replaceAll('_',' ')}</small></span></a></li>)}</ul>:<p className="home-card-empty">No upcoming visits today.</p>}
+        {visits.length>2&&<button type="button" className="text-button" onClick={()=>setExpanded(true)}>View all {visits.length} visits</button>}
+        {!!reminders.length&&<button type="button" className="text-button home-today-note" onClick={()=>setExpanded(true)}>{reminders.length} {reminders.length===1?'reminder':'reminders'} today <span aria-hidden="true">›</span></button>}
+        {(connectedError||!!connected?.issues.length)&&<p role="status" className="home-today-note">Connected calendar needs review. <button type="button" className="text-button" onClick={()=>setExpanded(true)}>Review calendar</button></p>}
+        {!!connectedEvents.length&&<button type="button" className="text-button home-today-note" onClick={()=>setExpanded(true)}>{connectedEvents.length} connected {connectedEvents.length===1?'event':'events'} today <span aria-hidden="true">›</span></button>}
+        {agenda.detailsUnavailable&&<p role="status">Some job details are unavailable. <button type="button" className="text-button" onClick={()=>setExpanded(true)}>Review schedule</button></p>}
+      </>}
+      {editors}
+    </section>
+  }
+  return <section ref={card} className={`dashboard-calendar dashboard-tile calendar-no-print${compact?' home-calendar-compact':''}`} aria-label="Work calendar">
+    {summary&&<button type="button" className="text-button home-detail-back" onClick={()=>{setExpanded(false);setDay(today);setView('week')}}>‹ Back to Today</button>}
     <div className="calendar-heading">
-      <div><p className="eyebrow">Your schedule</p><h2 className="dashboard-tile-title">{view === 'week' ? 'Weekly Schedule' : 'Monthly calendar'}</h2></div>
+      <div><p className="eyebrow">Your schedule</p><h2 className="dashboard-tile-title" tabIndex={summary?-1:undefined}>{view === 'week' ? 'Weekly Schedule' : 'Monthly calendar'}</h2></div>
       <div className="calendar-heading-actions"><div className="view-switch" role="group" aria-label="Calendar view">{(['week','month'] as const).map(mode => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)}>{mode === 'week' ? 'Week' : 'Month'}</button>)}</div>{business.role!=='viewer'&&<button type="button" className="calendar-add" onClick={()=>setEntry({day})}>{compact?'Add to calendar':'+ Add entry'}</button>}</div>
     </div>
     {teamScheduling&&team.length>(compact?1:0)&&<label className="worker-select">Scheduled work for<select value={worker} onChange={e=>setWorker(e.target.value)}><option value="all">Everyone</option>{team.map(item=><option value={item.id} key={item.id}>{item.is_you?'My schedule · ':''}{item.label}</option>)}</select><small>Shared reminders and connected personal events are shown separately.</small></label>}
@@ -154,8 +178,6 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
       <details open={!!connectedError||!!connected?.issues.length||connectedEvents.length>0}><summary>Connected calendars <span>{connectedLoading&&!connected?'—':connectedEvents.length}</span></summary>    <ConnectedCalendarEvents events={connectedEvents} issues={connected?.issues ?? []} connections={connected?.connections ?? 0} loading={connectedLoading && !connected} error={connectedError} zone={zone} onRetry={()=>setVersion(value=>value+1)}/></details>
       {!connectedLoading&&!connectedError&&!connected?.connections&&<a href="/?view=settings&section=calendar">Connect a calendar</a>}
     </div>:<ConnectedCalendarEvents events={connectedEvents} issues={connected?.issues ?? []} connections={connected?.connections ?? 0} loading={connectedLoading && !connected} error={connectedError} zone={zone} onRetry={()=>setVersion(value=>value+1)}/>}
-    {reminderId&&<Suspense fallback={<p role="status">Opening reminder…</p>}><ReminderDetailsDialog key={business.id+reminderId} business={business} reminderId={reminderId} onClose={()=>setReminderId(null)}/></Suspense>}
-    {jobId&&<Suspense fallback={<p role="status">Opening job…</p>}><JobDetailsDialog business={business} jobId={jobId} onClose={()=>setJobId(null)}/></Suspense>}
-    {entry&&<Suspense fallback={<p role="status">Opening calendar entry…</p>}><CalendarEntryDialog business={business} day={entry.day} entryId={entry.id} onClose={()=>setEntry(null)} onSaved={()=>setVersion(v=>v+1)}/></Suspense>}
+    {editors}
   </section>
 }

@@ -1,0 +1,91 @@
+/* Approved Home revised option B. Scope these controls to the Home overview. */
+.home-revised{--home-line:#c4cad7;--home-ink:#101a2c;--home-muted:#596170;--home-accent:#007762}
+.home-revised .dashboard-business-header{display:flex;align-items:center;gap:12px;margin:0}
+.home-revised .dashboard-business-identity{min-width:0;flex:1}
+.home-revised .dashboard-business-identity h1{font-size:26px;line-height:1.15;letter-spacing:-.025em;color:var(--home-ink);overflow-wrap:anywhere;margin:0}
+.home-revised .home-date{font-size:16px;color:var(--home-muted);margin:5px 0 0}
+.home-revised .home-header-actions{flex-shrink:0;margin:0;display:block}
+.home-revised .home-header-actions .home-create-button{min-height:44px;border-radius:10px;padding:10px 14px;white-space:nowrap;font-size:16px}
+.home-revised .home-overview{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.home-revised .home-overview>.dashboard-tile{border:1px solid var(--home-line);border-radius:12px;padding:14px;background:#fff;box-shadow:none;margin:0;min-width:0}
+.home-revised .home-card-heading{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.home-revised .home-card-heading h2,.home-revised .home-financial-card>h2{font-size:24px;line-height:1.15;letter-spacing:-.025em;font-weight:700;color:var(--home-ink);margin:0}
+.home-revised .home-card-heading>.text-button{margin-left:auto;font-size:16px;min-height:44px;color:var(--home-accent);text-decoration:underline;display:inline-flex;align-items:center;gap:6px}
+.home-revised .home-today-list{list-style:none;padding:0;margin:0}
+.home-revised .home-today-list li+li{margin-top:8px}
+.home-revised .home-today-list a{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:start;text-decoration:none;color:var(--home-ink);min-height:54px}
+.home-revised .home-today-list time{background:#edf1f5;border-radius:10px;text-align:center;font-weight:700;font-size:18px;line-height:1.1;padding:10px 4px;display:grid;gap:3px;font-variant-numeric:tabular-nums}
+.home-revised .home-today-list time small{font-weight:400;font-size:11px;color:var(--home-muted)}
+.home-revised .home-today-list a>span{display:grid;gap:4px;min-width:0;padding:4px 0 10px;border-bottom:1px solid #e3e6eb}
+.home-revised .home-today-list li:last-child a>span{border-bottom:0}
+.home-revised .home-today-list strong{font-size:17px;line-height:1.2;overflow-wrap:anywhere}
+.home-revised .home-today-list a>span>small{font-size:15px;color:var(--home-muted);overflow-wrap:anywhere}
+.home-revised .home-today-note{margin:8px 0 0;font-size:14px;min-height:44px;display:block}
+.home-revised .home-count{display:inline-flex;align-items:center;justify-content:center;min-width:34px;min-height:30px;padding:2px 10px;border-radius:18px;background:#def5ee;color:var(--home-accent);font-size:20px;font-weight:700}
+.home-revised .home-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.home-revised .home-action-tile{display:grid;grid-template-columns:1fr auto;align-content:start;gap:6px;min-height:118px;min-width:0;text-align:left;padding:10px 12px;border:1px solid var(--home-line);border-radius:10px;background:#fff;color:var(--home-ink);font:inherit}
+.home-revised .home-action-tile>svg{width:32px;height:32px;color:var(--home-accent)}
+.home-revised .home-action-tile .home-tile-chevron{font-size:26px;line-height:1;color:var(--home-ink)}
+.home-revised .home-action-tile strong,.home-revised .home-action-tile small{grid-column:1/-1;overflow-wrap:anywhere}
+.home-revised .home-action-tile strong{font-size:19px;line-height:1.15;letter-spacing:-.02em}
+.home-revised .home-action-tile small{font-size:14px;line-height:1.3;color:var(--home-muted)}
+.home-revised .home-action-tile:hover{border-color:var(--home-accent);background:#f5fbf8}
+.home-revised .home-financial-card .home-period-label{color:var(--home-muted);margin:6px 0 14px;font-size:15px}
+.home-revised .home-financial-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 12px;gap:10px}
+.home-revised .home-financial-values>div{min-width:0}
+.home-revised .home-financial-values>div+div{border-left:1px solid #d7dde6;padding-left:10px}
+.home-revised .home-financial-values dt{font-size:14px;color:var(--home-muted);margin-bottom:6px}
+.home-revised .home-financial-values dd{font-size:clamp(17px,4.6vw,24px);font-weight:700;line-height:1.2;letter-spacing:-.025em;font-variant-numeric:tabular-nums;color:var(--home-ink);margin:0;overflow-wrap:anywhere}
+.home-revised .home-financial-values dd.is-positive{color:var(--home-accent)}
+.home-revised .home-financial-values dd.is-negative{color:#a12622}
+.home-revised .home-receivables{border-top:1px solid #d7dde6;padding-top:10px;font-size:14px;color:var(--home-muted)}
+.home-revised .home-receivables p{margin:0;line-height:1.45;overflow-wrap:anywhere}
+.home-revised .home-receivables strong{color:var(--home-ink)}
+.home-revised .home-financial-open{min-height:44px;color:var(--home-accent);font-size:16px;font-weight:700;padding:8px 0 0}
+.home-revised .home-detail-back{min-height:44px;margin-bottom:8px}
+.home-revised .home-card-empty{font-size:15px;color:var(--home-muted);margin:6px 0;line-height:1.4}
+.home-revised :is(button,a,summary):focus-visible{outline:3px solid #007762;outline-offset:3px}
+.home-revised .home-attention-expanded{min-width:0;display:grid;gap:12px}
+@media(min-width:1101px){.home-revised .home-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.home-revised .home-financial-card{grid-column:1/-1}.home-revised .home-financial-values{max-width:740px}.home-revised .home-attention-expanded{grid-column:1/-1}.home-revised .home-calendar-compact,.home-revised .interactive-performance{grid-column:1/-1}}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ body:has(.home-revised) .private-testing-app{padding-inline:14px}
+ body:has(.home-revised) .workspace-inner{padding-inline:0;padding-top:18px}
+ .home-revised{gap:14px!important}
+ .home-revised .dashboard-business-logo{display:block;width:40px;height:40px;max-width:40px;object-fit:contain;flex-shrink:0}
+ .home-revised .dashboard-business-identity h1{font-size:24px}
+ .home-revised .home-header-actions .home-create-button{min-width:0;min-height:44px;width:auto;padding-inline:12px}
+ .home-revised .home-date{font-size:14px}
+ .home-revised .home-financial-values dd{font-size:clamp(13px,4vw,18px);white-space:nowrap}
+}
+@media(max-width:360px){.home-revised .dashboard-business-identity h1{font-size:21px}.home-revised .home-header-actions .home-create-button{font-size:14px;padding-inline:10px}.home-revised .home-action-tile{padding:10px}.home-revised .home-action-tile strong{font-size:17px}.home-revised .home-card-heading h2,.home-revised .home-financial-card>h2{font-size:22px}}
+/* Override the older phone Home heading stack without changing other workspaces. */
+.dashboard-page.home-revised .dashboard-business-header{flex-direction:row;align-items:center;text-align:left}
+.dashboard-page.home-revised .dashboard-business-identity{width:auto;justify-content:flex-start;text-align:left;align-items:center}
+.dashboard-page.home-revised .home-header-actions{width:auto;flex:0 0 auto;justify-content:flex-end}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){.finviant-workspace .workspace-inner:has(>.home-revised){padding-inline:14px}.dashboard-page.home-revised .dashboard-business-header{gap:10px}.dashboard-page.home-revised .dashboard-business-identity h1{text-align:left}.dashboard-page.home-revised .home-header-actions .home-create-button{width:auto;flex:none}}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ body:has(.home-revised) .mobile-brand .fin-brand>span{display:none}
+ .dashboard-page.home-revised .dashboard-business-identity h1{font-size:22px}
+ .home-revised .home-card-heading{margin-bottom:6px}
+ .home-revised .home-today-list a{min-height:50px;grid-template-columns:60px minmax(0,1fr);gap:10px}
+ .home-revised .home-today-list time{padding-block:8px}
+ .home-revised .home-action-tile{min-height:108px;gap:4px}
+}
+@media(min-width:1101px){.finviant-workspace.home-view .dashboard-page.home-revised .home-overview>.home-today-card,.finviant-workspace.home-view .dashboard-page.home-revised .home-overview>.home-attention-card{grid-column:auto}}
+.home-revised .home-action-tile:only-child{grid-column:1/-1}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .home-view .jm-account-banner{margin:0 14px 8px;border:1px solid #8fc6bb;border-left:4px solid #008673;border-radius:10px;background:#e8f6f2;color:#173b36}
+ .home-view .jm-account-banner>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;min-height:44px;list-style:none;font-size:16px;cursor:pointer}
+ .home-view .jm-account-banner>summary::-webkit-details-marker{display:none}
+ .home-view .jm-account-banner>summary span{font-size:12px;color:#40665e}
+ .home-view .jm-account-banner[open]>div{padding:0 10px 10px}
+ .home-view .jm-account-banner .private-testing-app{padding:0}
+ .home-view .jm-account-banner .private-beta-notice,.home-view .jm-account-banner .tier-banner{margin:8px 0;font-size:12px;flex-wrap:wrap}
+ .home-view .jm-account-banner>summary:focus-visible{outline:3px solid #007762;outline-offset:3px}
+}
+
+.home-revised .dashboard-business-identity>div{min-width:0}
+@media(max-width:360px){
+ .home-revised .home-financial-values{gap:6px}
+ .home-revised .home-financial-values>div+div{padding-left:6px}
+}

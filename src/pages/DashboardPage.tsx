@@ -1,14 +1,13 @@
-import OperationalAttention from '../components/OperationalAttention'
+import HomeAttention from '../components/HomeAttention'
+import {DateTime} from 'luxon'
 import SendBusinessCard, {BusinessCardQuickLink} from '../components/SendBusinessCard'
 import { useBusinessRefresh } from '../lib/useBusinessRefresh'
 import { canAccess, canOpenView, workspaceModules } from '../lib/workspaceAccess'
-import BillingHub from '../components/BillingHub'
 import DailyCalendar from '../components/calendar/DailyCalendar'
 import { useEffect, useRef, useState } from 'react'
 import { businessLogoUrl, type CurrentBusiness } from '../lib/business'
 import { getDashboardSnapshot, type DashboardSnapshot } from '../services/dashboard'
 import FinancialPerformance from '../components/FinancialPerformance'
-import CustomerPaymentReviews from '../components/CustomerPaymentReviews'
 import '../components/dashboard-interactive.css'
 import { readableError } from '../lib/errors'
 import '../components/dashboard-tiles.css'
@@ -18,6 +17,7 @@ import WorkspaceIcon from '../components/WorkspaceIcon'
 import RefreshButton from '../components/RefreshButton'
 import { canOpenSettingsSection, settingsHref } from '../lib/settingsNavigation'
 import '../home-consistency.css'
+import '../components/home-revised.css'
 
 type DashboardDestination = 'estimates' | 'invoices' | 'work' | 'schedule' | 'bookkeeping'
 const empty: DashboardSnapshot = {
@@ -37,10 +37,9 @@ const empty: DashboardSnapshot = {
 
 export default function DashboardPage({ business, onSetup, onNavigate }: { business: CurrentBusiness; onSetup?: () => void; onNavigate?: (view: DashboardDestination) => void }) {
   const [snapshot, setSnapshot] = useState(empty)
+  const [receivables,setReceivables]=useState<{key:string;overdue:number}|null>(null)
   const [showCardSend,setShowCardSend] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
-  const [attentionCount, setAttentionCount] = useState(0)
-  const [openAttention, setOpenAttention] = useState(0)
   const [refreshVersion, setRefreshVersion] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -101,17 +100,15 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
   const canCreateEntry = canAccess(business, 'calendar') && business.role !== 'viewer'
   const canManageTeam = canOpenSettingsSection(business, 'team')
 
-  return <div className="page-stack dashboard-page">
+  return <div className="page-stack dashboard-page home-revised">
     <header className="page-heading split-heading dashboard-business-header">
-      <div className="dashboard-business-identity">{logo && <img className="dashboard-business-logo" src={logo} alt={business.name + ' logo'} />}<div><p className="home-eyebrow">Your workspace</p><h1>{business.name}</h1><p className="home-intro">Your business, at a glance.</p></div></div>
-      <div className="home-header-actions">{attentionCount>0&&canAccess(business,'billing')&&<a className="home-attention-link" href="#home-attention" onClick={event=>{event.preventDefault();setOpenAttention(value=>value+1)}}>{attentionCount} {attentionCount===1?'item needs':'items need'} attention</a>}<RefreshButton busy={loading} onClick={() => { setRefreshVersion(value => value + 1); void refresh(true) }}/>{(canCreateBilling || canCreateJob || canCreateEntry || canManageTeam) && <button type="button" className="primary-button compact home-create-button" aria-label="Quick Links" aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}>Quick Links</button>}</div>
+      <div className="dashboard-business-identity">{logo && <img className="dashboard-business-logo" src={logo} alt={business.name + ' logo'} />}<div><h1>{business.name}</h1><p className="home-date">{DateTime.now().setZone(business.timezone||'America/New_York').toFormat('cccc, MMMM d')}</p></div></div>
+      <div className="home-header-actions">{(canCreateBilling || canCreateJob || canCreateEntry || canManageTeam) && <button type="button" className="primary-button compact home-create-button" aria-label="Quick Links" aria-busy={loading} aria-haspopup="dialog" aria-expanded={showCreate} onClick={() => setShowCreate(true)}>Quick Links</button>}{!(canCreateBilling || canCreateJob || canCreateEntry || canManageTeam)&&<RefreshButton label="Refresh Home" busy={loading} onClick={()=>{setRefreshVersion(value=>value+1);void refresh(true)}}/>}</div>
     </header>
     <div className="home-overview">
-      {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} compact />}
-      {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey+':financial'} business={business} refreshVersion={refreshVersion} compact onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
-      {canAccess(business,'billing') && <BillingHub key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} openRequest={openAttention} onPendingChange={setAttentionCount} approvalBreakdown={{estimates:snapshot.pendingEstimateCount,changeOrders:snapshot.pendingChangeOrderCount}} />}
-      {canAccess(business,'jobs') && <OperationalAttention key={workspaceKey+':work-attention'} business={business} refreshVersion={refreshVersion}/>}
-      {canAccess(business,'finances') && <CustomerPaymentReviews key={workspaceKey+':payment-reviews'} businessId={business.id} />}
+      {canAccess(business,'calendar') && <DailyCalendar key={workspaceKey+':calendar'} business={business} refreshVersion={refreshVersion} compact summary />}
+      <HomeAttention key={workspaceKey+':attention'} business={business} refreshVersion={refreshVersion} overdueAmount={receivables?.key===workspaceKey?receivables.overdue:undefined} approvalBreakdown={{estimates:snapshot.pendingEstimateCount,changeOrders:snapshot.pendingChangeOrderCount}}/>
+      {canAccess(business,'finances') && <FinancialPerformance key={workspaceKey+':financial'} business={business} refreshVersion={refreshVersion} compact summary onReceivables={value=>setReceivables(value?.currency_supported?{key:workspaceKey,overdue:value.receivables.overdue}:null)} onOpenWorkbook={onNavigate ? () => onNavigate('bookkeeping') : undefined} />}
     </div>
 
     {showCreate && <FormDialog label="Quick Links" onClose={() => setShowCreate(false)}>
@@ -126,11 +123,12 @@ export default function DashboardPage({ business, onSetup, onNavigate }: { busin
         {canOpenView(business, 'customers') && <a href="/?view=customers" aria-label="Customers"><WorkspaceIcon kind="customers"/><span><strong>Customers</strong><small>Find customer details, locations, and history</small></span><span aria-hidden="true">›</span></a>}
         {canManageTeam && <a href={settingsHref('team')} aria-label="Team Management"><WorkspaceIcon kind="customers"/><span><strong>Team Management</strong><small>Workers, availability, and account access</small></span><span aria-hidden="true">›</span></a>}
       </nav>
+      <div className="modal-actions"><RefreshButton label="Refresh Home" busy={loading} onClick={()=>{setRefreshVersion(value=>value+1);void refresh(true);setShowCreate(false)}}/></div>
     </FormDialog>}
 
     {showCardSend&&<SendBusinessCard key={business.id} business={business} onClose={()=>setShowCardSend(false)}/>}
     {!business.profile_completed_at && ['owner', 'admin'].includes(business.role) && <section className="setup-prompt"><div><strong>Complete your company profile</strong><p>Add your logo, address and phone so your invoices and estimates look like they come from your business.</p></div><button className="primary-button compact" onClick={onSetup}>Set up company</button></section>}
-    {!canAccess(business,'billing')&&canAccess(business,'calendar')&&<section className="dashboard-tile home-attention-tile" aria-label="Needs Attention"><div className="work-card-heading"><div><p className="eyebrow">Your next steps</p><h2 className="dashboard-tile-title">Needs Attention</h2></div></div><AttentionReminders business={business} reminders={snapshot.dueReminders}/></section>}
+    {!canAccess(business,'billing')&&!canAccess(business,'jobs')&&canAccess(business,'calendar')&&<section className="dashboard-tile home-attention-tile" aria-label="Needs Attention"><div className="work-card-heading"><div><p className="eyebrow">Your next steps</p><h2 className="dashboard-tile-title">Needs Attention</h2></div></div><AttentionReminders business={business} reminders={snapshot.dueReminders}/></section>}
     {error && <p role="alert" className="form-message error-text">{error}</p>}
 
 

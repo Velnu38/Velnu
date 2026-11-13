@@ -2,7 +2,15 @@
 
 Checked November 13, 2026 UTC.
 
-## Current release preparation
+## Current Home release preparation
+
+- The owner approved Home — revised Option B and authorized beta release after PR114. The invoice release is complete. The new Home candidate keeps Quick Links and Ask Fin; Today lists appointments, attention uses Work-style tiles, and Financial Performance uses a compact summary with existing detailed views preserved. See [implementation/review scope](HOME_REVISED_OPTION_B_2026-11-13.md). Full required CI and beta verification remain pending. PR107 is not merged or imported; the latest owner-approved design controls this work.
+
+## Current verified invoice release
+
+- PR114 is merged as 77c3016b833295e1c8c47c6884750f79b19f0484. All required workflows and all 22 full-suite jobs passed at 677b04f; tested and merged trees match. Vercel deployment GBnzmesTaZnpnkTvg7GXsmKAEGz1 serves the invoice controls on both Finviant domains. HTTP200, private no-store/noindex, beta backend and new invoice assets verified. No hosted data changes, provider activation, sends or charges. Home and simplified creation mockups remain proposals. See [release receipt](evidence/2026-11-13-invoice-beta-release.json).
+
+## Historical release preparation (superseded by the receipt above)
 
 - PR114 prepares the invoice creation controls for beta release. The separate Overdue summary action is removed, Create invoice occupies its place, and recurring setup is an owner-only new-invoice option with explicit schedule confirmation. The later three-screen creation mockup remains unimplemented.
 - The previously reproduced customer-navigation and completion-to-invoice failures were stale navigation in tests: use the visible Open filters control / Additional job filters and enter Job Management through Manage job before reviewing completion. All three corrected cases pass locally without removing assertions or changing runtime behavior. Required full CI and beta deployment remain pending; do not treat this as a release receipt.
