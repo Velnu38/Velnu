@@ -8,8 +8,8 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
-      "title": "Estimate mockup implementation \u2014 candidate",
-      "detail": "November 12: separate second release applies document phone cards, summary values/counts, status filters, existing PDF/work/change/history shortcuts and full-screen forms. Existing approval, scheduling, deposit/final-invoice, revision, recovery, delivery and role safeguards retained. Candidate verification pending; no provider/backend changes.",
+      "title": "Estimate and shared document mockups \u2014 beta deployed",
+      "detail": "November 12: PR113 merged as eb0057142f3bce99984ae00a220119acdcbb4276, exact reviewed tree 317382cc2df5ab38d55b1f77a866694752480327 from candidate 976bf64042a1b0498e387722c063c11b18db9139. Focused run 43341779976 passed 16 cases per Chromium/WebKit engine with final 320/390/430px captures and primary-action visibility. TypeScript, build with 95 startup checks, estimate actions/record DOM, invoice lifecycle DOM and assessment passed. Both beta domains resolve to READY Vercel dpl_3ZnhT117recH7woHCvYVsHZKs76M, HTTP200; live shared document and bootstrap CSS exactly match reviewed build. Beta backend/privacy headers retained. Existing provider, approval, payment/refund, booking, revision, deposit, conversion and unsaved-edit guards remain. No physical-device/signed-in owner or actual provider acceptance claim.",
       "evidence": "docs/INVOICE_ESTIMATE_MOCKUPS_2026-11-12.md"
     },
     {
