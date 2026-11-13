@@ -176,7 +176,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
   }
 
   return (
-    <WorkspaceNavigation.Provider value={back}><div className={`app-shell finviant-workspace${view === 'dashboard' ? ' home-view' : ''}${view === 'work' ? ' job-phone-shell' : ''}${view === 'invoices' ? ' document-phone-shell' : ''}`} onClick={openAppLink}>
+    <WorkspaceNavigation.Provider value={back}><div className={`app-shell finviant-workspace${view === 'dashboard' ? ' home-view' : ''}${view === 'work' ? ' job-phone-shell' : ''}${['invoices','estimates'].includes(view) ? ' document-phone-shell' : ''}`} onClick={openAppLink}>
       <aside className="sidebar">
         <div className="sidebar-brand"><FinBrand wordmark/></div>
         <nav>{sidebarNav.filter(item => canOpenView(company,item.id)).map((item) => <button key={item.id} aria-label={item.label} aria-current={activeDestination === item.id ? 'page' : undefined} className={activeDestination === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><span className="nav-icon"><WorkspaceIcon kind={item.id}/></span>{item.label}</button>)}<button type="button" aria-label="More" aria-haspopup="dialog" aria-expanded={showMobileMore} aria-controls="mobile-more-options" className={!mobilePrimary.includes(activeDestination)||showMobileMore?'active':''} onClick={() => setShowMobileMore(true)}><span className="nav-icon"><WorkspaceIcon kind="more"/></span>More</button></nav>
@@ -186,7 +186,7 @@ export default function AppShell({ business }: { business: CurrentBusiness }) {
         <header className="topbar"><div className="mobile-brand"><FinBrand wordmark/></div><div className="topbar-business"><span>{company.name}</span><span className="role-pill">{company.role}</span></div>
           <div className="workspace-assistant">{!accessRemoved && canUseAssistant(company) && <AiAssistantAccess business={company} onNavigate={openFinDestination} onOpenInvoice={openFinInvoice} onChanged={() => {window.dispatchEvent(new Event('finviant-work-changed'));window.dispatchEvent(new Event('finviant-assistant-saved'));window.setTimeout(()=>{if(!hasUnsavedChanges())setRefreshVersion(v=>v+1)},0)}} />}</div>
         </header>
-        <JobPhoneAccount active={view==='work'||view==='invoices'}><div className="private-testing-app"><PrivateBetaNotice compact disclosure={view==='dashboard'||view==='work'} /></div><TierBanner businessId={company.id}/></JobPhoneAccount>
+        <JobPhoneAccount active={view==='work'||view==='invoices'||view==='estimates'}><div className="private-testing-app"><PrivateBetaNotice compact disclosure={view==='dashboard'||view==='work'} /></div><TierBanner businessId={company.id}/></JobPhoneAccount>
         <div className="workspace-inner" key={`${view}-${refreshVersion}`}><WorkspaceErrorBoundary><Suspense fallback={<div className="loading-page" role="status">Loading workspace…</div>}>{page()}</Suspense></WorkspaceErrorBoundary></div>
       </main>
       <nav className="mobile-nav" aria-label="Workspace navigation">

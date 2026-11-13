@@ -30,3 +30,5 @@
 }
 
 .toolbar{flex-wrap:wrap}.toolbar>label{min-width:0;flex:1 1 150px}.toolbar input[type=date]{width:100%;min-width:0;max-width:100%}.payment-heading-actions{display:flex;flex-wrap:wrap;gap:10px;max-width:100%}.record-list-controls{min-width:0;flex-wrap:wrap}.record-list-controls>label{min-width:0}.record-list-controls nav{max-width:100%;flex-wrap:wrap}
+
+.form-dialog-topbar{display:contents}.form-dialog-brand{display:none}

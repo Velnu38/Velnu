@@ -2,7 +2,7 @@ name: Focused document mockup review
 on:
   pull_request:
     branches: [ux/private-testing-20261029]
-    paths: [src/components/document-phone.css, src/components/InvoiceDetail.tsx, src/pages/InvoicesPage.tsx, src/pages/EstimatesPage.tsx, tests/e2e/document-phone-mockups.spec.mjs, .github/workflows/document-phone-review.yml]
+    paths: [src/components/document-phone.css, src/components/FormDialog.tsx, src/workspace-consistency.css, src/components/InvoiceDetail.tsx, src/pages/InvoicesPage.tsx, src/pages/EstimatesPage.tsx, tests/e2e/document-phone-mockups.spec.mjs, .github/workflows/document-phone-review.yml]
 permissions:
   contents: read
 concurrency:
