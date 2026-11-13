@@ -90,7 +90,7 @@ test('phone entry starts with the selected job and keeps the shell compact',asyn
  await expect(page.locator('.jm-queue')).toBeHidden()
  await expect(page.locator('.jm-summary')).not.toHaveAttribute('open','')
  const box=await card.boundingBox();expect(box.y).toBeLessThan(460)
- const heading=page.getByRole('heading',{name:'Job Management',exact:true});const title=await heading.boundingBox();const create=await page.getByRole('button',{name:'Create job',exact:false}).boundingBox();expect(Math.abs(title.y-create.y)).toBeLessThan(40);expect(title.x+title.width).toBeLessThanOrEqual(create.x)
+ await expect(page.locator('.jm-context-heading').getByRole('heading',{name:'Job Management',exact:true})).toBeVisible();await expect(page.locator('.jm-context-heading').getByRole('button',{name:'‹ All jobs',exact:true})).toBeVisible()
  await shot(page,'entry-390')
  await page.locator('.jm-mobile-picker select').selectOption('browse');await expect(page.locator('.jm-queue')).toBeVisible()
  await expect(page.getByRole('searchbox',{name:'Find a job',exact:true})).toBeVisible()

@@ -545,7 +545,7 @@ export default function JobManagementWorkspace({
   return (
     <>
     <section
-      className={"jm-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections && (mobileDetail || section !== "overview") ? " jm-compact-job" : "")}
+      className={"jm-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections ? " jm-compact-job" : "")}
       aria-label="Selected job workspace"
       aria-busy={loading || busy}
     >
