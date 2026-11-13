@@ -12,7 +12,7 @@ const React=await import('react'),{act}=React,{createRoot}=await import('react-d
 const server=await createServer({server:{middlewareMode:true,hmr:false},appType:'custom',optimizeDeps:{noDiscovery:true,include:[]}})
 const B='11111111-1111-4111-8111-111111111111';let filter='attention',payment='clear',count=0,calendarJobStatus=null,calls=[],supabase,plan='pro'
 const tick=()=>act(()=>new Promise(r=>setTimeout(r,35)))
-const button=t=>[...document.querySelectorAll('button')].find(el=>el.textContent.trim()===t)
+const button=t=>[...document.querySelectorAll('button')].find(el=>el.textContent.trim()===t||el.getAttribute('aria-label')===t)
 const click=async t=>{assert.ok(button(t),t);await act(async()=>button(t).click());await tick()}
 const business={id:B,name:'Home QA',role:'owner',primary_owner:true,access_modules:['calendar','billing','jobs','finances'],timezone:'America/New_York',profile_completed_at:'2026-01-01'}
 const invoice={id:'inv',invoice_number:'INV-1',due_date:'2000-01-01',balance_due:100,customers:[]}
@@ -36,13 +36,13 @@ try{
  await act(async()=>root.render(React.createElement(Home,{business,onNavigate:()=>{}})));await tick();await tick()
  const trigger=button('Quick Links');assert.ok(trigger);assert.equal(trigger.getAttribute('aria-label'),'Quick Links');assert.equal(trigger.textContent,'Quick Links')
  assert.equal(document.querySelector('.attention-jump'),null)
- assert.ok(document.querySelector('.home-calendar-compact'));assert.ok(document.querySelector('.performance-compact'));assert.ok(document.querySelector('#home-attention'))
+ assert.ok(document.querySelector('.home-today-card'));assert.ok(document.querySelector('.home-financial-card'));assert.ok(document.querySelector('.home-attention-card'));assert.equal(button('Refresh'),undefined)
  await click('Quick Links');assert.equal(document.querySelector('dialog').getAttribute('aria-label'),'Quick Links')
  for(const destination of ['invoices','estimates','work','reminders','customers'])assert.ok(document.querySelector(`.home-create-options a[href*="view=${destination}"]`))
  assert.equal(document.querySelector('.home-create-options a[aria-label="Team Management"]').getAttribute('href'),'/?view=settings&section=team')
  assert.equal([...document.querySelectorAll('.home-create-options button')].some(el=>/calendar|appointment/i.test(el.textContent)),false,'calendar creation is removed from Quick Links')
  await act(async()=>document.querySelector('button[aria-label="Close"]').click());await tick()
- assert.equal([...document.querySelectorAll('button')].filter(el=>el.textContent.trim()==='Refresh').length,1);assert.equal(document.querySelector('.home-header-actions details'),null);assert.ok(document.querySelector('.home-header-actions>.refresh-button'));const beforeRefresh=calls.filter(c=>c.name==='get_dashboard_invoice_totals').length;await click('Refresh');await tick();assert.ok(calls.filter(c=>c.name==='get_dashboard_invoice_totals').length>beforeRefresh,'Home refresh retains its data reload')
+ assert.equal(document.querySelector('.home-header-actions>.refresh-button'),null);const beforeRefresh=calls.filter(c=>c.name==='get_dashboard_invoice_totals').length;await click('Quick Links');await click('Refresh Home');await tick();assert.ok(calls.filter(c=>c.name==='get_dashboard_invoice_totals').length>beforeRefresh,'Home refresh remains available in Quick Links');await click('Calendar');await click('View finances')
  assert.equal(document.querySelector('.worker-select'),null,'solo owner does not need a redundant crew filter')
  const extras=[...document.querySelectorAll('.home-calendar-extras>details')];assert.equal(extras.length,2);assert.ok(extras.every(el=>!el.open));assert.ok(document.querySelector('.home-calendar-extras a'))
  await click('Today');await click('Month');assert.match(document.body.textContent,/Monthly calendar/);await click('Week')

@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-13",
+  "scope": "Owner-approved Home revised Option B after the completed invoice release",
+  "baseCommit": "77c3016b833295e1c8c47c6884750f79b19f0484",
+  "branch": "ux/home-revised-option-b-20261113",
+  "approvedReference": "docs/reference/home-revised-option-b.png",
+  "implementationGuide": "docs/HOME_REVISED_OPTION_B_2026-11-13.md",
+  "validation": {
+    "build": "Production build and 95 startup/deployment checks passed during implementation",
+    "focusedBrowser": "15 synthetic Chromium cases passed at 320/390/430/1440px: layout, accessibility, keyboard focus, permissions, detailed destinations, calendar return date, payment reconciliation and billing return path",
+    "earlierWorkflowSelection": "26 cases passed; one calendar-entry test needed its new visible Calendar entry point and subsequently passed",
+    "dom": "Home layout/review/calendar regression passed",
+    "assessment": "10 tests passed; generated report and registry consistent"
+  },
+  "requiredReleaseGate": "Pending full CI on the final candidate; do not promote before all required checks pass",
+  "limits": [
+    "Synthetic data only; no signed-in hosted tenant or physical-device acceptance claim",
+    "No hosted data modifications, migrations, provider activation, customer sends or charges",
+    "The simplified three-screen invoice-creation mockup remains unimplemented"
+  ]
+}

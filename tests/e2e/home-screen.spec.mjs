@@ -1,3 +1,4 @@
+import {openHomePanels} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import {mock,business,B} from './audit-fixture.mjs'
 
@@ -9,7 +10,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
  await page.goto('/?view=dashboard')
  await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
  const finance=page.getByRole('region',{name:'Financial Performance',exact:true}),calendar=page.getByRole('region',{name:'Work calendar',exact:true})
- await expect(finance).toBeVisible();await expect(calendar).toBeVisible()
+ await expect(finance).toBeVisible();await expect(calendar).toBeVisible();await openHomePanels(page,['calendar','finances'])
  expect(await finance.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('.dashboard-calendar'))&Node.DOCUMENT_POSITION_PRECEDING))).toBe(true)
  for(const months of [1,3,6,12]){
   await finance.getByRole('button',{name:`${months} ${months===1?'month':'months'}`,exact:true}).click()
@@ -39,7 +40,7 @@ for (const width of [320,390,1440]) test(`Home keeps financial drill-down, calen
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  expect(state.calls.some(c=>c.path.includes('/functions/v1/send-'))).toBe(false)
  expect(errors).toEqual([])
- await page.screenshot({path:`test-results/home-screen-${width}.png`,fullPage:true})
+ await page.getByRole('button',{name:'‹ Back to Today',exact:true}).click();await page.getByRole('button',{name:'‹ Back to overview',exact:true}).click();await page.screenshot({path:`test-results/home-screen-${width}.png`,fullPage:true})
 })
 for(const kind of ['invoice','estimate','job','reminder'])test(`Home creation chooser opens the existing ${kind} editor`,async({page})=>{
  await mock(page);await page.goto('/?view=dashboard')
@@ -83,7 +84,7 @@ test('Home keeps calendar creation on the calendar and removes it from Quick Lin
  await mock(page);await page.goto('/?view=dashboard')
  const trigger=page.getByRole('button',{name:'Quick Links',exact:true})
  await trigger.click();await page.keyboard.press('Escape');await expect(trigger).toBeFocused()
- await trigger.click();const chooser=page.getByRole('dialog',{name:'Quick Links',exact:true});await expect(chooser.getByRole('button',{name:'+ New calendar entry',exact:true})).toHaveCount(0);await expect(chooser.getByRole('link',{name:'Team Management',exact:true})).toHaveAttribute('href','/?view=settings&section=team');await chooser.getByRole('button',{name:'Close',exact:true}).click();await page.getByRole('button',{name:'Add to calendar',exact:true}).click()
+ await trigger.click();const chooser=page.getByRole('dialog',{name:'Quick Links',exact:true});await expect(chooser.getByRole('button',{name:'+ New calendar entry',exact:true})).toHaveCount(0);await expect(chooser.getByRole('link',{name:'Team Management',exact:true})).toHaveAttribute('href','/?view=settings&section=team');await chooser.getByRole('button',{name:'Close',exact:true}).click();await openHomePanels(page,['calendar']);await page.getByRole('button',{name:'Add to calendar',exact:true}).click()
  await expect(page.getByRole('dialog',{name:'Add to your calendar',exact:true})).toBeVisible()
 })
 for(const role of ['technician','viewer'])test(`Home preserves ${role} module and creation restrictions`,async({page})=>{

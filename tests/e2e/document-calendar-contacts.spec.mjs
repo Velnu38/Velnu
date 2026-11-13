@@ -1,3 +1,4 @@
+import {openHomePanels} from './navigation.mjs'
 import { createWork } from './navigation.mjs'
 import {attentionPage} from './attention-fixture.mjs'
 import {test,expect} from '@playwright/test'
@@ -78,7 +79,7 @@ async function mock(page,{signedIn=true,conflict=false,completedWork=false,ai=fa
 }
 
 for(const width of [1440,390])test(`navigation returns to the previous workspace page at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});await mock(page);await page.goto('/?view=dashboard')
+ await page.setViewportSize({width,height:900});await mock(page);await page.goto('/?view=dashboard');await openHomePanels(page)
  await page.locator(width>900?'.sidebar':'.mobile-nav').getByRole('button',{name:'More',exact:true}).click()
  await page.getByRole('dialog',{name:'More navigation'}).getByRole('link',{name:/^Customers/}).click();await expect(page.getByRole('heading',{name:'Everyone you work for, in one place.'})).toBeVisible()
  await page.getByRole('button',{name:'← Back',exact:true}).click();await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
@@ -110,13 +111,13 @@ test('completed work has no new change-order action',async({page})=>{
  await mock(page,{completedWork:true});await page.goto('/?view=invoices');await page.getByRole('button',{name:/^Open invoice INV-QA/}).click();await expect(page.getByRole('heading',{name:'INV-QA',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Checking change order…',exact:true})).toHaveCount(0);await page.getByRole('region',{name:'Record actions',exact:true}).locator('.record-more>summary').click();await expect(page.getByRole('button',{name:'New change order',exact:true})).toHaveCount(0)
 })
 for(const width of [1440,390])test(`select a calendar date then use Add entry to save a manual event at ${width}px`,async({page})=>{
- await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'});await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
+ await page.setViewportSize({width,height:900});const state=await mock(page);await page.goto('/?view=dashboard');await openHomePanels(page);const calendar=page.getByRole('region',{name:'Work calendar'});await expect(calendar.getByLabel('Calendar date')).toHaveCount(0)
  const date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first();await date.click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await expect(dialog).toHaveCount(0);await calendar.getByRole('button',{name:'Add to calendar',exact:true}).click();await expect(dialog).toBeVisible();await dialog.getByLabel('Title',{exact:true}).fill('Pick up materials');await dialog.getByLabel('Details',{exact:true}).fill('Collect the order before the job');await expect(dialog.getByRole('button',{name:'Ask Fin'})).toBeDisabled()
  await dialog.getByRole('button',{name:'Add event',exact:true}).click();await expect.poll(()=>state.entries.length).toBe(1);expect(state.entries[0].notes).toBe('Collect the order before the job');expect(state.entries[0].assigned_user_id).toBe(U);await expect(dialog).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
 })
 test('activated calendar AI opens the existing assistant with the selected date for review',async({page})=>{
- await mock(page,{ai:true});await page.goto('/?view=dashboard');await page.getByRole('button',{name:'Add to calendar',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await dialog.getByLabel('Title',{exact:true}).fill('Mow the lawn');await dialog.getByRole('button',{name:'Ask Fin',exact:true}).click()
+ await mock(page,{ai:true});await page.goto('/?view=dashboard');await openHomePanels(page);await page.getByRole('button',{name:'Add to calendar',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Add to your calendar'});await dialog.getByLabel('Title',{exact:true}).fill('Mow the lawn');await dialog.getByRole('button',{name:'Ask Fin',exact:true}).click()
  const assistant=page.getByRole('dialog',{name:'Fin — your office assistant'});await expect(assistant).toBeVisible();await expect(assistant.getByLabel('Describe your invoice or request')).toHaveValue(/Help me complete the open “Add to your calendar” form[\s\S]*Title: Mow the lawn[\s\S]*Starts: \d{4}-\d{2}-\d{2}T09:00/);await expect(assistant.getByLabel('Describe your invoice or request')).toHaveValue(/not permission to save, create, send, delete, or change any record/)
 })
 for(const width of [1440,390])test(`owner reviews phone contact cards before importing at ${width}px`,async({page})=>{
@@ -144,7 +145,7 @@ for(const width of [1440,390])test(`selected-day agenda shows every job, local r
  await page.route('**/rest/v1/jobs?**',route=>{if(route.request().method()==='PATCH'){notes=route.request().postDataJSON().description;return reply(route,{id:J})}const job={id:J,title:'Day job 0',description:notes,status:'scheduled',scheduled_start:jobs[0].starts_at,scheduled_end:jobs[0].ends_at,assigned_user_ids:[U],customers:customer,properties:[{address_line1:'1 Test Street',city:'Chesapeake',state:'VA',postal_code:'23322'}]};return reply(route,route.request().headers().accept?.includes('vnd.pgrst.object')?job:[job])})
  await page.route('**/rest/v1/rpc/get_job_workflow_context',route=>reply(route,[{job_id:J,active_appointment:{id:P,status:'scheduled',starts_at:jobs[0].starts_at,ends_at:jobs[0].ends_at},invoice:null}]))
  await page.route('**/api/calendar?**',route=>{externalCalls++;const params=new URL(route.request().url()).searchParams;externalRanges.push({startDay:params.get('startDay'),endDay:params.get('endDay')});return reply(route,{events,issues:[],connections:2})})
- await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'})
+ await page.goto('/?view=dashboard');await openHomePanels(page);const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.locator('a.calendar-event')).toHaveCount(5)
  await expect(calendar).toContainText('1 Test Street, Chesapeake, VA 23322');await expect(calendar).toContainText(notes)
  await expect(calendar.getByText('Order cedar',{exact:true})).toBeVisible();await expect(calendar.getByText('Confirm access',{exact:true})).toBeVisible()
@@ -171,7 +172,7 @@ test('connected calendar failure keeps local work usable and retry restores only
  const state=await mock(page);let fail=true
  const start=DateTime.now().setZone(zone).set({hour:9,minute:0});state.entries.push({id:J,title:'Local visit',starts_at:start.toISO(),ends_at:start.plus({hours:1}).toISO()})
  await page.route('**/api/calendar?**',route=>route.fulfill({status:fail?503:200,contentType:'application/json',body:JSON.stringify(fail?{error:'provider_rate_limited'}:{events:[],issues:[],connections:1})}))
- await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'})
+ await page.goto('/?view=dashboard');await openHomePanels(page);const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.getByText('Local visit',{exact:true})).toBeVisible();await expect(calendar).toContainText('Your calendar provider is busy')
  fail=false;await calendar.getByRole('button',{name:'Retry connected calendars'}).click();await expect(calendar).toContainText('No connected-calendar events for this day.');await expect(calendar.getByText('Local visit',{exact:true})).toBeVisible()
 })
@@ -180,7 +181,7 @@ test('viewer selects dates with the keyboard and sees that day without creation 
  state.entries.push({id:J,title:'Read-only scheduled visit',starts_at:start.toISO(),ends_at:start.plus({hours:1}).toISO()})
  await page.route('**/rest/v1/business_members?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({business_id:B,role:'viewer',access_modules:['calendar','jobs','billing','finances'],businesses:business})}))
  await page.route('**/api/calendar?**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({events:[],issues:[],connections:0})}))
- await page.goto('/?view=dashboard');const calendar=page.getByRole('region',{name:'Work calendar'}),date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first()
+ await page.goto('/?view=dashboard');await openHomePanels(page);const calendar=page.getByRole('region',{name:'Work calendar'}),date=calendar.getByRole('group',{name:'Choose a day in the week'}).getByRole('button').first()
  await date.focus();await page.keyboard.press('Enter');await expect(date).toHaveAttribute('aria-pressed','true');await expect(calendar.getByText('Read-only scheduled visit',{exact:true})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(calendar.getByRole('button',{name:'Add to calendar'})).toHaveCount(0)
 })
 

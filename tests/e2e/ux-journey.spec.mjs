@@ -1,3 +1,4 @@
+import {openHomePanels} from './navigation.mjs'
 import {test,expect} from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import {mock,B,U,J,customer} from './audit-fixture.mjs'
@@ -15,12 +16,12 @@ async function home(page){
   return state
 }
 for(const width of [390,1440])test(`Home, chooser, customer and saved review accessibility at ${width}px`,async({page})=>{
-  await page.setViewportSize({width,height:900});const state=await home(page);await page.goto('/?view=dashboard')
+  await page.setViewportSize({width,height:900});const state=await home(page);await page.goto('/?view=dashboard');await openHomePanels(page,['work'])
   const attention=page.getByRole('region',{name:'Work needs attention',exact:true})
   await expect(attention.getByText('Prepare the work site',{exact:true})).toBeVisible()
   await expect(attention.getByRole('link',{name:/Prepare the work site/})).toHaveAttribute('href',/section=tasks/)
   await scan(page,'.home-work-attention')
-  if(width===1440){const finance=await page.locator('.performance-compact').boundingBox(),billing=await page.locator('.home-attention-tile').boundingBox(),work=await attention.boundingBox();expect(Math.abs(finance.y-billing.y)).toBeLessThan(2);expect(work.y).toBeGreaterThanOrEqual(Math.max(finance.y+finance.height,billing.y+billing.height))}
+  if(width===1440){const finance=await page.locator('.financial-performance').boundingBox(),work=await attention.boundingBox();expect(finance.y).toBeGreaterThanOrEqual(work.y+work.height-1)}
   await mkdir('tmp/ux-review',{recursive:true});await page.screenshot({path:`tmp/ux-review/home-${width}.png`,fullPage:true})
   await page.getByRole('button',{name:'Quick Links',exact:true}).click()
   await expect(page.getByRole('heading',{name:'Create',exact:true})).toBeVisible()
@@ -81,7 +82,7 @@ test('accessibility engine detects an intentionally broken isolated control',asy
   expect(result.violations.map(v=>v.id)).toContain('button-name')
 })
 test('workspace preference honors user/business key and explicit directory links',async({page})=>{
-  await home(page);await page.goto('/?view=dashboard')
+  await home(page);await page.goto('/?view=dashboard');await openHomePanels(page,['work'])
   await page.evaluate(({B,U})=>localStorage.setItem(`finviant-jobs-workspace:v1:${U}:${B}`,'management'),{B,U})
   await page.goto('/?view=work');await expect(page.getByRole('tab',{name:'Job Management',exact:true})).toHaveAttribute('aria-selected','true')
   await page.goto('/?view=work&workspace=jobs');await expect(page.getByRole('tab',{name:'Jobs',exact:true})).toHaveAttribute('aria-selected','true')
@@ -93,10 +94,13 @@ test('work attention failure stays distinct from empty and retries without sendi
     failed=true;return route.fulfill({status:403,headers:{'access-control-allow-origin':'*'},json:{message:'Synthetic unavailable work query'}})
   })
   await page.goto('/?view=dashboard')
+  const summary=page.getByRole('region',{name:'Needs attention overview',exact:true})
+  await expect(summary.getByRole('alert')).toContainText('Work blockers are unavailable')
+  await summary.getByRole('button',{name:'Retry reviews',exact:true}).click()
+  await expect(summary.getByRole('alert')).toHaveCount(0)
+  await openHomePanels(page,['work'])
   const attention=page.getByRole('region',{name:'Work needs attention',exact:true})
-  await expect(attention.getByRole('alert')).toContainText('Work attention is unavailable')
   await expect(attention.getByText('No work blockers found.',{exact:true})).toHaveCount(0)
-  await attention.getByRole('button',{name:'Retry work attention'}).click()
   await expect(attention.getByRole('link',{name:/Prepare the work site/})).toBeVisible()
   expect(state.calls.some(c=>/send-document|send-invoice/.test(c.path))).toBe(false)
 })

@@ -1,3 +1,4 @@
+import {openHomePanels,refreshHome} from './navigation.mjs'
 import {customerSearchResponse} from './job-customer-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { createWork, openWorkArea } from './navigation.mjs'
@@ -332,7 +333,7 @@ async function managedReminders(page, options = {}) {
     }
     return route.fallback()
   })
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   return {state,row,zone,calendar:page.getByRole('region',{name:'Work calendar'}),dialog:page.getByRole('dialog',{name:'Manage reminder',exact:true})}
 }
 
@@ -424,7 +425,7 @@ const attentionCount = page => page.getByRole('group',{name:'Home work queue'}).
 const count = (s, suffix, method) => s.requests.filter(r => r.path.endsWith(suffix) && (!method || r.method === method)).length
 const openDashboard = async (page, options) => {
   const state = await mockWorkspace(page, options)
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   await expect(page.getByRole('heading', { level: 1, name: options?.businessProfile?.name || 'Velnu QA', exact: true })).toBeVisible()
   return state
 }
@@ -459,25 +460,25 @@ test('01 empty dashboard renders without uncaught exceptions', async ({ page }) 
   const errors = noRuntimeErrors(page)
   await openDashboard(page)
   await expect(page.getByText('No items need attention.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Quick Links', exact: true })).toBeEnabled()
   expect(errors).toEqual([])
 })
 
 test('02 Strict Mode concurrent initial loads share one invoice summary call', async ({ page }) => {
   const state = await openDashboard(page, { aggregate: { open_invoices: 1, outstanding_balance: 30 } })
-  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Quick Links', exact: true })).toBeEnabled()
   expect(count(state, '/rpc/get_dashboard_invoice_totals', 'POST')).toBe(1)
 })
 
 test('03 null aggregate values display zero safely', async ({ page }) => {
   await openDashboard(page, { aggregate: { open_invoices: null, outstanding_balance: null } })
-  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Quick Links', exact: true })).toBeEnabled()
   await expect(page.locator('.home-overview')).not.toContainText('NaN')
 })
 
 test('04 large financial summary stays server-side without an unbounded invoice scan', async ({ page }) => {
   const state = await openDashboard(page, { aggregate: { open_invoices: 12001, outstanding_balance: '123456789.22' } })
-  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Quick Links', exact: true })).toBeEnabled()
   expect(count(state, '/rpc/get_dashboard_invoice_totals', 'POST')).toBe(1)
   expect(state.requests.filter(r => r.path.endsWith('/invoices') && new URL(r.url).searchParams.get('select') === 'balance_due')).toHaveLength(0)
 })
@@ -492,15 +493,15 @@ test('05 failed invoice-summary RPC displays recoverable error instead of crashi
     }))
     throw err
   })
-  await expect(page.getByRole('button', { name: 'Refresh' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Quick Links', exact: true })).toBeEnabled()
 })
 
 test('06 dashboard manual refresh recovers after failed RPC', async ({ page }) => {
   const state = await openDashboard(page, { aggregateFailures: 20, aggregate: { open_invoices: 2, outstanding_balance: 42 } })
   await expect(page.getByText('Dashboard summary temporarily unavailable')).toBeVisible()
   state.aggregateFailures = 0
-  await page.getByRole('button', { name: 'Refresh' }).click()
-  await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+  await refreshHome(page)
+  await expect(page.getByRole('button', { name: 'Quick Links', exact: true })).toBeEnabled()
   await expect(page.getByText('Dashboard summary temporarily unavailable')).toHaveCount(0)
   expect(count(state, '/rpc/get_dashboard_invoice_totals', 'POST')).toBeGreaterThanOrEqual(2)
 })
@@ -508,7 +509,7 @@ test('06 dashboard manual refresh recovers after failed RPC', async ({ page }) =
 test('07 navigation during a slow dashboard load does not resurrect the old screen', async ({ page }) => {
   const errors = noRuntimeErrors(page)
   await mockWorkspace(page, { aggregateDelay: 850 })
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Velnu QA', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'More', exact: true }).click()
   await page.getByRole('dialog', { name: 'More navigation' }).getByRole('link', { name: /^Schedule/ }).click()
@@ -545,7 +546,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
     state.invoices = []
-    await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await refreshHome(page)
     await expect(tile.getByText('No items need attention.')).toBeVisible()
     await expect(tile.locator('.invoice-overdue-badge')).toHaveCount(0)
     await page.getByRole('navigation').getByRole('button', { name:'Invoices',exact:true }).click()
@@ -642,7 +643,7 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
   expect(state.requests.filter(r => ['/estimates', '/change_orders', '/reminders'].some(p => r.path.endsWith(p)) && new URL(r.url).searchParams.get('limit') === null)).toEqual([])
   state.estimates = []
   state.changeOrders = []
-  await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+  await refreshHome(page)
   await expect(tile).toContainText('No estimates or change orders are waiting for approval.')
   await expect(tile.locator('.estimate-approval-badge')).toHaveCount(0)
   await page.getByRole('navigation').getByRole('button', { name:'Estimates',exact:true }).click()
@@ -843,7 +844,7 @@ test('calendar reminders can be linked to a job', async ({ page }) => {
 test('calendar dashboard shows daily work, overdue reminders, completion, and another date', async ({ page }) => {
   await mockWorkspace(page,{reminders:[{...reminder(2),note:'Confirm materials'}]})
   await page.route('**/rest/v1/calendar_work?**', route => route.fulfill({ contentType: 'application/json', headers:{'access-control-expose-headers':'content-range','content-range':'0-0/1'}, body: JSON.stringify([{source_key:'job:qa',title:'Roof inspection',description:'',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+3600000).toISOString(),status:'scheduled',document_kind:'work',document_id:id(1)}]) }))
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   const calendar = page.getByRole('region', {name:'Work calendar'})
   await expect(calendar.getByRole('heading',{name:'Weekly Schedule'})).toBeVisible()
   await expect(calendar.getByRole('link',{name:'Roof inspection'})).toBeVisible()
@@ -878,7 +879,7 @@ test('calendar widget fits a phone without horizontal overflow', async ({ page }
   await mockWorkspace(page,{businessProfile:{name:'Barone Landscaping and Property Maintenance',logo_path:BID+'/logo.png'}})
   await page.route('**/storage/v1/object/public/velnu-business-logos/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jR1sAAAAASUVORK5CYII=','base64')}))
   await page.route('**/rest/v1/calendar_work?**', route=>route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'*/0'},body:'[]'}))
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   const calendar=page.getByRole('region',{name:'Work calendar'})
   await expect(calendar).toBeVisible()
   expect(await calendar.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true)
@@ -958,7 +959,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
     page.on('dialog', dialog => dialog.accept())
     await panel.getByRole('button', { name: 'Remove picture job-photo.png' }).click()
     await expect(panel.getByRole('img')).toHaveCount(0)
-    await page.goto('/?view=dashboard')
+    await page.goto('/?view=dashboard');await openHomePanels(page)
     await page.locator('.performance-metric.expense').click()
     await expect(page.locator('.transaction-list > li').filter({ hasText: 'Replacement fittings' })).toHaveCount(1)
     expect(state.invoices[0].total).toBe(100)
@@ -984,7 +985,7 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
     json:[{source_key:'job:'+job.id,title:job.title,starts_at:start,ends_at:null,status:'scheduled',document_kind:'work',document_id:job.id,job_id:job.id}],
     headers:{'access-control-expose-headers':'content-range','content-range':'0-0/1'},
   }))
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   await page.getByRole('region',{name:'Work calendar'}).getByRole('link').filter({hasText:job.title}).click()
   const dialog = page.getByRole('dialog',{name:'Job details',exact:true})
   const notes = dialog.getByLabel('Job notes and materials needed')
@@ -1096,7 +1097,7 @@ test('selected day shows every calendar item while financial detail stays availa
   await mockWorkspace(page)
   const items=Array.from({length:7},(_,n)=>({source_key:`job:${n}`,title:`Calendar repair ${n}`,starts_at:new Date().toISOString(),ends_at:null,status:'scheduled',document_kind:'work',document_id:id(n)}))
   await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'0-6/7'},body:JSON.stringify(items)}))
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   const calendar=page.getByRole('region',{name:'Work calendar'})
   await expect(calendar.locator('a.calendar-event')).toHaveCount(7)
   await expect(calendar.getByRole('button',{name:/Show all.*scheduled/})).toHaveCount(0)
@@ -1158,7 +1159,7 @@ test('owner settings five-seat capacity blocks a sixth invitation',async({page})
 })
 
 test('owner settings restricted staff cannot open hidden modules or owner controls',async({page})=>{
- const state=await mockWorkspace(page,{role:'office',accessModules:['jobs']});await page.goto('/?view=dashboard')
+ const state=await mockWorkspace(page,{role:'office',accessModules:['jobs']});await page.goto('/?view=dashboard');await openHomePanels(page)
  await expect(page.getByRole('heading',{name:business.name,exact:true})).toBeVisible()
  await expect(page.getByRole('region',{name:'Work calendar'})).toHaveCount(0)
  await expect(page.getByRole('article',{name:'Needs attention overview'})).toHaveCount(0)
@@ -1229,7 +1230,7 @@ for (const width of [1440,390]) test(`interactive dashboard week and month calen
  const items=[0,1,2].map((offset)=>({source_key:`job:interactive-${offset}`,title:['Kitchen installation','Oak Street repair','HVAC maintenance'][offset],description:'',starts_at:day.plus({days:offset,hours:9}).toISO(),ends_at:day.plus({days:offset,hours:11}).toISO(),status:'scheduled',document_kind:'work',document_id:id(980+offset)}))
  const calls=[]
  await page.route('**/rest/v1/calendar_work?**',r=>{calls.push(r.request().url());return r.fulfill({contentType:'application/json',headers:{'access-control-expose-headers':'content-range','content-range':'0-2/3'},body:JSON.stringify(items)})})
- await page.goto('/?view=dashboard')
+ await page.goto('/?view=dashboard');await openHomePanels(page)
  const calendar=page.getByRole('region',{name:'Work calendar'})
  await expect(calendar.getByRole('heading',{name:'Weekly Schedule'})).toBeVisible()
  await expect(calendar.getByRole('link',{name:/Kitchen installation/})).toBeVisible()
@@ -1282,7 +1283,7 @@ async function mockInteractiveFinances(page) {
 }
 for (const width of [1440,390]) test(`interactive dashboard financial periods expand complete transactions and sources at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const {now,invoice,job}=await mockInteractiveFinances(page)
- await page.goto('/?view=dashboard')
+ await page.goto('/?view=dashboard');await openHomePanels(page)
  const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
  await expect(finance.getByRole('button',{name:'1 month',exact:true})).toHaveAttribute('aria-pressed','true')
  await finance.getByRole('button',{name:'6 months',exact:true}).click()
@@ -1319,7 +1320,7 @@ for (const width of [1440,390]) test(`interactive dashboard financial periods ex
 test('interactive dashboard financial failure does not show invented zero totals',async({page})=>{
  await mockWorkspace(page)
  await page.route('**/rest/v1/rpc/list_invoice_cash_activity**',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Payments unavailable'})}))
- await page.goto('/?view=dashboard')
+ await page.goto('/?view=dashboard');await openHomePanels(page)
  const finance=page.getByRole('region',{name:'Financial Performance',exact:true})
  await expect(finance.getByRole('alert').filter({hasText:'Payments unavailable'})).toBeVisible({timeout:15000})
  await expect(finance.locator('.performance-metric.income')).toBeDisabled()
@@ -1377,7 +1378,7 @@ for(const width of [1440,390])test(`invoice creates one linked scheduled job wit
 test('sent invoices need attention only with an unpaid balance before the business calendar day',async({page})=>{
  await page.clock.install({time:new Date('2026-11-04T02:00:00Z')}) // November 3 in New York
  const invoices=[['FUTURE','sent','2026-11-05',100],['TODAY','sent','2026-11-03',100],['NO-DUE','sent',null,100],['OVERDUE','sent','2026-11-02',100],['PARTIAL','partial','2026-11-02',20],['PAID','paid','2026-11-02',0],['DRAFT','draft','2026-11-02',100],['VOID','void','2026-11-02',100]].map(([number,status,due,balance],n)=>({id:id(310+n),invoice_number:'INV-'+number,status,due_date:due,balance_due:balance,total:100,issue_date:'2026-11-01',customers:customer}))
- const state=await mockWorkspace(page,{invoices,attentionNow:Date.parse('2026-11-04T02:00:00Z'),sessionTTL:259200,aggregate:{open_invoices:5,outstanding_balance:420}});await page.goto('/?view=dashboard')
+ const state=await mockWorkspace(page,{invoices,attentionNow:Date.parse('2026-11-04T02:00:00Z'),sessionTTL:259200,aggregate:{open_invoices:5,outstanding_balance:420}});await page.goto('/?view=dashboard');await openHomePanels(page)
  const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention.getByRole('link',{name:/Open invoice INV-OVERDUE/})).toBeVisible()
  await expect(attention.getByRole('link',{name:/Open invoice INV-PARTIAL/})).toBeVisible()
@@ -1391,7 +1392,7 @@ test('sent invoices need attention only with an unpaid balance before the busine
 for(const width of [1440,390])test(`all attention actions use one color and size at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900})
  await mockWorkspace(page,{reminders:[reminder(700)],invoices:[{id:id(701),invoice_number:'INV-OLD',status:'sent',issue_date:'2020-01-01',due_date:'2020-01-02',total:100,balance_due:100,customers:customer}],workflow:{approved:[{id:id(702),estimate_number:'EST-READY',customer_name:'Jane Doe',offer:null}],completed:[{id:id(703),title:'Finished work',invoice_id:id(704),invoice_status:'draft'}]}})
- await page.goto('/?view=dashboard');const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
+ await page.goto('/?view=dashboard');await openHomePanels(page);const attention=page.getByRole('region',{name:'Needs Attention',exact:true})
  await expect(attention.locator('.attention-action')).toHaveCount(3)
  await expect(attention.locator('.billing-reminder-row').getByRole('button',{name:'Send reminder',exact:true})).toBeEnabled()
  const styles=await attention.locator('.attention-action').evaluateAll(elements=>elements.map(e=>{const s=getComputedStyle(e);return [s.backgroundColor,s.color,s.fontFamily,s.fontSize,s.fontWeight,e.getBoundingClientRect().height,e.getBoundingClientRect().width]}))
@@ -1620,7 +1621,7 @@ for (const width of [390, 1440]) test(`Needs Attention category buttons open fil
     invoices: [{id:id(5012), invoice_number:'INV-LATE', status:'sent', due_date:'2000-01-01', balance_due:100, customers:customer}],
     reminders: [reminder(5013)],
   })
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   const hub = page.getByRole('article', {name:'Needs attention overview'})
   const categories = hub.getByRole('group', {name:'Needs Attention categories'})
   for (const [label, filter, item, count] of [
@@ -1672,7 +1673,7 @@ const finishedReviewJob = {
 test('Individual receipt scan fills an editable expense and a failed upload retries against the same expense', async ({page}) => {
   const state = await mockWorkspace(page, {plan:'basic',receiptUploadFailures:1,jobs:[finishedReviewJob]})
   await page.setViewportSize({width:390,height:844})
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   await page.getByRole('region',{name:'Financial Performance'}).getByRole('button',{name:'Add transaction',exact:true}).click()
   const chooser = page.getByRole('dialog',{name:'Add financial entry',exact:true})
   await selectReceipt(page, chooser)

@@ -1,3 +1,4 @@
+import {openHomePanels} from './navigation.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
 import { test, expect } from '@playwright/test'
 import { DateTime } from 'luxon'
@@ -103,7 +104,7 @@ test('Needs Attention opens an exact change order and restores the approval queu
     json:attentionPage(route.request().postDataJSON(),{changeOrders:[change]}),
   }))
   await page.route('**/rest/v1/change_orders?**',route=>route.fulfill({json:[change],headers}))
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   await expect(page.getByRole('article',{name:'Needs attention overview',exact:true})).toBeVisible()
   const filter = page.getByRole('button',{name:/^Awaiting Customer Approval 1(?: |$)/})
   await filter.click()
@@ -147,7 +148,7 @@ test('completed jobs link to the prepared invoice immediately',async({page})=>{
 test('booking an existing job from the calendar retains the displayed day',async({page})=>{
   await mock(page,{ai:true})
   await savedJob(page)
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   const calendar = page.getByRole('region',{name:'Work calendar'})
   await calendar.getByRole('button',{name:'Next week',exact:true}).click()
   const day = DateTime.now().setZone('America/New_York').plus({days:7}).toISODate()
@@ -285,7 +286,7 @@ test('Billing review opens the billing step for the exact approved change order'
   }))
   await page.route('**/rest/v1/change_orders?**', route => route.fulfill({ json:[change], headers }))
   await page.route('**/rest/v1/rpc/get_change_order_billing', route => route.fulfill({ json:{ action:'create_invoice', total:105, change_total:25 } }))
-  await page.goto('/?view=dashboard')
+  await page.goto('/?view=dashboard');await openHomePanels(page)
   await page.getByRole('button', { name:'Billing review 1' }).click()
   const row = page.getByRole('link', { name:/open change order CO-QA/i })
   await expect(row).toContainText('Ready to bill')
