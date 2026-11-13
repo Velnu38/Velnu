@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "d79a30b87e8e786ecaf11e53d0aa25753dd0d7c7",
+  "auditedCommit": "69445e74360417f40d178a9c220998f94d828be4",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -62,9 +62,9 @@
     },
     {
       "title": "Current audited release baseline",
-      "detail": "PR92 is merged as eff790e589f276e8f7acd5a26c21d7853c4b25a7; its tree exactly matches tested candidate e74d9fe8cae37710e59fe73cda5e5d1e22feee57. All five candidate workflows and all 22 complete-suite jobs passed (43028773830). Beta deployment dpl_2G58XKuzmCqYfkVXBuzfoJ71Jb77 serves both domains with HTTP 200 and private-beta no-index/no-store headers. Additive lookup is applied as hosted version 20261111133400; both Square Edge functions are v2 and all downloaded files match tested packages. Square remains unconfigured, disabled sandbox with zero merchant connections. Candidate CI, release-branch push CI, deployment, activation and provider/physical acceptance are distinct states. Earlier failed baseline and corrected fixture attempt are retained in evidence; no payment or launch gate is closed.",
-      "evidence": "docs/evidence/2026-11-11-payment-integration-baseline.json; docs/evidence/2026-11-11-payment-recovery-rollout.json",
-      "verifiedAt": "2026-11-11"
+      "detail": "Audit checkpoint: source 69445e74360417f40d178a9c220998f94d828be4 (Home PR115) is READY at dpl_8pEQUNZMfHn3mzyZ7Mstfa1GEq48 on both domains; release-head full CI 43477046338 remains in progress. Prior PR114 77c3016b833295e1c8c47c6884750f79b19f0484 passed all 22 jobs in run 43458618303. Beta is ACTIVE_HEALTHY with 152 migrations through 20261113012837, three businesses and three Auth accounts. The separately recorded dead calendar item remains; source, CI, deployment and provider acceptance are distinct.",
+      "evidence": "2026-11-13 read-only GitHub branch, full workflow/job and Vercel alias/deployment receipts at 69445e74360417f40d178a9c220998f94d828be4; https://github.com/Velnu38/Velnu/actions/runs/43477046338; https://github.com/Velnu38/Velnu/actions/runs/43458618303; Supabase beta aggregate inventory.",
+      "verifiedAt": "2026-11-13"
     },
     {
       "title": "Jobs and Job Management workspaces",
@@ -611,6 +611,12 @@
       "detail": "Read-only report checkpoint November 13, 2026: beta branch and both Vercel aliases remain at 46aa23c6af52b65e897ca0abd4af3f4441ccf292 (PR112). Deployment is not a passing release: final candidate full run 43345387938 and deployed-head full run 43345439848 failed, including release validation. Prior passing releases do not certify this newer candidate. Highest priority: diagnose and repair only the current Jobs/customer-navigation/completion-to-invoice failures, distinguishing stale selectors from actual regressions using observed behavior. No active remediation is established by this report. PR107 Home and PR108 Fin/performance remain draft work; coordinate with their existing chats rather than duplicating them. PR111 and PR113 candidate full runs passed; that alone does not establish deployment or owner acceptance. PR97 reminder history is already merged and beta-deployed; the old pause/open-PR97 instructions are historical and superseded. Preserve its migration and receipts without reapplying. AUTO-02 still needs hosted owner/provider/physical-device acceptance. PR103 security, PR104 archive and PR105 abuse/cost work have implementation/release evidence, not full hosted isolation, restore, capacity, provider or operating-owner acceptance. PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design. Visual work follows the latest owner-approved mockups, one selected card/screen at a time, preserving functionality. Job Management and the separate Jobs directory must not be conflated. Capture actual signed-in candidate comparisons before further visual deployment, and record exact commit, viewport, CI and beta verification. Required failing checks remain blockers, even if targeted visual checks pass.",
       "evidence": "https://github.com/Velnu38/Velnu/actions/runs/43345387938 ; https://github.com/Velnu38/Velnu/actions/runs/43345439848 ; https://github.com/Velnu38/Velnu/pull/112",
       "verifiedAt": "2026-11-13"
+    },
+    {
+      "title": "November 13 calendar dead-letter regression",
+      "detail": "Read-only beta review found one dead calendar queue item (one attempt, no expired lease), where the previous verified audit found an empty queue. The only Outlook integration still says connected but has an error; its recorded last successful sync is 2026-11-11T00:14:00.29838Z. Queue available_at is 2026-11-13T01:35:14.441662Z. A connected row and active minute cron do not establish working sync. The safe error classification is unclassified; no root cause, token failure or specific provider fault is inferred. OPS-03 and CAL-01 remain open. No reconnect, retry, requeue, configuration change or provider write was attempted.",
+      "evidence": "2026-11-13 read-only beta aggregate receipt at audited source 77c3016b833295e1c8c47c6884750f79b19f0484: calendar queue total=1, dead=1, attempts=1, expired leases=0; one Outlook integration state=connected with error present, last successful sync 2026-11-11T00:14:00.29838Z; queue available_at 2026-11-13T01:35:14.441662Z. Safe error classification was unclassified; root cause and recovery are not verified. No credentials, integration identifiers, raw errors, requeues or provider writes retained/performed.",
+      "verifiedAt": "2026-11-13"
     }
   ],
   "tasks": [
@@ -654,9 +660,15 @@
       "status": "open",
       "title": "Complete release validation and staged promotion enforcement",
       "owner": "Developer",
-      "why": "Current beta release f82f9901daf3c21edf6e37efd57cae4b9bc249a7 is READY and all five triggered workflows passed, including complete automated validation 42924187972. New candidates still require final-commit CI before merge. Rulesets were empty and classic protection returned integration HTTP 403; required-check/staged-promotion enforcement remains unknown and no hosted setting was altered.",
+      "why": "Prior PR114 source 77c3016b833295e1c8c47c6884750f79b19f0484 passed all seven triggered workflows and all 22 full-suite jobs (43458618303). During this audit PR115 advanced the branch to 69445e74360417f40d178a9c220998f94d828be4, READY dpl_8pEQUNZMfHn3mzyZ7Mstfa1GEq48 on both domains, with release-head full run 43477046338 still in progress. Do not transfer the prior pass to the newer commit. Required-check/staged-promotion enforcement remains unverified; prior classic-protection read returned integration HTTP 403. CI-01 remains open.",
       "acceptance": "Update obsolete fixtures without weakening functional assertions; pass complete current build, financial/tenant/voice/storage/calendar and authenticated browser journeys for the same immutable release commit. Enforce required checks and staged deployment/promotion before domain release; unify supported Node versions and include the actual release branch in CI.",
-      "evidence": []
+      "evidence": [
+        {
+          "reference": "2026-11-13 current source 77c3016b833295e1c8c47c6884750f79b19f0484; all seven triggered workflows succeeded, including https://github.com/Velnu38/Velnu/actions/runs/43458618303 with all 22 jobs and Release validation successful; calendar https://github.com/Velnu38/Velnu/actions/runs/43458618112 and https://github.com/Velnu38/Velnu/actions/runs/43458630347 succeeded. Vercel dpl_GBnzmesTaZnpnkTvg7GXsmKAEGz1 READY with that SHA and finviant.com/www aliases.",
+          "verifiedAt": "2026-11-13",
+          "commit": "77c3016b833295e1c8c47c6884750f79b19f0484"
+        }
+      ]
     },
     {
       "id": "SEC-01",
@@ -720,9 +732,15 @@
       "status": "not_verified",
       "title": "Verify scheduled work and reconcile uncertain deliveries",
       "owner": "Developer",
-      "why": "Active cron schedules and accepted HTTP dispatches do not establish successful background work. November 10: actual calendar worker failure identified and narrow column grant repair prepared; expanded queue health and failure/recovery tests prepared. Backend recovery remains pending.",
+      "why": "Active cron schedules and accepted HTTP dispatches do not establish successful background work. November 10: actual calendar worker failure identified and narrow column grant repair prepared; expanded queue health and failure/recovery tests prepared. Backend recovery remains pending. November 13 regression: one dead calendar queue item, one connected Outlook integration with an error and last successful sync November 11 00:14 UTC. Root cause and recovery unverified; no requeue/reconnect attempted.",
       "acceptance": "Observe actual worker completion, heartbeat age, queue lag, failed/dead tasks, token refresh, provider 429s, expired leases, duplicate/missed runs and outage recovery. Provide operator review for uncertain sends; alert without automatically duplicating a possibly delivered message.",
-      "evidence": []
+      "evidence": [
+        {
+          "reference": "2026-11-13 read-only beta aggregate receipt at audited source 77c3016b833295e1c8c47c6884750f79b19f0484: calendar queue total=1, dead=1, attempts=1, expired leases=0; one Outlook integration state=connected with error present, last successful sync 2026-11-11T00:14:00.29838Z; queue available_at 2026-11-13T01:35:14.441662Z. Safe error classification was unclassified; root cause and recovery are not verified. No credentials, integration identifiers, raw errors, requeues or provider writes retained/performed.",
+          "verifiedAt": "2026-11-13",
+          "commit": "77c3016b833295e1c8c47c6884750f79b19f0484"
+        }
+      ]
     },
     {
       "id": "PERF-01",
@@ -809,9 +827,15 @@
       "status": "blocked_external",
       "title": "Finish Google setup and multi-account calendar certification",
       "owner": "Owner + developer",
-      "why": "Outlook sync recovered and the beta queue is empty. Step 16 adds correct Graph Retry-After handling, bounded calendar listing and clear personal-calendar limitations. External events remain user/business scoped and display-only for booking. Google configuration/consent and separate live-provider refresh/reconnect/revoke/device tests remain open.",
+      "why": "Outlook sync recovered and the beta queue is empty. Step 16 adds correct Graph Retry-After handling, bounded calendar listing and clear personal-calendar limitations. External events remain user/business scoped and display-only for booking. Google configuration/consent and separate live-provider refresh/reconnect/revoke/device tests remain open. November 13 regression: one dead calendar queue item, one connected Outlook integration with an error and last successful sync November 11 00:14 UTC. Root cause and recovery unverified; no requeue/reconnect attempted.",
       "acceptance": "Finish the Google external OAuth app/verification as required, scopes/redirects, publishing and token refresh; verify Google and Outlook connections, refresh/reconnect/revoke, background sync, conflicts, duplicates, time zones/DST and job/calendar consistency with separate accounts.",
-      "evidence": []
+      "evidence": [
+        {
+          "reference": "2026-11-13 read-only beta aggregate receipt at audited source 77c3016b833295e1c8c47c6884750f79b19f0484: calendar queue total=1, dead=1, attempts=1, expired leases=0; one Outlook integration state=connected with error present, last successful sync 2026-11-11T00:14:00.29838Z; queue available_at 2026-11-13T01:35:14.441662Z. Safe error classification was unclassified; root cause and recovery are not verified. No credentials, integration identifiers, raw errors, requeues or provider writes retained/performed.",
+          "verifiedAt": "2026-11-13",
+          "commit": "77c3016b833295e1c8c47c6884750f79b19f0484"
+        }
+      ]
     },
     {
       "id": "AI-01",
@@ -1961,8 +1985,8 @@
     "handoff": "docs/CURRENT_HANDOFF.md"
   },
   "currentState": [
-    "Read-only report checkpoint November 13, 2026: beta branch and both Vercel aliases remain at 46aa23c6af52b65e897ca0abd4af3f4441ccf292 (PR112). Deployment is not a passing release: final candidate full run 43345387938 and deployed-head full run 43345439848 failed, including release validation. Prior passing releases do not certify this newer candidate.",
-    "Highest priority: diagnose and repair only the current Jobs/customer-navigation/completion-to-invoice failures, distinguishing stale selectors from actual regressions using observed behavior. No active remediation is established by this report. PR107 Home and PR108 Fin/performance remain draft work; coordinate with their existing chats rather than duplicating them. PR111 and PR113 candidate full runs passed; that alone does not establish deployment or owner acceptance.",
+    "November 13 verified checkpoint: PR114 77c3016b833295e1c8c47c6884750f79b19f0484 superseded the failing PR112 checkpoint and passed all 22 full-suite jobs (43458618303). During the audit Home PR115 advanced the branch to 69445e74360417f40d178a9c220998f94d828be4, READY deployment dpl_8pEQUNZMfHn3mzyZ7Mstfa1GEq48 on both domains; its release-head full CI 43477046338 is still in progress. Do not apply the prior green result to this newer commit. Owner/physical-device, enforcement and public-launch acceptance remain unverified.",
+    "Current operational blocker: read-only beta review and recheck found one dead calendar queue item and one Outlook integration with an error despite state=connected; its last successful sync is November 11 at 00:14 UTC. OPS-03/CAL-01 remain open pending scoped diagnosis and verified recovery. No retry, reconnect or provider change was performed. Home PR115 is now merged; coordinate further Home/Fin/performance work with its existing chats rather than duplicating it.",
     "PR97 reminder history is already merged and beta-deployed; the old pause/open-PR97 instructions are historical and superseded. Preserve its migration and receipts without reapplying. AUTO-02 still needs hosted owner/provider/physical-device acceptance. PR103 security, PR104 archive and PR105 abuse/cost work have implementation/release evidence, not full hosted isolation, restore, capacity, provider or operating-owner acceptance.",
     "PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design.",
     "Visual work follows the latest owner-approved mockups, one selected card/screen at a time, preserving functionality. Job Management and the separate Jobs directory must not be conflated. Capture actual signed-in candidate comparisons before further visual deployment, and record exact commit, viewport, CI and beta verification. Required failing checks remain blockers, even if targeted visual checks pass.",
