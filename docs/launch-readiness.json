@@ -8,9 +8,9 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
-      "title": "Job Management attached mockup correction — candidate",
-      "detail": "November 12: layout-only Work/Billing/Records and downstream correction uses owner-supplied attached mockups. Existing actions, permissions, financial lines, removal controls and form behavior retained. Cost review shortcut reuses the existing costs destination; bottom return reuses the existing group navigation. Local Chromium launch was blocked by process-singleton socket permissions; rendered review and required checks remain pending. No launch acceptance gate is closed. PR107 Home and PR108 Fin/performance stay separate.",
-      "evidence": "docs/JOB_MANAGEMENT_ATTACHED_MOCKUPS_2026-11-12.md",
+      "title": "Job Management attached mockup correction — released to private beta",
+      "detail": "November 12: PR110 merged as 7604d8db957b2d2eed937081dc8ce44b68b28143. Summary identity shell, Work/Billing/Records and downstream presentation follow attached owner references. First rendered comparison exposed checkbox distortion/card density, corrected before final review. All five workflows, 22 full-suite jobs and 38 focused Chromium/WebKit cases passed at 937a7c4; tested and merged trees match. READY deployment dpl_Fjmeo72sK2LqzGhES9HtyXfJtE83 serves both domains; reviewed CSS exact SHA256, updated JS controls, beta backend and private headers verified. Existing actions, account disclosures, deposits, task removal, permissions and all 51 readiness records retained. Actual phone/signed-in owner and broader UX/JOB gates remain open. PR107/108 remain separate; no backend/providers/messages/charges/public launch.",
+      "evidence": "docs/JOB_MANAGEMENT_ATTACHED_MOCKUPS_2026-11-12.md; docs/evidence/2026-11-12-job-management-attached-layout.json",
       "verifiedAt": "2026-11-12"
     },
     {

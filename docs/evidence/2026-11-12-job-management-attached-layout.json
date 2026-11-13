@@ -1,0 +1,139 @@
+{
+  "date": "2026-11-12",
+  "scope": "Job Management Summary shell, Work/Billing/Records and downstream presentation",
+  "testedApplicationHead": "937a7c4b81b54c488647b9159d8de28b72b2d946",
+  "focusedRun": 43334246431,
+  "focusedCases": 38,
+  "browsers": [
+    "Chromium",
+    "WebKit"
+  ],
+  "artifacts": [
+    13997175423,
+    13997135751
+  ],
+  "screenshotSHA256": {
+    "chromium": {
+      "Summary": "657b9fd005ba3df86cda41fe2baffe8e724b0ab6b4b7ba114d0b600b7e9fccbf",
+      "Work": "5422ff57dbbbe1698541202bd34b95afc2140f23eff1b18eadc2b78117475ec5",
+      "Billing": "9bd443fe7fdf4295d41d31932424ca76c5822267598b6455129512059c8b3599",
+      "Records": "8a94067fa259034e5def53c081a5be275ce8b7456e7d8aab1a8be4083a1ede87",
+      "panel-Taskstemplates": "92ae70a02438c3c2f477a2e39ccc436eeb6a7086667ee9fded16e98dd31d5eb4"
+    },
+    "webkit": {
+      "Summary": "5d3e687fd74b42a739ea07474633d715d83e2df493c87cc0a9d9752333feb643",
+      "Work": "31a00a2b93e3524163df8c58273c8def2cad0f352e246290cb60ca4c477a98bd",
+      "Billing": "bff0e789f2a5080b909b0598456971152aed9b4bfa6c87e20a9882750697c178",
+      "Records": "e58cbb7cf3c22fb68ec2b981a735aed9fd48dc129b7be761a44cdcfe6d5c1083",
+      "panel-Taskstemplates": "616d3492fff6e9eb9167f1513a8eb3c6f221ee830a87a517f31bf0357b21af82"
+    }
+  },
+  "reviewed": [
+    "Summary, Work, Billing, Records, Tasks at 390px in both browsers",
+    "Responsive and long-title checks at 320/375/390/393/430px, tablet and landscape",
+    "Visits/crew, materials, photos/expenses, invoices, costs/review, changes, activity, reports",
+    "Task/material/visit/crew/template/report editors; existing removal and unsaved-edit controls"
+  ],
+  "sourceBoundary": "No service, permission, database, calculation, provider, scheduling or persistence source modified. Invoice/cost shortcuts and bottom return controls reuse existing destinations/handlers.",
+  "preserved": [
+    "51 readiness task records and acceptance criteria",
+    "PR97 reminder history",
+    "PR103 tenant session guards",
+    "PR104 exports",
+    "PR105 abuse/cost controls",
+    "PR109 stable business card release"
+  ],
+  "separate": [
+    "PR107 Home candidate",
+    "PR108 Fin/performance candidate"
+  ],
+  "limitations": [
+    "Illustrative sample customer/job/amount/date values are not substituted for actual records.",
+    "Actual account disclosure, deposit fields, task removal and truthful financial caveats remain available; content height differs from mockups.",
+    "Native controls/font rendering differ between browsers.",
+    "No actual iPhone/Android or signed-in owner acceptance claimed. Local Chromium process-singleton socket was blocked; browser review used hosted fixtures."
+  ],
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/110",
+  "status": "Merged and released to private beta",
+  "merge": "7604d8db957b2d2eed937081dc8ce44b68b28143",
+  "testedAndMergedTree": "470e475bc236231fc0bbd2e5915b4ca050efbb21",
+  "completeRun": 43334246453,
+  "completeJobs": 22,
+  "deployment": {
+    "id": "dpl_Fjmeo72sK2LqzGhES9HtyXfJtE83",
+    "state": "READY",
+    "target": "preview/private beta",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "branch": "ux/private-testing-20261029"
+  },
+  "live": {
+    "root": {
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "age": "0",
+        "cache-control": "private, no-store, max-age=0",
+        "cdn-cache-control": "no-store",
+        "content-disposition": "inline",
+        "content-encoding": "br",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Fri, 13 Nov 2026 00:17:51 GMT",
+        "etag": "W/\"21f07d540633440e7846451021cbccd7\"",
+        "last-modified": "Fri, 13 Nov 2026 00:17:51 GMT",
+        "permissions-policy": "camera=(), microphone=(self), geolocation=()",
+        "referrer-policy": "no-referrer",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow, noarchive",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "iad1:iad1:iad1:iad1::5z7p6-1794529071637-e2910e067910"
+      },
+      "index": "/assets/index-BBcgmhRt.js"
+    },
+    "www": {
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "age": "21",
+        "cache-control": "private, no-store, max-age=0",
+        "cdn-cache-control": "no-store",
+        "content-disposition": "inline",
+        "content-encoding": "br",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Fri, 13 Nov 2026 00:18:13 GMT",
+        "etag": "W/\"21f07d540633440e7846451021cbccd7\"",
+        "last-modified": "Fri, 13 Nov 2026 00:17:51 GMT",
+        "permissions-policy": "camera=(), microphone=(self), geolocation=()",
+        "referrer-policy": "no-referrer",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-robots-tag": "noindex, nofollow, noarchive",
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "iad1:iad1:iad1:iad1::dsnjv-1794529093171-df55b0c9de08"
+      }
+    },
+    "css": {
+      "status": 200,
+      "sha256": "2f821ed1dce82d5bebad27672015f69173474c3d2e1186a5c96cf6395a1c6495"
+    }
+  },
+  "liveApplication": {
+    "app": "App-C-ew92rn.js",
+    "jobs": "JobsPage-DLnwtTfM.js",
+    "css": "JobsPage-BVPVYM3F.css",
+    "betaBackend": true,
+    "productionBackend": false,
+    "newShortcutsAndReturnControls": true
+  }
+}
