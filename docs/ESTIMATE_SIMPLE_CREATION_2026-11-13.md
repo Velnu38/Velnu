@@ -1,6 +1,6 @@
 # Simplified estimates — November 13, 2026
 
-Owner approved the four-screen proposal and requested deployment to Finviant beta. The separate estimate branch follows the invoice implementation and preserves estimate-specific approval, expiry, scheduling and billing rules.
+Released to Finviant beta through PR117; see the [release receipt](evidence/2026-11-13-estimate-simple-beta-release.json). Owner approved the four-screen proposal and requested deployment. The separate estimate branch follows the invoice implementation and preserves estimate-specific approval, expiry, scheduling and billing rules.
 
 Create estimate remains a single prominent action at the top, full width on phones. Pending estimate value is a noninteractive summary of draft and sent estimates only. One Customer approval disclosure combines awaiting and approved counts without combining their monetary values; its filters preserve the distinct statuses, including converted records within approved. General filters retain All, Draft and Declined / Expired.
 

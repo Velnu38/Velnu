@@ -54,7 +54,7 @@ const nav: { id: View; label: string; icon: string }[] = [
   { id: 'estimates', label: 'Estimates', icon: 'E' },
   { id: 'invoices', label: 'Invoices', icon: 'I' },
   { id: 'change_orders', label: 'Change orders', icon: 'C' },
-  { id: 'work', label: 'Jobs', icon: 'J' },
+  { id: 'work', label: 'Job Management', icon: 'J' },
   { id: 'schedule', label: 'Schedule', icon: '▦' },
   { id: 'reminders', label: 'Reminders', icon: '✓' },
   { id: 'payments', label: 'Payments', icon: '$' },

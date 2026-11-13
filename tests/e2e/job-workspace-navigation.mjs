@@ -1,0 +1,2 @@
+export const jobWorkspace=page=>page.getByRole('region',{name:'Selected job workspace',exact:true});
+export async function openJobSection(page,name){const group=['Invoices','Costs & budget','Change orders'].includes(name)?'Billing':['Activity history','Completion reports'].includes(name)?'Records':'Work';const workspace=jobWorkspace(page);await workspace.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:group,exact:true}).click();await workspace.getByRole('navigation',{name:group+' sections',exact:true}).getByRole('button',{name,exact:true}).click();}
