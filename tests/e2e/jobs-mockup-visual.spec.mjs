@@ -29,6 +29,10 @@ test('Jobs phone mockup states render and preserve the directory handoffs',async
  await expect(cards).toHaveCount(3)
 
  await page.getByRole('button',{name:'Open filters'}).click()
+ await expect(page.locator('.jobs-alternate-view')).toBeVisible()
+ await page.locator('.jobs-alternate-view').getByRole('button',{name:'Board'}).click()
+ await expect(page.getByRole('region',{name:'Job progress board'})).toBeVisible()
+ await page.locator('.jobs-alternate-view').getByRole('button',{name:'List'}).click()
  await page.getByRole('navigation',{name:'Additional job filters'}).getByRole('button',{name:/All jobs/}).click()
  await page.getByRole('button',{name:'Close filters'}).click()
  await expect(cards).toHaveCount(4)

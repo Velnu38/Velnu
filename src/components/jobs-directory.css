@@ -35,15 +35,35 @@
 .jobs-module .jobs-directory-actions>.primary-button span{font-size:18px;line-height:1}
 .jobs-module .jobs-directory-card:hover{border-color:#a9cec3;background:#fdfefd}
 .jobs-module .jobs-directory-card:focus-within{border-color:#74b7a7;box-shadow:0 0 0 2px #0086731a}
+.jobs-module .jobs-alternate-view{display:none}
 
 @media(max-width:760px){
  .jobs-module .jobs-status-strip{gap:6px}
- .jobs-module .jobs-status-strip button{flex-direction:column;justify-content:center;gap:4px;min-height:58px;padding:7px 4px;text-align:center;border-radius:11px}
- .jobs-module .jobs-status-strip button span{font-size:10px;line-height:1.2}
- .jobs-module .jobs-status-strip button strong{font-size:15px}
+ .jobs-module .jobs-status-strip button{flex-direction:column;justify-content:center;gap:4px;min-height:62px;padding:7px 4px;text-align:center;border-radius:11px;background:#f3f5f7;border-color:transparent;box-shadow:none}
+ .jobs-module .jobs-status-strip button span{font-size:11px;line-height:1.2}
+ .jobs-module .jobs-status-strip button strong{font-size:16px}
  .jobs-module .jobs-search-filter-row{grid-template-columns:minmax(0,1fr) 48px;gap:7px}
- .jobs-module .module-job-card.jobs-directory-card{grid-template-columns:minmax(0,1fr);gap:12px;padding:14px;border-radius:14px}
- .jobs-module .jobs-directory-copy>.job-card-title{font-size:15px}
+ .jobs-module:not(.phone-job-page)>.detail-top{display:none}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .module-page-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin:0}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .module-page-heading>div:first-child{grid-column:1}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .module-page-heading .eyebrow,.finviant-workspace .jobs-module:not(.phone-job-page) .module-page-heading .module-page-intro{display:none}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .module-page-heading h1{font-size:27px;line-height:1.15;font-weight:750;letter-spacing:-.025em}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .work-heading-actions{grid-column:2;display:flex;flex-wrap:nowrap;align-items:center;gap:7px}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .work-heading-actions .primary-button{width:auto;min-width:112px;min-height:48px;padding:9px 12px;border-radius:11px;font-size:14px}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .work-heading-actions .refresh-button{width:44px;height:44px;min-height:44px;padding:0;justify-content:center}
+ .finviant-workspace .jobs-module:not(.phone-job-page) .work-heading-actions .refresh-button span{display:none}
+ .jobs-module:not(.phone-job-page) .jobs-hub-navigation{display:none}
+ .jobs-module:not(.phone-job-page) .jobs-alternate-view{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px 0;color:#66798a;font-size:12px;font-weight:700}
+ .jobs-module:not(.phone-job-page) .jobs-alternate-view>div{display:flex;gap:6px}
+ .jobs-module:not(.phone-job-page) .jobs-alternate-view button{min-height:38px;padding:7px 14px;border:1px solid #d6e0e6;border-radius:9px;background:#fff;color:#304c66;font-size:12px}
+ .jobs-module:not(.phone-job-page) .jobs-alternate-view button[aria-pressed=true]{border-color:#74b7a7;background:#eef8f4;color:#15594e}
+ .jobs-module:not(.phone-job-page) .module-job-card.jobs-directory-card{grid-template-columns:minmax(0,1fr);gap:12px;padding:15px;border-radius:14px}
+ .jobs-module:not(.phone-job-page) .jobs-directory-copy>.job-card-title{font-size:18px;font-weight:750}
+ .jobs-module:not(.phone-job-page) .jobs-directory-customer{font-size:14px}
+ .jobs-module:not(.phone-job-page) .jobs-directory-location{font-size:13px}
+ .jobs-module:not(.phone-job-page) .jobs-directory-copy .module-job-crew{display:none}
+ .jobs-module:not(.phone-job-page) .jobs-directory-meta{gap:8px}
+ .jobs-module:not(.phone-job-page) .jobs-directory-visit{font-size:12px}
  .jobs-module .jobs-directory-actions{gap:8px}
- .jobs-module .jobs-directory-actions>.primary-button{min-height:48px}
+ .jobs-module:not(.phone-job-page) .jobs-directory-actions>.primary-button{min-height:48px;border-radius:10px;font-size:15px}
 }
