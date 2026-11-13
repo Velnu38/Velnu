@@ -7,7 +7,8 @@
   "corrections": [
     "Voice/customer and branded-invoice regression assertions now use the selected customer card and retained labelled line/tax controls; financial/no-send assertions remain",
     "Enabled invoice buttons use darker teal with explicit white text and no readiness fade, preserving stable contrast in WebKit",
-    "Focused document/invoice Chromium/WebKit reviews run serially to avoid contention on the PDF/download/edit journey; all cases and assertions remain"
+    "Focused document/invoice Chromium/WebKit reviews run serially to avoid contention on the PDF/download/edit journey; all cases and assertions remain",
+    "The advanced-form helper now waits for the visible More options section before opening it. At 6453f90 all full-suite jobs and nine workflows passed; the unsharded voice sweep exposed this early-navigation test race in the historical-volume case. The unchanged case passes locally with the explicit wait; assertions and runtime are unchanged."
   ],
   "localValidation": "Seven corrected creation, SMS, voice-selection and branded-invoice cases passed; six voice multi-line cases passed. Final-head required CI and live verification still gate deployment.",
   "limits": "No hosted data, migration, provider activation, actual customer message or charge changed during these repairs."
