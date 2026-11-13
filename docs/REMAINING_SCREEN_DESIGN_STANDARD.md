@@ -1,0 +1,34 @@
+# Remaining screen design standard
+
+Updated by owner instruction November 12, 2026: approved mockups are the ONLY
+visual reference. The current deployed Job Management design is rejected and
+must not be preserved as a visual standard. Job Management, Home, Invoices,
+Estimates, the Jobs directory and More are all in scope, including downstream
+screens and forms. Preserve their existing functionality.
+
+Complete, visually compare, deploy and verify the actual deployed card before
+beginning the next card. Use reduced targeted testing plus required checks.
+
+## First card: Home calendar / PR107
+
+The initial candidate used Job Management as a reference and is superseded.
+Its hosted Chromium/WebKit checks passed, but visual inspection failed: oversized
+controls/heading, excessive filter height, and wrong period-control order.
+
+The revised candidate uses only `Finviant mobile business dashboard proposal.png`
+(Library ID `libfile_46f0d31a68088191849ba537a73b6fcd`). It restores the compact
+heading/toggle, underlined calendar action, date control order and day strip.
+The existing team filter is retained in a disclosure, because the phone concept
+omits it. Real job details, errors and permissions are retained. Touch targets
+and actual content can make the card taller than the illustration.
+
+The owner approved publication to Velnu38/Velnu and private-beta deployment after
+verification. Revised populated Chromium/WebKit screenshots must be reviewed
+before release. No deployment or signed-in rendered acceptance is claimed yet.
+Job Management is the next screen family to reassess against its own mockups.
+
+### Follow-up verification corrections — 2026-11-13
+
+The populated capture fixture initially failed because its cross-origin responses did not expose pagination counts. Corrected the synthetic responses and enabled the team plan for disclosure coverage. The old uniform-tile assertion now covers the four overview tiles; the calendar has its own approved reference. Removed duplicate local/focus refresh subscriptions from DailyCalendar in favor of the existing shared coordinator, retaining date rollover and refresh behavior. The targeted Home DOM check passes with exactly one provider refresh per event. Signed-in deployed review remains unverified after sign-in was cancelled; do not advance to the next card on mocked evidence alone.
+
+Final phone refinement `fe694826576d4e9735b35d96090eff7df217536c`: nine Chromium focused checks passed in run 43339378359. Reviewed populated calendar captures at 320, 390 and 430 px: compact controls, underlined add, ordered date controls, selected days, title/customer/status/action row and footer. At 320 px the action wraps below the row without horizontal overflow. The team disclosure is retained for existing filtering, which is absent from the static mockup. Earlier application revision 79ee9c0 passed nine checks in each of Chromium and WebKit; final WebKit capture and repository checks remain pending. No private-beta alias changed. Live signed-in verification remains blocked, so subsequent cards are not started.

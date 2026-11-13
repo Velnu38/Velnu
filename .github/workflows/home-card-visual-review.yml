@@ -1,0 +1,32 @@
+name: Focused Home card visual review
+on:
+  push:
+    branches: [ux/home-design-standard-20261112]
+permissions:
+  contents: read
+concurrency:
+  group: home-card-${{ github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright test tests/e2e/home-screen.spec.mjs tests/e2e/home-calendar-reference.spec.mjs --config=${{ matrix.engine == 'webkit' && 'playwright.mobile.config.mjs' || 'playwright.config.mjs' }} --grep='Home keeps financial|Home keeps calendar creation|Home preserves|Home calendar mockup' --workers=2
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: home-card-${{ matrix.engine }}
+          path: test-results/
+          retention-days: 7
