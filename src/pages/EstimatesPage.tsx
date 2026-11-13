@@ -13,7 +13,9 @@ import { customerRecordsHref } from '../lib/customerRecords'
 import CustomerRecordScope from '../components/CustomerRecordScope'
 import {useAssistantRefresh} from '../lib/useAssistantRefresh'
 import {readableError} from '../lib/errors'
-import DocumentLineEditor from '../components/DocumentLineEditor'
+import InvoiceLineEditor, {InvoiceTaxOptions} from '../components/InvoiceLineEditor'
+import '../components/invoice-create.css'
+import '../components/estimate-create.css'
 import DraftDocumentEditor from '../components/DraftDocumentEditor'
 import CustomerEditDialog from '../components/CustomerEditDialog'
 import {RecordDetailHeader,RecordTabs,RecordActionBar} from '../components/RecordDetail'
@@ -60,7 +62,7 @@ type Estimate = DocumentDates & { properties?:ServiceAddress|ServiceAddress[]|nu
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
 type PreviewItem = { id: string; description: string; quantity: number; unit_price: number; tax_rate: number; line_total: number }
 type ApprovalLinkState = { url: string; title: string; expiresAt: string | null; documentId: string }
-type EstimateFilter = 'all' | 'pipeline' | 'draft' | 'sent' | 'approved' | 'declined'
+type EstimateFilter = 'all' | 'pipeline' | 'draft' | 'sent' | 'approved' | 'approval' | 'declined'
 
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
 const estimateMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
@@ -101,6 +103,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const saving=useRef(false)
   const [creationPreview,setCreationPreview]=useState(false)
   const savedCreation=useRef<string|null>(null)
+  const [creationNumber,setCreationNumber]=useState('')
+  const [editedByControls,setEditedByControls]=useState(false)
   const [savedCustomerId,setSavedCustomerId]=useState('')
   const [editCreationCustomer,setEditCreationCustomer]=useState<'email'|'phone'|'all'|null>(null)
   const dateEdited=useRef(false)
@@ -182,7 +186,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
 
   function resetForm() {
-    setCreationPreview(false); savedCreation.current=null;setSavedCustomerId(''); dateEdited.current=false; setDocumentTax(String(defaultTax))
+    setCreationPreview(false); setCreationNumber('');setEditedByControls(false);savedCreation.current=null;setSavedCustomerId(''); dateEdited.current=false; setDocumentTax(String(defaultTax))
     setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId('');setServiceAddress(''); setExpiresOn(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate')); setNotes(''); setCustomerReference(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
@@ -221,6 +225,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         })),
       })
       savedCreation.current=created.id
+      setCreationNumber(created.estimate_number||'')
       if(stayOnPreview){
         setSavedCustomerId(customer.customer_id)
         history.replaceState(history.state,'',customerRecordsHref('estimates',customerScope,created.id))
@@ -342,6 +347,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   }
   const filteredEstimates = useMemo(() => estimates.filter(estimate => {
     if (statusFilter === 'all') return true
+    if (statusFilter === 'approval') return ['sent','accepted','converted'].includes(estimate.status)
     if (statusFilter === 'pipeline') return ['draft', 'sent'].includes(estimate.status)
     if (statusFilter === 'draft') return estimate.status === 'draft'
     if (statusFilter === 'sent') return estimate.status==='sent'
@@ -355,6 +361,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   function chooseFilter(filter: EstimateFilter) { setStatusFilter(filter); recordList.setPage(0) }
   const emptyFilterMessage = {
     all: 'No estimates in this view.',
+    approval: 'No estimates awaiting approval or approved in this view.',
     pipeline: 'No draft or sent estimates in this view.',
     draft: 'No draft estimates in this view.',
     sent: 'No estimates are awaiting customer approval.',
@@ -370,13 +377,14 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {notice && !previewTarget && <p className="form-message success-text">{notice}</p>}
     {error && !previewTarget && !showForm && !convertTarget && <p className="form-message error-text">{error}</p>}
     <CustomerRecordScope customerId={customerScope} customers={customers} view="estimates"/>
-    <section className="module-summary-grid" aria-label="Estimate summary">
-      <button type="button" className="module-summary-card module-summary-card-approval" aria-pressed={statusFilter === 'sent'} onClick={() => chooseFilter('sent')}><span>Awaiting Customer Approval</span><strong>{estimateMoney.format(awaitingApproval.reduce((sum,estimate)=>sum+Number(estimate.total||0),0))}</strong><small>{awaitingApproval.length} {awaitingApproval.length === 1 ? 'estimate' : 'estimates'} sent to customers</small></button>
-      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'approved'} onClick={() => chooseFilter('approved')}><span>Approved</span><strong>{estimateMoney.format(approvedEstimates.reduce((sum,estimate)=>sum+Number(estimate.total||0),0))}</strong><small>{approvedEstimates.length} {approvedEstimates.length === 1 ? 'estimate' : 'estimates'} accepted or invoiced</small></button>
-      <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'pipeline'} onClick={() => chooseFilter('pipeline')}><span>Pending Estimate Value</span><strong>{estimateMoney.format(pipelineEstimates.reduce((sum, estimate) => sum + Number(estimate.total || 0), 0))}</strong><small>{pipelineEstimates.length} draft and sent {pipelineEstimates.length === 1 ? 'estimate' : 'estimates'}</small></button>
+    <section className="estimate-overview" aria-label="Estimate summary">
+      <article className="module-summary-card"><span>Pending estimate value</span><strong>{estimateMoney.format(pipelineEstimates.reduce((sum,estimate)=>sum+Number(estimate.total||0),0))}</strong><small>Draft + awaiting approval · {pipelineEstimates.length} estimates</small></article>
+      <details className="estimate-approval-control"><summary><strong>Customer approval</strong><span>Awaiting {awaitingApproval.length} · Approved {approvedEstimates.length}</span></summary>
+        <div className="module-status-filters" aria-label="Customer approval status">{([['approval','All customer approvals',awaitingApproval.length+approvedEstimates.length],['sent','Awaiting approval',awaitingApproval.length],['approved','Approved',approvedEstimates.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}</div>
+      </details>
     </section>
     <nav className="module-status-filters" aria-label="Filter estimates">
-      {([['all','All',estimates.length],['draft','Draft',estimates.filter(row=>row.status==='draft').length],['sent','Sent',awaitingApproval.length],['approved','Approved',approvedEstimates.length],['declined','Declined / Expired',estimates.filter(row=>['declined','expired'].includes(row.status)).length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
+      {([['all','All',estimates.length],['draft','Draft',estimates.filter(row=>row.status==='draft').length],['declined','Declined / Expired',estimates.filter(row=>['declined','expired'].includes(row.status)).length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
     </nav>
     <RecordListControls label="estimates" list={recordList} showPagination={false} />
     <section className="module-record-list" aria-label="Estimates" hidden={!!previewTarget}>
@@ -395,19 +403,29 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     {scheduleTarget&&<ScheduleEstimateDialog business={business} estimateId={scheduleTarget.id} onClose={()=>setScheduleTarget(null)} onSaved={()=>void refresh()}/>}
     {dispatchJob&&<DispatchJobDialog business={business} job={dispatchJob} needsAppointmentRepair={!hasActiveJobAppointment(dispatchJob)} onClose={()=>setDispatchJob(null)} onSaved={()=>void refresh()}/>}
     {showForm && <FormDialog label="Create an estimate" autoFocusFields={false} busy={busy} cleanVersion={savedCreation.current} onClose={() => { if(savedCreation.current)void finishCreation(savedCreation.current);else {setShowForm(false);resetForm()} }} wide>
-      <div className="modal-head" hidden={creationPreview}><div><p className="eyebrow">New estimate</p><h2>Create an estimate</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }} aria-label="Close" type="button">×</button></div>
-      <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form" hidden={creationPreview}>
-        <div className="form-grid"><CustomerEntry loading={customerLoad==='loading'} error={customerLoad==='failed'?'Saved customers could not load.':''} onRetry={()=>void refresh().catch(()=>setError('Could not refresh saved customers.'))} customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setCustomerId(id);setPropertyId('')}} onDraft={setCustomerDraft} disabled={busy}/>{customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}</div><div className="form-grid"><label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone || 'UTC').toISODate()!} value={issueDate} onChange={e => {setIssueDate(e.target.value);if(!dateEdited.current)setExpiresOn(documentEndDate(e.target.value,'estimate'))}} /></label><PaymentTerms kind="estimate" issued={issueDate} value={expiresOn} onChange={value=>{dateEdited.current=true;setExpiresOn(value)}}/><label>Valid until<input type="date" required min={issueDate} value={expiresOn} onChange={(e) => {dateEdited.current=true;setExpiresOn(e.target.value)}} /></label><label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={e=>setCustomerReference(e.target.value)} /></label><label>Internal notes (not shown to customer)<input value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
-        <div className="full"><CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/></div>
-        <label className="full">Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e => setCustomerTerms(e.target.value)} placeholder="For example: Estimate valid for 30 days. A deposit is due before work begins." /></label></div>
-        <DocumentLineEditor businessId={business.id} lines={lines} onChange={setLines} newLine={newLine} taxOptions taxDefault={{ rate: documentTax, onChange: setDocumentTax }}/>
-        <div className="estimate-total"><span>Preview total</span><strong>{previewTotal === null ? 'Check line amounts' : '$' + previewTotal.toFixed(2)}</strong><small>Final totals are calculated when the estimate is saved.</small></div>
-        {error && <p className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button type="submit" className="primary-button" disabled={busy}>Preview</button><button type="submit" value="draft" className="secondary-button" disabled={busy}>Save Draft</button></div>
+      <div className="invoice-simple-create estimate-simple-create" data-review={creationPreview}>
+      <div className="modal-head" hidden={creationPreview}><h2>Create estimate</h2><button className="icon-button" onClick={()=>{setShowForm(false);resetForm()}} aria-label="Close" type="button">×</button></div>
+      <form onInvalidCapture={e=>{let el:HTMLElement|null=e.target as HTMLElement;while(el){if(el instanceof HTMLDetailsElement)el.open=true;el=el.parentElement}}} onSubmit={reviewCreation} className="estimate-form invoice-essential-form" hidden={creationPreview} data-unsaved={!savedCreation.current&&editedByControls?'true':undefined}>
+        <CustomerEntry compact loading={customerLoad==='loading'} error={customerLoad==='failed'?'Saved customers could not load.':''} onRetry={()=>void refresh().catch(()=>setError('Could not refresh saved customers.'))} customers={customers} value={customerId} draft={customerDraft} onChange={id=>{setEditedByControls(true);setCustomerId(id);setPropertyId('');setServiceAddress('')}} onDraft={setCustomerDraft} disabled={busy}/>
+        <InvoiceLineEditor businessId={business.id} lines={lines} onChange={next=>{setEditedByControls(true);setLines(next)}} newLine={()=>({...newLine(),tax_rate:documentTax})}/>
+        <details className="invoice-more-options"><summary><span><strong>More options</strong><small>Validity, tax, notes &amp; terms</small></span></summary><div className="invoice-options-content">
+          <PaymentTerms customDate kind="estimate" issued={issueDate} value={expiresOn} onChange={value=>{dateEdited.current=true;setExpiresOn(value)}}/>
+          <label>Issue date<input type="date" required max={DateTime.now().setZone(business.timezone||'UTC').toISODate()!} value={issueDate} onChange={e=>{setIssueDate(e.target.value);if(!dateEdited.current)setExpiresOn(documentEndDate(e.target.value,'estimate'))}}/></label>
+          <InvoiceTaxOptions kind="estimate" lines={lines} onChange={next=>{setEditedByControls(true);setLines(next)}} rate={documentTax} onRate={setDocumentTax}/>
+          <label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={e=>setCustomerReference(e.target.value)}/></label>
+          <label>Internal note <small>Only your business can see this</small><textarea maxLength={4000} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
+          <label>Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e=>setCustomerTerms(e.target.value)}/></label>
+          <CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/>
+          {customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}
+        </div></details>
+        <p className="invoice-defaults-summary">Valid until {DateTime.fromISO(expiresOn).toFormat('MMM d, yyyy')} · {lines.some(line=>Number(line.tax_rate)!==Number(documentTax))?'Item tax rates':Number(documentTax)?`${documentTax}% tax`:'No tax'}</p>
+        {error&&<p role="alert" className="form-message error-text">{error}</p>}
+        <div className="invoice-create-footer"><div className="invoice-create-total"><span>Estimate total</span><strong>{previewTotal===null?'Check amounts':estimateMoney.format(previewTotal)}</strong></div><button type="submit" className="primary-button" disabled={busy}>Review estimate</button><button type="submit" value="draft" className="text-button" disabled={busy}>Save draft</button></div>
       </form>
 
       {editCreationCustomer&&creationContactId&&<CustomerEditDialog businessId={business.id} customerId={creationContactId} contactField={editCreationCustomer==='all'?undefined:editCreationCustomer} onClose={()=>setEditCreationCustomer(null)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',customer:creationCustomer,customerReference,serviceAddress,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
+      {creationPreview&&<CreationPreview simple onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',number:creationNumber,customer:creationCustomer,customerReference,serviceAddress,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
+      </div>
     </FormDialog>}
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>
       <div className="modal-head"><div><p className="eyebrow">Accepted estimate</p><h2>Create the invoice</h2></div><button className="icon-button" onClick={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }} aria-label="Close" type="button">×</button></div>
@@ -422,7 +440,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         <RecordActionBar primary={primaryControl(previewTarget)} secondary={canManage&&previewTarget.status==='draft'?<button type="button" className="secondary-button" disabled={busy} onClick={()=>setShowEdit(true)}>Edit draft</button>:undefined} disabled={busy} more={<>
           {canManage&&<CopyDocumentButton businessId={business.id} kind="estimate" id={previewTarget.id} disabled={busy}/>}
           {canManage&&<button type="button" disabled={busy} onClick={()=>setEditCustomer(true)}>Edit customer contact</button>}
-          {canManage&&<button type="button" disabled={busy} onClick={()=>setDeliveryMode(['draft','sent'].includes(previewTarget.status)?'send':'copy')}>{['draft','sent'].includes(previewTarget.status)?'Sending options':'Share estimate copy'}</button>}
+          {canManage&&!['send','follow_up'].includes(previewState?.primary?.key||'')&&<button type="button" disabled={busy} onClick={()=>setDeliveryMode(['draft','sent'].includes(previewTarget.status)?'send':'copy')}>{['draft','sent'].includes(previewTarget.status)?'Sending options':'Share estimate copy'}</button>}
           {canManage&&previewTarget.status==='sent'&&<button type="button" disabled={busy||pendingPersonal||deliveryNeedsReview} onClick={()=>void changeStatus(previewTarget.id,'accepted')}>Record acceptance</button>}
           {canManage&&previewTarget.status==='sent'&&plan==='pro'&&customerDocumentActionsEnabled&&!previewState?.deadlineExpired&&<button type="button" disabled={busy} onClick={()=>void shareForApproval(previewTarget)}>Customer approval link</button>}
           {canManage&&previewTarget.status==='draft'&&!pendingPersonal&&!deliveryNeedsReview&&<button type="button" disabled={busy} onClick={()=>void changeStatus(previewTarget.id,'sent')}>Mark sent manually</button>}
@@ -430,10 +448,8 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           {canManage&&previewState?.canRevise&&previewTarget.status!=='expired'&&<button type="button" disabled={busy||pendingPersonal||deliveryNeedsReview} onClick={()=>void revise(previewTarget)}>Create revised draft</button>}
           {canManage&&previewTarget.status==='accepted'&&!previewWorkflow?.final_invoice_id&&<button type="button" disabled={busy||!previewWorkflow} onClick={()=>{if(!confirmNavigation())return;setError('');setNotice('');setConvertTarget(previewTarget)}}>Create final invoice now</button>}
           {canManage&&previewWorkflow&&offersDocumentChangeOrders('estimate',previewTarget.status,previewWorkflow.job?.status)&&<button type="button" disabled={busy} onClick={()=>openChangeOrder('new')}>Create change order</button>}
-          {previewTarget.job_id&&canAccess(business,'jobs')&&<a href={'/?view=work&document='+encodeURIComponent(previewTarget.job_id)}>Open linked job</a>}
+          {previewTarget.job_id&&previewState?.primary?.key!=='open_job'&&canAccess(business,'jobs')&&<a href={'/?view=work&document='+encodeURIComponent(previewTarget.job_id)}>Open linked job</a>}
           {previewWorkflow?.final_invoice_id&&canAccess(business,'billing')&&previewTarget.status!=='converted'&&<a href={'/?view=invoices&document='+encodeURIComponent(previewWorkflow.final_invoice_id)}>Open final invoice</a>}
-          <button type="button" onClick={()=>selectTab('resources')}>Photos &amp; expenses</button>
-          <button type="button" onClick={()=>selectTab('activity')}>View activity</button>
         </>}/>
         {notice&&<p role="status" className="form-message success-text">{notice}</p>}
         {error&&<p role="alert" className="form-message error-text">{error}</p>}
@@ -442,13 +458,12 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         <div role="tabpanel" id={previewTarget.id+'-details-panel'} aria-labelledby={previewTarget.id+'-details-tab'} hidden={activeTab!=='details'}>
           <div className="document-phone-only document-phone-summary"><h3>Estimate summary</h3><dl><div><dt>Estimate total</dt><dd>{estimateMoney.format(Number(previewTarget.total))}</dd></div><div><dt>Status</dt><dd>{previewState?.displayStatus}</dd></div>{previewTarget.expires_on&&<div><dt>Valid until</dt><dd>{DateTime.fromISO(previewTarget.expires_on).toFormat('MMM d, yyyy')}</dd></div>}</dl></div>
           <div className="document-phone-actions"><DocumentPdfPreview compact source={{businessId:business.id,kind:'estimate',documentId:previewTarget.id}} refreshKey={previewTarget.updated_at||''} title="Estimate PDF"/>
-            {previewState?.work.jobId&&canAccess(business,'jobs')&&<a className="document-phone-only document-action-tile" href={'/?view=work&document='+encodeURIComponent(previewState.work.jobId)}><JobMenuIcon kind="billing"/><strong>Linked job</strong><small>Review linked work</small></a>}
+
             {canManage&&changeContext&&<button type="button" className="document-phone-only document-action-tile" onClick={()=>document.getElementById(previewTarget.id+'-changes')?.scrollIntoView({behavior:'smooth',block:'start'})}><JobMenuIcon kind="changes"/><strong>Change orders</strong><small>Review changes</small></button>}
-            <button type="button" className="document-phone-only document-action-tile" onClick={()=>selectTab('activity')}><JobMenuIcon kind="activity"/><strong>Activity</strong><small>Review document history</small></button>
           </div>
           {previewState?.deadlineExpired&&previewTarget.status==='sent'&&<p role="status" className="quiet">The response deadline has passed. This issued copy remains available; create a revised draft for a new customer approval.</p>}
           {previewTarget.status==='declined'&&<p className="quiet">The customer declined this estimate. Its issued PDF and history are retained.</p>}
-          <section className="detail-card" aria-label="Estimate work"><h3>Work &amp; appointment</h3>{!previewWorkflow?<p role="status">{workflowError||'Checking existing work and appointments…'} {workflowError&&<button type="button" className="text-button" onClick={()=>void refresh()}>Retry work details</button>}</p>:<><p><strong>{previewState?.work.label}</strong>{previewState?.work.startsAt&&<> · {DateTime.fromISO(previewState.work.startsAt).setZone(business.timezone||'UTC').toFormat('MMM d, yyyy · h:mm a ZZZZ')}</>}</p>{previewWorkflow.invitation?.status==='approved'&&<p className="quiet">Customer booking invitation: {Date.parse(previewWorkflow.invitation.expires_at)>Date.now()?'waiting for a choice':'expired'} · until {DateTime.fromISO(previewWorkflow.invitation.expires_at).setZone(business.timezone||'UTC').toFormat('MMM d, yyyy · h:mm a ZZZZ')}.</p>}{previewWorkflow.schedule&&!previewTarget.job_id&&<p className="quiet">Existing {previewWorkflow.schedule.status} document schedule. <a href="/?view=dashboard">View work calendar</a></p>}{previewState?.work.jobId&&canAccess(business,'jobs')&&<p><a href={'/?view=work&document='+encodeURIComponent(previewState.work.jobId)}>Manage linked job</a></p>}</>}</section>
+          <section className="detail-card" aria-label="Estimate work"><h3>Work &amp; appointment</h3>{!previewWorkflow?<p role="status">{workflowError||'Checking existing work and appointments…'} {workflowError&&<button type="button" className="text-button" onClick={()=>void refresh()}>Retry work details</button>}</p>:<><p><strong>{previewState?.work.label}</strong>{previewState?.work.startsAt&&<> · {DateTime.fromISO(previewState.work.startsAt).setZone(business.timezone||'UTC').toFormat('MMM d, yyyy · h:mm a ZZZZ')}</>}</p>{previewWorkflow.invitation?.status==='approved'&&<p className="quiet">Customer booking invitation: {Date.parse(previewWorkflow.invitation.expires_at)>Date.now()?'waiting for a choice':'expired'} · until {DateTime.fromISO(previewWorkflow.invitation.expires_at).setZone(business.timezone||'UTC').toFormat('MMM d, yyyy · h:mm a ZZZZ')}.</p>}{previewWorkflow.schedule&&!previewTarget.job_id&&<p className="quiet">Existing {previewWorkflow.schedule.status} document schedule. <a href="/?view=dashboard">View work calendar</a></p>}</>}</section>
           {['accepted','converted'].includes(previewTarget.status)&&<EstimateBilling businessId={business.id} estimateId={previewTarget.id} total={Number(previewTarget.total)} approved={previewTarget.status==='accepted'} canManage={canManage} timezone={business.timezone||'America/New_York'} refreshKey={previewTarget.updated_at||''}/>}
           {canManage&&changeContext&&<div id={previewTarget.id+'-changes'}><DocumentChangeOrders key={'changes:'+changeContext.documentId} business={business} context={changeContext} allowNew={false} onOpen={openChangeOrder}/></div>}
           {plan==='free'&&<p className="quiet"><UpgradeLink plan="free" required="basic" canUpgrade={isPrimaryOwner(business)}>View Individual upgrade to remove Finviant branding</UpgradeLink></p>}

@@ -1183,7 +1183,7 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await expect(page.locator('.invoice-create-total strong')).toHaveText('$105.30')
  await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.invoice-create-total strong')).toHaveText('$108.46')
  await openCreationReview(page);await expect(page.getByRole('region',{name:'Invoice PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true})).toBeEnabled();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
- await page.goto('/?view=estimates');await createWork(page, 'estimate');await page.getByText('Tax options · 5.3% default',{exact:true}).click();await expect(page.getByLabel('Default tax rate (%)',{exact:true})).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
+ await page.goto('/?view=estimates');await createWork(page, 'estimate');await openInvoiceOptions(page);await expect(page.getByLabel('Tax (%)',{exact:true})).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
 })
 
 test('saved invoice payment links appear on the customer copy and do not record payments',async({page})=>{
