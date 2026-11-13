@@ -1,5 +1,4 @@
 import FinBrand from './FinBrand'
-import './form-dialog-brand.css'
 import AskFinButton from './AskFinButton'
 import {useEffect,useRef,type ReactNode} from 'react'
 import {useUnsavedChanges} from '../lib/unsavedChanges'
