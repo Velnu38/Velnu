@@ -95,7 +95,7 @@ for(const kind of ['invoice','estimate'])for(const width of [1440,390])test(`typ
  await page.getByLabel('Customer name',{exact:true}).fill('New Typed Customer')
  await page.getByLabel('Line 1 description',{exact:true}).fill('Only this work');await page.getByLabel('Line 1 unit price',{exact:true}).fill('250')
  await reviewDocument(page)
- await expect(page.getByRole('region',{name:kind==='invoice'?'Invoice PDF':'Estimate PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true})).toBeEnabled();await expect.poll(()=>state.documents.length).toBe(1)
+ await expect(page.getByRole('region',{name:kind==='invoice'?'Invoice PDF':'Estimate PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:/^(Open saved draft|Close invoice review|Close estimate review)$/,exact:true})).toBeEnabled();await expect.poll(()=>state.documents.length).toBe(1)
  const input=state.documents[0].payload;expect(input.new_customer.first_name).toBe('New');expect(input.new_customer.last_name).toBe('Typed Customer');expect(input.payment_links).toEqual([{provider:'stripe',url:'https://buy.stripe.com/owner-link'}]);expect(input.items[0].description).toBe('Only this work')
  expect(state.calls.filter(c=>c.path.endsWith('/customers')&&c.method==='POST')).toHaveLength(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)

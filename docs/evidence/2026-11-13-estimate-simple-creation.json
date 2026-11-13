@@ -30,6 +30,7 @@
     "Free/Individual native handoff tests use Open email app / Open text app; managed-provider absence, exact PDF snapshot, native URI, explicit confirmation and saved-document count assertions are retained.",
     "Viewer detail audit permits an absent More menu after duplicate navigation actions are removed; obsolete scheduling action must still be absent. Six lifecycle states and booking/deposit/revision/permission checks pass locally.",
     "Shared review retains invoice-specific copy and adds estimate-specific copy. Both Home/invoice accessibility journeys pass locally.",
-    "Offline acceptance/conversion regression uses labeled line fields and Close estimate review, preserving all explicit acceptance and financial conversion assertions. Targeted case passes locally."
+    "Offline acceptance/conversion regression uses labeled line fields and Close estimate review, preserving all explicit acceptance and financial conversion assertions. Targeted case passes locally.",
+    "Shared typed-customer/payment-choice regression recognizes Close estimate review; all new-customer, payment-setting, exact PDF request and single-draft assertions remain."
   ]
 }
