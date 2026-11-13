@@ -1,3 +1,4 @@
+import '../components/document-phone.css'
 import PaymentTerms from '../components/PaymentTerms'
 import { resolveFinInvoiceSeed, type FinInvoiceDraft } from '../lib/voiceDocument'
 import { matchingCustomers, uniqueCustomerName } from '../lib/customerSuggestions'
@@ -253,8 +254,8 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
 
   if (selectedInvoiceId) return <InvoiceDetail initialEdit={editCreatedInvoice} business={business} invoiceId={selectedInvoiceId} onBack={() => { setSelectedInvoiceId(null);setEditCreatedInvoice(false);history.replaceState(history.state,'',customerRecordsHref('invoices', customerScope));void refresh().catch(e=>setError(e.message)) }} />
 
-  return <div className="page-stack workspace-module invoice-module"><WorkspaceBack />
-    <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Know what’s owed and get paid faster.</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div><div className="related-page-actions">{isPrimaryOwner(business)&&<button type="button" className="secondary-button" onClick={()=>setShowRecurring(true)}>Recurring invoices</button>}{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create invoice</button>}</div></div>
+  return <div className="page-stack workspace-module invoice-module document-phone-page"><WorkspaceBack />
+    <div className="page-heading split-heading module-page-heading"><div><p className="eyebrow">Invoices</p><h1>Invoices</h1><p className="module-page-intro">Find a customer invoice, review its status, or start a new draft.</p></div><div className="related-page-actions">{isPrimaryOwner(business)&&<button type="button" className="secondary-button" onClick={()=>setShowRecurring(true)}>Recurring invoices</button>}{canManageFinances(business.role) && <button type="button" className="primary-button" disabled={!defaultsReady} onClick={() => { resetForm(); if(customers.some(c=>c.id===customerScope))setCustomerId(customerScope); setShowForm(true) }}><span aria-hidden="true">＋</span> Create invoice</button>}</div></div>
     {showRecurring&&isPrimaryOwner(business)&&<Suspense fallback={<p role="status">Opening recurring schedules…</p>}><RecurringSchedulesDialog key={business.id} business={business} onClose={()=>{setShowRecurring(false);const url=new URL(location.href);url.searchParams.delete("recurring");history.replaceState(history.state,"",url.pathname+url.search)}}/></Suspense>}
     <CustomerRecordScope customerId={customerScope} customers={customers} view="invoices"/>
     <section className="module-summary-grid" aria-label="Invoice summary">
@@ -263,7 +264,7 @@ export default function InvoicesPage({ business, finDraft }: { business: Current
       <button type="button" className="module-summary-card" aria-pressed={statusFilter === 'paid'} onClick={() => chooseFilter('paid')}><span>Paid invoices</span><strong>{invoiceMoney.format(paidInvoices.reduce((sum, invoice) => sum + Number(invoice.amount_paid || invoice.total || 0), 0))}</strong><small>{paidInvoices.length} {paidInvoices.length === 1 ? 'invoice' : 'invoices'} collected</small></button>
     </section>
     <nav className="module-status-filters" aria-label="Filter invoices">
-      {([['all','All',invoices.length],['draft','Draft',invoices.filter(row=>row.status==='draft').length],['sent','Sent',invoices.filter(row=>['sent','viewed','partial'].includes(row.status)&&!invoiceIsOverdue(row)).length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
+      {([['all','All',invoices.length],['draft','Draft',invoices.filter(row=>row.status==='draft').length],['sent','Sent',invoices.filter(row=>['sent','viewed','partial'].includes(row.status)&&!invoiceIsOverdue(row)).length],['paid','Paid',paidInvoices.length]] as const).map(([value,label,count])=><button key={value} type="button" aria-pressed={statusFilter===value} onClick={()=>chooseFilter(value)}>{label}<span>{count}</span></button>)}
     </nav>
     <RecordListControls label="invoices" list={recordList} showPagination={false} />
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}

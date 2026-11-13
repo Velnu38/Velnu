@@ -1,3 +1,5 @@
+import './document-phone.css'
+import {JobMenuIcon} from './JobMobileMenu'
 import InvoiceReminderHistory from './InvoiceReminderHistory'
 import InvoiceReminderPreference from './InvoiceReminderPreference'
 import CopyDocumentButton from './CopyDocumentButton'
@@ -118,7 +120,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
   const site=Array.isArray(invoice.properties)?invoice.properties[0]:invoice.properties
   const action=(id:'send'|'mark_paid'|'reminder'|'edit'|null,primary:boolean)=>id?<button type="button" className={primary?'primary-button':'secondary-button'} disabled={busy} onClick={()=>id==='send'?setDelivery('send'):id==='mark_paid'?setShowPayment(true):id==='reminder'?setShowReminder(true):setShowEdit(true)}>{id==='send'?'Send invoice':id==='mark_paid'?'Mark Paid':id==='reminder'?'Send reminder':'Edit draft'}</button>:null
   if(showChangeOrders&&!invoice.deposit_estimate_id)return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={context} initialOrder={showChangeOrders} onBack={()=>{setShowChangeOrders(null);void refresh()}}/></Suspense>
-  return <div className="page-stack invoice-detail-page">
+  return <div className="page-stack invoice-detail-page document-phone-page">
     <div className="detail-top"><button className="back-button" onClick={()=>{if(confirmNavigation())onBack()}}>← Invoices</button></div>
     <RecordDetailHeader title={invoice.invoice_number||'Invoice'} eyebrow="Invoice" status={status} subtitle={<>{customerName(customer)}{customer?.email?' · '+customer.email:''}</>}>
       <div className="invoice-hero-balance"><span>{invoice.status==='void'?'Voided total':'Balance due'}</span><strong>{money(invoice.status==='void'?invoice.total:invoice.balance_due)}</strong><small>Applied payments {money(invoice.amount_paid)} · {invoice.status==='void'?'No payment requested':'Total '+money(invoice.total)}</small></div>
@@ -148,14 +150,19 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
     <button type="button" className="text-button" onClick={()=>changeTab(tabIds.activity)}>Reminder history</button>
     <RecordTabs tabs={[{id:tabIds.document,label:'Details'},{id:tabIds.resources,label:'Photos & expenses'},{id:tabIds.activity,label:'Activity',badge:detail.payments.length+detail.paymentOperations.refunds.length+detail.messages.length}]} active={tabIds[tab as keyof typeof tabIds]} onChange={changeTab} label="Invoice details"/>
     <section id={tabIds.document+'-panel'} role="tabpanel" aria-labelledby={tabIds.document+'-tab'} hidden={tab!=='document'}>
-      <DocumentPdfPreview compact source={{businessId:business.id,kind:'invoice',documentId:invoice.id}} title="Issued invoice PDF" refreshKey={invoice.updated_at||''}/>
+      <div className="document-phone-only document-phone-summary"><h3>Invoice summary</h3><dl><div><dt>Invoice total</dt><dd>{money(invoice.total)}</dd></div><div><dt>Applied payments</dt><dd>{money(invoice.amount_paid)}</dd></div><div><dt>{invoice.status==='void'?'Voided invoice':'Balance due'}</dt><dd>{money(invoice.balance_due)}</dd></div></dl></div>
+      <div className="document-phone-actions"><DocumentPdfPreview compact source={{businessId:business.id,kind:'invoice',documentId:invoice.id}} title="Issued invoice PDF" refreshKey={invoice.updated_at||''}/>
+        <button type="button" className="document-phone-only document-action-tile" onClick={()=>changeTab(tabIds.activity)}><JobMenuIcon kind="costs"/><strong>Payments</strong><small>Review payments</small></button>
+        {!invoice.deposit_estimate_id&&canManage&&<button type="button" className="document-phone-only document-action-tile" onClick={()=>document.getElementById(tabIds.document+'-changes')?.scrollIntoView({behavior:'smooth',block:'start'})}><JobMenuIcon kind="changes"/><strong>Change orders</strong><small>Review changes</small></button>}
+        {canSeeWork&&jobHref&&<a className="document-phone-only document-action-tile" href={jobHref}><JobMenuIcon kind="billing"/><strong>Linked job</strong><small>Review linked work</small></a>}
+      </div>
       <p className="quiet">The PDF preserves the issued document. Current received funds and balance are shown above and in Activity.</p>
       <dl className="mini-metrics"><div><dt>Issued</dt><dd>{invoice.issue_date}</dd></div><div><dt>Due</dt><dd>{invoice.due_date||'No due date'}</dd></div>{invoice.customer_reference&&<div><dt>Customer PO / reference</dt><dd>{invoice.customer_reference}</dd></div>}{site&&<div><dt>Service address</dt><dd>{formatServiceAddress(site)}</dd></div>}</dl>
       {invoice.customer_message&&<p className="paper-message">{invoice.customer_message}</p>}
       {invoice.deposit_credit>0&&<p>Deposit credited: {money(invoice.deposit_credit)}{invoice.deposit_source_invoice_id&&<> · <a href={'/?view=invoices&document='+encodeURIComponent(invoice.deposit_source_invoice_id)}>Open deposit invoice</a></>}</p>}
       {(invoice.estimate_id||invoice.deposit_estimate_id)&&<p><a href={'/?view=estimates&document='+encodeURIComponent(invoice.estimate_id||invoice.deposit_estimate_id!)}>Open original approved estimate</a>{invoice.deposit_estimate_id&&' · Schedule the approved estimate, not this deposit invoice.'}</p>}
       {invoice.notes&&<div className="invoice-note internal"><strong>Internal notes (not printed)</strong><p>{invoice.notes}</p></div>}
-      {!invoice.deposit_estimate_id&&canManage&&<DocumentChangeOrders business={business} context={context} allowNew={false} onOpen={setShowChangeOrders}/>}
+      {!invoice.deposit_estimate_id&&canManage&&<div id={tabIds.document+'-changes'}><DocumentChangeOrders business={business} context={context} allowNew={false} onOpen={setShowChangeOrders}/></div>}
       {!['draft','void','paid'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<p className="quiet">{overdue?'This invoice is overdue and remains in Needs Attention until its balance is settled.':'Awaiting payment. This invoice appears in Needs Attention only if it becomes overdue.'}</p>}
       {canManage&&<InvoiceReminderPreference key={business.id+':'+invoice.id} businessId={business.id} invoiceId={invoice.id}/>}
       <DocumentRecord dates={invoice} timezone={business.timezone} customerId={invoice.customer_id} customerName={customerName(customer)}/>

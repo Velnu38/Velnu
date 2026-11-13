@@ -1,0 +1,125 @@
+/* Document screens follow the approved Job Management phone reference family.
+   Scope is explicit: each document module opts in at its release. */
+.document-phone-only{display:none}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .finviant-workspace.document-phone-shell{display:block;width:100%;max-width:none;background:white;font-family:Arial,sans-serif;color:#101a2c;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+ .document-phone-shell>.sidebar{display:none}
+ .document-phone-shell>.workspace{width:100%;max-width:none;margin:0;background:white}
+ .document-phone-shell .topbar{position:relative;top:auto;min-height:56px;height:auto;padding:calc(6px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 6px max(14px,env(safe-area-inset-left));border:0;gap:10px;background:white}
+ .document-phone-shell .mobile-brand .fin-wordmark{font-size:34px}
+ .document-phone-shell .mobile-brand .fin-mark{width:31px;height:36px}
+ .document-phone-shell .mobile-brand .fin-brand>span{display:none}
+ .document-phone-shell .topbar-business{display:none}
+ .document-phone-shell .topbar .fin-action-button{min-height:44px;min-width:104px;border-width:1px;border-radius:10px;padding:8px 12px}
+ .document-phone-shell .workspace-inner{width:100%;max-width:none;margin:0;padding:8px max(14px,env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+ .document-phone-shell .jm-account-banner{margin:0 14px 8px;border:1px solid #8fc6bb;border-left:4px solid #008673;border-radius:10px;background:#e8f6f2;color:#173b36}
+ .document-phone-shell .jm-account-banner>summary{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;min-height:44px;font-size:16px;list-style:none;cursor:pointer}
+ .document-phone-shell .jm-account-banner>summary::-webkit-details-marker{display:none}
+ .document-phone-shell .jm-account-banner>summary span{font-size:12px;color:#40665e}
+ .document-phone-shell .jm-account-banner[open]>div{padding:0 10px 10px}
+ .document-phone-shell .mobile-nav>.mobile-destination{min-height:58px;border-radius:12px}
+ .document-phone-shell .mobile-nav>.mobile-destination.active{background:#d9f6ef;color:#006b58}
+ .document-phone-page{width:100%;min-width:0;display:flex;flex-direction:column;gap:14px;font-family:Arial,sans-serif;color:#101a2c}
+ .document-phone-page .module-page-heading{margin:0;padding:0;display:flex;flex-direction:column;align-items:stretch;gap:10px}
+ .document-phone-page .module-page-heading .eyebrow,.document-phone-page .module-page-intro{display:none}
+ .document-phone-page .module-page-heading h1{font-size:28px;line-height:1.15;letter-spacing:-.025em;margin:0;font-weight:700;color:#101a2c}
+ .document-phone-page .related-page-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%}
+ .document-phone-page .related-page-actions>.primary-button{flex:1 1 100%;width:100%;min-height:46px;font-size:18px;border-radius:10px;background:linear-gradient(100deg,#008673,#006d59);color:white}
+ .document-phone-page>.module-page-heading{order:0}
+ .document-phone-page>.module-summary-grid{order:1}
+ .document-phone-page>.record-list-controls{order:2}
+ .document-phone-page>.module-status-filters{order:3}
+ .document-phone-page>.module-record-list{order:4}
+ .document-phone-page>.record-list-pagination{order:5}
+ .document-phone-page>.detail-top{margin:0;min-height:44px;order:0}
+ .document-phone-page>.detail-top .back-button{min-height:44px;background:transparent;border:0;color:#00715c;font-size:16px;padding:8px 0}
+ .document-phone-page>.module-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+ .document-phone-page .module-summary-card{min-width:0;min-height:90px;border:1px solid #c4cad7;border-radius:10px;padding:12px;background:white;color:#101a2c;text-align:left;box-shadow:none;display:grid;gap:5px}
+ .document-phone-page .module-summary-card>span{font-size:16px;font-weight:700}
+ .document-phone-page .module-summary-card>strong{font-size:24px;font-weight:700;line-height:1.1;overflow-wrap:anywhere}
+ .document-phone-page .module-summary-card>small{font-size:12px;color:#596170;line-height:1.3}
+ .document-phone-page .module-summary-card[aria-pressed=true]{border-color:#007762;background:#e7f7f1}
+ .document-phone-page .module-summary-card:nth-child(3){grid-column:1/-1;min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px}
+ .document-phone-page .module-summary-card:nth-child(3)>strong{font-size:17px;margin-left:auto}
+ .document-phone-page .module-summary-card:nth-child(3)>small{flex-basis:100%}
+ .document-phone-page .record-list-controls{display:block;margin:0;padding:0}
+ .document-phone-page .record-list-controls>label{display:grid;gap:4px;font-size:13px;color:#596170}
+ .document-phone-page input[type=search]{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #c4cad7;border-radius:9px;background:#fff;font-size:16px;color:#101a2c}
+ .document-phone-page .module-status-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:0;padding:0}
+ .document-phone-page .module-status-filters>button{min-width:0;min-height:44px;padding:8px 2px;border:1px solid #c4cad7;border-radius:8px;background:white;color:#101a2c;font-size:15px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px}
+ .document-phone-page .module-status-filters>button>span{font-size:11px;background:transparent;padding:0;color:inherit}
+ .document-phone-page .module-status-filters>button[aria-pressed=true]{background:#d9f6ef;border-color:transparent;box-shadow:inset 0 -3px #007762;color:#006b58;font-weight:700}
+ .document-phone-page .module-record-list{display:grid;gap:10px;margin:0}
+ .document-phone-page .module-record-card{display:grid;grid-template-columns:minmax(0,1fr) auto;position:relative;gap:6px 10px;padding:12px;border:1px solid #c4cad7;border-radius:10px;box-shadow:none;background:white;min-width:0}
+ .document-phone-page .module-record-main{display:grid;gap:5px;min-width:0;grid-row:1/3}
+ .document-phone-page .module-record-open{font-size:18px;line-height:1.2;color:#101a2c;text-align:left;min-height:28px;padding:0;white-space:normal;overflow-wrap:anywhere}
+ .document-phone-page .module-record-main>span{font-size:14px;line-height:1.35;color:#434c5b;overflow-wrap:anywhere}
+ .document-phone-page .module-record-main>.created-stamp{font-size:11px}
+ .document-phone-page .module-record-total{display:grid;justify-items:end;gap:3px;min-width:0;max-width:145px}
+ .document-phone-page .module-record-total>span,.document-phone-page .module-record-total>small{font-size:11px;color:#596170}
+ .document-phone-page .module-record-total>strong{font-size:18px;color:#101a2c;overflow-wrap:anywhere}
+ .document-phone-page .module-record-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;min-width:0;max-width:145px}
+ .document-phone-page .module-record-actions button{min-height:44px;font-size:13px;padding:8px;border-radius:8px}
+ .document-phone-page .module-record-status{font-size:12px;border-radius:12px;padding:4px 8px;white-space:normal;background:#e7f3ed;color:#006b58;text-align:center}
+ .document-phone-page .module-record-status.is-overdue{background:#fee4e2;color:#a32b23}
+ .document-phone-page .record-list-pagination{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;font-size:13px}
+ .document-phone-page .record-list-pagination button{min-height:44px}
+ .document-phone-page.invoice-detail-page>.record-detail-header{order:1;border:1px solid #c4cad7;border-radius:10px;padding:12px;background:white;display:block}
+ .document-phone-page .record-detail-heading>.eyebrow{font-size:12px;color:#596170;margin-bottom:5px}
+ .document-phone-page .record-detail-title h2{font-size:24px;line-height:1.15;letter-spacing:-.025em;color:#101a2c}
+ .document-phone-page .record-detail-subtitle{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+ .document-phone-page.invoice-detail-page .invoice-hero-balance{display:none}
+ .document-phone-page.invoice-detail-page>*{order:2}
+ .document-phone-page.invoice-detail-page>.record-tabs{order:3}
+ .document-phone-page.invoice-detail-page>[role=tabpanel]{order:4}
+ .document-phone-page.invoice-detail-page>.record-action-bar{order:6}
+ .document-phone-page .record-tabs{display:grid;grid-template-columns:1fr 1.25fr 1fr;border:0;padding:0;gap:6px;margin:0;background:transparent}
+ .document-phone-page .record-tabs button{white-space:normal;min-width:0;min-height:44px;padding:8px 4px;border:1px solid #c4cad7;border-radius:8px;background:white;color:#101a2c;font-size:15px;line-height:1.2}
+ .document-phone-page .record-tabs button[aria-selected=true]{background:#d9f6ef;border-color:transparent;box-shadow:inset 0 -3px #007762;color:#006b58;font-weight:700}
+ .document-phone-page .document-phone-only{display:block}
+ .document-phone-summary h3{font-size:28px;line-height:1.15;letter-spacing:-.025em;margin:0 0 12px}
+ .document-phone-summary dl{margin:0 0 14px;padding:12px 14px;border:1px solid #c4cad7;border-radius:10px}
+ .document-phone-summary dl>div{display:flex;align-items:start;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #dce1e8;font-size:16px}
+ .document-phone-summary dl>div:last-child{border:0}
+ .document-phone-summary dd{margin:0;font-size:18px;font-weight:700;text-align:right}
+ .document-phone-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 14px}
+ .document-phone-actions>.document-action-tile,.document-phone-actions>.document-pdf-preview{min-width:0;min-height:110px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:12px;border:1px solid #c4cad7;border-radius:10px;background:white;color:#101a2c;text-align:left;text-decoration:none;font:inherit}
+ .document-phone-actions .document-action-tile>svg{width:30px;height:30px;color:#007762}
+ .document-phone-actions .document-action-tile>strong{font-size:18px;line-height:1.15}
+ .document-phone-actions .document-action-tile>small{font-size:14px;line-height:1.3;color:#596170}
+ .document-phone-actions .document-pdf-toolbar{display:flex;flex-wrap:wrap;gap:5px;align-items:start}
+ .document-phone-actions .document-pdf-toolbar>strong{font-size:14px;line-height:1.2}
+ .document-phone-actions .personal-delivery-actions{display:flex;flex-wrap:wrap;gap:4px}
+ .document-phone-actions .document-pdf-toolbar button{min-height:44px;font-size:14px;padding:7px;border-radius:7px}
+ .document-phone-actions .document-pdf-preview:has(iframe){grid-column:1/-1}
+ .document-phone-actions .document-pdf-frame{height:65dvh;width:100%;max-width:100%}
+ .document-phone-page>[role=tabpanel]{min-width:0}
+ .document-phone-page .mini-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .document-phone-page .mini-metrics>div,.document-phone-page .detail-card{padding:12px;border:1px solid #c4cad7;border-radius:10px;background:white}
+ .document-phone-page .record-action-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+ .document-phone-page .record-action-primary{flex:1 1 100%}
+ .document-phone-page .record-action-primary>button{width:100%;min-height:46px;background:linear-gradient(100deg,#008673,#006d59);color:white;border-radius:10px;font-size:18px;font-weight:700}
+ .document-phone-page .record-action-secondary,.document-phone-page .record-action-controls>.record-more{flex:1 1 45%}
+ .document-phone-page .record-action-secondary>button,.document-phone-page .record-more>summary{width:100%;min-height:44px;border:1px solid #c4cad7;border-radius:9px;font-size:16px;padding:10px;background:white}
+ .document-phone-page :is(button,a,summary):focus-visible{outline:3px solid #137d69;outline-offset:3px}
+ body:has(.document-phone-page) .form-dialog{box-sizing:border-box;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:max(16px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain;font-family:Arial,sans-serif;color:#101a2c}
+ body:has(.document-phone-page) .form-dialog .modal-head h2{font-size:26px;line-height:1.15;letter-spacing:-.025em}
+ body:has(.document-phone-page) .form-dialog .form-grid{grid-template-columns:1fr}
+ body:has(.document-phone-page) .form-dialog :is(input,select,textarea){max-width:100%;min-width:0;font-size:16px;border-radius:8px}
+ body:has(.document-phone-page) .form-dialog :is(input,select){min-height:44px}
+ body:has(.document-phone-page) .form-dialog label{font-size:15px}
+ body:has(.document-phone-page) .form-dialog .line-items{padding:12px;border:1px solid #c4cad7;border-radius:10px;background:white}
+ body:has(.document-phone-page) .form-dialog .line-item{border:1px solid #dce1e8;border-radius:9px;padding:10px}
+ body:has(.document-phone-page) .form-dialog :is(.primary-button,.secondary-button){min-height:44px;border-radius:9px;font-size:16px}
+ body:has(.document-phone-page) .form-dialog .modal-actions{position:sticky;bottom:-16px;z-index:2;display:flex;flex-wrap:wrap;gap:8px;background:white;padding:12px 0}
+ body:has(.document-phone-page) .form-dialog .modal-actions button{flex:1 1 auto;min-height:44px}
+ body:has(.document-phone-page) .form-dialog .modal-actions .primary-button{background:linear-gradient(100deg,#008673,#006d59);color:white}
+}
+@media(max-width:360px){.document-phone-page .module-record-card{padding:10px;gap:6px}.document-phone-page .module-record-total,.document-phone-page .module-record-actions{max-width:116px}.document-phone-page .module-record-open{font-size:16px}.document-phone-page .record-detail-title h2{font-size:22px}}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .document-phone-page>.module-page-heading,.document-phone-page>.module-page-heading>.related-page-actions{display:contents}
+ .document-phone-page>.module-page-heading>div:first-child{order:0}
+ .document-phone-page>.module-page-heading .related-page-actions>.primary-button{order:6;margin-top:6px}
+ .document-phone-page>.module-page-heading .related-page-actions>.secondary-button{order:7;min-height:44px}
+ .document-phone-page.invoice-detail-page>.detail-top{order:0}
+}

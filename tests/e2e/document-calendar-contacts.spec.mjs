@@ -308,7 +308,7 @@ for(const width of [1440,390])test(`owner recurring invoice setup and pause rema
 })
 for(const width of [1440,390])test(`office users have no recurring owner controls at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900});const state=await mock(page,{recurring:true,owner:false});await page.goto('/?view=invoices&recurring=1')
- await expect(page.getByRole('heading',{name:'Know what’s owed and get paid faster.'})).toBeVisible()
+ await expect(page.getByRole('heading',{name:'Invoices',exact:true})).toBeVisible()
  await expect(page.getByRole('button',{name:'Recurring invoices',exact:true})).toHaveCount(0)
  await expect(page.getByRole('dialog',{name:'Recurring invoices',exact:true})).toHaveCount(0)
  expect(state.calls.some(c=>/get_recurring_invoice_page/.test(c.path))).toBe(false)
