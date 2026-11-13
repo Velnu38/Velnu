@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-12",
+  "updatedAt": "2026-11-13",
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
@@ -558,6 +558,12 @@
       "detail": "PR104 owner archive v2 is merged as 647195708b19c73d9296941ed0fd18ff258e6384 and deployed to private beta. All four workflows and 22 full-suite jobs passed at 8fef466c; tested and merged trees match. Beta owner-archive v3 retains JWT and PR103 session guards; additive owner_archive_completeness migration applied as 20261112221244 (source 20261112212349), do not reapply. Deployed source equality, unchanged ACLs, missing-identity denial, HTTP 401 and both domains HTTP 200/no-store/noindex/beta database verified. PR97, PR102 and PR103 retained. EXPORT-01 hosted owner acceptance/capacity and OPS-01 full hosted restore remain open. No provider activation, real messages, charges, retention changes or data deletion.",
       "evidence": "docs/evidence/2026-11-12-owner-archive-release.json; docs/OWNER_ARCHIVE_COMPLETENESS_2026-11-12.md",
       "verifiedAt": "2026-11-12"
+    },
+    {
+      "title": "Home calendar mockup candidate; Job Management reopened for design review",
+      "detail": "Approved mockups are now the sole design reference for Home, Invoices, Estimates, Jobs, More and Job Management, including downstream cards. Current deployed Job Management is explicitly rejected as the reference. PR107 remains a candidate for the first Home calendar card only. TypeScript, Home DOM actions/permissions and assessment checks pass. Chromium/WebKit focused checks passed at 79ee9c0; final control-height refinement fe69482 passed all nine Chromium focused checks and was visually reviewed at 320/390/430px. Final WebKit capture remains queued. Actual signed-in deployed acceptance is blocked after cancelled sign-in. No beta deployment or screen acceptance is claimed; proceed one card at a time.",
+      "evidence": "docs/REMAINING_SCREEN_DESIGN_STANDARD.md; https://github.com/Velnu38/Velnu/pull/107; https://github.com/Velnu38/Velnu/actions/runs/43339042856; https://github.com/Velnu38/Velnu/actions/runs/43339378359",
+      "verifiedAt": "2026-11-13"
     }
   ],
   "tasks": [
