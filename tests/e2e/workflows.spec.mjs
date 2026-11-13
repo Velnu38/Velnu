@@ -1,3 +1,4 @@
+import {reviewDocument,addDocumentItem,openInvoiceOptions} from './invoice-creation-navigation.mjs'
 import {openHomePanels} from './navigation.mjs'
 import {readFile} from 'node:fs/promises'
 import {generateDocumentPdf} from '../../shared/documentPdf.ts'
@@ -153,9 +154,9 @@ async function downloadedArtifact(page,state,kind,id){
 }
 async function publishAndOpen(page){
  const form=page.getByRole('dialog',{name:/^Create an (invoice|estimate)$/})
- await form.getByRole('button',{name:'Preview',exact:true}).click()
- await expect(form.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled()
- await form.getByRole('button',{name:'Open saved draft',exact:true}).click()
+ await reviewDocument(form)
+ await expect(form.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true})).toBeEnabled()
+ await form.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true}).click()
 }
 
 test('owner creates a branded invoice atomically and it remains a draft until manually sent', async ({ page }) => {
@@ -165,10 +166,10 @@ test('owner creates a branded invoice atomically and it remains a draft until ma
   await createWork(page, 'invoice')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
-  await page.getByPlaceholder('Description', {exact:true}).fill('Faucet repair')
-  await page.getByPlaceholder('Unit price').fill('150')
-  await page.locator('summary').filter({hasText:/^Tax options/}).click()
-  await page.getByPlaceholder('Tax %',{exact:true}).fill('5')
+  await page.getByLabel('Line 1 description',{exact:true}).fill('Faucet repair')
+  await page.getByLabel('Line 1 unit price',{exact:true}).fill('150')
+  await openInvoiceOptions(page)
+  await page.getByLabel('Tax (%)',{exact:true}).fill('5')
   await publishAndOpen(page)
   await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
   const snapshot=await downloadedArtifact(page,state,'invoice',invoiceId)
@@ -365,14 +366,14 @@ test('fractional invoice preview and saved draft retain database per-line roundi
   await createWork(page, 'invoice')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
-  await page.getByPlaceholder('Description', {exact:true}).fill('First fractional service')
-  await page.getByPlaceholder('Qty').fill('1.5')
-  await page.getByPlaceholder('Unit price').fill('0.01')
-  await page.getByRole('button', { name: '+ Add line' }).click()
-  await page.getByPlaceholder('Description', {exact:true}).nth(1).fill('Second fractional service')
-  await page.getByPlaceholder('Qty').nth(1).fill('1.5')
-  await page.getByPlaceholder('Unit price').nth(1).fill('0.01')
-  await expect(page.locator('.estimate-total strong')).toHaveText('$0.04')
+  await page.getByLabel('Line 1 description',{exact:true}).fill('First fractional service')
+  await page.locator('.invoice-item-quantity>summary').first().click();await page.getByLabel('Line 1 quantity',{exact:true}).fill('1.5')
+  await page.getByLabel('Line 1 unit price',{exact:true}).fill('0.01')
+  await addDocumentItem(page)
+  await page.getByLabel('Line 2 description',{exact:true}).fill('Second fractional service')
+  await page.locator('.invoice-item-quantity>summary').nth(1).click();await page.getByLabel('Line 2 quantity',{exact:true}).fill('1.5')
+  await page.getByLabel('Line 2 unit price',{exact:true}).fill('0.01')
+  await expect(page.locator('.invoice-create-total strong')).toHaveText('$0.04')
   await publishAndOpen(page)
   await expect(page.getByRole('heading', { name: 'INV-1001' })).toBeVisible()
   const snapshot=await downloadedArtifact(page,state,'invoice',invoiceId)

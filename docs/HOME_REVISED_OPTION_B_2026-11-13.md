@@ -1,5 +1,7 @@
 # Home — revised Option B
 
+Released to both Finviant beta domains on November 13 through PR115 after all eleven candidate workflows and all 22 full-suite jobs passed. See the [verified release receipt](evidence/2026-11-13-home-beta-release.json).
+
 The owner approved revised Option B and requested beta deployment after the invoice release. PR114 is already merged and verified on both beta domains. This change starts from that release and retains its invoice controls and recurring setup.
 
 ## Approved composition

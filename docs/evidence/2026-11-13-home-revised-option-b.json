@@ -23,10 +23,11 @@
     "runnerFontMetrics": "Run 43472628539 annotations isolated the remaining desktop failure to wrapped sample currency amounts at 320/390/430px in runner Chrome. All four WebKit shards passed. Mobile currency sizing now uses a conservative 13\u201318px responsive range and no wrapping; assertions wait for fonts and verify both one-line height and no horizontal text overflow.",
     "desktopReplayAfterFinFix": "All 78 desktop shard-4 cases passed locally after the asynchronous Fin confirmation assertion was corrected. CI remains authoritative for runner-specific font metrics."
   },
-  "requiredReleaseGate": "Pending full CI on the final candidate; do not promote before all required checks pass",
+  "requiredReleaseGate": "Passed on final candidate 3d9f3af2b26183c1c2211c8fe8973239b46d9a15; PR115 is merged and both beta domains are verified. See releaseReceipt.",
   "limits": [
     "Synthetic data only; no signed-in hosted tenant or physical-device acceptance claim",
     "No hosted data modifications, migrations, provider activation, customer sends or charges",
     "The simplified three-screen invoice-creation mockup remains unimplemented"
-  ]
+  ],
+  "releaseReceipt": "docs/evidence/2026-11-13-home-beta-release.json"
 }

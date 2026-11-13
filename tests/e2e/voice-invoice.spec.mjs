@@ -1,3 +1,4 @@
+import {reviewDocument} from './invoice-creation-navigation.mjs'
 import {installPcmFixture} from './audio-fixture.mjs'
 import {workflow,start,review,step} from './fin-workflow-fixture.mjs'
 import { test, expect } from '@playwright/test'
@@ -30,17 +31,16 @@ test('dictation opens the invoice editor with saved customer and charges before 
  await page.getByRole('button',{name:'Speak instead'}).click()
  await page.getByRole('button',{name:'Finish recording'}).click()
  const editor = page.getByRole('dialog',{name:'Create an invoice'})
- await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('Test Customer')
- await expect(editor.locator('.customer-picker-selected')).toContainText('customer@example.test')
+ await expect(editor.locator('.invoice-customer-choice')).toContainText('Test Customer')
  await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('300')
  await expect(editor.getByLabel('Line 2 unit price',{exact:true})).toHaveValue('200')
  await expect(editor).toContainText('$500.00')
  expect(f.state.documents).toHaveLength(0)
- await editor.getByRole('button',{name:'Preview',exact:true}).click()
- await expect(editor.getByRole('heading',{name:'Invoice preview'})).toBeVisible()
+ await reviewDocument(editor)
+ await expect(editor.getByRole('heading',{name:'Review invoice'})).toBeVisible();await expect(editor).toContainText('customer@example.test')
  // Preview persists exactly one draft before loading its canonical PDF.
  await expect(editor.getByRole('region',{name:'Invoice PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
- await expect(editor.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled()
+ await expect(editor.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true})).toBeEnabled()
  await expect.poll(() => f.state.documents.length).toBe(1)
  expect(f.state.documents[0].payload.items.map(line => line.description)).toEqual(['labor','materials'])
  expect(f.requests).toHaveLength(0)
@@ -53,7 +53,7 @@ for (const request of ['Create an invoice', 'Open a new invoice for Test Custome
   await start(page, request)
   const editor = page.getByRole('dialog',{name:'Create an invoice'})
   await expect(editor).toBeVisible()
-  await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue(request.includes('Test Customer') ? 'Test Customer' : '')
+  if(request.includes('Test Customer'))await expect(editor.locator('.invoice-customer-choice')).toContainText('Test Customer');else await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('')
   await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('')
   expect(f.state.documents).toHaveLength(0)
   expect(f.requests).toHaveLength(0)
@@ -142,7 +142,7 @@ test('cloud recording uses server transcription and opens draft review, without 
   await expect(page.getByRole('button', { name: 'Finish recording' })).toBeVisible()
   await page.getByRole('button', { name: 'Finish recording' }).click()
   const editor = page.getByRole('dialog',{name:'Create an invoice'})
-  await expect(editor.getByRole('combobox',{name:'Customer',exact:true})).toHaveValue('Bob Smith')
+  await expect(editor.locator('.invoice-customer-choice')).toContainText('Bob Smith')
   await expect(editor.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('150')
   expect(calls.filter(x => x.path.endsWith('/functions/v1/transcribe-voice'))).toHaveLength(2)
   expect(calls.filter(x => x.path.endsWith('/invoices') && x.method === 'POST')).toHaveLength(0)

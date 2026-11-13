@@ -1,3 +1,4 @@
+import {reviewDocument,openInvoiceOptions,addDocumentItem} from './invoice-creation-navigation.mjs'
 import { test, expect } from '@playwright/test'
 import { DateTime } from 'luxon'
 import { readFile } from 'node:fs/promises'
@@ -9,7 +10,7 @@ const sends = state => state.calls.filter(call => call.path.includes('/send-'))
 async function createForm(page, kind) {
  await page.goto('/?view=' + kind + 's')
  await page.getByRole('button', { name: 'Create ' + kind, exact: true }).click()
- return page.getByRole('dialog', { name: 'Create an ' + kind, exact: true })
+ const form=page.getByRole('dialog', { name: 'Create an ' + kind, exact: true });if(kind==='invoice')await openInvoiceOptions(form);return form
 }
 async function chooseCustomer(form) {
  await form.getByRole('combobox', { name: 'Customer', exact: true }).fill('Test')
@@ -29,18 +30,19 @@ for (const kind of ['invoice', 'estimate']) for (const width of [390, 1280]) tes
  const state = await mock(page)
  await page.setViewportSize({ width, height: 1000 })
  const form = await createForm(page, kind)
- const issued = await form.getByLabel('Issue date', { exact: true }).inputValue()
+ const issued = await form.getByLabel(kind==='invoice'?'Invoice date':'Issue date', { exact: true }).inputValue()
  const dateLabel = kind === 'invoice' ? 'Due date' : 'Valid until'
  const editDateLabel = kind === 'invoice' ? 'Due date' : 'Expires on'
+ if(kind==='invoice')await form.getByLabel('Payment terms',{exact:true}).selectOption('custom')
  await expect(form.getByLabel(dateLabel, { exact: true })).toHaveValue(DateTime.fromISO(issued).plus({ days: kind === 'estimate' ? 30 : 0 }).toISODate())
  await chooseCustomer(form)
  await form.getByLabel('Line 1 description', { exact: true }).fill('Lawn maintenance')
  await form.getByLabel('Line 1 unit price', { exact: true }).fill('250')
  const ending = DateTime.fromISO(issued).plus({ days: 45 }).toISODate()
  await form.getByLabel(dateLabel, { exact: true }).fill(ending)
- await form.getByRole('button', { name: 'Preview', exact: true }).click()
+ await reviewDocument(form)
  const pdf = await readyPdf(form, kind, state)
- await expect(form.getByRole('region', { name: 'Review and send' })).toContainText('$250.00')
+ await expect(form.locator(kind==='invoice'?'.invoice-review-paper':'.creation-review-bar')).toContainText('$250.00')
  expect(state.documents[0].payload).toMatchObject({ customer_id: C, [kind === 'invoice' ? 'due_date' : 'expires_on']: ending,
   items: [{ description: 'Lawn maintenance', quantity: 1, unit_price: 250, tax_rate: 0 }] })
  const bounds = await pdf.boundingBox()
@@ -48,8 +50,8 @@ for (const kind of ['invoice', 'estimate']) for (const width of [390, 1280]) tes
  expect(bounds.x).toBeGreaterThanOrEqual(0)
  expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1)
  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
- await expect(form.getByRole('button', { name: 'Send Text', exact: true })).toBeDisabled()
- await expect(form.getByRole('button', { name: 'Open saved draft', exact: true })).toBeEnabled()
+ if(kind==='invoice')await expect(form.getByRole('button',{name:'Send Finviant SMS',exact:true})).toHaveCount(0);else await expect(form.getByRole('button', { name: 'Send Text', exact: true })).toBeDisabled()
+ await expect(form.getByRole('button', { name:/^(Open saved draft|Close invoice review)$/,exact:true })).toBeEnabled()
  const downloaded = page.waitForEvent('download')
  await pdf.getByRole('button', { name: 'Download PDF', exact: true }).click()
  const download = await downloaded
@@ -81,20 +83,20 @@ for (const kind of ['invoice', 'estimate']) test(`${kind}: entry fields are visi
  await expect(form.getByRole('combobox', { name: 'Customer', exact: true })).toBeVisible()
  await expect(form.getByLabel('Line 1 description', { exact: true })).toBeVisible()
  await expect(form.getByLabel('Line 1 Tax rate (%)', { exact: true })).toBeHidden()
- expect(await form.locator('.line-item').first().locator('input').evaluateAll(inputs => inputs.map(input => input.placeholder))).toEqual(['Description', 'Unit price', 'Qty'])
+ if(kind==='invoice'){await expect(form.getByLabel('Line 1 unit price',{exact:true})).toBeVisible();await expect(form.getByLabel('Line 1 quantity',{exact:true})).toBeHidden()}else expect(await form.locator('.line-item').first().locator('input').evaluateAll(inputs => inputs.map(input => input.placeholder))).toEqual(['Description', 'Unit price', 'Qty'])
  await chooseCustomer(form)
  await form.getByLabel('Line 1 description', { exact: true }).fill('Tax-exempt labor')
  await form.getByLabel('Line 1 unit price', { exact: true }).fill('100')
  await expect(form.getByLabel('Line 1 quantity', { exact: true })).toHaveValue('1')
- await form.getByText('Tax options · 5% default', { exact: true }).click()
+ await form.getByText(kind==='invoice'?'Per-item tax rates':'Tax options · 5% default', { exact: true }).click()
  await form.getByLabel('Line 1 Tax rate (%)', { exact: true }).fill('0')
- await form.getByRole('button', { name: '+ Add line', exact: true }).click()
+ await addDocumentItem(form)
  await form.getByLabel('Line 2 description', { exact: true }).fill('Taxable supplies')
  await form.getByLabel('Line 2 unit price', { exact: true }).fill('100')
  await expect(form.getByLabel('Line 2 Tax rate (%)', { exact: true })).toHaveValue('5')
- await form.getByRole('button', { name: 'Preview', exact: true }).click()
+ await reviewDocument(form)
  await readyPdf(form, kind, state)
- await expect(form.getByRole('region', { name: 'Review and send' })).toContainText('$205.00')
+ await expect(form.locator(kind==='invoice'?'.invoice-review-paper':'.creation-review-bar')).toContainText('$205.00')
  expect(state.documents[0].payload.items.map(item => item.tax_rate)).toEqual([0, 5])
  await form.getByRole('button', { name: '← Back to edit', exact: true }).click()
  const editor = page.getByRole('dialog', { name: 'Edit draft ' + kind, exact: true })
@@ -115,9 +117,9 @@ for (const kind of ['invoice', 'estimate']) test(`${kind}: opening the published
  await chooseCustomer(form)
  await form.getByLabel('Line 1 description', { exact: true }).fill('Maintenance')
  await form.getByLabel('Line 1 unit price', { exact: true }).fill('100')
- await form.getByRole('button', { name: 'Preview', exact: true }).click()
+ await reviewDocument(form)
  await readyPdf(form, kind, state)
- await form.getByRole('button', { name: 'Open saved draft', exact: true }).click()
+ await form.getByRole('button', { name:/^(Open saved draft|Close invoice review)$/,exact:true }).click()
  await expect(form).toHaveCount(0)
  await expect(page.getByRole('button', { name: 'Edit draft', exact: true })).toBeVisible()
  expect(state.documents).toHaveLength(1)

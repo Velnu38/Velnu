@@ -22,7 +22,7 @@ test('an invoice with no named customer keeps both prices and lets the user pick
  await expect(editor.getByLabel('Line 2 unit price', {exact:true})).toHaveValue('100')
  await customer.fill('Test')
  await editor.getByRole('option', {name:/Test Customer/}).click()
- await expect(customer).toHaveValue('Test Customer')
+ await expect(editor.locator('.invoice-customer-choice')).toContainText('Test Customer')
  await expect(editor).toContainText('$300.00')
  expect(f.state.documents).toHaveLength(0)
 })

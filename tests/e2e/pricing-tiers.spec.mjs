@@ -1,3 +1,4 @@
+import {reviewDocument} from './invoice-creation-navigation.mjs'
 import {test,expect} from '@playwright/test'
 import {mock,B,C,E} from './audit-fixture.mjs'
 import {readFile} from 'node:fs/promises'
@@ -38,7 +39,7 @@ test('personal app setup requires acknowledgement and enables explicit final-sen
  const s=await setup(page,{tier:'free'});await page.goto('/?view=settings&section=delivery');await expect(page.getByRole('button',{name:'Save sending setup',exact:true})).toBeDisabled();await page.getByLabel('My email app is configured', {exact:false}).check();await page.getByLabel('My messaging app and mobile service', {exact:false}).check();await page.getByLabel('I understand personal-app messages', {exact:false}).check();await page.getByRole('button',{name:'Save sending setup',exact:true}).click();await expect.poll(()=>s.saves.length).toBe(1)
  await page.goto('/?view=invoices&document='+E)
  await openSavedDelivery(page)
- const email=page.getByRole('button',{name:'Send Email',exact:true})
+ const email=page.getByRole('button',{name:/^Send (?:Finviant )?Email$/,exact:true})
  await expect(email).toBeEnabled()
  await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled()
  await email.click()
@@ -58,13 +59,13 @@ test('Business Pro exposes activation requirements, safe fallback and disabled a
  await expect(page.getByLabel('Enable automatic appointment customer reminders')).not.toBeChecked()
  await expect(page.getByLabel('Enable automatic appointment customer reminders')).toBeDisabled()
  await expect(page.getByLabel('Hours before arrival')).toHaveValue('48')
- await page.goto('/?view=invoices&document='+E);await openSavedDelivery(page);await expect(page.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await page.getByRole('button',{name:'Use my email or text app instead'}).click();await expect(page.getByRole('button',{name:'Open email app',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Copy Link',exact:true})).toBeEnabled()
+ await page.goto('/?view=invoices&document='+E);await openSavedDelivery(page);await expect(page.getByRole('button',{name:/^Send (?:Finviant )?Email$/,exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await page.getByRole('button',{name:'Use my email or text app instead'}).click();await expect(page.getByRole('button',{name:'Open email app',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Send Text',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Copy Link',exact:true})).toBeEnabled()
 })
 test('mobile plan comparison stays inside the viewport',async({page})=>{await page.setViewportSize({width:390,height:844});await setup(page);await page.goto('/?view=settings&section=plans');await expect(page.getByRole('heading',{name:'Plans & Usage'})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/tier-mobile.png',fullPage:true})})
 
 for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test(`${tier} ${kind} creation saves before personal sending and never calls a managed provider @native-handoff`,async({page})=>{
  const state=await setup(page,{tier,ready:true});await page.goto('/?view='+kind+'s');await page.getByRole('button',{name:'Create '+kind,exact:true}).click();const form=page.getByRole('dialog',{name:'Create an '+kind,exact:true});
- await form.getByRole('combobox',{name:'Customer',exact:true}).fill('Test');await form.getByRole('option',{name:/Test Customer/}).click();await form.getByLabel('Line 1 description',{exact:true}).fill('Lawn maintenance');await form.getByLabel('Line 1 unit price',{exact:true}).fill('250');await form.getByRole('button',{name:'Preview',exact:true}).click();
+ await form.getByRole('combobox',{name:'Customer',exact:true}).fill('Test');await form.getByRole('option',{name:/Test Customer/}).click();await form.getByLabel('Line 1 description',{exact:true}).fill('Lawn maintenance');await form.getByLabel('Line 1 unit price',{exact:true}).fill('250');await reviewDocument(form);
  const pdf=form.getByRole('region',{name:kind==='invoice'?'Invoice PDF':'Estimate PDF',exact:true})
  await expect(pdf.getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled()
  await expect(pdf.locator('iframe')).toHaveAttribute('src',/^blob:/)
@@ -76,12 +77,12 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  // Branding inside the canonical PDF is asserted by the real PDF renderer tests, not a synthetic HTML preview.
  await expect(form.getByText('Removing Finviant branding is unavailable on the Free plan.',{exact:true})).toHaveCount(tier==='free'?1:0)
  await expect(form.getByRole('link',{name:'Explore Individual',exact:true})).toHaveCount(tier==='free'?1:0)
- if(tier==='basic'){
-  await expect(form.getByRole('button',{name:'Send Email',exact:true})).toBeDisabled()
+ if(tier==='basic'&&kind!=='invoice'){
+  await expect(form.getByRole('button',{name:/^Send (?:Finviant )?Email$/,exact:true})).toBeDisabled()
   await form.getByRole('button',{name:'Use my email or text app',exact:true}).click()
  }
- const emailLabel=tier==='basic'?'Open email app':'Send Email'
- await expect(form.getByRole('button',{name:emailLabel,exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:'Send Text',exact:true})).toBeEnabled()
+ const emailLabel=kind==='invoice'||tier==='basic'?'Open email app':'Send Email'
+ await expect(form.getByRole('button',{name:emailLabel,exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:kind==='invoice'?'Open text app':'Send Text',exact:true})).toBeEnabled()
  await form.getByRole('button',{name:kind==='invoice'?emailLabel:'Send Text',exact:true}).click()
  await expect.poll(()=>state.shares).toBe(1)
  expect(state.prepared[0].request).toMatchObject({p_business:B,p_kind:kind,p_document:E})

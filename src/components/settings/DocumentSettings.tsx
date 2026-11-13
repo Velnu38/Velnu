@@ -175,6 +175,7 @@ export default function DocumentSettings({
           not determine tax obligations or file taxes.
         </p>
       </section>
+      {isPrimaryOwner(business)&&<section className="settings-inset"><h3>Recurring invoices</h3><p className="quiet">Review, pause or resume existing invoice schedules.</p><a href="/?view=invoices&recurring=1">Manage recurring schedules</a></section>}
       {error && (
         <p className="form-message error-text" role="alert">
           {error}

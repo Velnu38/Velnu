@@ -2,13 +2,19 @@
 
 Checked November 13, 2026 UTC.
 
-## Current Home release preparation
+## Current simplified invoice beta release candidate
 
-- The owner approved Home — revised Option B and authorized beta release after PR114. The invoice release is complete. The new Home candidate keeps Quick Links and Ask Fin; Today lists appointments, attention uses Work-style tiles, and Financial Performance uses a compact summary with existing detailed views preserved. See [implementation/review scope](HOME_REVISED_OPTION_B_2026-11-13.md). Full required CI and beta verification remain pending. PR107 is not merged or imported; the latest owner-approved design controls this work.
+- Owner requested implementation of the simpler creator, then replaced Choose delivery with direct Send Finviant Email/SMS actions. The new branch `ux/invoice-simple-creation-20261113` starts from the latest beta source, preserving the Home receipt and newer calendar assessment observations. Customer/work/amount are primary; quantity and advanced details expand only when needed. Saved services/packages, job/approved pricing paths, tax, location, recurring confirmation, canonical PDF, explicit sends and safe retries are retained. See [scope and mockup](INVOICE_SIMPLE_CREATION_2026-11-13.md) and [validation receipt](evidence/2026-11-13-invoice-simple-creation.json).
+- Owner authorized beta deployment after reviewing the implementation. Required full CI and focused Chromium/WebKit checks gate promotion. This candidate has not yet been released to beta. No hosted data, migration, provider activation, customer send or charge occurred. The earlier three-screen creation proposal is superseded by this two-stage implementation. Existing beta releases below remain the last recorded application releases. Full release CI and physical-device/owner/provider acceptance are not established by local synthetic checks.
+
+## Current verified Home release
+
+- Home — revised Option B is released through PR115, merged as 69445e74360417f40d178a9c220998f94d828be4. All eleven candidate workflows and all 22 full-suite jobs passed at 3d9f3af2b26183c1c2211c8fe8973239b46d9a15; tested and merged trees match. Vercel deployment 8pEQUNZMfHn3mzyZ7Mstfa1GEq48 serves both Finviant domains. Home layout, narrow-phone currency CSS, retained invoice controls, beta backend and private no-store/noindex headers are verified. No hosted data changes, migrations, provider activation, sends or charges. See [release receipt](evidence/2026-11-13-home-beta-release.json).
+- Quick Links and Ask Fin remain. Today lists appointments; attention uses Work-style review tiles; Financial Performance has a compact summary and existing detailed tools. Configured logos and the shared Ask Fin position are retained. Failed browser assertions are now visible through GitHub check annotations. The asynchronous Fin-confirmation test waits for actual execution/completion; runtime confirmation behavior is unchanged. All 51 launch task records remain. Physical-device/owner and provider acceptance stay open. PR107 was not imported; the three-screen invoice-creation mockup remains unimplemented.
 
 ## Current verified invoice release
 
-- PR114 is merged as 77c3016b833295e1c8c47c6884750f79b19f0484. All required workflows and all 22 full-suite jobs passed at 677b04f; tested and merged trees match. Vercel deployment GBnzmesTaZnpnkTvg7GXsmKAEGz1 serves the invoice controls on both Finviant domains. HTTP200, private no-store/noindex, beta backend and new invoice assets verified. No hosted data changes, provider activation, sends or charges. Home and simplified creation mockups remain proposals. See [release receipt](evidence/2026-11-13-invoice-beta-release.json).
+- PR114 is merged as 77c3016b833295e1c8c47c6884750f79b19f0484. All required workflows and all 22 full-suite jobs passed at 677b04f; tested and merged trees match. Vercel deployment GBnzmesTaZnpnkTvg7GXsmKAEGz1 serves the invoice controls on both Finviant domains. HTTP200, private no-store/noindex, beta backend and new invoice assets verified. No hosted data changes, provider activation, sends or charges. Home was subsequently released through PR115; the simplified creation mockup remains design only. See [release receipt](evidence/2026-11-13-invoice-beta-release.json).
 
 ## Historical release preparation (superseded by the receipt above)
 

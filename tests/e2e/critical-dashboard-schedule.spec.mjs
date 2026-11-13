@@ -1,3 +1,4 @@
+import {reviewDocument as openCreationReview,openInvoiceOptions} from './invoice-creation-navigation.mjs'
 import {openHomePanels,refreshHome} from './navigation.mjs'
 import {customerSearchResponse} from './job-customer-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
@@ -1177,11 +1178,11 @@ test('owner settings invoice tax defaults and optional cost pricing affect previ
  await page.goto('/?view=invoices');await createWork(page, 'invoice')
  await expect(page.getByLabel('Customer',{exact:true})).toBeVisible()
  await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+CID+'"]').click()
- await page.getByPlaceholder('Description',{exact:true}).fill('Service work');await page.getByPlaceholder('Unit price',{exact:true}).fill('100')
- await page.getByText('Tax options · 5.3% default',{exact:true}).click();await expect(page.getByLabel('Default tax rate (%)',{exact:true})).toHaveValue('5.3')
- await expect(page.locator('.estimate-total strong')).toHaveText('$105.30')
- await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.estimate-total strong')).toHaveText('$108.46')
- await page.getByRole('button',{name:'Preview',exact:true}).click();await expect(page.getByRole('region',{name:'Invoice PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:'Open saved draft',exact:true})).toBeEnabled();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
+ await page.getByLabel('Line 1 description',{exact:true}).fill('Service work');await page.getByLabel('Line 1 unit price',{exact:true}).fill('100')
+ await openInvoiceOptions(page);await expect(page.getByLabel('Tax (%)',{exact:true})).toHaveValue('5.3')
+ await expect(page.locator('.invoice-create-total strong')).toHaveText('$105.30')
+ await page.getByRole('checkbox',{name:/Include payment costs/}).check();await expect(page.locator('.invoice-create-total strong')).toHaveText('$108.46')
+ await openCreationReview(page);await expect(page.getByRole('region',{name:'Invoice PDF',exact:true}).getByRole('button',{name:'Download PDF',exact:true})).toBeEnabled();await expect(page.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true})).toBeEnabled();await expect.poll(()=>payload?.payload.items[0].unit_price).toBe(103);expect(payload.payload.items[0].tax_rate).toBe(5.3)
  await page.goto('/?view=estimates');await createWork(page, 'estimate');await page.getByText('Tax options · 5.3% default',{exact:true}).click();await expect(page.getByLabel('Default tax rate (%)',{exact:true})).toHaveValue('5.3');await expect(page.getByRole('checkbox',{name:/Include payment costs/})).toHaveCount(0)
 })
 
@@ -1350,9 +1351,9 @@ test('volume lists reach historical invoices beyond 1000 and keep 25 rows per pa
  await expect(page.getByText('1 records · Page 1 of 1')).toBeVisible()
  await expect(page.getByRole('button',{name:/QA-0000/})).toBeVisible()
  await createWork(page, 'invoice')
- await page.getByLabel('Issue date',{exact:true}).fill('2026-01-01')
+ await openInvoiceOptions(page);await page.getByLabel('Invoice date',{exact:true}).fill('2026-01-01');await page.getByLabel('Payment terms',{exact:true}).selectOption('custom')
  await page.getByLabel('Due date',{exact:true}).fill('2026-01-31')
- await expect(page.getByLabel('Issue date',{exact:true})).toHaveValue('2026-01-01')
+ await expect(page.getByLabel('Invoice date',{exact:true})).toHaveValue('2026-01-01')
 })
 
 
