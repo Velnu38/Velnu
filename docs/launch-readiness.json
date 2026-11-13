@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Invoice creation controls \u2014 beta released",
+      "detail": "November 13: PR114 merged as 77c3016b833295e1c8c47c6884750f79b19f0484 after all required checks and all 22 full-suite jobs passed at 677b04f6ac7bd9153fac20b7fa9b2955de143f15. Tested and merged trees match. Vercel deployment GBnzmesTaZnpnkTvg7GXsmKAEGz1 completed successfully. Both Finviant domains return HTTP 200, private no-store/noindex and the new entry and invoice assets; beta backend xvybcmyoblfgzokaifsx retained. Create invoice replaces the Overdue summary action; recurring setup is an owner-only new-invoice option with explicit schedule confirmation. Release repairs preserve current Jobs navigation and coalesce calendar invalidations. No hosted data changes, migrations, provider activation, messages or charges. Home and three-screen creation mockups remain proposals; physical-device/owner and other acceptance gates remain open.",
+      "evidence": "docs/evidence/2026-11-13-invoice-beta-release.json",
+      "verifiedAt": "2026-11-13"
+    },
+    {
       "title": "Invoice creation controls \u2014 local development only",
       "detail": "November 13: removed the separate Overdue summary action and moved Create invoice into its position beside Total Outstanding. Recurring setup is now an owner-only option in the new-invoice form, with existing schedule management retained there. Saving the invoice opens the existing explicit schedule confirmation; checking the option alone creates no schedule. Synthetic Chromium tests cover phone/desktop creation, owner restrictions, schedule review and pause/resume. No hosted changes, provider activation, sending, charges, deployment or physical-device acceptance. All existing launch criteria remain open as previously recorded.",
       "evidence": "docs/evidence/2026-11-13-invoice-creation-controls.json",
