@@ -1,7 +1,8 @@
 /** Advanced regressions enter the simplified form's retained tools explicitly. */
 export async function openInvoiceOptions(target){
  const summary=target.locator('.invoice-more-options>summary')
- if(await summary.count()&&await summary.isVisible()&&!await summary.evaluate(el=>el.parentElement.open))await summary.click()
+ await summary.waitFor({state:'visible'})
+ if(!await summary.evaluate(el=>el.parentElement.open))await summary.click()
 }
 export async function reviewDocument(target){
  await target.getByRole('button',{name:/^(Preview|Review invoice|Review estimate)$/,exact:true}).click()
