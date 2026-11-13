@@ -2,6 +2,11 @@
 
 Checked November 13, 2026 UTC.
 
+## Current release preparation
+
+- PR114 prepares the invoice creation controls for beta release. The separate Overdue summary action is removed, Create invoice occupies its place, and recurring setup is an owner-only new-invoice option with explicit schedule confirmation. The later three-screen creation mockup remains unimplemented.
+- The previously reproduced customer-navigation and completion-to-invoice failures were stale navigation in tests: use the visible Open filters control / Additional job filters and enter Job Management through Manage job before reviewing completion. All three corrected cases pass locally without removing assertions or changing runtime behavior. Required full CI and beta deployment remain pending; do not treat this as a release receipt.
+
 ## Current read-only assessment checkpoint
 
 - Read-only report checkpoint November 13, 2026: beta branch and both Vercel aliases remain at 46aa23c6af52b65e897ca0abd4af3f4441ccf292 (PR112). Deployment is not a passing release: final candidate full run 43345387938 and deployed-head full run 43345439848 failed, including release validation. Prior passing releases do not certify this newer candidate.

@@ -128,6 +128,7 @@ test('completed jobs link to the prepared invoice immediately',async({page})=>{
   })
   await page.route('**/rest/v1/rpc/get_job_management_signals',route=>route.fulfill({json:route.request().postDataJSON().p_jobs.map(job_id=>({job_id,tasks_total:0,tasks_completed:0,due_tasks:0,materials_needed:0,pending_changes:0}))}))
   await page.goto('/?view=work')
+  await page.getByRole('button',{name:'Manage job',exact:true}).click()
   await page.getByRole('button',{name:'Review completion',exact:true}).click()
   const review=page.getByRole('dialog',{name:'Complete job review',exact:true})
   await expect(review).toContainText('No invoice is sent and no payment is recorded.')
