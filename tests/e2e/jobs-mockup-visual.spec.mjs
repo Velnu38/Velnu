@@ -16,7 +16,7 @@ async function screenshot(page,name){
  await page.evaluate(()=>document.fonts.ready)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await mkdir('tmp/jobs-directory-review',{recursive:true})
- await page.screenshot({path:`tmp/jobs-directory-review/${name}.png`,fullPage:true})
+ await page.screenshot({path:`tmp/jobs-directory-review/${name}.png`})
 }
 
 test('Jobs phone mockup states render and preserve the directory handoffs',async({page})=>{
