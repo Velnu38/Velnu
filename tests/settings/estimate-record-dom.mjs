@@ -77,7 +77,7 @@ try{
   const open=document.querySelector('.module-record-open');assert.ok(open);await act(async()=>open.click());await tick();await tick()
   assert.ok(preview())
   assert.deepEqual([...preview().querySelectorAll('[role=tab]')].map(el=>el.textContent),['Details','Photos & expenses','Activity'])
-  assert.equal(preview().querySelector('summary')?.textContent.includes('Schedule this estimate'),false,'legacy scheduling entry is removed')
+  assert.notEqual(preview().querySelector('summary')?.textContent.includes('Schedule this estimate'),true,'legacy scheduling entry is removed, including when the viewer has no More actions')
  }
  const main=()=>preview().querySelector('.record-action-primary')?.textContent.trim()||''
  await mount('draft');assert.equal(main(),'Send estimate');assert.ok(named('Edit draft',preview()));assert.equal(document.querySelector('[aria-label="Send to customer"]'),null,'delivery is a focused action, not a competing panel')

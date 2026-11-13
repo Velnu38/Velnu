@@ -155,8 +155,8 @@ async function downloadedArtifact(page,state,kind,id){
 async function publishAndOpen(page){
  const form=page.getByRole('dialog',{name:/^Create an (invoice|estimate)$/})
  await reviewDocument(form)
- await expect(form.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true})).toBeEnabled()
- await form.getByRole('button',{name:/^(Open saved draft|Close invoice review)$/,exact:true}).click()
+ await expect(form.getByRole('button',{name:/^(Open saved draft|Close invoice review|Close estimate review)$/,exact:true})).toBeEnabled()
+ await form.getByRole('button',{name:/^(Open saved draft|Close invoice review|Close estimate review)$/,exact:true}).click()
 }
 
 test('owner creates a branded invoice atomically and it remains a draft until manually sent', async ({ page }) => {
@@ -192,8 +192,8 @@ test('estimate requires explicit offline acceptance before conversion to invoice
   await createWork(page, 'estimate')
   await expect(page.getByLabel('Customer', { exact: true })).toBeVisible()
   await page.getByRole('combobox',{name:'Customer',exact:true}).click();await page.locator('[data-customer-id="'+customerId+'"]').click()
-  await page.getByPlaceholder('Description', {exact:true}).fill('Faucet repair')
-  await page.getByPlaceholder('Unit price').fill('150')
+  await page.getByLabel('Line 1 description', {exact:true}).fill('Faucet repair')
+  await page.getByLabel('Line 1 unit price',{exact:true}).fill('150')
   await publishAndOpen(page)
   await recordMore(page)
   await expect(page.getByRole('button', { name: 'Mark sent manually' })).toBeVisible()
