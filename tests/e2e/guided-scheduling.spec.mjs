@@ -179,7 +179,7 @@ test('a typed customer stays in the estimate draft without losing line-item work
  await page.getByLabel('Line 1 description',{exact:true}).fill('Keep this scope');await page.getByLabel('Line 1 unit price',{exact:true}).fill('250')
  await page.getByRole('button',{name:'Create a new customer',exact:true}).click()
  await page.getByLabel('Customer name',{exact:true}).fill('New Customer')
- await page.getByText('Add email or phone (optional)',{exact:true}).click()
+ await page.getByText('Company & contact details (optional)',{exact:true}).click()
  await page.getByLabel('Customer email',{exact:true}).fill('new@example.test')
  await expect(page.getByLabel('Line 1 description',{exact:true})).toHaveValue('Keep this scope')
  await expect(page.getByLabel('Line 1 unit price',{exact:true})).toHaveValue('250')
