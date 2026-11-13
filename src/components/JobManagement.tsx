@@ -222,7 +222,7 @@ export default function JobManagement({
           </button>
         </p>
       )}
-              <div className="jm-context-heading"><button type="button" onClick={()=>{if(confirmNavigation()){initialChoice.current=true;setBrowseOpen(true);onSelect(null)}}}>‹ All jobs</button><strong>Job Management</strong></div>
+              <div className="jm-context-heading"><button type="button" onClick={()=>{if(confirmNavigation()){initialChoice.current=true;setBrowseOpen(true);onSelect(null)}}}>‹ All jobs</button><h1>Job Management</h1></div>
               <div className="jm-mobile-picker">
                 <label>
                   <span className="jm-picker-label">Job overview</span>

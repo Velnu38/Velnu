@@ -30,7 +30,7 @@ for(const scenario of ['mixed','restricted']){
   if(scenario==='mixed'){
    await click(tile('Tasks & templates'));await click(button('+ Add task'));await until(()=>doc.querySelector('dialog[open]'))
    const dialog=doc.querySelector('dialog[open]');await fill(dialog.querySelector('input'),'Phone finish task');await click(button('Save task',dialog));await until(()=>!doc.querySelector('dialog[open]'));await until(()=>doc.querySelector('.jm-task-list').textContent.includes('Phone finish task'))
-   await click(button('‹ Back to Work'));await click(group('Billing'));assert.equal(doc.querySelectorAll('.jm-quick-tile').length,3)
+   await click(button('‹ Back to Work'));await click(group('Billing'));assert.equal(doc.querySelectorAll('.jm-quick-tile').length,4)
    await click(tile('Costs & budget'));assert.equal(new URL(dom.window.location.href).searchParams.get('billing'),'costs');await until(()=>doc.querySelector('.job-cost-grid'));assert.ok(doc.querySelector('.jm-panel:not([hidden]) > div[hidden]'),'invoice list separated from costs')
    await click(button('‹ Back to Billing'));await click(tile('Invoices'));assert.equal(new URL(dom.window.location.href).searchParams.get('billing'),null);assert.equal(doc.querySelector('.job-cost-grid'),null,'cost editor not duplicated in invoice view');await click(button('‹ Back to Billing'))
    await click(group('Summary'));await fill(doc.querySelector('.jm-summary-secondary textarea'),'Unsaved phone notes');confirmAllowed=false;await click(group('Work'));assert.ok(doc.querySelector('.jm-phone-summary'),'unsaved notes block navigation');assert.equal(doc.querySelector('.jm-summary-secondary textarea').value,'Unsaved phone notes');confirmAllowed=true

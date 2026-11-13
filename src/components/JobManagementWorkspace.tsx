@@ -408,13 +408,14 @@ export default function JobManagementWorkspace({
   const alertCount = Number(missingMaterials.length > 0 && !closed) + Number(outstandingTasks.some(t=>t.due_on && t.due_on < DateTime.now().setZone(zone).toISODate()!) && !closed) + Number(unbilledChanges.length > 0) + Number(pendingChanges.length > 0) + Number(!closed && !job?.assigned_user_ids?.length && canSchedule);
   const menuItems:JobMenuItem[] = activeGroup.label === 'Work' ? [
     {key:'tasks',label:'Tasks & templates',description:data ? `${data.tasks.filter(t=>t.completed).length} of ${data.tasks.length} complete` : 'Work checklist',onClick:()=>selectSection('tasks')},
-    {key:'schedule',label:'Visits & crew',description:booked ? phoneDate(job!.active_appointment!.starts_at) : 'Review visits and assignments',onClick:()=>selectSection('schedule')},
-    {key:'materials',label:'Materials',description:missingMaterials.length ? `${missingMaterials.length} not received` : 'Review supplies and quantities',onClick:()=>selectSection('materials')},
+    {key:'schedule',icon:'crew',label:'Visits & crew',description:booked ? phoneDate(job!.active_appointment!.starts_at) : 'Review visits and assignments',onClick:()=>selectSection('schedule')},
+    {key:'materials',label:'Materials',description:missingMaterials.length ? `${missingMaterials.length} not received` : data?.materials.length ? 'All received' : 'No materials recorded',onClick:()=>selectSection('materials')},
     {key:'photos',label:'Photos & expenses',description:'View job records',onClick:()=>selectSection('photos')},
   ] : activeGroup.label === 'Billing' ? [
-    {key:'billing',label:'Invoices',description:'Review linked documents',onClick:()=>selectSection('billing',true,'invoices')},
-    ...(data?.financial_access ? [{key:'costs',label:'Costs & budget',description:'Budget, labor and expenses',onClick:()=>selectSection('billing',true,'costs')}] : []),
-    {key:'changes',label:'Change orders',description:'Review approved and pending changes',onClick:()=>selectSection('changes')},
+    {key:'billing',label:'Invoices',description:'Review linked invoice',onClick:()=>selectSection('billing',true,'invoices')},
+    ...(data?.financial_access ? [{key:'costs',label:'Costs & budget',description:'Review job costs',onClick:()=>selectSection('billing',true,'costs')}] : []),
+    {key:'changes',label:'Change orders',description:'Review changes',onClick:()=>selectSection('changes')},
+    ...(data?.financial_access ? [{key:'review',icon:'review',label:'Cost review',description:'Labor and expenses',onClick:()=>selectSection('billing',true,'costs')}] : []),
   ] : [
     {key:'activity',label:'Activity history',description:'Changes, updates and job events',onClick:()=>selectSection('activity')},
     {key:'reports',label:'Completion reports',description:'Review saved reports',onClick:()=>selectSection('reports')},
@@ -544,7 +545,7 @@ export default function JobManagementWorkspace({
   return (
     <>
     <section
-      className={"jm-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections && (mobileDetail || section !== "overview") ? " jm-compact-job" : "")}
+      className={"jm-workspace" + (compactSections ? " jm-phone-workspace" : "") + (compactSections ? " jm-compact-job" : "")}
       aria-label="Selected job workspace"
       aria-busy={loading || busy}
     >
@@ -684,8 +685,9 @@ export default function JobManagementWorkspace({
               {data.billing_access && <><div><dt>Deposit received</dt><dd>{money(depositPaid)}</dd></div><div><dt>Issued invoice balance</dt><dd>{money(balance)}</dd></div></>}
             </dl><p className="quiet">Recorded costs may be incomplete. Drafts are excluded from the issued balance.</p></div>}
           </JobMobileMenu>}
-          {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{phoneDate(job.active_appointment!.starts_at)}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
+          {data && mobileHome && activeGroup.label==='Work' && booked && <section className="jm-menu-context"><strong>Next visit</strong><span>{phoneDate(job.active_appointment!.starts_at)}{job.assigned_user_ids?.length ? <><br/>{job.assigned_user_ids.map((worker:string)=>team.find(w=>w.id===worker)?.label||'Worker unavailable').join(', ')}</> : null}</span><button type="button" className="secondary-button" onClick={()=>selectSection('schedule')}>Review visit</button></section>}
           {data && mobileHome && activeGroup.label==='Records' && data.activity.length>0 && <section className="jm-menu-context"><h4>Latest activity</h4><Activity entries={data.activity.slice(0,1)} zone={zone}/></section>}
+          {data && mobileHome && activeGroup.label==='Billing' && canBill && <a className="primary-button jm-billing-primary" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>Review invoice</a>}
           {data && mobileHome && activeGroup.label==='Records' && <button type="button" className="jm-record-details" onClick={()=>setDetails(true)}><JobMenuIcon kind="billing"/><strong>Job details</strong><span aria-hidden="true">›</span></button>}
 
           {data && (
@@ -1408,6 +1410,7 @@ export default function JobManagementWorkspace({
               </div>
             </>
           )}
+          {compactSections && mobileDetail && <button type="button" className="jm-detail-return" onClick={()=>selectSection(activeGroup.sections[0] as Section,false)}>Back to {activeGroup.label}</button>}
           {!summaryCard && jobActions}
         </>
       )}

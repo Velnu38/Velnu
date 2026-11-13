@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Job Management attached mockup correction — candidate",
+      "detail": "November 12: layout-only Work/Billing/Records and downstream correction uses owner-supplied attached mockups. Existing actions, permissions, financial lines, removal controls and form behavior retained. Cost review shortcut reuses the existing costs destination; bottom return reuses the existing group navigation. Local Chromium launch was blocked by process-singleton socket permissions; rendered review and required checks remain pending. No launch acceptance gate is closed. PR107 Home and PR108 Fin/performance stay separate.",
+      "evidence": "docs/JOB_MANAGEMENT_ATTACHED_MOCKUPS_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Stable business-card contacts released to private beta",
       "detail": "November 12: PR109 merged as fe172ba and READY deployment dpl_9zDF1a4nxGRiiquuBtpjHe2dLvBJ serves both Finviant domains. Four workflows/all 22 full-suite jobs pass; tested and merged trees match. Stable-card migration 20261112233355, hosted rollback privacy/routing/retry/ACL/session checks, gateway rejection, deployed assets, beta backend and private headers verified. Existing jobs/crew/billing checks pass; explicit recurrence/progress-billing, archive metadata, owner-business and physical-contact acceptance remain open. No auto-publication/providers/messages/charges/public launch. PR107/108 layout/guidance stay separate.",
       "evidence": "docs/evidence/2026-11-12-business-card-beta-release.json",
