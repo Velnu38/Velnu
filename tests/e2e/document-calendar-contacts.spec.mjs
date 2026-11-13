@@ -298,7 +298,7 @@ for(const width of [1440,390])test(`owner recurring invoice setup and pause rema
  await dialog.getByRole('button',{name:'Create recurring schedule',exact:true}).click()
  await expect(dialog.getByRole('status')).toContainText('Schedule created')
  await expect.poll(()=>state.recurringPlans.length).toBe(1)
- await page.goBack()
+ await dialog.getByRole('button',{name:'Close',exact:true}).click()
  await page.getByRole('button',{name:'← Invoices',exact:true}).click()
  await page.goto('/?view=settings&section=documents');await page.getByRole('link',{name:'Manage recurring schedules',exact:true}).click()
  const schedules=page.getByRole('dialog',{name:'Recurring invoices',exact:true})

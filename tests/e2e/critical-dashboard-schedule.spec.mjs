@@ -910,14 +910,11 @@ test('dashboard layout uses the business name, presents calendar and financials 
   expect(await calendar.evaluate((el)=>Boolean(el.compareDocumentPosition(document.querySelector('.financial-performance')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
   await expect(page.getByRole('article',{name:'Jobs overview',exact:true})).toHaveCount(0)
   await page.getByRole('navigation').getByRole('button',{name:'Job Management',exact:true}).click()
-  await expect(page.getByRole('heading', { name: 'Jobs', exact:true })).toBeVisible()
-  const phoneLayout=await page.evaluate(()=>matchMedia('(max-width:900px), (max-width:1100px) and (pointer:coarse)').matches)
-  const jobViews=page.getByRole('navigation', { name: 'Job workspace views' })
-  if(phoneLayout)await expect(jobViews).toHaveCount(0)
-  else {await expect(jobViews).toBeVisible();await expect(jobViews.getByRole('button',{name:'List',exact:true})).toBeVisible();await expect(jobViews.getByRole('button',{name:'Board',exact:true})).toBeVisible()}
-  await expect(page.getByRole('button', { name: 'New job', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Open filters', exact: true }).click()
-  await expect(page.getByRole('navigation', { name: 'Additional job filters' })).toContainText('History')
+  await expect(page.getByRole('heading', { name: 'Job Management', exact:true })).toBeVisible()
+  await expect(page.getByRole('button',{name:'＋ New job',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Open filters',exact:true}).click()
+  const layouts=page.getByRole('group',{name:'Job layout',exact:true});await expect(layouts.getByRole('button',{name:'List',exact:true})).toBeVisible();await expect(layouts.getByRole('button',{name:'Board',exact:true})).toBeVisible()
+  await expect(page.getByRole('combobox',{name:'Job view'})).toContainText('History')
 })
 
 for (const kind of ['job', 'estimate', 'invoice']) {
@@ -1077,7 +1074,7 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('heading',{name:'INV-805',exact:true})).toBeVisible()
     expect(new URL(page.url()).searchParams.get('document')).toBe(id(805))
     await page.getByRole('navigation').getByRole('button',{name:'Job Management',exact:true}).click()
-    await expect(page.getByRole('region',{name:'active jobs',exact:true}).getByRole('article')).toHaveCount(3)
+    await expect(page.getByRole('region',{name:'Jobs',exact:true}).getByRole('article')).toHaveCount(3)
   })
 }
 
