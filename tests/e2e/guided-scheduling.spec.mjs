@@ -147,7 +147,7 @@ for(const width of [1440,390])test(`dashboard tiles share surfaces and typograph
  await page.setViewportSize({width,height:900});await mock(page);await page.goto('/?view=dashboard')
  await expect(scheduleWork(page)).toHaveAccessibleName('Needs scheduling 1')
  await expect(page.locator('.home-overview .dashboard-tile')).toHaveCount(4)
- const appearance=await page.locator('.dashboard-tile').evaluateAll(tiles=>tiles.map(tile=>{
+ const appearance=await page.locator('.home-overview .dashboard-tile').evaluateAll(tiles=>tiles.map(tile=>{
   const style=getComputedStyle(tile),title=getComputedStyle(tile.querySelector('.dashboard-tile-title'))
   return {background:style.backgroundColor,border:style.borderColor,borderWidth:style.borderWidth,radius:style.borderRadius,font:style.fontFamily,titleFont:title.fontFamily,titleSize:title.fontSize,titleWeight:title.fontWeight,titleColor:title.color}
  }))

@@ -5,12 +5,12 @@ import {mock} from './audit-fixture.mjs'
 // Populated synthetic reference capture; no real account or provider writes.
 for(const width of [320,390,430])test(`Home calendar mockup composition at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:900})
- await mock(page)
+ await mock(page,{ai:true})
  const day=DateTime.now().setZone('America/New_York').startOf('day')
  const job='66666666-6666-4666-8666-666666666666'
  await page.route('**/api/calendar?**',route=>route.fulfill({json:{events:[],issues:[],connections:0}}))
- await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({headers:{'content-range':'0-0/1'},json:[{source_key:'job:'+job,title:'Landscaping',starts_at:day.set({hour:9}).toISO(),ends_at:day.set({hour:11}).toISO(),status:'scheduled',job_status:'scheduled',document_kind:'work',document_id:job,job_id:job,customer_name:'Sample Customer A',assigned_user_ids:[]}]}))
- await page.route('**/rest/v1/jobs?**',route=>route.fulfill({headers:{'content-range':'0-0/1'},json:[{id:job,status:'scheduled',description:'',customers:{first_name:'Sample',last_name:'Customer A'},properties:null}]}))
+ await page.route('**/rest/v1/calendar_work?**',route=>route.fulfill({headers:{'access-control-allow-origin':'*','access-control-expose-headers':'content-range','content-range':'0-0/1'},json:[{source_key:'job:'+job,title:'Landscaping',starts_at:day.set({hour:9}).toISO(),ends_at:day.set({hour:11}).toISO(),status:'scheduled',job_status:'scheduled',document_kind:'work',document_id:job,job_id:job,customer_name:'Sample Customer A',assigned_user_ids:[]}]}))
+ await page.route('**/rest/v1/jobs?**',route=>route.fulfill({headers:{'access-control-allow-origin':'*','access-control-expose-headers':'content-range','content-range':'0-0/1'},json:[{id:job,status:'scheduled',description:'',customers:{first_name:'Sample',last_name:'Customer A'},properties:null}]}))
  await page.goto('/?view=dashboard')
  const card=page.getByRole('region',{name:'Work calendar',exact:true})
  await expect(card.getByText('Sample Customer A',{exact:true})).toBeVisible()

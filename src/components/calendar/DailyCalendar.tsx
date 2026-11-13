@@ -28,7 +28,6 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [day, setDay] = useState(today)
   const [view, setView] = useState<CalendarView>('week')
   const [version, setVersion] = useState(0)
-  useBusinessRefresh(business.id,()=>setVersion(value=>value+1))
   const [result, setResult] = useState<{ key: string; agenda: Agenda } | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -52,20 +51,14 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const key = [business.id, business.role, business.access_modules?.join(','), zone, from, to].join(':')
   const agenda = result?.key === key ? result.agenda : null
   const connected = connectedResult?.key === key ? connectedResult.agenda : null
-  useEffect(() => {
-    const refresh = () => {
-      if (document.hidden) return
-      const next = DateTime.now().setZone(zone).toISODate()!
-      const previous = previousToday.current
-      previousToday.current = next
-      setToday(next); setDay(value => value === previous ? next : value); setVersion(value => value + 1)
-    }
-    const timer = window.setInterval(refresh, 60000)
-    window.addEventListener('focus', refresh)
-    document.addEventListener('visibilitychange', refresh)
-    window.addEventListener('finviant-work-changed', refresh)
-    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('finviant-work-changed', refresh) }
-  }, [zone])
+  useBusinessRefresh(business.id, () => {
+    const next = DateTime.now().setZone(zone).toISODate()!
+    const previous = previousToday.current
+    previousToday.current = next
+    setToday(next)
+    setDay(value => value === previous ? next : value)
+    setVersion(value => value + 1)
+  })
   useEffect(() => {
     let active = true
     setLoading(true); setError('')
