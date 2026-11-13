@@ -792,7 +792,7 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
   await expect(page.getByRole('region', { name: 'active jobs' })).toContainText('Current repair')
   await expect(page.getByRole('region', { name: 'active jobs' })).toContainText('Future repair')
   await expect(page.getByRole('region', { name: 'active jobs' })).not.toContainText('Completed repair')
-  await page.locator('.jobs-filter-panel>summary').click()
+  await page.getByRole('button', { name: 'Open filters' }).click()
   await page.getByRole('button', { name: /Upcoming/ }).click()
   await expect(page.getByRole('region', { name: 'upcoming jobs' })).toContainText('Future repair')
   await page.getByRole('button', { name: /History/ }).click()
