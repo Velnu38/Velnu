@@ -646,7 +646,7 @@ test('12 dashboard tenant filters and bounded approval lists are preserved', asy
   await expect(tile).toContainText('No estimates or change orders are waiting for approval.')
   await expect(tile.locator('.estimate-approval-badge')).toHaveCount(0)
   await page.getByRole('navigation').getByRole('button', { name:'Estimates',exact:true }).click()
-  await expect(page.getByRole('heading', { name: 'Quote the work without the paperwork.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Estimates', exact:true })).toBeVisible()
 })
 
 // SCHEDULE: 13 critical cases
@@ -1458,7 +1458,7 @@ for(const width of [1440,390])test(`attention pages reach the entire mixed queue
  expect(seenApprovals.size).toBe(24);await expect(pager.getByRole('button',{name:'Next',exact:true})).toBeDisabled()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.screenshot({path:`test-results/attention-paging-${width}.png`,fullPage:true})
- await page.getByRole('navigation').getByRole('button',{name:'Estimates',exact:true}).click();await expect(page.getByRole('heading',{name:'Quote the work without the paperwork.',exact:true})).toBeVisible()
+ await page.getByRole('navigation').getByRole('button',{name:'Estimates',exact:true}).click();await expect(page.getByRole('heading',{name:'Estimates',exact:true})).toBeVisible()
 })
 
 test('attention paging clamps after completion and zero counts stay neutral',async({page})=>{

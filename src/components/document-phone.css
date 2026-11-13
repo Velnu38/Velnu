@@ -123,3 +123,16 @@
  .document-phone-page>.module-page-heading .related-page-actions>.secondary-button{order:7;min-height:44px}
  .document-phone-page.invoice-detail-page>.detail-top{order:0}
 }
+
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .document-phone-page.estimates-module>.module-page-heading>.primary-button{order:6;width:100%;min-height:46px;margin-top:6px;border-radius:10px;background:linear-gradient(100deg,#008673,#006d59);color:white;font-size:18px}
+ .document-phone-page.estimates-module>.module-status-filters>button:last-child{grid-column:1/-1;min-height:44px}
+ .document-phone-estimate-detail>.record-detail-header{order:0;border:1px solid #c4cad7;border-radius:10px;padding:12px;margin:0;background:white}
+ .document-phone-estimate-detail>.record-tabs{order:2}
+ .document-phone-estimate-detail>[role=tabpanel]{order:3}
+ .document-phone-estimate-detail>.record-action-bar{order:4;margin:0}
+ .document-phone-estimate-detail>.form-message,.document-phone-estimate-detail>.record-delivery-recovery{order:1}
+ .document-phone-page .record-action-primary>a.primary-button{width:100%;min-height:46px;display:flex;align-items:center;justify-content:center;background:linear-gradient(100deg,#008673,#006d59);color:white;border-radius:10px;font-size:18px;font-weight:700;text-decoration:none}
+ .document-phone-estimate-detail{padding-bottom:20px}
+ .document-phone-estimate-detail .document-phone-summary dd{overflow-wrap:anywhere}
+}
