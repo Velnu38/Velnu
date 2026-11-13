@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Invoice mockup implementation — candidate",
+      "detail": "November 12: invoice list/detail/forms adopt approved Job Management-style invoice mockups. Existing payment/delivery/refund/reminder/recurring/permission behavior is retained. Presentation shortcuts reuse existing handlers; applied invoice payments remain distinct from net received funds. Focused rendered and draft/history regressions are pending before the authorized private-beta release. Estimates follow as a separate release; PR107/108/Jobs work remains separate.",
+      "evidence": "docs/INVOICE_ESTIMATE_MOCKUPS_2026-11-12.md",
+      "verifiedAt": "2026-11-12"
+    },
+    {
       "title": "Job Management attached mockup correction — released to private beta",
       "detail": "November 12: PR110 merged as 7604d8db957b2d2eed937081dc8ce44b68b28143. Summary identity shell, Work/Billing/Records and downstream presentation follow attached owner references. First rendered comparison exposed checkbox distortion/card density, corrected before final review. All five workflows, 22 full-suite jobs and 38 focused Chromium/WebKit cases passed at 937a7c4; tested and merged trees match. READY deployment dpl_Fjmeo72sK2LqzGhES9HtyXfJtE83 serves both domains; reviewed CSS exact SHA256, updated JS controls, beta backend and private headers verified. Existing actions, account disclosures, deposits, task removal, permissions and all 51 readiness records retained. Actual phone/signed-in owner and broader UX/JOB gates remain open. PR107/108 remain separate; no backend/providers/messages/charges/public launch.",
       "evidence": "docs/JOB_MANAGEMENT_ATTACHED_MOCKUPS_2026-11-12.md; docs/evidence/2026-11-12-job-management-attached-layout.json",
