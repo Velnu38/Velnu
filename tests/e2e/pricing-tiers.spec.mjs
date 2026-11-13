@@ -77,13 +77,9 @@ for(const tier of ['free','basic'])for(const kind of ['invoice','estimate'])test
  // Branding inside the canonical PDF is asserted by the real PDF renderer tests, not a synthetic HTML preview.
  await expect(form.getByText('Removing Finviant branding is unavailable on the Free plan.',{exact:true})).toHaveCount(tier==='free'?1:0)
  await expect(form.getByRole('link',{name:'Explore Individual',exact:true})).toHaveCount(tier==='free'?1:0)
- if(tier==='basic'&&kind!=='invoice'){
-  await expect(form.getByRole('button',{name:/^Send (?:Finviant )?Email$/,exact:true})).toBeDisabled()
-  await form.getByRole('button',{name:'Use my email or text app',exact:true}).click()
- }
- const emailLabel=kind==='invoice'||tier==='basic'?'Open email app':'Send Email'
- await expect(form.getByRole('button',{name:emailLabel,exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:kind==='invoice'?'Open text app':'Send Text',exact:true})).toBeEnabled()
- await form.getByRole('button',{name:kind==='invoice'?emailLabel:'Send Text',exact:true}).click()
+ const emailLabel='Open email app'
+ await expect(form.getByRole('button',{name:emailLabel,exact:true})).toBeEnabled();await expect(form.getByRole('button',{name:'Open text app',exact:true})).toBeEnabled()
+ await form.getByRole('button',{name:kind==='invoice'?emailLabel:'Open text app',exact:true}).click()
  await expect.poll(()=>state.shares).toBe(1)
  expect(state.prepared[0].request).toMatchObject({p_business:B,p_kind:kind,p_document:E})
  expect(state.prepared[0].snapshot).toMatchObject({kind,total:250,finviant_branding:tier==='free',items:[{description:'Lawn maintenance',unit_price:250}]})

@@ -22,5 +22,10 @@
     "No provider activation",
     "No real send or charge"
   ],
-  "taskRecordsRetained": 51
+  "taskRecordsRetained": 51,
+  "ciCorrections": [
+    "Optional contact regression now opens Company & contact details before filling email.",
+    "Customer-selection audit uses the selected card and Change customer control, preserving explicit selection and company-only customer coverage.",
+    "Free/Individual native handoff tests use Open email app / Open text app; managed-provider absence, exact PDF snapshot, native URI, explicit confirmation and saved-document count assertions are retained."
+  ]
 }
