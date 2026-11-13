@@ -16,9 +16,9 @@ export function RecordListPagination({ label, list, className = '' }: { label: s
   </nav>
 }
 
-export default function RecordListControls({ label, list, showPagination = true }: { label: string; list: ReturnType<typeof useRecordList>; showPagination?: boolean }) {
-  return <div className="record-list-controls">
-    <label>Search {label}<input type="search" value={list.search} onChange={e => list.setSearch(e.target.value)} placeholder="Customer, number, date, or status" /></label>
+export default function RecordListControls({ label, list, showPagination = true, placeholder, className = '' }: { label: string; list: ReturnType<typeof useRecordList>; showPagination?: boolean; placeholder?: string; className?: string }) {
+  return <div className={`record-list-controls ${className}`.trim()}>
+    <label>Search {label}<input type="search" value={list.search} onChange={e => list.setSearch(e.target.value)} placeholder={placeholder ?? 'Customer, number, date, or status'} /></label>
     {showPagination && <RecordListPagination label={label} list={list} />}
     {list.total === 0 && list.search && <p>No records match your search.</p>}
   </div>

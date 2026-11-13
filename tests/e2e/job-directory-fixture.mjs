@@ -14,7 +14,8 @@ export function jobDirectoryPage(jobs,params,zone='America/New_York',now=Date.no
   for(const k of keys)if(flags[k])counts[k]++
   const customers=Array.isArray(j.customers)?j.customers:j.customers?[j.customers]:[]
   const labels={lead:'Needs scheduling',in_progress:'In progress'}
-  const search=[j.title,j.status,labels[j.status]||j.status,...customers.map(c=>[c.first_name,c.last_name,c.company].join(' '))].join(' ').toLowerCase()
+  const properties=Array.isArray(j.properties)?j.properties:j.properties?[j.properties]:[]
+  const search=[j.title,j.status,labels[j.status]||j.status,...customers.map(c=>[c.first_name,c.last_name,c.company].join(' ')),...properties.flatMap(p=>[p.label,p.address_line1,p.address_line2,p.city,p.state,p.postal_code])].join(' ').toLowerCase()
   return {item:{...j,customers,properties:Array.isArray(j.properties)?j.properties:j.properties?[j.properties]:[],active_appointment:a||null,invoice:j.invoice||null},flags,search,start}
  }).filter(r=>r.flags[params.p_filter||'active']&&r.search.includes((params.p_search||'').trim().toLowerCase()))
  rows.sort((a,b)=>(params.p_filter==='active'?Number(b.flags.attention)-Number(a.flags.attention):0)||((Number.isFinite(a.start)?a.start:Infinity)-(Number.isFinite(b.start)?b.start:Infinity))||a.item.id.localeCompare(b.item.id))
