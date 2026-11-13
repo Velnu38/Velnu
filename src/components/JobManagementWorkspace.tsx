@@ -409,12 +409,12 @@ export default function JobManagementWorkspace({
   const menuItems:JobMenuItem[] = activeGroup.label === 'Work' ? [
     {key:'tasks',label:'Tasks & templates',description:data ? `${data.tasks.filter(t=>t.completed).length} of ${data.tasks.length} complete` : 'Work checklist',onClick:()=>selectSection('tasks')},
     {key:'schedule',icon:'crew',label:'Visits & crew',description:booked ? phoneDate(job!.active_appointment!.starts_at) : 'Review visits and assignments',onClick:()=>selectSection('schedule')},
-    {key:'materials',label:'Materials',description:missingMaterials.length ? `${missingMaterials.length} not received` : 'Review supplies and quantities',onClick:()=>selectSection('materials')},
+    {key:'materials',label:'Materials',description:missingMaterials.length ? `${missingMaterials.length} not received` : data?.materials.length ? 'All received' : 'No materials recorded',onClick:()=>selectSection('materials')},
     {key:'photos',label:'Photos & expenses',description:'View job records',onClick:()=>selectSection('photos')},
   ] : activeGroup.label === 'Billing' ? [
-    {key:'billing',label:'Invoices',description:'Review linked documents',onClick:()=>selectSection('billing',true,'invoices')},
-    ...(data?.financial_access ? [{key:'costs',label:'Costs & budget',description:'Budget, labor and expenses',onClick:()=>selectSection('billing',true,'costs')}] : []),
-    {key:'changes',label:'Change orders',description:'Review approved and pending changes',onClick:()=>selectSection('changes')},
+    {key:'billing',label:'Invoices',description:'Review linked invoice',onClick:()=>selectSection('billing',true,'invoices')},
+    ...(data?.financial_access ? [{key:'costs',label:'Costs & budget',description:'Review job costs',onClick:()=>selectSection('billing',true,'costs')}] : []),
+    {key:'changes',label:'Change orders',description:'Review changes',onClick:()=>selectSection('changes')},
     ...(data?.financial_access ? [{key:'review',icon:'review',label:'Cost review',description:'Labor and expenses',onClick:()=>selectSection('billing',true,'costs')}] : []),
   ] : [
     {key:'activity',label:'Activity history',description:'Changes, updates and job events',onClick:()=>selectSection('activity')},
