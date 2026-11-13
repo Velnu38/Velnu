@@ -84,7 +84,7 @@ try{
  assert.equal(window.jobsHarness.state().calls.find(call=>call.name==='insert_reminder')?.input.job_id,'22222222-2222-4222-8222-222222222222')
  await render({view:'list',status:'scheduled',booked:false,retainedTime:true})
  await click(button('List'))
- assert.ok(button('Schedule job'))
+ assert.ok(button('Manage job'))
  assert.equal(button('Start job'),undefined)
  console.log('PASS: all five job states, actual appointment repair, linked paid invoice, role restrictions, tabs/activity, explicit reopen, dirty refresh/conflict/save, Basic crew limits and job reminders')
 }finally{
