@@ -18,7 +18,8 @@
     "localWorkflows": "28 synthetic Chromium Home/workflow/accessibility cases passed after financial-component identity preservation, including exactly one financial overview request across summary/detail return.",
     "narrowPhoneReview": "Manual 320px screenshot review caught wrapped decimal digits. Narrow-screen financial column spacing and font size are corrected; all four reference viewport tests require sample amounts to occupy one line.",
     "fullDesktopReplay": "77 of 78 cases passed locally. The remaining failure reproduced a pre-existing immediate assertion after asynchronous Fin confirmation (fin-workflow.spec.mjs); it now waits for exactly one execution and the visible completion result without changing runtime confirmation behavior.",
-    "candidate5d0a206": "Focused Chromium/WebKit and the other nine workflows passed. The full gate failed on desktop shard 4 and is not a release receipt; final corrected-head CI is required."
+    "candidate5d0a206": "Focused Chromium/WebKit and the other nine workflows passed. The full gate failed on desktop shard 4 and is not a release receipt; final corrected-head CI is required.",
+    "ciDiagnostics": "Repeated desktop/WebKit gate failures require final diagnosis. Added concise synthetic assertion annotations to browser workflows so failure details remain reviewable through GitHub Checks when the managed network blocks downloadable log and artifact hosts. These steps do not skip tests or alter their exit status."
   },
   "requiredReleaseGate": "Pending full CI on the final candidate; do not promote before all required checks pass",
   "limits": [

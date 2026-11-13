@@ -40,6 +40,9 @@ jobs:
         run: npx playwright test --grep @native-handoff --workers=1
         env:
           FINVIANT_TEST_CHANNEL: ''
+      - name: Annotate failed browser assertions
+        if: failure()
+        run: node scripts/qa/annotate-browser-failures.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && github.head_ref != 'review/finviant-integration-20261109'
         with:
