@@ -27,7 +27,6 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [day, setDay] = useState(today)
   const [view, setView] = useState<CalendarView>('week')
   const [version, setVersion] = useState(0)
-  useBusinessRefresh(business.id,()=>setVersion(value=>value+1))
   const [result, setResult] = useState<{ key: string; agenda: Agenda } | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -45,6 +44,14 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const [jobId,setJobId]=useState<string|null>(null)
   const [reminderId,setReminderId]=useState<string|null>(null)
   const previousToday = useRef(today)
+  function refreshCalendar() {
+    if (document.hidden) return
+    const next = DateTime.now().setZone(zone).toISODate()!
+    const previous = previousToday.current
+    previousToday.current = next
+    setToday(next); setDay(value => value === previous ? next : value); setVersion(value => value + 1)
+  }
+  useBusinessRefresh(business.id,refreshCalendar)
   const selected = DateTime.fromISO(day, { zone })
   const range = calendarRange(day, zone, view)
   const from = range.start.toISODate()!, to = range.end.toISODate()!
@@ -52,18 +59,10 @@ export default function DailyCalendar({ business, refreshVersion = 0, showRemind
   const agenda = result?.key === key ? result.agenda : null
   const connected = connectedResult?.key === key ? connectedResult.agenda : null
   useEffect(() => {
-    const refresh = () => {
-      if (document.hidden) return
-      const next = DateTime.now().setZone(zone).toISODate()!
-      const previous = previousToday.current
-      previousToday.current = next
-      setToday(next); setDay(value => value === previous ? next : value); setVersion(value => value + 1)
-    }
-    const timer = window.setInterval(refresh, 60000)
-    window.addEventListener('focus', refresh)
-    document.addEventListener('visibilitychange', refresh)
-    window.addEventListener('finviant-work-changed', refresh)
-    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('finviant-work-changed', refresh) }
+    const timer = window.setInterval(refreshCalendar, 60000)
+    // Focus, visibility and work invalidation are coalesced by useBusinessRefresh.
+    // Registering them here too fetched connected-provider events twice per change.
+    return () => { clearInterval(timer) }
   }, [zone])
   useEffect(() => {
     let active = true

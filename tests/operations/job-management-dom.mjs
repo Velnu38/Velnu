@@ -7,8 +7,8 @@ async function scenario(name,verify){
  const errors=[],console=new VirtualConsole();console.on('jsdomError',e=>{if(!/navigation|HTMLCanvasElement|window.scrollTo/.test(e.message))errors.push(e.message)})
  const dom=new JSDOM(html,{url:'https://finviant.test/qa?screen=jobs&scenario='+name,runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:console,beforeParse(w){Object.defineProperty(w,'crypto',{value:webcrypto});w.matchMedia=()=>({matches:false,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){}});w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.confirm=()=>true;w.alert=()=>{};w.fetch=async()=>new Response('{}',{headers:{'content-type':'application/json'}})}})
  const doc=dom.window.document
- const button=(name,root=doc)=>[...root.querySelectorAll('button')].find(b=>(b.textContent.trim()===name||b.getAttribute('aria-label')===name)&&!b.closest('[hidden]'))
- const tab=(name,root=doc)=>[...root.querySelectorAll('[role=tab]')].find(b=>b.textContent.trim()===name&&!b.closest('[hidden]'))
+ const button=(name,root=doc)=>[...root.querySelectorAll('button')].find(b=>(b.textContent.trim().replace(/\s*→$/,'')===name||b.getAttribute('aria-label')===name)&&!b.closest('[hidden]'))
+ const tab=(name,root=doc)=>[...root.querySelectorAll('[role=tab]')].find(b=>b.textContent.trim().replace(/\s*→$/,'')===name&&!b.closest('[hidden]'))
  async function until(fn){for(let i=0;i<160;i++){if(fn())return;await wait(25)}throw Error(name+': expected result not reached: '+doc.getElementById('root')?.textContent?.slice(-2400))}
  async function click(el){assert.ok(el,'click target exists');el.click();await wait(90)}
  async function fill(el,value){assert.ok(el);const setter=Object.getOwnPropertyDescriptor(el.tagName==='TEXTAREA'?dom.window.HTMLTextAreaElement.prototype:el.tagName==='SELECT'?dom.window.HTMLSelectElement.prototype:dom.window.HTMLInputElement.prototype,'value').set;setter.call(el,value);el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));el.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await wait(30)}
@@ -16,7 +16,7 @@ async function scenario(name,verify){
  try{await until(()=>button('List')&&doc.querySelector('.jobs-record-list')&&!doc.querySelector('.jobs-record-list').textContent.includes('Loading jobs'));await verify({doc,until,click,button,tab,fill,dialog,window:dom.window});assert.deepEqual(errors,[]);process.stdout.write('PASS job management DOM: '+name+'\n')}finally{dom.window.close()}
 }
 await scenario('mixed',async({doc,until,click,button,tab,fill,dialog})=>{
- assert.equal(tab('Jobs').getAttribute('aria-selected'),'true');await fill(doc.querySelector('input[type=search]'),'Kitchen');await until(()=>[...doc.querySelectorAll('.jobs-record-list button')].filter(b=>b.textContent.trim()==='Manage job').length===1&&doc.querySelector('.jobs-record-list').textContent.includes('Kitchen'))
+ assert.equal(tab('Jobs').getAttribute('aria-selected'),'true');await fill(doc.querySelector('input[type=search]'),'Kitchen');await until(()=>[...doc.querySelectorAll('.jobs-record-list button')].filter(b=>b.textContent.trim().replace(/\s*→$/,'')==='Manage job').length===1&&doc.querySelector('.jobs-record-list').textContent.includes('Kitchen'))
  await click(button('Manage job'));await until(()=>doc.querySelector('.jm-workspace h2'))
  assert.equal(tab('Job Management').getAttribute('aria-selected'),'true');assert.match(doc.querySelector('.jm-workspace').textContent,/Kitchen renovation/)
  await click(tab('Materials'));await click(button('+ Add material'));await until(()=>dialog()?.querySelector('input'))

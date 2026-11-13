@@ -2,6 +2,14 @@
 
 Checked November 13, 2026 UTC.
 
+## Current release preparation
+
+- PR114 prepares the invoice creation controls for beta release. The separate Overdue summary action is removed, Create invoice occupies its place, and recurring setup is an owner-only new-invoice option with explicit schedule confirmation. The later three-screen creation mockup remains unimplemented.
+- The previously reproduced customer-navigation and completion-to-invoice failures were stale navigation in tests: use the visible Open filters control / Additional job filters and enter Job Management through Manage job before reviewing completion. All three corrected cases pass locally without removing assertions or changing runtime behavior. Required full CI and beta deployment remain pending; do not treat this as a release receipt.
+- Additional release checks exposed stale Jobs DOM/record-resource navigation and duplicate calendar invalidation listeners. PR114 updates the test entry points, preserves the retained overview component in an isolated fixture, and coalesces calendar invalidations through the existing shared coordinator. Serial focused validation passes; required full CI still gates release. GitHub log-host access and Vercel API credentials remain environment prerequisites. No beta promotion has occurred.
+
+- At candidate 223733e, all four iPhone WebKit and DOM shards passed. The remaining reproduced desktop/calendar failure was an assertion that incorrectly required desktop List/Board navigation to be absent. The test now distinguishes phone and desktop controls; the corrected case passes locally. Full CI on the final head remains required. Home simplification mockups are recommendations only and are not part of this invoice release.
+
 ## Current read-only assessment checkpoint
 
 - Read-only report checkpoint November 13, 2026: beta branch and both Vercel aliases remain at 46aa23c6af52b65e897ca0abd4af3f4441ccf292 (PR112). Deployment is not a passing release: final candidate full run 43345387938 and deployed-head full run 43345439848 failed, including release validation. Prior passing releases do not certify this newer candidate.

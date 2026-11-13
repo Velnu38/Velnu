@@ -905,7 +905,10 @@ test('dashboard layout uses the business name, presents calendar and financials 
   await expect(page.getByRole('article',{name:'Jobs overview',exact:true})).toHaveCount(0)
   await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
   await expect(page.getByRole('heading', { name: 'Jobs', exact:true })).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Job workspace views' })).toHaveCount(0)
+  const phoneLayout=await page.evaluate(()=>matchMedia('(max-width:900px), (max-width:1100px) and (pointer:coarse)').matches)
+  const jobViews=page.getByRole('navigation', { name: 'Job workspace views' })
+  if(phoneLayout)await expect(jobViews).toHaveCount(0)
+  else {await expect(jobViews).toBeVisible();await expect(jobViews.getByRole('button',{name:'List',exact:true})).toBeVisible();await expect(jobViews.getByRole('button',{name:'Board',exact:true})).toBeVisible()}
   await expect(page.getByRole('button', { name: 'New job', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Open filters', exact: true }).click()
   await expect(page.getByRole('navigation', { name: 'Additional job filters' })).toContainText('History')
@@ -919,9 +922,8 @@ for (const kind of ['job', 'estimate', 'invoice']) {
       issue_date: todayISO(), due_date: todayISO(), subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100 }
     const state = await mockWorkspace(page, { jobs: [record], estimates: [record], invoices: [record] })
     const openRecord = async () => {
-      await page.goto(kind === 'job' ? '/?view=work' : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
+      await page.goto(kind === 'job' ? '/?view=work&document='+recordId : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
       if (kind === 'job') {
-        await page.getByRole('button', { name: 'Job details', exact: true }).click()
         await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
       } else if (kind === 'estimate') {
         await page.getByRole('dialog',{name:'Estimate preview'}).getByRole('tab',{name:'Photos & expenses',exact:true}).click()
@@ -965,8 +967,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
 
 test('record resources: viewer cannot upload photos or add expenses', async ({ page }) => {
   await mockWorkspace(page, { role: 'viewer', jobs: [{ id: id(702), title: 'Read only job', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }] })
-  await page.goto('/?view=work')
-  await page.getByRole('button', { name: 'Job details', exact: true }).click()
+  await page.goto('/?view=work&document='+id(702))
   await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel = page.getByRole('region', { name: 'Photos and expenses' })
   await expect(panel.getByLabel('Add job photos')).toHaveCount(0)

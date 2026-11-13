@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-13",
+  "scope": "Local invoice controls and recurring creation handoff",
+  "baseCommit": "b5fd68351edc445d0bb0107ba8b9cb64299b80ab",
+  "branch": "dev/finviant-cloud-20261113",
+  "validation": {
+    "build": "npm run build; 95 startup/deployment tests passed",
+    "browser": "9 targeted synthetic Chromium tests passed, covering recurring creation and management at 390/1440px, owner controls, and invoice list/detail/creation at 320/390/430px",
+    "dom": [
+      "tests/settings/recurring-invoices-dom.mjs passed",
+      "tests/settings/invoice-detail-actions-dom.mjs passed"
+    ],
+    "assessment": "10 tests passed; sync/check consistent"
+  },
+  "testSources": [
+    "tests/e2e/document-calendar-contacts.spec.mjs",
+    "tests/e2e/document-phone-mockups.spec.mjs"
+  ],
+  "limits": [
+    "Local synthetic data only; no hosted deployment or data changes",
+    "No provider activation, messages or charges",
+    "No physical-device or WebKit acceptance claim"
+  ],
+  "releasePullRequest": "https://github.com/Velnu38/Velnu/pull/114",
+  "releasePreparation": {
+    "selectorRepairs": "Customer navigation now opens the visible Open filters control and Additional job filters; completion test enters the selected Job Management workspace via Manage job before Review completion. No runtime code or assertions removed.",
+    "validation": "All three previously failing cases pass locally in Chromium (two customer navigation widths and completion-to-invoice).",
+    "status": "Full required PR checks must pass before merge or beta promotion.",
+    "supplementalRepairs": [
+      "Align Jobs DOM controls with Manage job and its arrow icon; keep overview component coverage in an isolated synthetic fixture rather than restoring removed navigation.",
+      "Use supported job-record deep links in photo/expense regressions.",
+      "Coalesce calendar focus, visibility and work invalidation through the existing shared coordinator, preserving date rollover and exact provider-read assertions."
+    ],
+    "localValidation": "All 38 DOM files were exercised: 37 passed in the parallel run; the completion-report suite timed out under contention and then passed all four scenarios when run serially. Home refresh assertions pass serially. Six serial browser cases cover job photos/expenses and SMS setup; full required CI remains pending.",
+    "lastCompleteRun": "https://github.com/Velnu38/Velnu/actions/runs/43452896211",
+    "lastCompleteRunResult": "Failed before the supplemental repairs: DOM suites, desktop shard 2/6, iPhone WebKit shard 2/4 and focused SMS checks. No failed check was bypassed.",
+    "externalRequirements": [
+      "Read access to results-receiver.actions.githubusercontent.com for detailed CI logs (saved in environment draft).",
+      "Vercel API credential for authorized beta domain promotion (saved VERCEL_TOKEN requirement; no value supplied)."
+    ],
+    "desktopNavigationRepair": {
+      "failure": "The desktop dashboard test incorrectly required the desktop List/Board navigation to be absent, which is only the intended phone layout.",
+      "correction": "Assert hidden navigation on phone and visible List/Board controls on desktop. No application UI change.",
+      "validation": "Serial calendar/browser selection: 34 passed and this single assertion failed; corrected case then passed locally. All four iPhone WebKit shards and all four DOM CI shards passed at 223733e. Desktop shard 2/6 and calendar integration remained blocked on the desktop assertion.",
+      "priorRun": "https://github.com/Velnu38/Velnu/actions/runs/43455059758",
+      "status": "Required CI must be rerun on the corrected head before beta promotion."
+    }
+  }
+}
