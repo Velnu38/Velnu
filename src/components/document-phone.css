@@ -136,3 +136,30 @@
  .document-phone-estimate-detail{padding-bottom:20px}
  .document-phone-estimate-detail .document-phone-summary dd{overflow-wrap:anywhere}
 }
+
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ body:has(.document-phone-page) .form-dialog-topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-bottom:14px}
+ body:has(.document-phone-page) .form-dialog-brand{display:block;min-width:0}
+ body:has(.document-phone-page) .form-dialog-brand .fin-wordmark{font-size:30px;letter-spacing:-1.5px}
+ body:has(.document-phone-page) .form-dialog-brand .fin-mark{width:28px;height:32px}
+ body:has(.document-phone-page) .form-dialog-brand .fin-brand>span{display:none}
+ body:has(.document-phone-page) .form-dialog-topbar .task-fin-help{margin:0;padding:0;border:0;display:block}
+ body:has(.document-phone-page) .form-dialog-topbar .task-fin-help>small{display:none}
+ body:has(.document-phone-page) .form-dialog-topbar .fin-action-button{min-height:44px;min-width:104px;padding:8px 10px;border-radius:10px}
+ body:has(.document-phone-page) .form-dialog-topbar::after{content:'Private beta';grid-column:1/-1;border:1px solid #8fc6bb;border-left:4px solid #008673;border-radius:9px;background:#e8f6f2;padding:10px 12px;color:#173b36;font-size:15px}
+ .document-phone-page .record-detail-header-extra{width:auto}
+ .document-phone-estimate-detail>.record-detail-header{display:flex;flex-wrap:nowrap;align-items:center}
+ .document-phone-page .record-detail-status .status-chip{border:0;border-radius:16px;background:#d9f6ef;color:#006b58;padding:4px 8px;font-size:13px;letter-spacing:0;text-transform:none}
+ .document-phone-actions>.document-pdf-preview{margin:0}
+ .document-phone-actions>.document-pdf-preview::before{content:'';display:block;flex:0 0 30px;width:30px;height:30px;background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007762' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 2h8l5 5v15H6zM14 2v6h5M9 12h7m-7 4h7'/%3E%3C/svg%3E")}
+ .document-phone-actions .document-pdf-toolbar{padding:0;background:white;border:0;flex-direction:column;gap:4px}
+ .document-phone-actions .document-pdf-toolbar>strong{font-size:14px;font-weight:400;color:#596170}
+ .document-phone-actions .document-pdf-toolbar .personal-delivery-actions{gap:4px}
+ .document-phone-actions .document-pdf-toolbar button{min-height:36px;padding:4px 0;border:0;background:transparent;font-size:14px}
+ .document-phone-actions .document-pdf-toolbar button[aria-expanded]{font-size:18px;font-weight:700;color:#101a2c}
+ .document-phone-estimate-detail>.record-action-bar{position:sticky;bottom:0;z-index:2;background:white;padding:10px 0 0;border:0;box-shadow:0 -8px 14px white}
+ .document-phone-page.invoice-detail-page>.record-action-bar{position:sticky;bottom:80px;z-index:2;background:white;padding:10px 0;border:0;box-shadow:0 -8px 14px white}
+}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .document-phone-page .record-action-bar .record-more-content{top:auto;bottom:calc(100% + 8px);max-height:60dvh;overflow-y:auto}
+}
