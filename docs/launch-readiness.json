@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Supported customer journey defined — specification only",
+      "detail": "Defined one USD fixed-price, manager-operated journey: agreed estimate, canonical linked job, reviewed crew/appointment offer, customer booking/confirmation, multi-visit work, reviewed completion/final draft, reviewed invoice delivery, verified partial/full payment, suppression and receipt. Optional deposits and approved changes retain one billing history. Existing disabled 48-hour appointment and 2/7/3 overdue-email defaults, saved overrides, separate work/payment states and manager-only crew scope remain. Fin uses the same authorized actions. Failure/retry, duplicate, real-provider/two-business/device acceptance are explicit. Target contract only; no runtime implementation, provider activation, hosted write, send, charge, deployment or gate closure.",
+      "evidence": "docs/SUPPORTED_CUSTOMER_JOURNEY_2026-11-13.md",
+      "verifiedAt": "2026-11-13"
+    },
+    {
       "title": "End-to-end customer/work/payment assessment — recommendations only",
       "detail": "Repository and existing release evidence confirm substantial relational records, scheduling, completion-to-final-invoice, delivery queues and verified payment handlers, but do not establish a fully enabled/certified automatic lifecycle. Missing or selected follow-up includes billable pricing/progress policy, completion autosend policy, customer/worker notification coverage, guided rescheduling, invoice-link opened/Viewed alert, multi-stage payment reminders and payment receipt/financial closure acceptance. Source reminder defaults remain disabled (appointment 48 elapsed hours; overdue invoice email 2/7/3); saved account values were not read. Last recorded calendar failure/provider inventories are not new current account observations. No automation implementation, provider activation, hosted data edit, message, charge or deployment occurred in this assessment. All 51 task records/statuses/criteria retained.",
       "evidence": "docs/END_TO_END_AUTOMATION_ASSESSMENT_2026-11-13.md",

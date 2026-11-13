@@ -2,6 +2,10 @@
 
 Checked November 13, 2026 UTC.
 
+## Supported journey definition — specification only
+
+- [Reference journey](SUPPORTED_CUSTOMER_JOURNEY_2026-11-13.md) defines fixed-price approval → customer booking → manager crew/work → reviewed final billing → verified payment/receipt, with optional deposits, multiple visits, Fin, communication rules, failures and acceptance. Target behavior is distinguished from current implementation. Existing defaults/settings and all readiness gates remain. No runtime/provider/hosted changes or deployment. Jobs/Fin implementation remains local and unreleased; full release regression, WebKit and owner/physical-device acceptance remain.
+
 ## Current end-to-end automation assessment
 
 - The owner requested assessment only of the customer → scheduling → crew → work completion → invoicing → payment journey. The [assessment](END_TO_END_AUTOMATION_ASSESSMENT_2026-11-13.md) distinguishes existing transactional handoffs/outboxes from missing lifecycle features and unverified providers. Beta branch rechecked at cc594261abb9aea23cf02872e8175b2085d55127. No new automation implementation, provider activation, hosted data write, message, charge or public release is authorized by this conceptual guide.
