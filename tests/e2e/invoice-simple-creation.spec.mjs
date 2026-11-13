@@ -20,7 +20,7 @@ async function setup(page,{sms=false,unavailable=false,personal=false,tax=0,owne
 async function open(page){await page.goto('/?view=invoices&new=1');return page.getByRole('dialog',{name:'Create an invoice',exact:true})}
 async function enter(form){await form.getByRole('combobox',{name:'Customer',exact:true}).fill('Taylor');await form.getByRole('option',{name:/Taylor Morgan/}).click();await form.getByLabel('Line 1 description',{exact:true}).fill('Kitchen cabinet repair');await form.getByLabel('Line 1 unit price',{exact:true}).fill('250')}
 async function review(form){await form.getByRole('button',{name:'Review invoice',exact:true}).click();await expect(form.getByText(/Draft saved · Not sent/)).toBeVisible()}
-async function scan(page){const results=await new AxeBuilder({page}).include('.invoice-simple-create').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(results.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([])}
+async function scan(page){const results=await new AxeBuilder({page}).include('.invoice-simple-create').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(results.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,reason:n.failureSummary}))}))).toEqual([])}
 
 for(const width of [320,390,430,1440])test(`simple invoice essentials, inline options and direct review at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:width===430?932:844});const state=await setup(page);const form=await open(page);await enter(form)

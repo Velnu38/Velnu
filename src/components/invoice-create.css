@@ -109,6 +109,11 @@
  .form-dialog .invoice-simple-create .invoice-essential-form{gap:14px}
  .form-dialog .invoice-simple-create .invoice-more-options>summary{padding:12px}
 }
+/* Keep enabled text contrast stable when the PDF/send-readiness state changes. */
+.form-dialog .invoice-simple-create :is(.primary-button,.secondary-button){transition:none}
+.form-dialog .invoice-simple-create .primary-button{background:#007762;color:#fff}
+.form-dialog .invoice-simple-create .primary-button:hover:not(:disabled){background:#006354;color:#fff}
+.form-dialog .invoice-simple-create .invoice-suggested-delivery .document-delivery-option button{background:#fff;color:#007762;border-color:#007762}
 
 .invoice-simple-create .invoice-customer-choice strong{min-width:0;overflow-wrap:anywhere}
 .invoice-simple-create .invoice-customer-choice small{display:block;font-size:13px;font-weight:400;margin-top:5px;color:#586577}
