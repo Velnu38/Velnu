@@ -31,7 +31,11 @@ for(const width of [320,390,430,1440])test(`revised Home matches approved cards 
  await expect(finance.locator('.home-period-label')).toContainText('USD');await expect(finance.getByText('$8,250.00',{exact:true})).toBeVisible();await expect(finance.getByText('$2,100.00',{exact:true})).toBeVisible();await expect(finance.getByText('$6,150.00',{exact:true})).toBeVisible();await expect(finance).toContainText('Outstanding $1,200.00 · $250.00 overdue')
  await expect(page.getByRole('button',{name:'Quick Links',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'+ New',exact:true})).toHaveCount(0);await expect(calendar.getByRole('button',{name:'Month',exact:true})).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
- for(const amount of await finance.locator('.home-financial-values dd').all())expect((await amount.boundingBox()).height).toBeLessThan(30)
+ await page.evaluate(()=>document.fonts.ready)
+ for(const amount of await finance.locator('.home-financial-values dd').all()){
+  const metrics=await amount.evaluate(el=>({text:el.textContent,width:el.clientWidth,scroll:el.scrollWidth,height:el.getBoundingClientRect().height,font:getComputedStyle(el).font}))
+  expect(metrics.height,JSON.stringify(metrics)).toBeLessThan(30);expect(metrics.scroll,JSON.stringify(metrics)).toBeLessThanOrEqual(metrics.width)
+ }
  await mkdir('tmp/home-revised',{recursive:true});await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:`tmp/home-revised/home-${width}.png`,fullPage:true})
  const a11y=await new AxeBuilder({page}).include('.home-revised').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([])
  await calendar.getByRole('button',{name:'Calendar',exact:true}).click();await expect(calendar.getByRole('heading',{name:'Weekly Schedule',exact:true})).toBeFocused();await expect(calendar.getByRole('button',{name:'Month',exact:true})).toBeVisible();await calendar.getByRole('button',{name:'Next week',exact:true}).click();await page.getByRole('button',{name:'‹ Back to Today',exact:true}).click();await expect(calendar.getByRole('button',{name:'Calendar',exact:true})).toBeFocused();await expect(calendar.getByText('Taylor Morgan',{exact:true})).toBeVisible()
