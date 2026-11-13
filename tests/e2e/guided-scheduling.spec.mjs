@@ -1,3 +1,4 @@
+import {openJobSection} from './job-workspace-navigation.mjs'
 import {openHomePanels} from './navigation.mjs'
 import {customerSearchResponse} from './job-customer-fixture.mjs'
 import {mockJobDirectory} from './job-directory-fixture.mjs'
@@ -31,6 +32,7 @@ async function mock(page,{signedIn=true,conflict=false,plan='pro',job=null}={}){
   if(path.endsWith('/user_agreement_acceptances'))return reply({id:E,agreement_version:'2026-10-26-v2'})
   if(path.endsWith('/business_members'))return reply({business_id:B,role:'owner',access_modules:['calendar','jobs','billing','finances'],businesses:business})
   if(path.endsWith('/business_settings'))return reply({default_tax_rate:0,pricing_adjustment_percent:0,payment_links:[],payment_instructions:''})
+  if(path.endsWith('/rpc/get_job_management')||path.endsWith('/rpc/get_job_workspace'))return reply({tasks:[],materials:[],templates:[],visits:[],activity:[],financial_access:true,billing_access:true,calendar_access:true,time:[],documents:[],changes:[],recorded_expenses:0,budget:null,pending_time_minutes:0,uncalculated_expenses:0})
   if(path.endsWith('/rpc/get_plan_usage'))return reply({plan,ai_limit:0,voice_limit:0})
   if(path.endsWith('/rpc/get_schedule_team'))return reply(team)
   if(path.endsWith('/rpc/get_dashboard_attention_page')){
@@ -213,10 +215,10 @@ test('a crew conflict offers rescheduling without moving the appointment or swit
   assigned_user_ids:[U],scheduled_start:slots[0].starts_at,scheduled_end:slots[0].ends_at}
  const state=await mock(page,{job:original})
  await page.goto('/?view=work&document='+J)
- const job=page.getByRole('dialog',{name:'Job details',exact:true})
+ const job=page.getByRole('region',{name:'Selected job workspace',exact:true})
  await expect(job).toContainText('Crew test')
  const assign=job.getByRole('button',{name:'Assign crew',exact:true})
- await job.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
+ await openJobSection(page,'Visits & crew')
  await assign.click()
  const crew=page.getByRole('dialog',{name:'Assign crew',exact:true})
  await expect(crew.locator('input[type=datetime-local]')).toHaveCount(0)
@@ -243,7 +245,7 @@ test('a crew conflict offers rescheduling without moving the appointment or swit
  expect(Date.parse(state.job.scheduled_end)).toBe(Date.parse(slots[1].ends_at))
 
  state.crewConflict=false
- await job.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
+ await openJobSection(page,'Visits & crew')
  await assign.click()
  await crew.getByRole('checkbox',{name:'Owner (you)'}).uncheck()
  await crew.getByRole('checkbox',{name:'Field worker'}).check()

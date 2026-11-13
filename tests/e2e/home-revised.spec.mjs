@@ -57,7 +57,7 @@ test('payment reconciliation stays visible and opens the original review queue',
 })
 
 test('Today opens the original job details without changing its status',async({page})=>{
- const state=await fixture(page);await page.goto('/?view=dashboard');await page.getByRole('region',{name:'Work calendar',exact:true}).getByRole('link',{name:/Kitchen cabinet repair/}).click();await expect(page.getByRole('dialog',{name:'Job details',exact:true})).toBeVisible();expect(state.networkPaths.some(path=>/set_job_status|work-scheduling/.test(path))).toBe(false)
+ const state=await fixture(page);await page.goto('/?view=dashboard');await page.getByRole('region',{name:'Work calendar',exact:true}).getByRole('link',{name:/Kitchen cabinet repair/}).click();await expect(page.getByRole('region',{name:'Selected job workspace',exact:true})).toBeVisible();expect(state.networkPaths.some(path=>/set_job_status|work-scheduling/.test(path))).toBe(false)
 })
 
 test('finance-only access keeps cash summaries without reading billing or job queues',async({page})=>{

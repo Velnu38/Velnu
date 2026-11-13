@@ -1,3 +1,4 @@
+import {jobWorkspace,openJobSection} from './job-workspace-navigation.mjs'
 import {reviewDocument as openCreationReview,openInvoiceOptions} from './invoice-creation-navigation.mjs'
 import {openHomePanels,refreshHome} from './navigation.mjs'
 import {customerSearchResponse} from './job-customer-fixture.mjs'
@@ -90,6 +91,8 @@ async function mockWorkspace(page, options = {}) {
     if (path.endsWith('/rpc/get_private_beta_access')) return reply({allowed:true})
     if (path.endsWith('/rpc/business_onboarding_status')) return reply({required:false,completed:true})
     if (path.endsWith('/functions/v1/document-pdf')) return fulfillPdf(route)
+    if (path.endsWith('/rpc/get_job_management')||path.endsWith('/rpc/get_job_workspace')) return reply({tasks:[],materials:[],templates:[],visits:[],activity:[],financial_access:true,billing_access:true,calendar_access:true,time:[],documents:[],changes:[],recorded_expenses:0,budget:null,pending_time_minutes:0,uncalculated_expenses:0})
+    if (path.endsWith('/rpc/get_job_workflow_context')) return reply(state.jobs.map(j=>({job_id:j.id,active_appointment:state.appointments.find(a=>a.job_id===j.id)||null,invoice:null})))
     if (path.endsWith('/rpc/get_invoice_payment_operations')) return reply({state:'clear',operations:[],refunds:[]})
     if (path.endsWith('/rpc/get_estimate_workflow_context')) return reply(body.p_estimates.flatMap(estimateId=>{
       const estimate=state.estimates.find(row=>row.id===estimateId)
@@ -439,7 +442,7 @@ const openSchedule = async (page, options) => {
 const showForm = async page => {
   await page.getByRole('button', { name: 'Book or reschedule job', exact: true }).click()
   await page.getByRole('link', { name: 'Create scheduled job', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'New job' })).toBeVisible()
 }
 const completeForm = async (page, start = localDatetime(), end = localDatetime(1, 11)) => {
   await showForm(page)
@@ -447,7 +450,8 @@ const completeForm = async (page, start = localDatetime(), end = localDatetime(1
   await page.getByRole('option',{name:/Jane Doe/}).click()
   await page.getByLabel('Job title', { exact: true }).fill('Replace faucet')
   await page.getByLabel('Starts').fill(start)
-  if (end) await page.getByLabel('Ends').fill(end)
+  const noAddress=page.getByRole('checkbox',{name:/Continue with no service address/});if(await noAddress.count())await noAddress.check();
+  if (end){await page.getByText('Custom end time',{exact:true}).click();await page.getByLabel('Ends',{exact:true}).fill(end)}
 }
 const noRuntimeErrors = page => {
   const errors = []
@@ -670,7 +674,7 @@ test('15 missing customer blocks job creation', async ({ page }) => {
   await showForm(page)
   await page.getByLabel('Job title', { exact: true }).fill('No customer')
   await page.getByLabel('Starts').fill(localDatetime())
-  await page.getByRole('button', { name: 'Schedule job' }).click()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
   await expect(page.getByRole('dialog').getByRole('combobox',{name:'Customer',exact:true})).toBeVisible()
   expect(count(state, '/jobs', 'POST')).toBe(0)
   expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
@@ -682,7 +686,7 @@ test('16 blank title blocks job creation', async ({ page }) => {
   await page.getByRole('dialog').getByRole('combobox',{name:'Customer',exact:true}).fill('Jane')
   await page.getByRole('option',{name:/Jane Doe/}).click()
   await page.getByLabel('Starts').fill(localDatetime())
-  await page.getByRole('button', { name: 'Schedule job' }).click()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
   expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
   await expect(page.getByLabel('Job title', { exact: true })).toBeVisible()
@@ -694,7 +698,7 @@ test('17 missing start time blocks job creation', async ({ page }) => {
   await page.getByRole('dialog').getByRole('combobox',{name:'Customer',exact:true}).fill('Jane')
   await page.getByRole('option',{name:/Jane Doe/}).click()
   await page.getByLabel('Job title', { exact: true }).fill('No time')
-  await page.getByRole('button', { name: 'Schedule job' }).click()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
   expect(count(state, '/jobs', 'POST')).toBe(0)
   expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
 })
@@ -702,8 +706,8 @@ test('17 missing start time blocks job creation', async ({ page }) => {
 test('18 end time before start is rejected without a database write', async ({ page }) => {
   const state = await openSchedule(page)
   await completeForm(page, localDatetime(1, 11), localDatetime(1, 10))
-  await page.getByRole('button', { name: 'Schedule job' }).click()
-  await expect(page.getByText('End time must be after the start time')).toBeVisible()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
+  await expect(page.getByText('The end time must be after the start time.')).toBeVisible()
   expect(count(state, '/jobs', 'POST')).toBe(0)
   expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
 })
@@ -711,8 +715,8 @@ test('18 end time before start is rejected without a database write', async ({ p
 test('19 zero-minute appointment is rejected at the equality boundary', async ({ page }) => {
   const state = await openSchedule(page)
   await completeForm(page, localDatetime(1, 11), localDatetime(1, 11))
-  await page.getByRole('button', { name: 'Schedule job' }).click()
-  await expect(page.getByText('End time must be after the start time')).toBeVisible()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
+  await expect(page.getByText('The end time must be after the start time.')).toBeVisible()
   expect(count(state, '/jobs', 'POST')).toBe(0)
   expect(count(state, '/rpc/create_scheduled_job', 'POST')+count(state, '/rpc/create_dispatched_job', 'POST')).toBe(0)
 })
@@ -723,11 +727,11 @@ test('20 valid schedule submits local date values as UTC and does not duplicate 
   const end = localDatetime(1, 11)
   await completeForm(page, start, end)
   // Force both DOM events before React can paint the disabled state.
-  await page.getByRole('button', { name: 'Schedule job' }).evaluate(button => {
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).evaluate(button => {
     button.click()
     button.click()
   })
-  await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'New job' })).toHaveCount(0)
   expect(count(state, '/rpc/create_scheduled_job', 'POST')).toBe(1)
   const request = state.requests.find(r => r.path.endsWith('/rpc/create_scheduled_job'))
   expect(request.body.payload.scheduled_start).toBe(new Date(start).toISOString())
@@ -737,18 +741,18 @@ test('20 valid schedule submits local date values as UTC and does not duplicate 
   expect(count(state, '/appointments', 'POST')).toBe(0)
 })
 
-test('21 optional end date produces a null scheduled end', async ({ page }) => {
+test('21 omitted custom end uses the selected two-hour job length', async ({ page }) => {
   const state = await openSchedule(page)
   await completeForm(page, localDatetime(), null)
-  await page.getByRole('button', { name: 'Schedule job' }).click()
-  await expect(page.getByRole('heading', { name: 'Add a job to the calendar' })).toHaveCount(0)
-  expect(state.requests.find(r => r.path.endsWith('/rpc/create_scheduled_job')).body.payload.scheduled_end).toBeNull()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
+  await expect(page.getByRole('heading', { name: 'New job' })).toHaveCount(0)
+  const payload=state.requests.find(r=>/create_scheduled_job|create_dispatched_job/.test(r.path)).body.payload;expect(Date.parse(payload.scheduled_end)-Date.parse(payload.scheduled_start)).toBe(120*60000)
 })
 
 test('22 failed job insert preserves the form and displays a recoverable error', async ({ page }) => {
   const state = await openSchedule(page, { jobError: true })
   await completeForm(page)
-  await page.getByRole('button', { name: 'Schedule job' }).click()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
   await expect(page.getByText('Unable to create job')).toBeVisible()
   await expect(page.getByLabel('Job title', { exact: true })).toHaveValue('Replace faucet')
   expect(count(state, '/rpc/create_scheduled_job', 'POST')).toBe(1)
@@ -759,7 +763,7 @@ test('22 failed job insert preserves the form and displays a recoverable error',
 test('23 failed appointment insert rolls back the whole scheduled-job transaction', async ({ page }) => {
   const state = await openSchedule(page, { appointmentError: true })
   await completeForm(page)
-  await page.getByRole('button', { name: 'Schedule job' }).click()
+  await page.getByRole('button', { name: 'Create & schedule',exact:true }).click()
   await expect(page.getByText('Unable to create appointment')).toBeVisible()
   expect(count(state, '/rpc/create_scheduled_job', 'POST')).toBe(1)
   expect(state.savedJobs.size).toBe(0)
@@ -791,14 +795,14 @@ test('jobs workspace separates current, upcoming, and historical jobs', async ({
   await openSchedule(page, { jobs, appointments: [appointment()] })
   await expect(page.locator('.appointment-row')).toContainText('Visit 1')
   await page.goto('/?view=work')
-  await expect(page.getByRole('region', { name: 'active jobs' })).toContainText('Current repair')
-  await expect(page.getByRole('region', { name: 'active jobs' })).toContainText('Future repair')
-  await expect(page.getByRole('region', { name: 'active jobs' })).not.toContainText('Completed repair')
+  await expect(page.getByRole('region', { name: 'Jobs',exact:true })).toContainText('Current repair')
+  await expect(page.getByRole('region', { name: 'Jobs',exact:true })).toContainText('Future repair')
+  await expect(page.getByRole('region', { name: 'Jobs',exact:true })).not.toContainText('Completed repair')
   await page.getByRole('button', { name: 'Open filters' }).click()
-  await page.getByRole('button', { name: /Upcoming/ }).click()
-  await expect(page.getByRole('region', { name: 'upcoming jobs' })).toContainText('Future repair')
-  await page.getByRole('button', { name: /History/ }).click()
-  await expect(page.getByRole('region', { name: 'history jobs' })).toContainText('Completed repair')
+  await page.getByRole('combobox',{name:'Job view'}).selectOption('upcoming')
+  await expect(page.getByRole('region', { name: 'Jobs',exact:true })).toContainText('Future repair')
+  await page.getByRole('combobox',{name:'Job view'}).selectOption('history')
+  await expect(page.getByRole('region', { name: 'Jobs',exact:true })).toContainText('Completed repair')
   await page.goto('/?view=schedule')
   await expect(page.locator('.appointment-row')).toContainText('Visit 1')
 })
@@ -905,7 +909,7 @@ test('dashboard layout uses the business name, presents calendar and financials 
   await expect(calendar).toBeVisible();await expect(financial).toBeVisible();await expect(attention).toBeVisible()
   expect(await calendar.evaluate((el)=>Boolean(el.compareDocumentPosition(document.querySelector('.financial-performance')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true)
   await expect(page.getByRole('article',{name:'Jobs overview',exact:true})).toHaveCount(0)
-  await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
+  await page.getByRole('navigation').getByRole('button',{name:'Job Management',exact:true}).click()
   await expect(page.getByRole('heading', { name: 'Jobs', exact:true })).toBeVisible()
   const phoneLayout=await page.evaluate(()=>matchMedia('(max-width:900px), (max-width:1100px) and (pointer:coarse)').matches)
   const jobViews=page.getByRole('navigation', { name: 'Job workspace views' })
@@ -926,7 +930,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
     const openRecord = async () => {
       await page.goto(kind === 'job' ? '/?view=work&document='+recordId : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
       if (kind === 'job') {
-        await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
+        await openJobSection(page,'Photos & expenses')
       } else if (kind === 'estimate') {
         await page.getByRole('dialog',{name:'Estimate preview'}).getByRole('tab',{name:'Photos & expenses',exact:true}).click()
       } else await page.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
@@ -970,7 +974,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
 test('record resources: viewer cannot upload photos or add expenses', async ({ page }) => {
   await mockWorkspace(page, { role: 'viewer', jobs: [{ id: id(702), title: 'Read only job', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }] })
   await page.goto('/?view=work&document='+id(702))
-  await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
+  await openJobSection(page,'Photos & expenses')
   const panel = page.getByRole('region', { name: 'Photos and expenses' })
   await expect(panel.getByLabel('Add job photos')).toHaveCount(0)
   await expect(panel.getByRole('button', { name: 'Add expense manually', exact: true })).toHaveCount(0)
@@ -988,13 +992,10 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
   }))
   await page.goto('/?view=dashboard');await openHomePanels(page)
   await page.getByRole('region',{name:'Work calendar'}).getByRole('link').filter({hasText:job.title}).click()
-  const dialog = page.getByRole('dialog',{name:'Job details',exact:true})
-  const notes = dialog.getByLabel('Job notes and materials needed')
-  await notes.fill('Unsaved calendar notes')
-  await dialog.getByRole('tab',{name:'Details',exact:true}).press('ArrowRight')
-  await expect(dialog.getByRole('tab',{name:'Work plan',exact:true})).toHaveAttribute('aria-selected','true')
-  await dialog.getByRole('tab',{name:'Work plan',exact:true}).press('ArrowRight')
-  await expect(dialog.getByRole('tab',{name:'Photos & expenses',exact:true})).toHaveAttribute('aria-selected','true')
+  const dialog = jobWorkspace(page)
+  await dialog.locator('.jm-notes-disclosure summary').click();const notes=dialog.getByLabel('Job notes',{exact:true});await notes.fill('Unsaved calendar notes');
+  page.once('dialog',d=>d.dismiss());await dialog.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:'Work',exact:true}).click();await expect(notes).toHaveValue('Unsaved calendar notes');
+  await dialog.getByRole('button',{name:'Save job notes',exact:true}).click();await openJobSection(page,'Photos & expenses');
   const resources = dialog.getByRole('region',{name:'Photos and expenses'})
   await expect(resources.getByText('No expenses yet.')).toBeVisible()
   await expect(resources.getByRole('alert')).toContainText('Photos temporarily unavailable')
@@ -1005,7 +1006,7 @@ test('record resources: Calendar opens job tabs, preserves notes and retries onl
   expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&new URL(request.url).searchParams.has('job_id'))).toHaveLength(expenseReads)
   await expect(resources.getByRole('button',{name:/refresh/i})).toHaveCount(0)
   await expect(resources.getByRole('progressbar')).toHaveCount(0)
-  await dialog.getByRole('tab',{name:'Details',exact:true}).click()
+  await dialog.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:'Summary',exact:true}).click();await dialog.locator('.jm-notes-disclosure summary').click()
   await expect(notes).toHaveValue('Unsaved calendar notes')
 })
 
@@ -1019,8 +1020,8 @@ test('record resources: an invoice links directly to its job photos without copy
   const invoicePanel = page.getByRole('tabpanel',{name:'Photos & expenses',exact:true})
   await expect(invoicePanel.getByText('No expenses yet.')).toBeVisible()
   await invoicePanel.getByRole('link',{name:'View linked job photos & expenses'}).click()
-  const jobDialog = page.getByRole('dialog',{name:'Job details',exact:true})
-  await expect(jobDialog.getByRole('tab',{name:'Photos & expenses',exact:true})).toHaveAttribute('aria-selected','true')
+  const jobDialog = jobWorkspace(page)
+  await expect(jobDialog.getByRole('tabpanel',{name:'Photos & expenses',exact:true})).toBeVisible()
   await expect(jobDialog.getByText('One job receipt',{exact:true})).toBeVisible()
   expect(state.expenses).toHaveLength(1)
   expect(state.requests.filter(request=>request.path.endsWith('/bookkeeping_entries')&&request.method==='POST')).toHaveLength(0)
@@ -1053,7 +1054,7 @@ for (const width of [1440, 390]) {
     await expect(approvals).not.toContainText('EST-822')
     await expect(approvals.getByRole('link',{name:'Open estimate EST-820 for Acme Corp'})).toHaveAttribute('href',`/?view=estimates&document=${id(820)}`)
     await expect(page.getByRole('article',{name:'Jobs overview'})).toHaveCount(0)
-    await expect(page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true})).toHaveCount(1)
+    await expect(page.getByRole('navigation').getByRole('button',{name:'Job Management',exact:true})).toHaveCount(1)
     await page.getByRole('button',{name:'Quick Links',exact:true}).click()
     await expect(page.getByRole('navigation',{name:'Create work and quick links'}).getByRole('link',{name:'+ New job',exact:true})).toHaveCount(1)
     await page.getByRole('dialog',{name:'Quick Links',exact:true}).getByRole('button',{name:'Close',exact:true}).click()
@@ -1075,7 +1076,7 @@ for (const width of [1440, 390]) {
     await paid.getByRole('button',{name:'Open invoice INV-805 for Jane Doe',exact:true}).click()
     await expect(page.getByRole('heading',{name:'INV-805',exact:true})).toBeVisible()
     expect(new URL(page.url()).searchParams.get('document')).toBe(id(805))
-    await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
+    await page.getByRole('navigation').getByRole('button',{name:'Job Management',exact:true}).click()
     await expect(page.getByRole('region',{name:'active jobs',exact:true}).getByRole('article')).toHaveCount(3)
   })
 }
@@ -1166,7 +1167,7 @@ test('owner settings restricted staff cannot open hidden modules or owner contro
  await expect(page.getByRole('article',{name:'Needs attention overview'})).toHaveCount(0)
  await expect(page.getByRole('heading',{name:'Financial Performance',exact:true})).toHaveCount(0)
  expect(state.requests.some(r=>r.path.endsWith('/rpc/get_dashboard_invoice_totals'))).toBe(false)
- await openWorkArea(page,'Jobs');await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
+ await openWorkArea(page,'Jobs');await expect(page.getByRole('heading',{name:'Job Management',exact:true})).toBeVisible()
  await page.goto('/?view=invoices');await expect(page.getByRole('alert')).toContainText('not included in your access')
  await page.goto('/?view=settings');await expect(page.getByRole('link',{name:/^Team Management/})).toHaveCount(0);await expect(page.getByRole('link',{name:'Subscription',exact:true})).toHaveCount(0);await expect(page.getByRole('button',{name:'Payment options',exact:true})).toHaveCount(0)
 })
@@ -1316,7 +1317,7 @@ for (const width of [1440,390]) test(`interactive dashboard financial periods ex
  await expect(finance.getByRole('region',{name:'All transactions',exact:true})).toContainText('Older tools')
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await page.goto('/?view=work&document='+job.id)
- await expect(page.getByRole('dialog')).toContainText('Kitchen installation')
+ await expect(jobWorkspace(page)).toContainText('Kitchen installation')
 })
 test('interactive dashboard financial failure does not show invented zero totals',async({page})=>{
  await mockWorkspace(page)
@@ -1335,8 +1336,8 @@ test('interactive dashboard navigation does not treat an invoice link as a job l
  await page.goto('/?view=invoices&document='+invoice.id)
  await expect(page.getByRole('link',{name:'Pay with PayPal',exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'Home',exact:true}).click()
- await page.getByRole('navigation').getByRole('button',{name:'Jobs',exact:true}).click()
- await expect(page.getByRole('heading',{name:'Jobs',exact:true})).toBeVisible()
+ await page.getByRole('navigation').getByRole('button',{name:'Job Management',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'Job Management',exact:true})).toBeVisible()
  await expect(page.getByRole('article').filter({hasText:'Kitchen installation'})).toBeVisible()
  await expect(page.getByRole('dialog')).toHaveCount(0)
 })
@@ -1708,8 +1709,8 @@ test('Individual receipt scan fills an editable expense and a failed upload retr
 test('Business Pro can save a manual job expense with a receipt while Textract awaits activation', async ({page}) => {
   const state = await mockWorkspace(page, {plan:'pro',scanUnavailable:true,jobs:[finishedReviewJob],storageUsage:{warning:'critical',remaining_bytes:500_000_000}})
   await page.goto('/?view=work&document='+finishedReviewJob.id)
-  const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
-  await dialog.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
+  const dialog=jobWorkspace(page)
+  await openJobSection(page,'Photos & expenses')
   const panel=dialog.getByRole('region',{name:'Photos and expenses'})
   await selectReceipt(page, panel, true)
   await expect(panel.getByRole('alert')).toContainText('awaiting setup')
@@ -1736,7 +1737,7 @@ test('Google review setup and completed-job handoff use an official link and per
   await page.getByRole('button',{name:'Save company profile'}).click()
   await expect.poll(()=>state.requests.find(r=>r.path.endsWith('/businesses')&&r.method==='PATCH')?.body.google_review_url).toBe(link)
   await page.goto('/?view=work&document='+finishedReviewJob.id)
-  await page.getByRole('dialog',{name:'Job details',exact:true}).getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
+  await jobWorkspace(page).locator('.jm-workspace-footer summary').click()
   await page.getByRole('button',{name:'Request a Google review'}).click()
   const review=page.getByRole('region',{name:'Google review request'})
   await expect(review.getByLabel('Review request message')).toHaveValue(/Hi Jane.*share your experience/s)
@@ -1748,11 +1749,11 @@ test('Google review setup and completed-job handoff use an official link and per
 test('Free displays upgrade links for receipt scanning and Google reviews and still opens manual expense entry', async ({page}) => {
   await mockWorkspace(page,{plan:'free',businessProfile:{google_review_url:'https://g.page/r/Test/review'},jobs:[finishedReviewJob]})
   await page.goto('/?view=work&document='+finishedReviewJob.id)
-  const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
-  await dialog.getByRole('region',{name:'Record actions',exact:true}).locator('summary').click()
+  const dialog=jobWorkspace(page)
+  await dialog.locator('.jm-workspace-footer summary').click()
   await expect(dialog.getByText('Requesting Google reviews is unavailable on the Free plan.')).toBeVisible()
   await expect(dialog.getByRole('button',{name:'Request a Google review'})).toHaveCount(0)
-  await dialog.getByRole('tab',{name:'Photos & expenses',exact:true}).click()
+  await openJobSection(page,'Photos & expenses')
   const panel=dialog.getByRole('region',{name:'Photos and expenses'})
   await panel.getByRole('button',{name:'Add expense manually',exact:true}).click()
   await expect(panel.getByText('Receipt scanning is unavailable on the Free plan.')).toBeVisible()

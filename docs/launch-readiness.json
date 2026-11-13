@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Unified Jobs beta release preparation — PR118",
+      "detail": "Owner authorized beta deployment. Migrating broad browser/component tests from retired split Jobs/Management and Job details navigation to the actual canonical workspace, preserving business assertions. Readiness checks also found and corrected missing customer-name context on filtered Jobs pages using bounded selected-customer lookup and current result fallback. First PR run exposes old navigation assertions; no checks bypassed and no beta merge yet. Existing completion, pricing, provider and paid/physical-device gates remain. The future supported customer journey remains specification only.",
+      "evidence": "https://github.com/Velnu38/Velnu/pull/118",
+      "verifiedAt": "2026-11-13"
+    },
+    {
       "title": "Supported customer journey defined — specification only",
       "detail": "Defined one USD fixed-price, manager-operated journey: agreed estimate, canonical linked job, reviewed crew/appointment offer, customer booking/confirmation, multi-visit work, reviewed completion/final draft, reviewed invoice delivery, verified partial/full payment, suppression and receipt. Optional deposits and approved changes retain one billing history. Existing disabled 48-hour appointment and 2/7/3 overdue-email defaults, saved overrides, separate work/payment states and manager-only crew scope remain. Fin uses the same authorized actions. Failure/retry, duplicate, real-provider/two-business/device acceptance are explicit. Target contract only; no runtime implementation, provider activation, hosted write, send, charge, deployment or gate closure.",
       "evidence": "docs/SUPPORTED_CUSTOMER_JOURNEY_2026-11-13.md",

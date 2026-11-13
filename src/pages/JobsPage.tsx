@@ -9,6 +9,8 @@ import {localInstant} from '../lib/calendarTime'
 import {readableError} from '../lib/errors'
 import {formatServiceAddress} from '../lib/googleMaps'
 import {hasActiveJobAppointment,jobNeedsStatusUpdate,jobStatusLabels,linkedJobInvoiceAction,type JobStatus} from '../lib/jobActions'
+import {searchJobCustomers} from '../services/customers'
+import type {CustomerName} from '../lib/customerRecords'
 import {createJob,getJobDirectoryPage,updateJobStatus,type JobDirectoryFilter} from '../services/jobs'
 import {getScheduleTeam,type Worker} from '../services/schedulingWorkflow'
 import type {ReminderJob} from '../services/reminders'
@@ -44,6 +46,8 @@ export default function JobsPage({business,embedded=false,onCreateReminder}:{bus
  const [section,setSection]=useState<(typeof sections)[number]|'overview'>(requestedSection==='photos-expenses'?'photos':sections.includes(requestedSection as any)?requestedSection as (typeof sections)[number]:initial.get('plan')==='1'?'tasks':'overview')
  const [intent,setIntent]=useState<'schedule'|undefined>(selected&&initial.get('schedule')==='1'?'schedule':undefined)
  const [filter,setFilter]=useState<JobDirectoryFilter|'approved'>(views.some(v=>v.id===initial.get('jobFilter'))?initial.get('jobFilter') as JobDirectoryFilter:customerScope?'all':'active')
+ const [scopeName,setScopeName]=useState<{key:string;customer:CustomerName}|null>(null)
+ useEffect(()=>{let current=true;if(customerScope)void searchJobCustomers(business.id,'',customerScope).then(r=>{if(current&&r.selected)setScopeName({key:business.id+':'+customerScope,customer:r.selected})}).catch(()=>{});return()=>{current=false}},[business.id,customerScope])
  const effectiveFilter=filter==='billing'&&!canBill?'active':filter
  const [search,setSearch]=useState(initial.get('jobSearch')||''),[query,setQuery]=useState(search),[page,setPage]=useState(Math.max(0,Number(initial.get('jobPage'))||0)),[worker,setWorker]=useState(initial.get('jobWorker')||'all'),[layout,setLayout]=useState<'list'|'board'>(initial.get('layout')==='board'?'board':'list'),[filtersOpen,setFiltersOpen]=useState(false)
  const [result,setResult]=useState<{key:string;data:Awaited<ReturnType<typeof getJobDirectoryPage>>}|null>(null),[error,setError]=useState(''),[revision,setRevision]=useState(0),[notice,setNotice]=useState('')
@@ -105,7 +109,7 @@ export default function JobsPage({business,embedded=false,onCreateReminder}:{bus
  return <div className={'page-stack workspace-module jobs-module unified-jobs'+(selected?' phone-job-page':'')}>
   {selected?<><div className="unified-job-heading"><button type="button" className="back-button" onClick={backToJobs}>‹ All jobs</button><span>Job Management</span></div><JobManagementWorkspace key={accessKey+':'+selected} business={business} jobId={selected} team={team} revision={revision} onUpdated={()=>setRevision(v=>v+1)} initialSection={section} initialComplete={canEdit&&initial.get('complete')==='1'} initialIntent={intent} onCreateReminder={onCreateReminder}/></>:<>
    <WorkspaceBack/><header className="page-heading module-page-heading"><Heading ref={heading}>Job Management</Heading>{canEdit&&<button type="button" className="primary-button" onClick={()=>{created.current=null;setShowForm(true)}}>＋ New job</button>}</header>
-   <CustomerRecordScope customerId={customerScope} customers={[]} view="work"/>{notice&&<p role="status">{notice}</p>}
+   <CustomerRecordScope customerId={customerScope} customers={scopeName?.key===business.id+':'+customerScope?[scopeName.customer]:(data?.items||[]).flatMap(j=>j.customers)} view="work"/>{notice&&<p role="status">{notice}</p>}
    <div className="jobs-search-filter-row"><div className="record-list-controls jobs-directory-search"><label>Search jobs<input type="search" aria-label="Search jobs" value={search} maxLength={200} onChange={e=>{setSearch(e.target.value);setPage(0)}} placeholder="Job, customer or location"/></label></div><button type="button" className="jobs-filter-toggle" aria-label={filtersOpen?'Close filters':'Open filters'} aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(v=>!v)}><span aria-hidden="true">▽</span></button></div>
    <div className="unified-view-row"><label><span className="sr-only">Job view</span><select value={effectiveFilter} onChange={e=>{setFilter(e.target.value as typeof filter);setPage(0)}}>{views.filter(v=>v.id!=='billing'||canBill).map(v=><option key={v.id} value={v.id}>{v.label}{v.id!=='approved'&&data?.counts[v.id]!==undefined?' · '+data.counts[v.id]:''}</option>)}</select></label><span>{effectiveFilter==='approved'?'Approved work':data?data.total+' jobs':'Loading…'}</span></div>
    {filtersOpen&&<section className="unified-filters" aria-label="Job filters">{teamScheduling&&<label>Assigned team member<select value={worker} onChange={e=>{setWorker(e.target.value);setPage(0)}} disabled={effectiveFilter==='approved'}><option value="all">Everyone</option>{team.map(w=><option key={w.id} value={w.id}>{w.label}</option>)}</select></label>}<div role="group" aria-label="Job layout">{(['list','board'] as const).map(v=><button type="button" key={v} className="secondary-button" aria-pressed={layout===v} onClick={()=>setLayout(v)}>{v==='list'?'List':'Board'}</button>)}</div><RefreshButton busy={loading} onClick={()=>setRevision(v=>v+1)}/></section>}

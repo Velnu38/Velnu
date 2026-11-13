@@ -23,6 +23,7 @@ async function setup(page,options={}){
   if(path.endsWith('/user_plan_preferences'))return json({user_id:U,selected_tier:'pro'})
   if(path.endsWith('/user_agreement_acceptances'))return json({id:A,agreement_version:'2026-10-27-v3'})
   if(path.endsWith('/business_members'))return json({role:'owner',business_id:B,businesses:{id:B,created_by_user_id:U,name:'Recovery Test',profile_completed_at:'2026-01-01T00:00:00Z'}})
+  if(path.endsWith('/rpc/get_job_management')||path.endsWith('/rpc/get_job_workspace'))return json({tasks:[],materials:[],templates:[],visits:[],activity:[],financial_access:true,billing_access:true,calendar_access:true,time:[],documents:[],changes:[],recorded_expenses:0,budget:null,pending_time_minutes:0,uncalculated_expenses:0})
   if(path.endsWith('/rpc/get_plan_usage'))return json({plan:'pro',ai_limit:50,voice_limit:50,logo_bytes_limit:131072})
   if(path.endsWith('/rpc/get_dashboard_invoice_totals'))return json({open_invoices:0,outstanding_balance:0})
   if (path.endsWith('/rpc/search_job_customers')) return json(customerSearchResponse([customer],body))
@@ -110,8 +111,8 @@ test('job creation preserves request identity after a lost response',async({page
 test('job status failure remains visible and makes no separate appointment write',async({page})=>{
  const s=await setup(page,{jobs:[{id:A,customer_id:C,title:'Existing job',status:'in_progress',customers:customer,scheduled_start:null}]})
  await page.goto('/?view=work&document='+A)
- const dialog=page.getByRole('dialog',{name:'Job details',exact:true})
- page.once('dialog',d=>d.accept());await dialog.getByRole('button',{name:'Mark complete',exact:true}).click()
+ const dialog=page.getByRole('region',{name:'Selected job workspace',exact:true})
+ await dialog.getByRole('button',{name:'Review completion',exact:true}).click();const completion=page.getByRole('dialog',{name:'Complete job review',exact:true});await completion.getByRole('button',{name:'Complete job',exact:true}).click()
  await expect(dialog.getByRole('alert')).toContainText('Unable to update linked appointment')
  expect(s.requests.filter(r=>r.path.endsWith('/functions/v1/work-scheduling')&&r.body?.action==='complete')).toHaveLength(1)
  expect(s.requests.filter(r=>r.path.endsWith('/appointments')&&r.method==='PATCH')).toHaveLength(0)

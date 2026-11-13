@@ -95,7 +95,7 @@ test('owner assigns a matching customer property when creating a job', async ({ 
   await expect(page.getByLabel('Service location').locator('option[value="' + propertyId + '"]')).toHaveCount(1)
   await page.getByLabel('Service location').selectOption(propertyId)
   await page.getByRole('textbox', { name: 'Job title' }).fill('Replace faucet')
-  await page.getByRole('button', { name: 'Save job' }).click()
+  await page.getByRole('button', { name: 'Create job',exact:true }).click()
   await expect.poll(() => requests.filter(r => r.path.endsWith('/rpc/create_job_atomic') && r.method === 'POST').length).toBe(1)
   const write = requests.find(r => r.path.endsWith('/rpc/create_job_atomic') && r.method === 'POST')
   expect(write.body.target_business_id).toBe(businessId)

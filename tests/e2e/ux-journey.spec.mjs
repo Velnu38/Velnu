@@ -45,22 +45,20 @@ for(const width of [320,390,430])test(`mobile job groups retain all sections, co
   await page.setViewportSize({width,height:900})
   await page.goto('/tests/operations/preview.html?screen=jobs&scenario=mixed&layout=phone')
   await page.getByRole('searchbox').fill('Kitchen')
-  await page.getByRole('article').filter({hasText:'Kitchen renovation'}).getByRole('button',{name:'Manage job',exact:true}).click()
+  await page.getByRole('article').filter({hasText:'Kitchen renovation'}).getByRole('button',{name:'Open job Kitchen renovation',exact:true}).click()
   await expect(page.getByRole('group',{name:'Job workspace areas'})).toBeVisible()
   await scan(page,'.jm-section-groups');await scan(page,'.jm-next-action')
   const groups=page.locator('.jm-section-groups');
   expect(await groups.locator('button').evaluateAll(buttons=>buttons.every(button=>button.getBoundingClientRect().height>=44))).toBe(true)
-  await expect(page.getByRole('combobox',{name:'Selected job',exact:true})).toBeVisible()
-  await expect(page.getByRole('combobox',{name:'Selected job',exact:true}).locator('option[value=browse]')).toHaveText('Browse all jobs…')
-  await expect(page.getByRole('button',{name:'Job details',exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:'‹ All jobs',exact:true})).toBeVisible();await expect(page.locator('.jm-notes-disclosure')).toBeVisible();
   expect(await page.locator('.jm-section-groups button').evaluateAll(buttons=>buttons.every(button=>button.scrollWidth<=button.clientWidth))).toBe(true)
   await mkdir('tmp/ux-review',{recursive:true});await testInfo.attach(`job-mobile-${width}`,{body:await page.screenshot({path:`tmp/ux-review/job-mobile-${width}.png`,fullPage:true}),contentType:'image/png'})
   for(const [group,items] of [['Work',[['Tasks & templates','Tasks'],['Visits & crew','Schedule & Crew'],['Materials','Materials'],['Photos & expenses','Photos & Expenses']]],['Billing',[['Invoices','Billing'],['Costs & budget','Billing'],['Change orders','Changes']]],['Records',[['Activity history','Activity'],['Completion reports','Completion Report']]]]){
     await page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:group,exact:true}).click()
     for(const [item,panel] of items){
-      await page.locator('.jm-quick-tile').filter({has:page.getByText(item,{exact:true})}).click()
+      await page.getByRole('navigation',{name:group+' sections',exact:true}).getByRole('button',{name:item,exact:true}).click()
       await expect(page.getByRole('tabpanel',{name:panel,exact:true})).toBeVisible()
-      await page.getByRole('button',{name:`‹ Back to ${group}`,exact:true}).click()
+      await page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:group,exact:true}).click()
     }
   }
   await page.getByRole('group',{name:'Job workspace areas'}).getByRole('button',{name:'Summary',exact:true}).click()
@@ -85,8 +83,8 @@ test('accessibility engine detects an intentionally broken isolated control',asy
 test('workspace preference honors user/business key and explicit directory links',async({page})=>{
   await home(page);await page.goto('/?view=dashboard');await openHomePanels(page,['work'])
   await page.evaluate(({B,U})=>localStorage.setItem(`finviant-jobs-workspace:v1:${U}:${B}`,'management'),{B,U})
-  await page.goto('/?view=work');await expect(page.getByRole('tab',{name:'Job Management',exact:true})).toHaveAttribute('aria-selected','true')
-  await page.goto('/?view=work&workspace=jobs');await expect(page.getByRole('tab',{name:'Jobs',exact:true})).toHaveAttribute('aria-selected','true')
+  await page.goto('/?view=work');await expect(page.getByRole('heading',{name:'Job Management',exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'Selected job workspace'})).toHaveCount(0)
+  await page.goto('/?view=work&workspace=jobs');await expect(page.getByRole('heading',{name:'Job Management',exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'Selected job workspace'})).toHaveCount(0)
 })
 test('work attention failure stays distinct from empty and retries without sending',async({page})=>{
   const state=await home(page);let failed=false
