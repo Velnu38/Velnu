@@ -166,3 +166,28 @@
  .home-view .home-calendar-compact .calendar-heading h2 svg{width:17px;height:17px}
  .home-view .home-calendar-compact .view-switch button{padding-inline:6px;font-size:12px}
 }
+
+/* Keep the agenda row and footer in the approved compact composition. */
+.home-calendar-compact .home-work-status{font-size:11px;font-weight:600;text-transform:capitalize;background:#dcfaf3;color:#006c5d;border-radius:6px;padding:5px 7px}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .home-view .home-calendar-compact .calendar-list-heading{display:none}
+ .home-view .home-calendar-compact .calendar-agenda-date{margin-bottom:4px}
+ .home-view .home-calendar-compact .home-agenda-row{flex-wrap:nowrap;gap:6px}
+ .home-view .home-calendar-compact .home-agenda-row>.calendar-event{display:block;flex:1 1 0;min-width:0}
+ .home-view .home-calendar-compact .home-work-summary{display:block}
+ .home-view .home-calendar-compact .home-work-summary>strong{display:block}
+ .home-view .home-calendar-compact .home-work-summary>small{display:block;margin-top:3px}
+ .home-view .home-calendar-compact .home-agenda-row>button{font-size:12px;padding:5px 8px}
+ .home-view .home-calendar-compact .home-calendar-extras{font-size:10px;gap:0 8px;align-items:center}
+ .home-view .home-calendar-compact .home-calendar-extras summary{list-style:none}
+ .home-view .home-calendar-compact .home-calendar-extras summary::-webkit-details-marker{display:none}
+ .home-view .home-calendar-compact .home-calendar-extras summary span{padding-left:2px}
+ .home-view .home-calendar-compact .home-calendar-extras>a{color:#102c4b}
+ .home-view .home-calendar-compact .calendar-period-title .text-button{text-decoration:underline}
+}
+@media(max-width:360px){
+ .home-view .home-calendar-compact .home-agenda-row{flex-wrap:wrap}
+ .home-view .home-calendar-compact .home-agenda-row>.calendar-event{flex-basis:55%}
+ .home-view .home-calendar-compact .home-agenda-row>button{margin-left:auto}
+ .home-view .home-calendar-compact .home-calendar-extras{gap:0 6px;font-size:9px}
+}
