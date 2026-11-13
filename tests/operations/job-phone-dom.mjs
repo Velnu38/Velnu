@@ -9,7 +9,7 @@ for(const scenario of ['mixed','restricted']){
  const dom=new JSDOM(html,{url:'https://finviant.test/qa?screen=jobs&scenario='+scenario,runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:vc,beforeParse(w){Object.defineProperty(w,'crypto',{value:webcrypto});w.matchMedia=()=>({matches:true,addEventListener(){},removeEventListener(){}});w.HTMLElement.prototype.scrollIntoView=function(){};w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.confirm=()=>confirmAllowed;w.alert=()=>{};w.fetch=async()=>new Response('{}',{headers:{'content-type':'application/json'}})}})
  const doc=dom.window.document
  const visible=e=>!e.closest('[hidden]')
- const button=(name,root=doc)=>[...root.querySelectorAll('button')].find(e=>visible(e)&&(e.textContent.trim()===name||e.getAttribute('aria-label')===name))
+ const button=(name,root=doc)=>[...root.querySelectorAll('button')].find(e=>visible(e)&&(e.textContent.trim().replace(/\s*→$/,'')===name||e.getAttribute('aria-label')===name))
  const tile=name=>[...doc.querySelectorAll('.jm-quick-tile')].find(e=>visible(e)&&e.querySelector('strong').textContent===name)
  const group=name=>button(name,doc.querySelector('.jm-section-groups'))
  const until=async fn=>{for(let i=0;i<160;i++){if(fn())return;await wait(25)}throw Error(scenario+': timed out '+doc.body.textContent.slice(-1800))}

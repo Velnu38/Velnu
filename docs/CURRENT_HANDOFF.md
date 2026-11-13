@@ -6,6 +6,7 @@ Checked November 13, 2026 UTC.
 
 - PR114 prepares the invoice creation controls for beta release. The separate Overdue summary action is removed, Create invoice occupies its place, and recurring setup is an owner-only new-invoice option with explicit schedule confirmation. The later three-screen creation mockup remains unimplemented.
 - The previously reproduced customer-navigation and completion-to-invoice failures were stale navigation in tests: use the visible Open filters control / Additional job filters and enter Job Management through Manage job before reviewing completion. All three corrected cases pass locally without removing assertions or changing runtime behavior. Required full CI and beta deployment remain pending; do not treat this as a release receipt.
+- Additional release checks exposed stale Jobs DOM/record-resource navigation and duplicate calendar invalidation listeners. PR114 updates the test entry points, preserves the retained overview component in an isolated fixture, and coalesces calendar invalidations through the existing shared coordinator. Serial focused validation passes; required full CI still gates release. GitHub log-host access and Vercel API credentials remain environment prerequisites. No beta promotion has occurred.
 
 ## Current read-only assessment checkpoint
 

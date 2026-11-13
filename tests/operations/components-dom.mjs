@@ -5,9 +5,9 @@ import {webcrypto} from 'node:crypto'
 // This is a DOM simulation, not a real-browser or physical-device certificate.
 const html=readFileSync('tmp/operations-review/preview.html','utf8'),errors=[]
 const console=new VirtualConsole();console.on('jsdomError',e=>{if(!/navigation|HTMLCanvasElement|window.scrollTo/.test(e.message))errors.push(e)})
-const dom=new JSDOM(html,{url:'https://finviant.test/qa',runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:console,beforeParse(w){Object.defineProperty(w,'crypto',{value:webcrypto});w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.confirm=()=>true;w.URL.createObjectURL=()=> 'blob:qa';w.URL.revokeObjectURL=()=>{};w.fetch=async()=>new Response('{}',{headers:{'content-type':'application/json'}})}})
+const dom=new JSDOM(html,{url:'https://finviant.test/qa',runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:console,beforeParse(w){Object.defineProperty(w,'crypto',{value:webcrypto});w.matchMedia=()=>({matches:false,addEventListener(){},removeEventListener(){}});w.HTMLElement.prototype.scrollIntoView=function(){};w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false};w.confirm=()=>true;w.URL.createObjectURL=()=> 'blob:qa';w.URL.revokeObjectURL=()=>{};w.fetch=async()=>new Response('{}',{headers:{'content-type':'application/json'}})}})
 const wait=ms=>new Promise(r=>setTimeout(r,ms)),doc=dom.window.document
-async function until(predicate){for(let i=0;i<100;i++){if(predicate())return;await wait(30)}throw Error('Expected DOM result not reached: '+doc.body.textContent?.slice(0,900))}
+async function until(predicate){for(let i=0;i<100;i++){if(predicate())return;await wait(30)}throw Error('Expected DOM result not reached: '+doc.getElementById('root')?.textContent?.slice(-2400))}
 const button=(text,scope=doc)=>[...scope.querySelectorAll('button')].find(b=>b.textContent.trim()===text||b.getAttribute('aria-label')===text)
 const click=async(text,scope=doc)=>{const b=button(text,scope);assert.ok(b,text+' exists');assert.equal(b.disabled,false,text+' enabled');b.click();await wait(70)}
 try{
@@ -15,7 +15,7 @@ try{
  await click('View breakdown');assert.match(doc.querySelector('.finance-detail-grid').textContent,/Receivables aging/);assert.match(doc.querySelector('.finance-detail-grid').textContent,/31–60 days/)
  const income=doc.querySelector('.performance-metric.income');income.click();await wait(70);assert.ok(doc.querySelector('#financial-transactions'));assert.match(doc.querySelector('#financial-transactions').textContent,/Invoice payment/)
  await click('Jobs dashboard');await until(()=>button('Board'));await click('Board');assert.match(doc.querySelector('.job-board').textContent,/Kitchen renovation/)
- const card=[...doc.querySelectorAll('.job-board-card')].find(c=>c.textContent.includes('Kitchen renovation'));await click('Job details',card);await until(()=>doc.querySelector('dialog[open]'))
+ const card=[...doc.querySelectorAll('.job-board-card')].find(c=>c.textContent.includes('Kitchen renovation'));await click('Manage job',card);await until(()=>button('Job details'));await click('Job details');await until(()=>doc.querySelector('dialog[open]'))
  const dialog=doc.querySelector('dialog[open]');await click('Work plan',dialog);await until(()=>dialog.textContent.includes('Work checklist'))
  const field=dialog.querySelector('.work-plan-add input');Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value').set.call(field,'Inspect finish quality');field.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await wait(70);await click('Add checklist item',dialog);await until(()=>dialog.querySelector('.job-checklist').textContent.includes('Inspect finish quality'))
  const item=[...dialog.querySelectorAll('.job-checklist li')].find(li=>li.textContent.includes('Inspect finish quality'));item.querySelector('input').click();await wait(90);assert.equal(item.querySelector('input').checked,true);assert.match(dialog.textContent,/\$2,570.00/)

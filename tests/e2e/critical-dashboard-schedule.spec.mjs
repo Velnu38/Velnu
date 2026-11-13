@@ -919,9 +919,8 @@ for (const kind of ['job', 'estimate', 'invoice']) {
       issue_date: todayISO(), due_date: todayISO(), subtotal: 100, tax_amount: 0, total: 100, amount_paid: 0, balance_due: 100 }
     const state = await mockWorkspace(page, { jobs: [record], estimates: [record], invoices: [record] })
     const openRecord = async () => {
-      await page.goto(kind === 'job' ? '/?view=work' : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
+      await page.goto(kind === 'job' ? '/?view=work&document='+recordId : `/?view=${kind}s&document=${recordId}`,{waitUntil:'domcontentloaded'})
       if (kind === 'job') {
-        await page.getByRole('button', { name: 'Job details', exact: true }).click()
         await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
       } else if (kind === 'estimate') {
         await page.getByRole('dialog',{name:'Estimate preview'}).getByRole('tab',{name:'Photos & expenses',exact:true}).click()
@@ -965,8 +964,7 @@ for (const kind of ['job', 'estimate', 'invoice']) {
 
 test('record resources: viewer cannot upload photos or add expenses', async ({ page }) => {
   await mockWorkspace(page, { role: 'viewer', jobs: [{ id: id(702), title: 'Read only job', status: 'in_progress', scheduled_start: null, customer_id: CID, customers: customer }] })
-  await page.goto('/?view=work')
-  await page.getByRole('button', { name: 'Job details', exact: true }).click()
+  await page.goto('/?view=work&document='+id(702))
   await page.getByRole('dialog').getByRole('tab',{name:'Photos & expenses',exact:true}).click()
   const panel = page.getByRole('region', { name: 'Photos and expenses' })
   await expect(panel.getByLabel('Add job photos')).toHaveCount(0)
