@@ -4,7 +4,7 @@ export async function openInvoiceOptions(target){
  if(await summary.count()&&await summary.isVisible()&&!await summary.evaluate(el=>el.parentElement.open))await summary.click()
 }
 export async function reviewDocument(target){
- await target.getByRole('button',{name:/^(Preview|Review invoice)$/,exact:true}).click()
+ await target.getByRole('button',{name:/^(Preview|Review invoice|Review estimate)$/,exact:true}).click()
  const pdf=target.locator('.invoice-pdf-export>summary')
  if(await pdf.count()){const other=target.getByRole('button',{name:/^(Other delivery options|Contact & delivery options)$/});if(await other.count())await other.click();await pdf.click();const send=target.getByRole('button',{name:/^(Send Finviant Email|Open email app|Contact & delivery options)$/});if(await send.count())await send.first().scrollIntoViewIfNeeded()}
 }

@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-13",
+  "status": "beta-candidate-not-deployed",
+  "scope": "Approved simplified estimate mockup and downflows",
+  "sourceDigests": {
+    "src/pages/EstimatesPage.tsx": "42fa4215f16a765092fee97dceacdf5e304bad6e272760c26f3b31e6ea39a015",
+    "src/components/CreationPreview.tsx": "b2dcc931d4a0c65a5bdd6959769c4aa80d7a8797f11435d9c6243996bb7a23e1",
+    "src/components/InvoiceLineEditor.tsx": "a234532f342024f2e17865ef04fe4f1731d9205411acae1f0cda2ad5300c968e",
+    "src/components/PaymentTerms.tsx": "140c8eae45d920ff524bd32b919ecd3a608e5a3fc2583929ad60f64e45697c8b",
+    "src/components/estimate-create.css": "36ae730853739286a3837ec5a44428cbf5af4b3a741ac1969e978316b57a6627"
+  },
+  "validation": {
+    "productionBuild": "passed including startup checks",
+    "syntheticChromium": "26 focused PDF/editing, phone list/detail/create, essential form/accessibility, tax/services/packages, direct send/retry, SMS consent and personal fallback checks passed; separate approval-status/pending-value case passed",
+    "assessment": "sync, 10 tests and check passed",
+    "limitation": "Final duplicate-menu cleanup is covered by required candidate CI; screenshots are synthetic development captures, not physical-device/provider acceptance."
+  },
+  "releaseGate": "Required candidate CI including full regression and Chromium/WebKit visual review; then exact-head merge and public beta asset verification",
+  "constraints": [
+    "No hosted data edits",
+    "No migrations",
+    "No provider activation",
+    "No real send or charge"
+  ],
+  "taskRecordsRetained": 51
+}

@@ -2,6 +2,10 @@
 
 Checked November 13, 2026 UTC.
 
+## Simplified estimate beta candidate
+
+Owner approved the estimate mockup and requested deployment. Branch `ux/estimate-simple-creation-20261113` follows the simplified invoice candidate. See [scope](ESTIMATE_SIMPLE_CREATION_2026-11-13.md). Required CI and live verification gate deployment. This does not establish physical-device or live-provider acceptance.
+
 ## Current simplified invoice beta release candidate
 
 - Owner requested implementation of the simpler creator, then replaced Choose delivery with direct Send Finviant Email/SMS actions. The new branch `ux/invoice-simple-creation-20261113` starts from the latest beta source, preserving the Home receipt and newer calendar assessment observations. Customer/work/amount are primary; quantity and advanced details expand only when needed. Saved services/packages, job/approved pricing paths, tax, location, recurring confirmation, canonical PDF, explicit sends and safe retries are retained. See [scope and mockup](INVOICE_SIMPLE_CREATION_2026-11-13.md) and [validation receipt](evidence/2026-11-13-invoice-simple-creation.json).
