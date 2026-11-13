@@ -1,0 +1,458 @@
+{
+  "date": "2026-11-13",
+  "verifiedAt": "2026-11-13T17:55:12.147853+00:00",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/115",
+  "testedHead": "3d9f3af2b26183c1c2211c8fe8973239b46d9a15",
+  "mergeCommit": "69445e74360417f40d178a9c220998f94d828be4",
+  "testedAndMergedTreesIdentical": true,
+  "requiredWorkflows": [
+    {
+      "name": "Finviant authentication access checks",
+      "id": 43474075198,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474075198",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Finviant assessment maintenance",
+      "id": 43474075154,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474075154",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "More navigation checks",
+      "id": 43474074894,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474074894",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Home screen checks",
+      "id": 43474075234,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474075234",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Pricing tier checks",
+      "id": 43474074708,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474074708",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Revised Home visual review",
+      "id": 43474075038,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474075038",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Financial entry checks",
+      "id": 43474075318,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474075318",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Document design checks",
+      "id": 43474074748,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474074748",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Calendar integration checks",
+      "id": 43474074837,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474074837",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Complete automated test checks",
+      "id": 43474075269,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474075269",
+      "conclusion": "success",
+      "run_attempt": 1
+    },
+    {
+      "name": "Voice review delivery checks",
+      "id": 43474075215,
+      "html_url": "https://github.com/Velnu38/Velnu/actions/runs/43474075215",
+      "conclusion": "success",
+      "run_attempt": 1
+    }
+  ],
+  "fullValidation": "https://github.com/Velnu38/Velnu/actions/runs/43474075269",
+  "requiredJobs": 22,
+  "requiredJobsResult": "All passed",
+  "fullSuiteJobs": [
+    {
+      "name": "private-beta-email",
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / checks",
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "pure-deno-tests",
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "isolated-provider-workload",
+      "conclusion": "success"
+    },
+    {
+      "name": "node-tests",
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (2/6)",
+      "conclusion": "success"
+    },
+    {
+      "name": "migrations / postgres-17",
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (6/6)",
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (1/6)",
+      "conclusion": "success"
+    },
+    {
+      "name": "native-app-handoffs",
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (4/6)",
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (3/6)",
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (5/6)",
+      "conclusion": "success"
+    },
+    {
+      "name": "Release validation",
+      "conclusion": "success"
+    }
+  ],
+  "vercelDeployment": "https://vercel.com/mbarone5-1747/finviant-office/8pEQUNZMfHn3mzyZ7Mstfa1GEq48",
+  "vercelStatus": "success",
+  "domains": [
+    {
+      "origin": "https://finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "assets": [
+        {
+          "path": "/assets/index-DZiEiWtk.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/react-ByobQcLz.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/App-D_-l1Gbi.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": true
+        },
+        {
+          "path": "/assets/supabase-CB7MGzWB.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/DashboardPage-CerisDUZ.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/FinancialPerformance-8iw5pOMX.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/DashboardPage-B0S_uzJA.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": true,
+          "logoVisible": true,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/ApprovalLinkDialog-CXhhiV7C.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/InvoicesPage-D2BsDRlL.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": true,
+          "recurringCreation": true,
+          "betaBackend": false
+        }
+      ],
+      "verified": true
+    },
+    {
+      "origin": "https://www.finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "assets": [
+        {
+          "path": "/assets/index-DZiEiWtk.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/react-ByobQcLz.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/App-D_-l1Gbi.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": true
+        },
+        {
+          "path": "/assets/supabase-CB7MGzWB.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/DashboardPage-CerisDUZ.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/FinancialPerformance-8iw5pOMX.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/DashboardPage-B0S_uzJA.css",
+          "httpStatus": 200,
+          "narrowMoneyFix": true,
+          "logoVisible": true,
+          "homeRevised": true,
+          "todayCard": true,
+          "workTiles": true,
+          "financialSummary": true,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/ApprovalLinkDialog-CXhhiV7C.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": false,
+          "recurringCreation": false,
+          "betaBackend": false
+        },
+        {
+          "path": "/assets/InvoicesPage-D2BsDRlL.js",
+          "httpStatus": 200,
+          "narrowMoneyFix": false,
+          "logoVisible": false,
+          "homeRevised": false,
+          "todayCard": false,
+          "workTiles": false,
+          "financialSummary": false,
+          "invoiceCreateCard": true,
+          "recurringCreation": true,
+          "betaBackend": false
+        }
+      ],
+      "verified": true
+    }
+  ],
+  "composition": [
+    "Quick Links and Ask Fin retained; no separate + New button",
+    "Today appointment list with Calendar entry",
+    "Work-style Invoice review and Work blockers tiles",
+    "Financial Performance cash and receivables summary with full tools retained"
+  ],
+  "screenshots": {
+    "source": "Synthetic signed-in browser fixtures; no hosted tenant records",
+    "local": "/workspace/finviant-setup/home-revised-screenshots/",
+    "viewports": [
+      320,
+      390,
+      430,
+      1440
+    ],
+    "workflow": "https://github.com/Velnu38/Velnu/actions/runs/43474075038"
+  },
+  "limits": [
+    "No hosted data edits, migrations, provider activation, customer sends or charges",
+    "No physical-device, hosted owner or live-provider acceptance claim",
+    "The simplified three-screen invoice-creation mockup remains unimplemented"
+  ]
+}

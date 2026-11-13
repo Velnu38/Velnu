@@ -8,9 +8,9 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
-      "title": "Home revised Option B \u2014 release candidate",
-      "detail": "November 13: owner approved the revised Option B Home composition after the completed PR114 invoice release. Today uses an appointment list; Needs Attention uses Work-style review tiles; Financial Performance keeps a compact cash/receivables summary; Quick Links and Ask Fin remain. Detailed calendar, finance, approval, reminder and payment reviews stay accessible with existing permission and confirmation guards. Synthetic Chromium checks cover phone/desktop, accessibility, role restrictions, review failures, original job details and return paths. Full required CI and beta verification are pending. All 51 task records/criteria are retained; no physical-device or provider acceptance is claimed.",
-      "evidence": "docs/HOME_REVISED_OPTION_B_2026-11-13.md",
+      "title": "Home revised Option B \u2014 beta released",
+      "detail": "November 13: PR115 merged as 69445e74360417f40d178a9c220998f94d828be4 after all eleven candidate workflows and all 22 full-suite jobs passed at 3d9f3af2b26183c1c2211c8fe8973239b46d9a15. Tested and merged trees match. Vercel deployment 8pEQUNZMfHn3mzyZ7Mstfa1GEq48 completed successfully. Both Finviant domains serve the approved Today appointment list, Work-style Needs Attention tiles and Financial Performance summary, with Quick Links, Ask Fin, configured company logos and original detailed tools retained. Live Home CSS includes the tested currency-fit correction; invoice creation/recurring controls, beta backend and private no-store/noindex headers remain. No hosted data edits, migrations, provider activation, messages or charges. All 51 task records and criteria remain; no physical-device/owner or provider acceptance is claimed.",
+      "evidence": "docs/evidence/2026-11-13-home-beta-release.json",
       "verifiedAt": "2026-11-13"
     },
     {
