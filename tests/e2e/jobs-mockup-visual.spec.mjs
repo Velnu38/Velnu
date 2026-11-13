@@ -61,5 +61,6 @@ test('Jobs phone mockup states render and preserve the directory handoffs',async
  await page.getByRole('button',{name:'New job'}).click()
  const dialog=page.getByRole('dialog',{name:'Create a job',exact:true})
  await expect(dialog.locator('.form-grid > label').first()).toContainText('Job title')
+ expect((await dialog.boundingBox()).width).toBe(390)
  await screenshot(page,'jobs-new-job-390')
 })
