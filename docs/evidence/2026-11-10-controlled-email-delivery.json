@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-10",
+  "sourceCommit": "c47fbe69f3ec00ef94b6b1070c9853d82a4dcfdd",
+  "sourceTree": "be3991d45b55ef8348d6353e1363929be5c83805",
+  "deployment": "dpl_F8MUArgNDqmxUYkqqhh4GmTsifdJ",
+  "environment": "existing private beta",
+  "authorization": {
+    "emailMaximum": 3,
+    "smsMaximum": 2,
+    "totalCostCapUsd": 1,
+    "newSubscriptions": false,
+    "recipientScope": "one owner-controlled email and mobile, privately supplied and approved"
+  },
+  "method": "existing application preparation RPCs; natural existing cron; real Resend delivery and signed callback; read-only anonymous public link/PDF APIs",
+  "emailRequests": {
+    "invoice": "582eb7b4-88d7-45f0-a3b4-5c015cf72f8e",
+    "estimate": "5c89f735-a768-4fae-ad25-5e8122d24e53",
+    "business_card": "405edf53-cf71-4f22-90c5-2599efc33430"
+  },
+  "receipts": [
+    {
+      "kind": "invoice",
+      "status": "delivered",
+      "attempts": 1,
+      "providerReceipt": "01a1c7c7-87b7-793d-b367-fdea3bd06e65",
+      "recipientCount": 1,
+      "noExtraRecipients": true,
+      "attachmentFilenameExtension": "pdf",
+      "pdf": {
+        "bytes": 25071,
+        "sha256": "37020349ea0ce49f902ed8d7481702fc279c6f2ad8e1f22f0c1a2fb732d2333a",
+        "revision": 1,
+        "created_at": "2026-11-10T23:25:04.651228+00:00"
+      },
+      "events": [
+        {
+          "id": "msg_3Lw777Z1q8NVadvDpxxmQF2PE7T",
+          "type": "email.sent",
+          "occurred_at": "2026-11-10T23:25:05.205+00:00",
+          "received_at": "2026-11-10T23:25:08.430697+00:00"
+        },
+        {
+          "id": "msg_3Lw77HoAW6mKxbnoJ2Nh2DJP5LD",
+          "type": "email.delivered",
+          "occurred_at": "2026-11-10T23:25:06.664+00:00",
+          "received_at": "2026-11-10T23:25:08.452578+00:00"
+        }
+      ]
+    },
+    {
+      "kind": "estimate",
+      "status": "delivered",
+      "attempts": 1,
+      "providerReceipt": "01a1c7c7-8cbd-77da-a777-9e75a4b7abcb",
+      "recipientCount": 1,
+      "noExtraRecipients": true,
+      "attachmentFilenameExtension": "pdf",
+      "pdf": {
+        "bytes": 24557,
+        "sha256": "d569053631215cc11fa9854269ea178570d2ed34119faa70744af067ae03edc3",
+        "revision": 1,
+        "created_at": "2026-11-10T23:25:05.980127+00:00"
+      },
+      "events": [
+        {
+          "id": "msg_3Lw77HpniOqGxbVPK4yLJVsMEiF",
+          "type": "email.sent",
+          "occurred_at": "2026-11-10T23:25:06.44+00:00",
+          "received_at": "2026-11-10T23:25:08.414982+00:00"
+        },
+        {
+          "id": "msg_3Lw77R1czy66MjhmU3CBm2DbHv5",
+          "type": "email.delivered",
+          "occurred_at": "2026-11-10T23:25:07.722+00:00",
+          "received_at": "2026-11-10T23:25:08.773235+00:00"
+        }
+      ]
+    },
+    {
+      "kind": "business_card",
+      "status": "delivered",
+      "attempts": 1,
+      "providerReceipt": "01a1c7c7-8dff-7189-8176-f1807e4f28f0",
+      "recipientCount": 1,
+      "noExtraRecipients": true,
+      "attachmentFilenameExtension": "vcf",
+      "pdf": null,
+      "events": [
+        {
+          "id": "msg_3Lw77KwDvsKtHxEGEDn5Vt4noPH",
+          "type": "email.sent",
+          "occurred_at": "2026-11-10T23:25:06.739+00:00",
+          "received_at": "2026-11-10T23:25:08.379326+00:00"
+        },
+        {
+          "id": "msg_3Lw77vfFqkiQZC5FMpyyUcP4KlT",
+          "type": "email.delivered",
+          "occurred_at": "2026-11-10T23:25:11.665+00:00",
+          "received_at": "2026-11-10T23:25:12.729403+00:00"
+        }
+      ]
+    }
+  ],
+  "artifactChecks": [
+    {
+      "kind": "invoice",
+      "attachment_bytes": 25071,
+      "attachment_sha256": "37020349ea0ce49f902ed8d7481702fc279c6f2ad8e1f22f0c1a2fb732d2333a",
+      "canonical_attachment_match": true,
+      "test_only_notice": true,
+      "no_payment_notice": true,
+      "zero_total": true,
+      "pdf_endpoint_status": 200,
+      "download_matches_attachment": true,
+      "cache_control": "private, no-store, max-age=0",
+      "content_type": "application/pdf",
+      "share_status": 200,
+      "share_present": true
+    },
+    {
+      "kind": "estimate",
+      "attachment_bytes": 24557,
+      "attachment_sha256": "d569053631215cc11fa9854269ea178570d2ed34119faa70744af067ae03edc3",
+      "canonical_attachment_match": true,
+      "test_only_notice": true,
+      "no_payment_notice": true,
+      "zero_total": true,
+      "pdf_endpoint_status": 200,
+      "download_matches_attachment": true,
+      "cache_control": "private, no-store, max-age=0",
+      "content_type": "application/pdf",
+      "share_status": 200,
+      "share_present": true
+    },
+    {
+      "kind": "business_card",
+      "attachment_bytes": 142,
+      "attachment_sha256": "4f15283d3f79662df3fa2cdaa0319dbbfddb1c34180c62ba2ec92bb3912f383c",
+      "vcard_valid": true,
+      "vcard_has_name": true,
+      "share_status": 200,
+      "share_present": true,
+      "vcard_matches_share": true,
+      "expires_at": "2027-02-08T23:24:05.576025+00:00"
+    }
+  ],
+  "decisionCheck": {
+    "estimateActionState": "available",
+    "approvalTokenPresent": true,
+    "decisionSubmitted": false,
+    "invoiceBalance": 0,
+    "invoicePaymentLinks": 0
+  },
+  "visualPdfReview": {
+    "pagesEach": 1,
+    "readable": true,
+    "clippingOrOverlap": false,
+    "testNoticesPresent": true,
+    "zeroTotals": true,
+    "thankYouFooterCentered": true
+  },
+  "ownerConfirmation": {
+    "emailReceipt": true,
+    "confirmedAt": "2026-11-10",
+    "phoneAttachmentOrContactImport": false,
+    "replyRouting": false
+  },
+  "usage": {
+    "dailyBefore": 0,
+    "dailyAfter": 3,
+    "dailyLimit": 100,
+    "monthlyBefore": 5,
+    "monthlyAfter": 8,
+    "monthlyLimit": 3000,
+    "incrementalSendingCostUsd": 0,
+    "withinIncludedAllowance": true
+  },
+  "sms": {
+    "sent": 0,
+    "active": false,
+    "senderConfigured": false,
+    "replyRouteConfigured": false,
+    "registrationAndBalanceVerified": false,
+    "activationAttempted": false
+  },
+  "unchangedControls": [
+    "beta recipient allowlist",
+    "plan and quota checks",
+    "private beta deployment target",
+    "saved business card details",
+    "production project",
+    "provider configuration"
+  ],
+  "remaining": [
+    "phone PDF and vCard usability",
+    "authorized reply routing",
+    "owner-side logged-in send journey",
+    "remaining EMAIL-01 acceptance criteria",
+    "SMS registration and sender/reply setup plus live acceptance"
+  ],
+  "noRealPaymentOrJobApproval": true,
+  "publicLaunchCertified": false
+}

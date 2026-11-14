@@ -1,0 +1,76 @@
+{
+  "origin": "https://finviant.com",
+  "cacheControl": "private, no-store, max-age=0",
+  "robots": "noindex, nofollow, noarchive",
+  "assets": [
+    {
+      "path": "/assets/index-BmmpO14E.js",
+      "createCard": false,
+      "recurringCreation": false,
+      "betaBackend": false
+    },
+    {
+      "path": "/assets/react-ByobQcLz.js",
+      "createCard": false,
+      "recurringCreation": false,
+      "betaBackend": false
+    },
+    {
+      "path": "/assets/App-BDOqmJik.js",
+      "createCard": false,
+      "recurringCreation": false,
+      "betaBackend": true
+    },
+    {
+      "path": "/assets/supabase-CB7MGzWB.js",
+      "createCard": false,
+      "recurringCreation": false,
+      "betaBackend": false
+    },
+    {
+      "path": "/assets/ApprovalLinkDialog-475Y-DZn.js",
+      "createCard": false,
+      "recurringCreation": false,
+      "betaBackend": false
+    },
+    {
+      "path": "/assets/InvoicesPage-BPcudBGV.js",
+      "createCard": true,
+      "recurringCreation": true,
+      "betaBackend": false
+    }
+  ],
+  "date": "2026-11-13",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/114",
+  "testedHead": "677b04f6ac7bd9153fac20b7fa9b2955de143f15",
+  "mergeCommit": "77c3016b833295e1c8c47c6884750f79b19f0484",
+  "fullValidation": "https://github.com/Velnu38/Velnu/actions/runs/43456911375",
+  "requiredJobs": 22,
+  "requiredJobsResult": "All passed",
+  "vercelDeployment": "https://vercel.com/mbarone5-1747/finviant-office/GBnzmesTaZnpnkTvg7GXsmKAEGz1",
+  "vercelStatus": "success",
+  "testedAndMergedTreesIdentical": true,
+  "domains": [
+    {
+      "requested": "https://finviant.com",
+      "finalUrl": "https://finviant.com",
+      "httpStatus": 200,
+      "expectedEntry": true,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    },
+    {
+      "requested": "https://www.finviant.com",
+      "finalUrl": "https://www.finviant.com",
+      "httpStatus": 200,
+      "expectedEntry": true,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    }
+  ],
+  "limits": [
+    "Frontend assets verified; no signed-in tenant or physical-device acceptance claim",
+    "No hosted data changes, migrations, provider activation, messages or charges",
+    "Home and simplified three-screen invoice mockups remain unimplemented"
+  ]
+}

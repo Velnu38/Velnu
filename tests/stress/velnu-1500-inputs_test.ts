@@ -121,7 +121,7 @@ Deno.test('1800 generated inputs across schedules, invoice voice commands, maps,
   })
   batch('service_interests_alacarte', 100, i => {
     const normal = normalizeInterests({ plan: 'a_la_carte', services: ['scheduling_assistant', 'bookkeeping_assistant', 'ai_100', 'voice_drafts', 'ai_100'] })
-    equal(normal.plan, 'a_la_carte', 'retain non-billable service interest')
+    equal(normal.plan, 'free', 'retired tier falls back to free')
     equal(normal.services.join(','), 'ai_100,voice_drafts', 'exclude standalone assistant and duplicates')
   })
   batch('pricing_money', 100, i => {
@@ -132,7 +132,7 @@ Deno.test('1800 generated inputs across schedules, invoice voice commands, maps,
   batch('pricing_storage', 100, i => {
     const mb = 1024 * (i + 1)
     assert(formatStorage(mb).includes('GB'), 'large storage has GB units')
-    equal(formatStorage(0), 'No hosted file storage', 'free storage remains unhosted')
+    equal(formatStorage(0), 'No hosted file storage', 'zero hosted storage formats clearly')
   })
   batch('pricing_assistants', 100, i => {
     const tier = i % 2 ? 'basic' : 'pro'

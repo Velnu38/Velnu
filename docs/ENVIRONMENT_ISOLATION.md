@@ -35,7 +35,7 @@ The owner approved the $10/month additional project in the existing organization
 
 ## Build safeguards
 
-`npm run build` validates Vercel's target before compiling. Production cannot use the registered staging project; Preview and Development cannot use another project. An explicit environment label, matching HTTPS project URL, publishable frontend key, and production release branch are required. Public variables with privileged credential names or recognizable secret values are rejected without printing their values. Shared staging cannot enable customer delivery.
+`npm run build` validates Vercel's target before compiling. Production cannot use the registered staging project; Preview and Development cannot use another project. An explicit environment label, matching HTTPS project URL, publishable frontend key, and production release branch are required. Public variables with privileged credential names or recognizable secret values are rejected without printing their values. Shared staging cannot enable general customer actions. A separate email-only private beta release is permitted on the registered private-testing preview branch; its backend restricts every recipient to approved test addresses. See [Private beta email](PRIVATE_BETA_EMAIL.md).
 
 These checks prevent accidental configuration mix-ups. Supabase RLS and authentication remain the authorization boundary. A publishable key's project association must also be verified against the configured project's API; it cannot be inferred from the opaque key string.
 
@@ -47,6 +47,7 @@ These checks prevent accidental configuration mix-ups. Supabase RLS and authenti
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Staging publishable key | New production publishable key |
 | `FINVIANT_PRODUCTION_GIT_REF` | Unset | `release/production` |
 | `VITE_ENABLE_CUSTOMER_ACTIONS` | `false` | `false` until provider workflow acceptance |
+| `VITE_ENABLE_PRIVATE_BETA_EMAIL` | `true` only on `ux/private-testing-20261029` Preview; otherwise unset/false | Unset/false |
 
 Keep Supabase service-role keys and provider credentials server-side in their respective Supabase projects. Create independent provider sandbox/live credentials and webhook secrets when those integrations are implemented. Do not copy staging provider secrets into production. No integration is activated by this change.
 

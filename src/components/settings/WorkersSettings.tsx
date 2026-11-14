@@ -1,0 +1,34 @@
+import {useEffect,useRef,useState,type FormEvent} from 'react'
+import type {CurrentBusiness} from '../../lib/business'
+import {getWorkers,saveWorker,type WorkerProfile,type WorkerRoster} from '../../services/workers'
+import {useUnsavedChanges} from '../../lib/unsavedChanges'
+const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+const clock=(n:number)=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`
+const minutes=(s:string)=>Number(s.split(':')[0])*60+Number(s.split(':')[1])
+export default function WorkersSettings({business}:{business:CurrentBusiness}){
+  const [roster,setRoster]=useState<WorkerRoster|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false)
+  const [editing,setEditing]=useState<WorkerProfile|null>(null),[query,setQuery]=useState(''),[inactive,setInactive]=useState(false)
+  const saving=useRef(false),guard=useUnsavedChanges(busy)
+  useEffect(()=>{let active=true;void getWorkers(business.id).then(r=>{if(active)setRoster(r)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[business.id])
+  function create(){setError('');setNotice('');setEditing({id:crypto.randomUUID(),name:'',trade:'',active:true,is_owner:false,use_business_hours:true,work_days:[1,2,3,4,5],start_minutes:480,end_minutes:1020,updated_at:''})}
+  async function submit(event:FormEvent){event.preventDefault();if(!editing||saving.current)return;saving.current=true;setBusy(true);setError('');setNotice('');try{
+    const {id,is_owner:_,updated_at,...input}=editing
+    await saveWorker(business.id,id,input,updated_at||null);guard.markClean();setEditing(null);setNotice('Worker saved. Job assignments and availability use this profile.');setRoster(await getWorkers(business.id))
+  }catch(e){setError(e instanceof Error?e.message:'Unable to save worker.')}finally{saving.current=false;setBusy(false)}}
+  const atLimit=!!roster&&roster.active_count>=roster.worker_limit
+  return <section className="settings-panel worker-panel">
+    <div className="split-heading"><div><h2>Workers</h2><p className="quiet">Internal profiles for job assignments. Adding a worker does not invite them or give account access.</p></div>{roster&&<span className="status-chip">{roster.active_count} of {roster.worker_limit} active workers</span>}</div>
+    {!roster&&!error&&<p role="status">Loading workers…</p>}
+    {roster&&<><div className="worker-toolbar"><label>Search workers<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Name or trade"/></label><label>Show<select value={inactive?'inactive':'active'} onChange={e=>setInactive(e.target.value==='inactive')}><option value="active">Active workers</option><option value="inactive">Inactive workers</option></select></label><button type="button" className="primary-button" disabled={busy||atLimit||!!editing||roster.plan==='free'} onClick={create}>Add worker</button></div>
+      {roster.plan==='free'?<p>Free includes your owner profile. <a href="/?view=settings&section=plans">View plans for more workers</a>.</p>:atLimit&&<p>Your active worker limit is reached. Make an unused profile inactive or <a href="/?view=settings&section=plans">view plans</a>.</p>}
+      {roster.active_count>roster.worker_limit&&<p role="status">Your existing profiles and history are preserved. Reduce active profiles to your plan limit before adding or reactivating workers.</p>}
+      <div className="worker-list">{roster.workers.filter(w=>w.active!==inactive&&`${w.name} ${w.trade}`.toLowerCase().includes(query.toLowerCase())).map(w=><article key={w.id} className="worker-row"><div className="worker-initials" aria-hidden="true">{w.name.split(' ').map(s=>s[0]).slice(0,2).join('')}</div><div><strong>{w.name}{w.is_owner?' (owner)':''}</strong><small>{w.trade||'Worker'}</small></div><div><span>{w.use_business_hours?'Business working hours':w.work_days.map(d=>days[d-1]).join(', ')}</span>{!w.use_business_hours&&<small>{clock(w.start_minutes)}–{clock(w.end_minutes)}</small>}</div><span className="status-chip">{w.active?'Active':'Inactive'}</span><button type="button" className="text-button" disabled={busy||!!editing} onClick={()=>{setEditing({...w});setError('');setNotice('')}} aria-label={`Manage ${w.name}`}>Manage</button></article>)}</div>
+      {!roster.workers.some(w=>w.active!==inactive)&&<p>No {inactive?'inactive':'active'} worker profiles.</p>}
+      <p className="quiet">Inactive profiles keep their job history and do not count toward the active worker limit. The owner counts only while listed as an active worker.</p>
+    </>}
+    {editing&&<form className="settings-inset worker-editor" onSubmit={submit} onInputCapture={guard.markDirty} onChangeCapture={guard.markDirty}><h3>{editing.updated_at?'Manage worker':'Add worker'}</h3><div className="guided-form-grid"><label>Name<input required maxLength={120} value={editing.name} disabled={busy} onChange={e=>setEditing({...editing,name:e.target.value})}/></label><label>Trade or role<input maxLength={120} value={editing.trade} disabled={busy} onChange={e=>setEditing({...editing,trade:e.target.value})}/></label></div><label><input type="checkbox" checked={editing.active} disabled={busy} onChange={e=>setEditing({...editing,active:e.target.checked})}/> Active worker</label><label><input type="checkbox" checked={editing.use_business_hours} disabled={busy} onChange={e=>setEditing({...editing,use_business_hours:e.target.checked})}/> Use business working hours</label>
+      {!editing.use_business_hours&&<fieldset disabled={busy}><legend>Worker availability</legend><div className="scheduling-days">{days.map((d,n)=><label key={d}><input type="checkbox" checked={editing.work_days.includes(n+1)} onChange={e=>setEditing({...editing,work_days:e.target.checked?[...editing.work_days,n+1]:editing.work_days.filter(v=>v!==n+1)})}/>{d}</label>)}</div><div className="guided-form-grid"><label>Starts<input type="time" required value={clock(editing.start_minutes)} onChange={e=>setEditing({...editing,start_minutes:minutes(e.target.value)})}/></label><label>Ends<input type="time" required value={clock(editing.end_minutes)} onChange={e=>setEditing({...editing,end_minutes:minutes(e.target.value)})}/></label></div></fieldset>}
+      <div className="settings-actions"><button className="primary-button" disabled={busy||!editing.name.trim()||!editing.work_days.length||editing.end_minutes<=editing.start_minutes}>{busy?'Saving…':'Save worker'}</button><button type="button" className="secondary-button" disabled={busy} onClick={()=>{guard.markClean();setEditing(null)}}>Cancel</button></div><p className="quiet">Use Availability to manage business hours and time off.</p></form>}
+    {error&&<p role="alert" className="form-message error-text">{error}</p>}{notice&&<p role="status" className="form-message">{notice}</p>}
+  </section>
+}

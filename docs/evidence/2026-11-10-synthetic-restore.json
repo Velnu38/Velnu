@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-10",
+  "testedHead": "3da1f6373fd6a4f4b82e4ab042c6d50e822166be",
+  "run": 42860154986,
+  "job": 129984177428,
+  "conclusion": "success",
+  "migrations": 87,
+  "tables": 127,
+  "rows": 45,
+  "backupMilliseconds": 162,
+  "restoreMilliseconds": 936,
+  "allInventoriedRowsMatched": true,
+  "actualPrivateObjectBytesMatched": true,
+  "financialBalance": {
+    "invoice": 105,
+    "paid": 30,
+    "balance": 75,
+    "payments": 1
+  },
+  "passwordRelogin": true,
+  "foreignAndAnonymousDenied": true,
+  "postRestoreModuleAndMembershipRevocation": true,
+  "cleanup": {
+    "users": 0,
+    "businesses": 0,
+    "payments": 0,
+    "files": 0
+  },
+  "scope": "Quiescent synthetic data and actual private object restored into retained schema/configuration. Not hosted backup inventory, complete infrastructure recovery, PITR or production RTO/RPO."
+}

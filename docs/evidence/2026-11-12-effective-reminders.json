@@ -1,0 +1,89 @@
+{
+  "card": "04",
+  "task": "AUTO-01",
+  "date": "2026-11-12",
+  "baseCommit": "77dd7473184fc48bc4aed671c46adc0188dd36b2",
+  "changes": [
+    "Show saved business enabled/paused timing and channels separately from unsaved edits",
+    "Show saved appointment and invoice inherit/off/custom preferences and business pause",
+    "Guard overdue invoice default reads, saves and cancellations against stale business responses and duplicate submission"
+  ],
+  "preserved": [
+    "Fresh appointment rule disabled at 48 elapsed hours; saved 72-hour and other overrides",
+    "Invoice email-only defaults disabled: 2 days overdue, every 7 days, maximum 3",
+    "Existing preparation, claim, suppression and provider gates; no SQL or Edge changes"
+  ],
+  "tests": {
+    "dom": "Three reminder component suites passed",
+    "typecheck": "passed",
+    "sqlAndDispatch": {
+      "passed": 81,
+      "skipped": 1,
+      "failed": 0,
+      "skip": "Optional genuine PostgreSQL lock-concurrency test; no local test database configured"
+    },
+    "build": "passed, including 95 startup checks",
+    "requiredCI": {
+      "passedRuns": [
+        43127580871,
+        43127580889,
+        43127580783,
+        43127580849
+      ],
+      "completeSuiteJobsPassed": 22
+    },
+    "assessment": "10 passed; generated report consistency passed"
+  },
+  "externalGates": [
+    "Real provider acceptance and physical-device acceptance remain unverified",
+    "Optional real PostgreSQL concurrent lock test requires isolated local database; synthetic tests are not live-provider evidence"
+  ],
+  "release": {
+    "deployment": "dpl_BmaFQXWbTZTcmWowk28CiGFj2SqJ",
+    "state": "READY",
+    "commit": "d9e954783ab838050ad354f7584879425e77cfae",
+    "domains": [
+      {
+        "host": "www.finviant.com",
+        "status": 200,
+        "index": "/assets/index-BfbqNQGO.js",
+        "cache": "private, no-store, max-age=0",
+        "robots": "noindex, nofollow, noarchive"
+      },
+      {
+        "host": "finviant.com",
+        "status": 200,
+        "index": "/assets/index-BfbqNQGO.js",
+        "cache": "private, no-store, max-age=0",
+        "robots": "noindex, nofollow, noarchive"
+      }
+    ],
+    "assets": {
+      "app": "App-C4w9JeMt.js",
+      "beta": true,
+      "prodAbsent": true,
+      "settings": "SettingsPage-DuLuKaXB.js",
+      "savedRule": true,
+      "explicitSave": true
+    }
+  },
+  "realMessages": false,
+  "charges": false,
+  "providerActivation": false,
+  "candidateCommit": "6e34fd3e93c392d35258bd865bbf51e6b3c8211a",
+  "candidateTree": "abb3d10d57ba9446e4885aa88362314c0a4dc6bb",
+  "pullRequest": 96,
+  "preview": {
+    "id": "dpl_6UG4Tpo8KHPXqvk3aN3U44S2gQJW",
+    "status": 200,
+    "index": "/assets/index-BvcQwpzO.js",
+    "app": "App-HEYC-8q_.js",
+    "beta": true,
+    "prodAbsent": true,
+    "savedReminders": true,
+    "settings": "SettingsPage-BcKVzWo9.js",
+    "explicitSave": true
+  },
+  "mergeCommit": "d9e954783ab838050ad354f7584879425e77cfae",
+  "testedAndMergedTreeMatch": true
+}

@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-12",
+  "pr": 103,
+  "merge": "65a0b7917f08e76a80f3dfa0848cf2bfe1891625",
+  "status": "deployed_private_beta",
+  "testedRuntime": "49b78b0b742a9e7d80193cb178d14a3d17d1bbb6",
+  "fullSuite": {
+    "run": 43311556227,
+    "jobs": 22,
+    "conclusion": "success"
+  },
+  "supabase": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "migration": "tenant_session_authorization",
+    "restrictiveSessionPolicies": 36,
+    "publicRlsTables": 35,
+    "hook": "public.check_request_session",
+    "functions": {
+      "upload-attachment": 11,
+      "owner-archive": 2,
+      "document-pdf": 5
+    }
+  },
+  "verification": [
+    "Rollback-only authenticated missing-session denial and anonymous/service hook compatibility passed",
+    "Identity RPC denies anon and service-role execution",
+    "Upload/archive unauthenticated requests return 401; PDF invalid request returns 400",
+    "Vercel READY at merge SHA on both domains; finviant.com HTTP 200 private no-store/noindex"
+  ],
+  "deployment": "dpl_2ATp56uh2KdoZK8fK8929nMDTsPd",
+  "retained": [
+    "PR97 reminder history",
+    "PR102 layout",
+    "private-beta restrictions"
+  ],
+  "limits": [
+    "Independent hosted two-business acceptance and broader SEC-02 review remain open",
+    "No providers activated or customer messages sent",
+    "Previously issued signed URLs retain their existing expiration"
+  ]
+}

@@ -1,0 +1,1456 @@
+{
+  "observedAt": "2026-11-10",
+  "testedHead": "defdc949809f47207c7acb15bde94b576f1214c1",
+  "run": "https://github.com/Velnu38/Velnu/actions/runs/42888401958",
+  "job": 130082885741,
+  "artifact": 13803150831,
+  "artifactSha256": "8f0829cc639a5deee912e733a0678d80668dc70725ee4973c3a2f568a472771b",
+  "result": {
+    "scope": "owned local Supabase Auth/PostgREST/PostgreSQL/Storage; not hosted production capacity",
+    "sourceCommit": "d0ab17328acbfe49d37f1b1e416ba978e120b367",
+    "population": {
+      "businesses": 300,
+      "sessions": 300,
+      "customers": 6000,
+      "jobs": 12000,
+      "invoices": 6000,
+      "payments": 1500,
+      "files": 300
+    },
+    "queryPlans": [
+      {
+        "name": "jobs_page",
+        "Plan": {
+          "Node Type": "Limit",
+          "Actual Total Time": 61.617,
+          "Actual Rows": 25,
+          "Actual Loops": 1,
+          "Shared Hit Blocks": 2287,
+          "Shared Read Blocks": 0,
+          "Plans": [
+            {
+              "Node Type": "Result",
+              "Actual Total Time": 0.003,
+              "Actual Rows": 1,
+              "Actual Loops": 1,
+              "Shared Hit Blocks": 0,
+              "Shared Read Blocks": 0
+            },
+            {
+              "Node Type": "Sort",
+              "Actual Total Time": 61.613,
+              "Actual Rows": 25,
+              "Actual Loops": 1,
+              "Shared Hit Blocks": 2287,
+              "Shared Read Blocks": 0,
+              "Plans": [
+                {
+                  "Node Type": "Bitmap Heap Scan",
+                  "Actual Total Time": 61.577,
+                  "Actual Rows": 40,
+                  "Actual Loops": 1,
+                  "Shared Hit Blocks": 2284,
+                  "Shared Read Blocks": 0,
+                  "Plans": [
+                    {
+                      "Node Type": "Bitmap Index Scan",
+                      "Index Name": "idx_velnu_jobs_customer_recent",
+                      "Actual Total Time": 0.007,
+                      "Actual Rows": 40,
+                      "Actual Loops": 1,
+                      "Shared Hit Blocks": 3,
+                      "Shared Read Blocks": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "Planning Time": 0.133,
+        "Execution Time": 61.637
+      },
+      {
+        "name": "customers_page",
+        "Plan": {
+          "Node Type": "Limit",
+          "Actual Total Time": 15.632,
+          "Actual Rows": 20,
+          "Actual Loops": 1,
+          "Shared Hit Blocks": 543,
+          "Shared Read Blocks": 0,
+          "Plans": [
+            {
+              "Node Type": "Sort",
+              "Actual Total Time": 15.63,
+              "Actual Rows": 20,
+              "Actual Loops": 1,
+              "Shared Hit Blocks": 543,
+              "Shared Read Blocks": 0,
+              "Plans": [
+                {
+                  "Node Type": "Bitmap Heap Scan",
+                  "Actual Total Time": 15.619,
+                  "Actual Rows": 20,
+                  "Actual Loops": 1,
+                  "Shared Hit Blocks": 543,
+                  "Shared Read Blocks": 0,
+                  "Plans": [
+                    {
+                      "Node Type": "Bitmap Index Scan",
+                      "Index Name": "idx_customers_business",
+                      "Actual Total Time": 0.006,
+                      "Actual Rows": 20,
+                      "Actual Loops": 1,
+                      "Shared Hit Blocks": 2,
+                      "Shared Read Blocks": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "Planning Time": 0.041,
+        "Execution Time": 15.643
+      },
+      {
+        "name": "open_invoices",
+        "Plan": {
+          "Node Type": "Limit",
+          "Actual Total Time": 15.535,
+          "Actual Rows": 10,
+          "Actual Loops": 1,
+          "Shared Hit Blocks": 577,
+          "Shared Read Blocks": 0,
+          "Plans": [
+            {
+              "Node Type": "Result",
+              "Actual Total Time": 0.002,
+              "Actual Rows": 1,
+              "Actual Loops": 1,
+              "Shared Hit Blocks": 0,
+              "Shared Read Blocks": 0
+            },
+            {
+              "Node Type": "Sort",
+              "Actual Total Time": 15.534,
+              "Actual Rows": 10,
+              "Actual Loops": 1,
+              "Shared Hit Blocks": 577,
+              "Shared Read Blocks": 0,
+              "Plans": [
+                {
+                  "Node Type": "Bitmap Heap Scan",
+                  "Actual Total Time": 15.52,
+                  "Actual Rows": 10,
+                  "Actual Loops": 1,
+                  "Shared Hit Blocks": 574,
+                  "Shared Read Blocks": 0,
+                  "Plans": [
+                    {
+                      "Node Type": "Bitmap Index Scan",
+                      "Index Name": "idx_velnu_invoices_open_balance",
+                      "Actual Total Time": 0.006,
+                      "Actual Rows": 10,
+                      "Actual Loops": 1,
+                      "Shared Hit Blocks": 2,
+                      "Shared Read Blocks": 0
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "Planning Time": 0.162,
+        "Execution Time": 15.551
+      }
+    ],
+    "sourceFileBytes": 787252,
+    "totalSourceBytes": 236175600,
+    "seedMilliseconds": 313734,
+    "limits": {
+      "tenants": 300,
+      "phaseSeconds": 90,
+      "soakSeconds": 3600,
+      "requestCeiling": 250000,
+      "requestsPerSecond": 50,
+      "requestTimeoutMs": 15000,
+      "p95Ms": 1500,
+      "errorRate": 0.01
+    },
+    "phases": [
+      {
+        "name": "ramp-10",
+        "concurrentUsers": 10,
+        "durationSeconds": 90,
+        "peakHttpInFlight": 4,
+        "p95PacingMs": 177,
+        "requests": 900,
+        "errors": 0,
+        "p50Ms": 11,
+        "p95Ms": 46,
+        "p99Ms": 57,
+        "maxMs": 88,
+        "bytes": 39392882
+      },
+      {
+        "name": "ramp-50",
+        "concurrentUsers": 50,
+        "durationSeconds": 90,
+        "peakHttpInFlight": 4,
+        "p95PacingMs": 998,
+        "requests": 4500,
+        "errors": 0,
+        "p50Ms": 10,
+        "p95Ms": 45,
+        "p99Ms": 50,
+        "maxMs": 169,
+        "bytes": 196700865
+      },
+      {
+        "name": "ramp-100",
+        "concurrentUsers": 100,
+        "durationSeconds": 90,
+        "peakHttpInFlight": 3,
+        "p95PacingMs": 2018,
+        "requests": 4527,
+        "errors": 0,
+        "p50Ms": 10,
+        "p95Ms": 41,
+        "p99Ms": 48,
+        "maxMs": 112,
+        "bytes": 198523193
+      },
+      {
+        "name": "owned-rest-restart",
+        "concurrentUsers": 50,
+        "durationSeconds": 30,
+        "peakHttpInFlight": 10,
+        "p95PacingMs": 941,
+        "requests": 1504,
+        "errors": 0,
+        "p50Ms": 11,
+        "p95Ms": 41,
+        "p99Ms": 68,
+        "maxMs": 1118,
+        "bytes": 64794617
+      },
+      {
+        "name": "soak",
+        "concurrentUsers": 50,
+        "durationSeconds": 3600,
+        "peakHttpInFlight": 12,
+        "p95PacingMs": 1023,
+        "requests": 178038,
+        "errors": 0,
+        "p50Ms": 9,
+        "p95Ms": 40,
+        "p99Ms": 46,
+        "maxMs": 4041,
+        "bytes": 7762587308
+      }
+    ],
+    "recovery": {
+      "service": "owned PostgREST",
+      "milliseconds": 1047,
+      "expectedOutageErrors": 12,
+      "duplicateInvoices": 0
+    },
+    "resources": [
+      {
+        "elapsedSeconds": 316,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "45758131",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "0.14%",
+            "memory": "278.2MiB / 15.61GiB",
+            "memoryPercent": "1.74%",
+            "pids": "24"
+          },
+          {
+            "cpu": "0.12%",
+            "memory": "32.1MiB / 15.61GiB",
+            "memoryPercent": "0.20%",
+            "pids": "24"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 379,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "45864627",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "17.29%",
+            "memory": "346.9MiB / 15.61GiB",
+            "memoryPercent": "2.17%",
+            "pids": "24"
+          },
+          {
+            "cpu": "0.72%",
+            "memory": "33.22MiB / 15.61GiB",
+            "memoryPercent": "0.21%",
+            "pids": "24"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 469,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "46126771",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "67.18%",
+            "memory": "349.1MiB / 15.61GiB",
+            "memoryPercent": "2.18%",
+            "pids": "24"
+          },
+          {
+            "cpu": "2.88%",
+            "memory": "36.95MiB / 15.61GiB",
+            "memoryPercent": "0.23%",
+            "pids": "24"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 560,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "46257843",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.31%",
+            "memory": "349.5MiB / 15.61GiB",
+            "memoryPercent": "2.19%",
+            "pids": "24"
+          },
+          {
+            "cpu": "3.54%",
+            "memory": "37.61MiB / 15.61GiB",
+            "memoryPercent": "0.24%",
+            "pids": "25"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 683,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46339763",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.65%",
+            "memory": "225.5MiB / 15.61GiB",
+            "memoryPercent": "1.41%",
+            "pids": "18"
+          },
+          {
+            "cpu": "3.70%",
+            "memory": "33.47MiB / 15.61GiB",
+            "memoryPercent": "0.21%",
+            "pids": "23"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 744,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46372531",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "62.90%",
+            "memory": "225.7MiB / 15.61GiB",
+            "memoryPercent": "1.41%",
+            "pids": "18"
+          },
+          {
+            "cpu": "3.27%",
+            "memory": "34.48MiB / 15.61GiB",
+            "memoryPercent": "0.22%",
+            "pids": "23"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 804,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46405299",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "52.27%",
+            "memory": "225.8MiB / 15.61GiB",
+            "memoryPercent": "1.41%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.74%",
+            "memory": "35.07MiB / 15.61GiB",
+            "memoryPercent": "0.22%",
+            "pids": "24"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 864,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46413491",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "61.18%",
+            "memory": "224.9MiB / 15.61GiB",
+            "memoryPercent": "1.41%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.61%",
+            "memory": "36.25MiB / 15.61GiB",
+            "memoryPercent": "0.23%",
+            "pids": "24"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 926,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46446259",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "63.95%",
+            "memory": "225.1MiB / 15.61GiB",
+            "memoryPercent": "1.41%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.76%",
+            "memory": "35.59MiB / 15.61GiB",
+            "memoryPercent": "0.22%",
+            "pids": "25"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 986,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46462643",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.98%",
+            "memory": "231MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.78%",
+            "memory": "36.39MiB / 15.61GiB",
+            "memoryPercent": "0.23%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1047,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46503603",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "59.93%",
+            "memory": "230.9MiB / 15.61GiB",
+            "memoryPercent": "1.44%",
+            "pids": "18"
+          },
+          {
+            "cpu": "3.69%",
+            "memory": "35.11MiB / 15.61GiB",
+            "memoryPercent": "0.22%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1107,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46519987",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "60.01%",
+            "memory": "231.1MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "3.58%",
+            "memory": "35.17MiB / 15.61GiB",
+            "memoryPercent": "0.22%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1168,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46552755",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "55.87%",
+            "memory": "230.9MiB / 15.61GiB",
+            "memoryPercent": "1.44%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.99%",
+            "memory": "35.64MiB / 15.61GiB",
+            "memoryPercent": "0.22%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1228,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "46577331",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "58.55%",
+            "memory": "231.2MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.87%",
+            "memory": "35MiB / 15.61GiB",
+            "memoryPercent": "0.22%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1540,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47109811",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "60.50%",
+            "memory": "231.9MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.91%",
+            "memory": "37.91MiB / 15.61GiB",
+            "memoryPercent": "0.24%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1601,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47158963",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "62.94%",
+            "memory": "232.1MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.78%",
+            "memory": "38.48MiB / 15.61GiB",
+            "memoryPercent": "0.24%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1662,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47183539",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.59%",
+            "memory": "232.2MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "3.36%",
+            "memory": "39.35MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1722,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47208115",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "53.71%",
+            "memory": "232MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.71%",
+            "memory": "40.68MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1783,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47232691",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "53.31%",
+            "memory": "232MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.67%",
+            "memory": "40.86MiB / 15.61GiB",
+            "memoryPercent": "0.26%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1843,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47347379",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "52.91%",
+            "memory": "232.3MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.75%",
+            "memory": "39.64MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1904,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47486643",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.76%",
+            "memory": "232.3MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.69%",
+            "memory": "40.38MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 1965,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47576755",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "53.65%",
+            "memory": "232.5MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.64%",
+            "memory": "41.09MiB / 15.61GiB",
+            "memoryPercent": "0.26%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2025,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47617715",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "60.04%",
+            "memory": "232.4MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.91%",
+            "memory": "40.29MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2086,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47642291",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "64.66%",
+            "memory": "232.3MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.66%",
+            "memory": "40.47MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2146,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47642291",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "58.50%",
+            "memory": "232.2MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.78%",
+            "memory": "41.86MiB / 15.61GiB",
+            "memoryPercent": "0.26%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2207,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47642291",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.27%",
+            "memory": "232.3MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.82%",
+            "memory": "39.38MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2268,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47650483",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "58.48%",
+            "memory": "232.5MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.73%",
+            "memory": "40.28MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2328,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47683251",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "58.57%",
+            "memory": "232.5MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "3.00%",
+            "memory": "40.93MiB / 15.61GiB",
+            "memoryPercent": "0.26%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2389,
+        "connections": 11,
+        "lock_waiters": 0,
+        "database_bytes": "47707827",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "60.97%",
+            "memory": "232.3MiB / 15.61GiB",
+            "memoryPercent": "1.45%",
+            "pids": "18"
+          },
+          {
+            "cpu": "2.74%",
+            "memory": "39.93MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2450,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "47748787",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "56.35%",
+            "memory": "208.2MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.70%",
+            "memory": "40.37MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2510,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "47765171",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "64.40%",
+            "memory": "208.3MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.95%",
+            "memory": "41.36MiB / 15.61GiB",
+            "memoryPercent": "0.26%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2571,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "47797939",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "56.17%",
+            "memory": "209.3MiB / 15.61GiB",
+            "memoryPercent": "1.31%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.71%",
+            "memory": "40.25MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2632,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "47830707",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "62.58%",
+            "memory": "208.5MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.72%",
+            "memory": "40.86MiB / 15.61GiB",
+            "memoryPercent": "0.26%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2691,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "47863475",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "63.48%",
+            "memory": "208.5MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.73%",
+            "memory": "41.55MiB / 15.61GiB",
+            "memoryPercent": "0.26%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 2753,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "47863475",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "65.53%",
+            "memory": "208.5MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.89%",
+            "memory": "40.61MiB / 15.61GiB",
+            "memoryPercent": "0.25%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3066,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48322227",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "56.53%",
+            "memory": "208.4MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "11.85%",
+            "memory": "44.29MiB / 15.61GiB",
+            "memoryPercent": "0.28%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3126,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48363187",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "62.36%",
+            "memory": "208.6MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.72%",
+            "memory": "45.32MiB / 15.61GiB",
+            "memoryPercent": "0.28%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3187,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48371379",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "56.20%",
+            "memory": "208.5MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.67%",
+            "memory": "45.66MiB / 15.61GiB",
+            "memoryPercent": "0.29%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3248,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48404147",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "62.71%",
+            "memory": "208.5MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.59%",
+            "memory": "46.93MiB / 15.61GiB",
+            "memoryPercent": "0.29%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3309,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48428723",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "56.41%",
+            "memory": "208.9MiB / 15.61GiB",
+            "memoryPercent": "1.31%",
+            "pids": "17"
+          },
+          {
+            "cpu": "4.18%",
+            "memory": "46.54MiB / 15.61GiB",
+            "memoryPercent": "0.29%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3369,
+        "connections": 20,
+        "lock_waiters": 0,
+        "database_bytes": "48453299",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "55.86%",
+            "memory": "248.5MiB / 15.61GiB",
+            "memoryPercent": "1.55%",
+            "pids": "27"
+          },
+          {
+            "cpu": "3.25%",
+            "memory": "45.25MiB / 15.61GiB",
+            "memoryPercent": "0.28%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3430,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48502451",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "55.94%",
+            "memory": "207.7MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "3.88%",
+            "memory": "45.59MiB / 15.61GiB",
+            "memoryPercent": "0.29%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3491,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48535219",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.28%",
+            "memory": "207.7MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.88%",
+            "memory": "47.07MiB / 15.61GiB",
+            "memoryPercent": "0.29%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3551,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48559795",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "62.45%",
+            "memory": "207.7MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.64%",
+            "memory": "45.76MiB / 15.61GiB",
+            "memoryPercent": "0.29%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3612,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48592563",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "59.32%",
+            "memory": "207.6MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "3.05%",
+            "memory": "45.38MiB / 15.61GiB",
+            "memoryPercent": "0.28%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3673,
+        "connections": 10,
+        "lock_waiters": 0,
+        "database_bytes": "48608947",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "57.30%",
+            "memory": "207.6MiB / 15.61GiB",
+            "memoryPercent": "1.30%",
+            "pids": "17"
+          },
+          {
+            "cpu": "2.99%",
+            "memory": "46.65MiB / 15.61GiB",
+            "memoryPercent": "0.29%",
+            "pids": "26"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3734,
+        "connections": 16,
+        "lock_waiters": 0,
+        "database_bytes": "48699059",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "60.24%",
+            "memory": "269.9MiB / 15.61GiB",
+            "memoryPercent": "1.69%",
+            "pids": "23"
+          },
+          {
+            "cpu": "3.76%",
+            "memory": "47.51MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3794,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48699059",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "57.61%",
+            "memory": "281.1MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "2.78%",
+            "memory": "47.41MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3855,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48715443",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "62.12%",
+            "memory": "281.3MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "2.88%",
+            "memory": "47.63MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3916,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48748211",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "57.81%",
+            "memory": "281.6MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "3.06%",
+            "memory": "48.29MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 3977,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48772787",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "59.29%",
+            "memory": "281.5MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "3.00%",
+            "memory": "48.65MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 4038,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48821939",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "64.32%",
+            "memory": "281.4MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "3.15%",
+            "memory": "48.41MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 4098,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48830131",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "55.20%",
+            "memory": "281.6MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "3.43%",
+            "memory": "48.69MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 4159,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48854707",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "64.15%",
+            "memory": "281.6MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "3.12%",
+            "memory": "48.84MiB / 15.61GiB",
+            "memoryPercent": "0.31%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 4220,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48854707",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "54.36%",
+            "memory": "282.3MiB / 15.61GiB",
+            "memoryPercent": "1.77%",
+            "pids": "24"
+          },
+          {
+            "cpu": "2.80%",
+            "memory": "48.32MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      },
+      {
+        "elapsedSeconds": 4225,
+        "connections": 17,
+        "lock_waiters": 0,
+        "database_bytes": "48854707",
+        "delivery_disabled": true,
+        "containers": [
+          {
+            "cpu": "2.91%",
+            "memory": "281.7MiB / 15.61GiB",
+            "memoryPercent": "1.76%",
+            "pids": "24"
+          },
+          {
+            "cpu": "0.28%",
+            "memory": "48.09MiB / 15.61GiB",
+            "memoryPercent": "0.30%",
+            "pids": "27"
+          }
+        ]
+      }
+    ],
+    "totalRequests": 191289,
+    "totalMilliseconds": 4224563,
+    "externalProviderRequests": 0,
+    "hostedProjectRequests": 0,
+    "localAuthRateLimitOverride": true,
+    "limitations": [
+      "One standard CI runner hosts both clients and services.",
+      "No browser rendering, hosted Edge/SSR, external provider throughput or calendar delivery is measured.",
+      "Queue workers remain disabled; queue-lag acceptance is separate."
+    ],
+    "cleanup": {
+      "users": 0,
+      "businesses": 0,
+      "files": 0
+    }
+  },
+  "scopeNote": "Directory/Overview and existing API paths were measured on the capacity candidate. Later Management/customer-search RPCs have separate SQL/Auth/browser acceptance. Queue catch-up is a separate 300-workspace simulated-delivery receipt."
+}

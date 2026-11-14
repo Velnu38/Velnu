@@ -138,8 +138,10 @@ function fixture(options: Options = {}) {
               error: options.usageError ? { code: "unavailable" } : null,
             };
           }
-          equal(name, "reserve_ai_provider_attempt");
-          equal(payload, { p_business_id: BUSINESS, p_kind: "transcription" });
+          equal(name, "reserve_ai_request");
+          equal(payload.p_feature,"voice");equal(payload.p_units,12);assert(typeof payload.p_request==="string");
+          equal(payload.p_business,BUSINESS);
+          equal(Object.keys(payload).sort(),["p_business","p_feature","p_request","p_units"]);
           state.reservations++;
           if (options.budgetCode || slots-- <= 0) {
             return {
@@ -171,6 +173,7 @@ function fixture(options: Options = {}) {
   });
   return { handler, state };
 }
+function pcm(){const bytes=new Uint8Array(44+12*32000),v=new DataView(bytes.buffer);const t=(n:number,s:string)=>[...s].forEach((c,i)=>bytes[n+i]=c.charCodeAt(0));t(0,'RIFF');t(8,'WAVE');t(12,'fmt ');t(36,'data');v.setUint32(4,bytes.length-8,true);v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,16000,true);v.setUint32(28,32000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);v.setUint32(40,bytes.length-44,true);return bytes}
 function upload(
   extra: Record<string, unknown> = {},
   options: {
@@ -190,9 +193,9 @@ function upload(
     form.set(
       "audio",
       new File(
-        [new Uint8Array(options.size ?? 256)],
-        options.name ?? "voice.webm",
-        { type: options.mime ?? "audio/webm" },
+        [options.size===undefined?pcm():new Uint8Array(options.size)],
+        options.name ?? "voice.wav",
+        { type: options.mime ?? "audio/wav" },
       ),
     );
   }
@@ -294,8 +297,6 @@ Deno.test("body user ID, transcript, provider and plan cannot forge persisted id
 });
 Deno.test("100 restricted or malformed backend entitlements never call provider", async () => {
   const values = [
-    { plan: "free", voice_limit: 50 },
-    { plan: "basic", voice_limit: 50 },
     { plan: "pro", voice_limit: 0 },
     { plan: "pro", voice_limit: -1 },
     { plan: "pro", voice_limit: "NaN" },
@@ -487,10 +488,6 @@ for (
     ["oversized audio", { size: 10 * 1024 * 1024 + 1 }, 413],
     ["wrong extension", { name: "payload.html" }, 415],
     ["wrong mime", { mime: "text/html" }, 415],
-    ["zero duration", { duration: 0 }, 400],
-    ["negative duration", { duration: -1 }, 400],
-    ["long duration", { duration: 121 }, 400],
-    ["malformed duration", { duration: "NaN" }, 400],
   ] as const
 ) {
   Deno.test(title + " is rejected before provider/quota", async () => {
@@ -658,7 +655,7 @@ Deno.test("successful transcript is trimmed, attributed and returned with no-sto
   equal(f.state.saved[0].transcript, "Invoice Alex $120");
   equal(f.state.saved[0].duration_seconds, 12);
   assert(
-    f.state.calls.indexOf("reserve_ai_provider_attempt") <
+    f.state.calls.indexOf("reserve_ai_request") <
       f.state.calls.indexOf("storage"),
   );
 });
@@ -671,12 +668,16 @@ Deno.test("Supabase session network stall is aborted and fails before provider",
     }[key]),
     databaseTimeoutMs: 10,
     fetcher: (_resource, init) =>
-      new Promise((_resolve, reject) =>
+      new Promise((_resolve, reject) => {
+        // The mocked socket needs a referenced handle: Node's AbortSignal.timeout
+        // alone does not keep the test process alive. Also bound a broken abort.
+        const stalledSocket = setTimeout(() => reject(new Error("Session request did not abort")), 1000);
         init?.signal?.addEventListener("abort", () => {
+          clearTimeout(stalledSocket);
           aborted = true;
           reject(new Error("timeout"));
-        })
-      ),
+        }, { once: true });
+      }),
     createClient: (_url, _key, options) => ({
       auth: {
         getUser: async () => {
@@ -706,3 +707,7 @@ Deno.test("modern public/secret credential maps preserve server-only storage", a
   equal((await f.handler(upload())).status, 200);
   equal(f.state.clients.map((x) => x.key), [PUBLIC, SECRET]);
 });
+
+Deno.test("client duration cannot understate recorded usage on any tier",async()=>{for(const plan of ['free','basic','pro']){const f=fixture({usage:{plan,voice_limit:10}});equal((await f.handler(upload({}, {duration:0}))).status,200);equal(f.state.saved[0].duration_seconds,12);}})
+
+Deno.test("shared burst rejection returns Retry-After before any transcription",async()=>{const f=fixture({budgetCode:"FINVIANT_BURST_LIMIT"});const response=await f.handler(upload());equal(response.status,429);equal(response.headers.get("retry-after"),"60");equal(f.state.provider,0);equal(f.state.saved.length,0);});

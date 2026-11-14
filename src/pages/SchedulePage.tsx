@@ -1,17 +1,20 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import AppointmentReminderDialog from '../components/scheduling/AppointmentReminderDialog'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
+import BookExistingJobDialog from '../components/scheduling/BookExistingJobDialog'
+import WorkspaceBack from '../components/WorkspaceBack'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { canWrite, type CurrentBusiness } from '../lib/business'
-import { listCustomers } from '../services/customers'
-import { createJob } from '../services/jobs'
+import { canAccess } from '../lib/workspaceAccess'
 import { listAppointments, updateAppointmentStatus } from '../services/schedule'
 import GoogleMapTools from '../components/GoogleMapTools'
-import CustomerPropertySelect from '../components/CustomerPropertySelect'
 import { formatServiceAddress, type ServiceAddress } from '../lib/googleMaps'
-import { validateScheduleWindow } from '../lib/scheduleTime'
+import { DateTime } from 'luxon'
 import { readableError } from '../lib/errors'
+import { jobStatusConfirmation, jobStatusLabels, jobStatusNotice, type JobStatus } from '../lib/jobActions'
 
-type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
+type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?: string | null; phone?: string | null }
 type Property = ServiceAddress & { id: string; label: string | null }
-type Appointment = { id: string; title: string; starts_at: string; ends_at: string | null; status: string; customers: Customer[] | null; jobs?: Array<{ id: string; title: string; properties?: Property[] }> | null }
+type Appointment = { id: string; title: string; starts_at: string; ends_at: string | null; status: string; customers: Customer[] | null; jobs?: Array<{ id: string; title: string; status: string; properties?: Property[] }> | null }
 
 function name(customer?: Customer) {
   if (!customer) return 'Customer'
@@ -19,114 +22,72 @@ function name(customer?: Customer) {
 }
 
 export default function SchedulePage({ business, embedded = false }: { business: CurrentBusiness; embedded?: boolean }) {
+  const zone=business.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
   const Heading = embedded ? 'h2' : 'h1'
   const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [reminderAppointment,setReminderAppointment]=useState<string|null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' })
+  const [notice, setNotice] = useState('')
+  const [savingAppointment,setSavingAppointment]=useState<string|null>(null)
+  const changingStatus=useRef(false)
   const mounted = useRef(false)
   const currentRequest = useRef(0)
-  // State-based disabled buttons update after rendering. This ref guards
-  // against same-tick double clicks that would otherwise create two jobs.
-  const submitting = useRef(false)
-  const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
+  const canBook = ['owner','admin','office'].includes(business.role) && canAccess(business,'jobs') && canAccess(business,'calendar')
 
   async function refresh() {
     if (!mounted.current) return
     const request = ++currentRequest.current
-    const from = new Date(); from.setHours(0, 0, 0, 0)
-    const to = new Date(from); to.setDate(to.getDate() + 45)
+    const from = DateTime.now().setZone(zone).startOf('day')
+    const to = from.plus({days:45})
     try {
-      const [rows, customerRows] = await Promise.all([
-        listAppointments(business.id, from.toISOString(), to.toISOString()),
-        listCustomers(business.id),
-      ])
+      const rows = await listAppointments(business.id, from.toISO()!, to.toISO()!)
       if (!mounted.current || request !== currentRequest.current) return
       setAppointments(rows as Appointment[])
-      setCustomers(customerRows as Customer[])
       setError('')
     } catch (err) {
       if (mounted.current && request === currentRequest.current) setError(readableError(err, 'Unable to load schedule'))
     }
   }
 
+  useBusinessRefresh(business.id,()=>refresh())
   useEffect(() => {
     mounted.current = true
     setAppointments([])
-    setCustomers([])
     void refresh()
     return () => { mounted.current = false; currentRequest.current++ }
-  }, [business.id])
+  }, [business.id,zone])
 
   const grouped = useMemo(() => {
     const groups = new Map<string, Appointment[]>()
     appointments.forEach((appointment) => {
-      const key = new Date(appointment.starts_at).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })
+      const key = new Date(appointment.starts_at).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric', timeZone:zone })
       groups.set(key, [...(groups.get(key) ?? []), appointment])
     })
     return [...groups.entries()]
-  }, [appointments])
-
-  function resetForm() {
-    setForm({ customer_id: '', property_id: '', title: '', description: '', starts_at: '', ends_at: '' }); setError(''); retryRef.current = null
-  }
-
-  async function submit(event: FormEvent) {
-    event.preventDefault()
-    if (submitting.current) return
-    submitting.current = true
-    setBusy(true); setError('')
-    try {
-      const { startsAt, endsAt } = validateScheduleWindow(form.starts_at, form.ends_at)
-      const signature = JSON.stringify({
-        businessId: business.id, ...form, startsAt, endsAt,
-      })
-      if (retryRef.current?.signature !== signature) {
-        retryRef.current = { signature, requestId: crypto.randomUUID() }
-      }
-      await createJob(business.id, {
-        request_id: retryRef.current.requestId,
-        customer_id: form.customer_id,
-        property_id: form.property_id || undefined,
-        title: form.title,
-        description: form.description,
-        scheduled_start: startsAt,
-        scheduled_end: endsAt ?? undefined,
-      })
-      resetForm(); setShowForm(false); await refresh()
-    } catch (err) {
-      if (mounted.current) setError(readableError(err, 'Unable to schedule work'))
-    } finally {
-      submitting.current = false
-      if (mounted.current) setBusy(false)
-    }
-  }
+  }, [appointments,zone])
 
   async function changeStatus(id: string, status: Appointment['status']) {
-    try { await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show'); await refresh() }
+    if(changingStatus.current)return
+    const appointment=appointments.find(item=>item.id===id)
+    const confirmation=appointment?.jobs?.[0]&&(status==='completed'||status==='canceled')?jobStatusConfirmation(status):null
+    if(confirmation&&!window.confirm(confirmation))return
+    changingStatus.current=true;setSavingAppointment(id);setError('')
+    try { const result=await updateAppointmentStatus(id, status as 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show');if(mounted.current)setNotice(result.visit_only?'Visit updated. The job remains open for further work and office completion.':result.job_id&&status==='completed'?jobStatusNotice('completed',{invoice_ready:result.invoice_ready===true,needs_pricing:result.needs_pricing===true,invoice_status:result.invoice_status}):'Appointment updated.');await refresh() }
     catch (err) { if (mounted.current) setError(readableError(err, 'Unable to update schedule')) }
+    finally{changingStatus.current=false;if(mounted.current)setSavingAppointment(null)}
   }
 
-  return <div className="page-stack">
-    <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><Heading>Know where you need to be next.</Heading></div>{canWrite(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ Schedule work</button>}</div>
+  return <div className="page-stack"><WorkspaceBack />
+    <div className="page-heading split-heading"><div><p className="eyebrow">Schedule</p><Heading>Know where you need to be next.</Heading><p className="quiet">Appointment times are shown in {zone.replaceAll('_',' ')}.</p></div><div className="related-page-actions"><a className="secondary-button compact" href="/?view=reminders">Manage Reminders</a>{canBook && <button className="primary-button compact" onClick={() => setShowForm(true)}>Book or reschedule job</button>}</div></div>
+    {notice&&<p role="status">{notice}</p>}
     {error && !showForm && <p role="alert" className="form-message error-text">{error}</p>}
     <section className="schedule-card">
-      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Finviant Office when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div><div className="row-main"><strong>{appointment.title}</strong><span>{name(appointment.customers?.[0])}</span>{appointment.jobs?.[0]?.properties?.[0] && <div className="schedule-location"><span>{formatServiceAddress(appointment.jobs[0].properties![0])}</span><GoogleMapTools address={appointment.jobs[0].properties![0]} compact /></div>}</div><select value={appointment.status} disabled={!canWrite(business.role)} onChange={(e) => changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select></article>)}</div></div>)}
+      {grouped.length === 0 ? <div className="empty-state"><div className="empty-icon">S</div><h2>Nothing scheduled</h2><p>Schedule a job here or tell Finviant Office when the work should happen.</p></div> : grouped.map(([date, items]) => <div className="schedule-day" key={date}><div className="schedule-date">{date}</div><div className="schedule-items">{items.map((appointment) => <article className="appointment-row" key={appointment.id}><div className="appointment-time"><strong>{new Date(appointment.starts_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone:zone })}</strong>{appointment.ends_at && <span>{new Date(appointment.ends_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone:zone })}</span>}</div><div className="row-main">{appointment.jobs?.[0]&&canAccess(business,'jobs')?<a href={'/?view=work&document='+encodeURIComponent(appointment.jobs[0].id)}><strong>{appointment.title}</strong></a>:<strong>{appointment.title}</strong>}<span>{name(appointment.customers?.[0])}</span>{appointment.jobs?.[0]?.properties?.[0] && <div className="schedule-location"><span>{formatServiceAddress(appointment.jobs[0].properties![0])}</span><GoogleMapTools address={appointment.jobs[0].properties![0]} compact /></div>}</div>{appointment.jobs?.[0]?<div className="appointment-workflow"><span className="status-chip">{jobStatusLabels[appointment.jobs[0].status as JobStatus]||appointment.jobs[0].status.replaceAll('_',' ')}</span>{canWrite(business.role)&&canAccess(business,'jobs')&&['lead','scheduled','in_progress'].includes(appointment.jobs[0].status)&&['scheduled','confirmed','in_progress'].includes(appointment.status)&&<button type="button" className="primary-button compact" disabled={savingAppointment!==null} onClick={()=>void changeStatus(appointment.id,appointment.jobs![0].status==='in_progress'?'completed':'in_progress')}>{savingAppointment===appointment.id?'Updating…':appointment.jobs[0].status==='in_progress'?'Mark complete':'Start job'}</button>}</div>:<select aria-label={'Status for '+appointment.title} value={appointment.status} disabled={!canWrite(business.role)||savingAppointment!==null} onChange={(e) => void changeStatus(appointment.id, e.target.value)}><option value="scheduled">Scheduled</option><option value="confirmed">Confirmed</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="no_show">No show</option><option value="canceled">Canceled</option></select>}{canBook&&<button type="button" className="secondary-button compact" onClick={()=>setReminderAppointment(appointment.id)}>Customer reminder</button>}</article>)}</div></div>)}
     </section>
-    {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">Schedule work</p><h2>Add a job to the calendar</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
-      <form className="form-grid" onSubmit={submit}>
-        <label className="full">Customer<select value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value, property_id: '' })} required><option value="">Choose customer…</option>{customers.map((customer) => <option value={customer.id} key={customer.id}>{name(customer)}</option>)}</select></label>
-        <CustomerPropertySelect businessId={business.id} customerId={form.customer_id} value={form.property_id} onChange={propertyId => setForm(prev => ({ ...prev, property_id: propertyId }))} disabled={busy} />
-        <label className="full">Job title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Replace garbage disposal" required /></label>
-        <label>Starts<input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} required /></label>
-        <label>Ends<input type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></label>
-        <label className="full">Description<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-        {error && <p className="form-message error-text full">{error}</p>}
-        <div className="modal-actions full"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Schedule job'}</button></div>
-      </form>
-    </section></div>}
+    {reminderAppointment&&<AppointmentReminderDialog key={reminderAppointment} businessId={business.id} appointmentId={reminderAppointment} onClose={()=>setReminderAppointment(null)}/>}
+    {showForm&&canBook&&<BookExistingJobDialog business={business} onClose={()=>setShowForm(false)} onSaved={()=>{
+      setNotice('Appointment saved.');void refresh()
+    }}/>}
   </div>
 }

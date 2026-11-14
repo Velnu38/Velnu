@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-09",
+  "baseCommit": "6cacfe7cfc1f9b02c3eec2a9d9ed1e53e78504b1",
+  "scope": "Reconstructed isolated review source; synthetic checks only",
+  "tests": {
+    "typescript": "passed",
+    "settings": {
+      "passed": 172,
+      "failed": 0,
+      "skipped": 1
+    },
+    "integrations": {
+      "passed": 42,
+      "failed": 0
+    },
+    "invoiceOverrideDom": "passed",
+    "invoiceDetailDomRegression": "passed",
+    "appointmentReminderDom": "passed",
+    "startup": {
+      "passed": 56,
+      "failed": 0
+    },
+    "assessment": {
+      "passed": 7,
+      "failed": 0
+    },
+    "viteBuild": "passed (existing large-chunk warning)",
+    "appointmentSql": {
+      "passed": 43,
+      "failed": 0,
+      "skipped": 1,
+      "skipReason": "Optional real PostgreSQL concurrency needs explicit empty loopback test database"
+    }
+  },
+  "notVerified": [
+    "full deployed migration chain",
+    "genuine concurrent PostgreSQL lock waits",
+    "provider/runtime acceptance",
+    "physical mobile app journeys"
+  ],
+  "hostedChanges": false,
+  "liveSends": false,
+  "paidServicesAdded": false,
+  "manualWorkflowExecuted": false
+}

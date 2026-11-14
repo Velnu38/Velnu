@@ -1,152 +1,740 @@
-import { useState } from 'react'
-import { monthlyPlans, addOnCatalog, assistantAddOns, assistantMonthlyTotal, formatMonthlyPrice, formatMoney } from '../lib/pricing'
+import {useEffect,useRef,useState} from 'react'
+import {workflowScenes,outcomeScenes} from '../lib/marketingContent'
 
-const offerCards = [
-  { eyebrow: '01 · Start simple', title: 'Look professional from the first estimate.', copy: 'Set up your company details, colors and logo once. Carry your identity into invoices and estimates.', kind: 'Available in private beta', icon: '◫' },
-  { eyebrow: '02 · Keep work organized', title: 'Customers, jobs and schedules together.', copy: 'Keep the people, work and follow-up connected so information does not get lost between calls.', kind: 'Available in private beta', icon: '◇' },
-  { eyebrow: '03 · AI OFFICE ASSISTANT', title: 'Speak it. Review it. Save a draft.', copy: 'Paid AI assistant: transcribe voice, prepare invoice and estimate drafts, identify missing details, and let you approve every action.', kind: 'AI · Basic / Pro planned', icon: '◎' },
-  { eyebrow: '04 · Keep financial records clear', title: 'Know what’s paid. Know what’s spent.', copy: 'Your Bookkeeping workbook pulls in recorded invoice payments and lets you track expenses. An optional QuickBooks Online import is being tested.', kind: 'Workbook in beta · Intuit setup pending', icon: '↗' },
-  { eyebrow: '05 · Put the customer first', title: 'Professional estimate review and approval.', copy: 'Let customers examine scope, totals and terms before explicitly accepting a quote.', kind: 'Customer delivery coming soon', icon: '✓' },
-  { eyebrow: '06 · AI OFFICE ASSISTANT', title: 'An assistant that knows your business.', copy: 'Planned paid AI tools can use your services, territory, team roles and existing records to help find jobs, summarize unpaid invoices, and prepare follow-ups.', kind: 'AI · Basic / Pro planned', icon: '✳' },
-]
-const plans = [
-  { name: 'Free', kicker: 'Start with the essentials', price: 'Free', detail: '10 invoices and estimates combined each month.', featured: false, features: monthlyPlans.free.features },
-  { name: 'Basic', kicker: 'Affordable AI-assisted everyday work', price: formatMonthlyPrice('basic'), detail: 'Per month · Proposed pricing, not available for checkout.', featured: true, features: monthlyPlans.basic.features },
-  { name: 'Pro', kicker: 'Expanded assistance for growing teams', price: formatMonthlyPrice('pro'), detail: 'Per month · Proposed pricing, not available for checkout.', featured: false, features: monthlyPlans.pro.features },
-]
-
-const questions = [
-  { q: 'Does Free include AI or online customer approvals?', a: 'No. Free offers manual business tools only: zero AI calls, zero cloud transcription, zero online customer estimate acceptances, and no metered email, SMS or paid integrations. You can print a document and deliver it yourself outside Finviant Office.' },
-  { q: 'What does the Finviant Office AI assistant do?', a: 'The paid AI assistant is planned to turn speech into reviewed invoice and estimate drafts, help find customers and jobs, summarize outstanding invoices, and use your business profile for context. It does not automatically send invoices or make financial decisions.' },
-  { q: 'Will Finviant Office send an invoice without me approving it?', a: 'No. The workflow is designed around owner review. Voice and AI can prepare drafts, but customer-facing actions require your confirmation.' },
-  { q: 'Is Finviant Office ready for my entire business?', a: 'Finviant Office is a private beta. Some features and integrations, including live customer email delivery, are still being tested. Keep independent copies of important records.' },
-  { q: 'What do Basic, Pro and extra AI credits cost?', a: 'Proposed monthly prices: Free $0, Basic $9.99, and Pro $24.99. Extra AI credits and storage are optional. Scheduling Assistant and Bookkeeping Assistant have separate proposed monthly rates on Basic and Pro. Nothing is billed in the private beta.' },
-]
-
-export default function LandingPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(0)
-  return <div className="marketing-page">
-    <header className="marketing-topbar">
-      <div className="marketing-container marketing-nav">
-        <a className="marketing-brand" href="/" aria-label="Finviant Office home"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a>
-        <nav aria-label="Main navigation" className="marketing-main-nav"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="/services">À la carte</a><a href="#how-it-works">How it works</a><a href="#pricing">Pricing</a></nav>
-        <div className="marketing-nav-actions"><a className="marketing-signin" href="/auth?mode=signin&next=plans">Sign in · Select tier</a><a className="marketing-btn marketing-btn-dark marketing-btn-small" href="/auth?mode=signup">Join private beta <span aria-hidden="true">↗</span></a></div>
-      </div>
-    </header>
-    <main>
-      <section className="marketing-hero">
-        <div className="marketing-container marketing-hero-grid">
-          <div className="marketing-hero-copy">
-            <div className="marketing-beta"><span className="marketing-live-dot" /> Built for the owner who does it all · Private beta</div>
-            <h1>Your work. <em>Less paperwork.</em></h1>
-            <p className="marketing-hero-lead">Meet Finviant Office, the business workspace that helps you turn everyday work into professional estimates and invoices—without a complicated back office.</p>
-            <div className="marketing-hero-actions"><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Get started with Finviant Office <span>↗</span></a><a href="/auth?mode=signin&next=plans" className="marketing-watch">Sign in and choose your plan <span aria-hidden="true">↗</span></a></div>
-            <p className="marketing-hero-fine">No download required. Use Finviant Office on your phone or computer, or <a href="/install">add it to your Home Screen</a>. No pricing commitment during the private beta.</p>
-            <div className="marketing-hero-statline"><span><strong>One place</strong> for customers and jobs</span><span><strong>Your brand</strong> on every document</span><span><strong>Your review</strong> before anything goes out</span></div>
-          </div>
-          <div className="marketing-scene" role="img" aria-label="Illustrative Finviant Office interface showing a spoken request, an invoice draft, and company branding">
-            <div className="marketing-orbit marketing-orbit-one" /><div className="marketing-orbit marketing-orbit-two" />
-            <div className="marketing-float-label">A clearer way to work.</div>
-            <div className="marketing-demo-window">
-              <div className="marketing-demo-header"><div className="marketing-demo-brand"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant</strong><span>Office</span></div><div className="marketing-demo-dots"><i /><i /><i /></div></div>
-              <div className="marketing-demo-body">
-                <div className="marketing-demo-sidebar"><span>Overview</span><span>Customers</span><span>Estimates</span><span className="on">Invoices</span><span>Schedule</span></div>
-                <div className="marketing-demo-main">
-                  <p className="marketing-demo-kicker">INVOICE DRAFT</p><h3>Every job deserves a professional finish.</h3>
-                  <div className="marketing-demo-invoice">
-                    <div className="marketing-demo-company"><div className="marketing-demo-avatar">S</div><div><b>Summit Home Services</b><small>Business details & logo</small></div><span>INVOICE</span></div>
-                    <div className="marketing-demo-detail"><div><small>Prepared for</small><strong>Jordan Taylor</strong></div><div><small>Reference</small><strong>INV–1004</strong></div></div>
-                    <div className="marketing-demo-line"><span>Service visit and faucet repair</span><b>$185.00</b></div>
-                    <div className="marketing-demo-total"><span>Draft total</span><b>$185.00</b></div>
-                    <div className="marketing-demo-draft">Draft · Review before saving</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="marketing-voice-card"><div className="marketing-voice-icon">◉</div><div><span>VOICE REQUEST · EXAMPLE</span><strong>“Invoice Jordan $185 for faucet repair.”</strong></div><div className="marketing-wave" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div></div>
-          </div>
-        </div>
-      </section>
-      <section className="marketing-trust"><div className="marketing-container marketing-trust-inner"><p>Made for service businesses that need to keep moving.</p><div><span>Home services</span><span>Independent contractors</span><span>Field teams</span><span>Local businesses</span></div></div></section>
-      <section id="features" className="marketing-features"><div className="marketing-container">
-        <div className="marketing-section-intro"><div><p className="marketing-section-kicker">THE TOOLS THAT MATTER</p><h2>Run the work.<br /><span>Not the paperwork.</span></h2></div><p>Free covers manual business tools. The paid AI office assistant is planned for Basic and Pro, with account-based usage limits and owner review.</p></div>
-        <div className="marketing-features-grid">{offerCards.map(feature=><article key={feature.eyebrow} className="marketing-feature-card"><div className="marketing-feature-top"><span className="marketing-feature-icon">{feature.icon}</span><span>{feature.kind}</span></div><p className="marketing-section-kicker">{feature.eyebrow}</p><h3>{feature.title}</h3><p>{feature.copy}</p></article>)}</div>
-      </div></section>
-
-      <section id="ai-assistant" className="marketing-assistant-spotlight">
-        <div className="marketing-container marketing-ai-grid">
-          <div>
-            <p className="marketing-section-kicker">MEET YOUR AI OFFICE ASSISTANT</p>
-            <h2>Another set of hands. <span>Not another employee.</span></h2>
-            <p className="marketing-ai-lead">In Basic and Pro, Finviant Office's planned AI assistant helps you do the paperwork after the actual work. It uses your instructions and permitted company data to prepare answers and drafts for you to review.</p>
-            <p className="marketing-ai-status"><strong>Paid capability · In testing.</strong> AI is not included in Free. Usage allowances will be set before paid plans launch.</p>
-          </div>
-          <div className="marketing-ai-examples">
-            <article><strong>01 / Dictate an invoice</strong><p>“Create an invoice for Taylor for $185 for faucet repair.”</p><small>AI transcribes the request, prepares a line item, then asks the owner to review the customer, price and tax.</small></article>
-            <article><strong>02 / Prepare an estimate</strong><p>“Draft an estimate for a water heater replacement.”</p><small>AI helps structure the quote and asks for missing quantities and prices instead of inventing them.</small></article>
-            <article><strong>03 / Find answers</strong><p>“Which customers have unpaid invoices?”</p><small>AI can look up authorized records and summarize what needs attention.</small></article>
-            <article><strong>04 / Know your business</strong><p>“Show my jobs scheduled this week.”</p><small>Future AI features can reference service areas, team responsibilities, and your approved business records.</small></article>
-          </div>
-        </div>
-      </section>
-      <section id="how-it-works" className="marketing-steps"><div className="marketing-container marketing-steps-grid">
-        <div><p className="marketing-section-kicker">A WORKFLOW THAT MAKES SENSE</p><h2>From the work you do to the document you send.</h2><p>Keep control at every step. Finviant Office organizes the details, and you make the final call.</p><a href="/auth?mode=signup" className="marketing-inline-link">Explore the private beta <span>↗</span></a></div>
-        <div className="marketing-steps-list">
-          <article><span>01</span><div><h3>Set up your company once</h3><p>Add your business name, contact details, logo, and optional services and team context.</p></div></article>
-          <article><span>02</span><div><h3>Capture the job</h3><p>Choose a customer, enter line items, or dictate a draft request when voice tools are available.</p></div></article>
-          <article><span>03</span><div><h3>Review the finished document</h3><p>Check prices, taxes, scope and branded layout. You approve what gets saved or shared.</p></div></article>
-        </div>
-      </div></section>
-      <section id="pricing" className="marketing-pricing"><div className="marketing-container">
-        <div className="marketing-centered-intro"><p className="marketing-section-kicker">SIMPLE PLANS. CLEAR OPTIONS.</p><h2>A plan for where you are today.</h2><p>Start with the essentials. Unlock AI capabilities as Finviant Office grows. Proposed monthly plans: Free $0, Basic $9.99 and Pro $24.99. Paid plans and add-ons are not available for purchase during the private beta.</p></div>
-        <div className="marketing-price-grid">{plans.map(plan=><article className={'marketing-price-card' + (plan.featured?' featured':'')} key={plan.name}>
-          <div className="marketing-price-top">{plan.featured&&<div className="marketing-plan-pill">AI-assisted · Planned</div>}<h3>{plan.name}</h3><p>{plan.kicker}</p><div className="marketing-price-value">{plan.price}</div><span className="marketing-price-detail">{plan.detail}</span></div>
-          <ul>{plan.features.map(f=><li key={f}><span className="marketing-check">✓</span>{f}</li>)}</ul>
-          <a className={'marketing-btn ' + (plan.featured?'marketing-btn-accent':'marketing-btn-outline')} href="/auth?mode=signup">{plan.name==='Free'?'Join free private beta':'Explore in private beta'} <span>↗</span></a>
-        </article>)}</div>
-        <section className="marketing-assistant-pricing" aria-label="Optional Scheduling and Bookkeeping Assistant monthly prices">
-          <div className="marketing-topups-header">
-            <p className="marketing-section-kicker">CHOOSE YOUR ASSISTANTS</p>
-            <h3>Only pay for the extra help you need.</h3>
-            <p>Every Finviant Office workspace includes its core calendar and manual bookkeeping workbook. Add AI-powered assistance to Basic or Pro when those capabilities launch. No automatic scheduling, tax filing, payroll or full-service accounting is included.</p>
-          </div>
-          <div className="marketing-assistant-price-table-wrap">
-            <table className="marketing-assistant-price-table">
-              <thead><tr><th scope="col">Optional add-on</th><th scope="col">Basic / month</th><th scope="col">Pro / month</th></tr></thead>
-              <tbody>
-                {assistantAddOns.map(item => <tr key={item.id}>
-                  <th scope="row"><strong>{item.name}</strong><small>{item.summary}</small></th>
-                  <td>{formatMoney(item.priceMonthlyByTier.basic)}</td>
-                  <td>{formatMoney(item.priceMonthlyByTier.pro)}</td>
-                </tr>)}
-                <tr className="marketing-assistant-total"><th scope="row">Both assistants <small>Add-on subtotal, excluding base plan</small></th><td>{formatMoney(assistantMonthlyTotal('basic', assistantAddOns.map(item => item.id)))}</td><td>{formatMoney(assistantMonthlyTotal('pro', assistantAddOns.map(item => item.id)))}</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="marketing-pricing-note">All assistant upgrades are proposed and not available for activation or checkout. A separate subscription to QuickBooks Online may be required for Intuit-connected functionality; Finviant Office is not a replacement for a licensed bookkeeper or accountant.</p>
-          <a href="/services" className="marketing-inline-link">Choose optional services <span>↗</span></a>
-        </section>
-        <section className="marketing-topups" aria-label="Optional AI credit and storage packs">
-          <div className="marketing-topups-header"><h3>Need a little more? Add usage when you need it.</h3><p>Instead of paying for a higher plan every month, choose extra Finviant Office AI credits or storage. Add-on billing is planned, not active.</p></div>
-          <div className="marketing-topups-grid">{addOnCatalog.map(addon =>
-            <article key={addon.id} className="marketing-topup-card">
-              <strong>{addon.quantityLabel}</strong><span>{formatMoney(addon.priceUsd)} / {addon.billing === 'one-time' ? 'pack' : 'month'}</span>
-              <p>{addon.description}</p>
-            </article>
-          )}</div>
-          <a href="/services" className="marketing-inline-link">Explore à-la-carte options <span>↗</span></a>
-        </section>
-        <p className="marketing-pricing-note"><a href="/auth?mode=signin&next=plans">Already have an account? Sign in to choose Free, Basic, or Pro.</a> Free: 0 online customer acceptances and 0 metered AI, email, SMS or payment-service actions. Basic/Pro features and add-on allowances are proposed, not a guarantee of live access. No payment, subscription or automatic upgrade is activated by registering for the beta. Optional QuickBooks Online connectivity requires an eligible Intuit account; Intuit subscriptions, payment processing and other integration fees may apply separately.</p>
-      </div></section>
-      <section className="services-marketing-banner">
-        <div className="marketing-container services-marketing-banner-inner">
-          <div><p className="marketing-section-kicker">BUILD YOUR OWN TOOLKIT</p><h2>Want just the features you need?</h2><p>Choose optional capabilities à la carte, or tell us which future plan fits your business. No payment details or commitment required in the beta.</p></div>
-          <a className="marketing-btn marketing-btn-dark" href="/services">Explore à la carte services <span>↗</span></a>
-        </div>
-      </section>
-      <section className="marketing-faq"><div className="marketing-container marketing-faq-grid"><div><p className="marketing-section-kicker">GOOD QUESTIONS</p><h2>Before you jump in.</h2><p>Clear expectations matter. Here is what to know about Finviant Office’s private preview.</p></div><div>{questions.map((item,i)=><div key={item.q} className="marketing-faq-item"><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}><span>{item.q}</span><b>{openFaq===i?'−':'+'}</b></button>{openFaq===i&&<p>{item.a}</p>}</div>)}</div></div></section>
-      <section className="marketing-last"><div className="marketing-container marketing-last-card"><div><p className="marketing-section-kicker">YOUR OFFICE, WITHOUT THE OVERHEAD</p><h2>Make more time for the work that matters.</h2><p>Build professional documents, stay organized, and discover a simpler workflow with Finviant Office.</p></div><a href="/auth?mode=signup" className="marketing-btn marketing-btn-accent">Join the private beta <span>↗</span></a></div></section>
-    </main>
-    <footer className="marketing-footer"><div className="marketing-container marketing-footer-inner"><div><a className="marketing-brand" href="/"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a><p>Less paperwork. More possibility.</p><small>© {new Date().getFullYear()} Finviant Office. Private preview.</small></div><nav aria-label="Footer links"><a href="#features">Features</a><a href="#ai-assistant">AI assistant</a><a href="#pricing">Pricing</a><a href="/services">À la carte</a><a href="/install">Use the web app</a><a href="/auth?mode=signin">Sign in</a><a href="/legal">User agreement, AI and privacy</a></nav></div></footer>
-  </div>
+export default function LandingPage(){
+ const reduced=typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+ const [stage,setStage]=useState(0),[playing,setPlaying]=useState(!reduced),[selectedOutcome,setSelectedOutcome]=useState(0),[proSending,setProSending]=useState(true),[workers,setWorkers]=useState(['Jordan'])
+ const demo=useRef<HTMLDivElement>(null),[visible,setVisible]=useState(true),[foreground,setForeground]=useState(true)
+ const scene=workflowScenes[stage],outcome=outcomeScenes[selectedOutcome]
+ useEffect(()=>{const change=()=>setForeground(!document.hidden);document.addEventListener('visibilitychange',change);return()=>document.removeEventListener('visibilitychange',change)},[])
+ useEffect(()=>{if(!demo.current||typeof IntersectionObserver==='undefined')return;const observer=new IntersectionObserver(entries=>setVisible(entries[0].isIntersecting),{threshold:.2});observer.observe(demo.current);return()=>observer.disconnect()},[])
+ useEffect(()=>{if(!playing||!visible||!foreground)return;const timer=setInterval(()=>setStage(index=>(index+1)%workflowScenes.length),4200);return()=>clearInterval(timer)},[playing,visible,foreground])
+ useEffect(()=>{if(reduced||typeof IntersectionObserver==='undefined')return;const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('fp-enter');observer.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('#finviant-proposal .fp-reveal').forEach(e=>observer.observe(e));return()=>observer.disconnect()},[reduced])
+ return (<div id="finviant-proposal" className="marketing-page">{"\n"}{"\n"}<div className="fp-top">{"Private beta · Approved testers only · Public pricing is planned; no subscription charges during testing."}
+</div>{"\n"}<header className="fp-wrap fp-nav">
+<a className="fp-brand cursor-interaction" href="#fp-home">
+<img className="fp-logo" alt="Finviant logo" src="/finviant-mark.svg" />
+<span>{"Finviant"}<span style={{"color":"var(--fp-teal)"}}>{"."}
+</span>
+</span>
+</a>
+<nav className="fp-navlinks" aria-label="Main navigation">
+<a className="cursor-interaction" href="#fp-features">{"Why Finviant"}
+</a>
+<a className="cursor-interaction" href="#fp-pro">{"Business Pro"}
+</a>
+<a className="cursor-interaction" href="#fp-plans">{"Plans"}
+</a>
+</nav>
+<div className="fp-entry">
+<a href="/auth?mode=signin" className="cursor-interaction fp-signin marketing-signin">{"Sign in"}
+</a>
+<a className="fp-action cursor-interaction" href="/auth?mode=signup">{"Get started "}<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+<path d="M7 17 17 7M7 7h10v10">
+</path>
+</svg>
+</a>
+</div>
+</header>{"\n"}<main>{"\n"}<section className="fp-hero" id="fp-home">
+<div className="fp-wrap fp-hero-layout">
+<div>
+<p className="fp-kicker">{"Business Pro · Your connected back office"}
+</p>
+<h1>{"Your business."}<br />
+<span>{"Connected from"}<br />{"start to finish."}
+</span>
+</h1>
+<p className="fp-hero-lead">{"Win approval. Plan the crew. Deliver the job. Send the invoice. Business Pro brings the work and the follow-through into one workspace, on your phone or computer."}
+</p>
+<div className="fp-herolinks">
+<a href="#fp-suite" className="fp-action cursor-interaction">{"See Business Pro in action "}<span aria-hidden="true">{"↓"}
+</span>
+</a>
+<a href="#fp-plans" className="fp-link cursor-interaction">{"Compare plans"}
+</a>
+</div>
+<p className="fp-fine">{"Built for service businesses. Private beta · Approved testers only."}
+</p>
+<div className="fp-heroproof">
+<span>
+<b>{"25"}
+</b>{"worker profiles"}
+</span>
+<span>
+<b>{"5"}
+</b>{"account users"}
+</span>
+<span>
+<b>{"One"}
+</b>{"connected workspace"}
+</span>
+</div>
+</div>
+<div>
+<div className="fp-demo" aria-label="Interactive illustrative job workflow" ref={demo} onFocusCapture={() => setPlaying(false)}>
+<div className="fp-demohead">
+<b>{"Finviant Office"}
+</b>
+<span>{"Business Pro example"}
+</span>
+</div>
+<div className="fp-stages" role="group" aria-label="Explore the Business Pro workflow">
+<button type="button" data-stage="0" aria-pressed={stage === 0} className="cursor-interaction" onClick={() => {setStage(0);setPlaying(false)}}>{"1. Estimate"}
+</button>
+<button type="button" data-stage="1" aria-pressed={stage === 1} className="cursor-interaction" onClick={() => {setStage(1);setPlaying(false)}}>{"2. Approval"}
+</button>
+<button type="button" data-stage="2" aria-pressed={stage === 2} className="cursor-interaction" onClick={() => {setStage(2);setPlaying(false)}}>{"3. Schedule"}
+</button>
+<button type="button" data-stage="3" aria-pressed={stage === 3} className="cursor-interaction" onClick={() => {setStage(3);setPlaying(false)}}>{"4. Work"}
+</button>
+<button type="button" data-stage="4" aria-pressed={stage === 4} className="cursor-interaction" onClick={() => {setStage(4);setPlaying(false)}}>{"5. Invoice"}
+</button>
+<button type="button" data-stage="5" aria-pressed={stage === 5} className="cursor-interaction" onClick={() => {setStage(5);setPlaying(false)}}>{"6. Track"}
+</button>
+</div>
+<div className="fp-job" aria-live={playing ? "off" : "polite"}>
+<p className="fp-kicker" id="fp-record">{scene.record}
+</p>
+<span className="fp-status" id="fp-status">{scene.status}
+</span>
+<h3>{"Fall yard cleanup"}
+</h3>
+<p id="fp-stagecopy">{scene.copy}
+</p>
+<div className="fp-jobline">
+<span id="fp-detail">{scene.detail}
+</span>
+<b id="fp-value">{scene.value}
+</b>
+</div>
+</div>
+<div className="fp-progress" aria-hidden="true">
+<span id="fp-progress" style={{width: ((stage+1)/workflowScenes.length*100)+"%"}}>
+</span>
+</div>
+<div className="fp-demobottom">
+<span className="fp-dot">
+</span>
+<span id="fp-sync">{scene.next}
+</span>
+</div>
+</div>
+<div className="fp-demo-controls">
+<span className="fp-example">{"Follow one job · animated example"}
+</span>
+<button type="button" id="fp-play" aria-pressed={playing} className="cursor-interaction" onClick={() => setPlaying(value => !value)}>{playing ? 'Pause demo' : 'Play demo'}
+</button>
+<button type="button" id="fp-replay" className="cursor-interaction" onClick={() => {setStage(0);setPlaying(true)}}>{"Replay"}
+</button>
+</div>
+</div>
+</div>
+</section>{"\n"}<div className="fp-wrap">
+<div className="fp-audiences">
+<b>{"Made for businesses that keep moving"}
+</b>
+<span>{"Home services"}
+</span>
+<span>{"Trades"}
+</span>
+<span>{"Landscaping"}
+</span>
+<span>{"Local service teams"}
+</span>
+</div>{"\n"}<section className="fp-section" id="fp-features">
+<div className="fp-section-intro">
+<div>
+<p className="fp-kicker">{"From first conversation to final follow-up."}
+</p>
+<h2>{"The job is only part"}<br />{"of running the business."}
+</h2>
+</div>
+<p>{"The estimate, the crew, the customer and the money all need your attention. Business Pro connects those steps so you can see what happens next."}
+</p>
+</div>
+<div className="fp-three">
+<article className="fp-benefit fp-reveal">
+<div className="fp-num">{"01 / LOOK THE PART"}
+</div>
+<h3>{"Send work you’re proud to put your name on."}
+</h3>
+<p>{"Create estimates, invoices and change orders with a consistent PDF. Review the same finished document your customer receives."}
+</p>
+<p className="fp-proof">{"PDF creation on every plan"}
+</p>
+</article>
+<article className="fp-benefit fp-reveal">
+<div className="fp-num">{"02 / KEEP YOUR CREW CLEAR"}
+</div>
+<h3>{"Put the right people on the job."}
+</h3>
+<p>{"Build your worker roster, set hours and time off, and assign one person or a whole crew. See the plan before you commit to the next job."}
+</p>
+<p className="fp-proof">{"25 worker profiles + 5 account users on Pro"}
+</p>
+</article>
+<article className="fp-benefit fp-reveal">
+<div className="fp-num">{"03 / ASK FIN"}
+</div>
+<h3>{"Say it. Review it. Move on."}
+</h3>
+<p>{"Ask Fin to find business records or prepare a document draft. Review the customer, work details and totals before confirming changes."}
+</p>
+<p className="fp-proof">{"Typed and voice assistance · In beta"}
+</p>
+</article>
+</div>
+</section>{"\n"}<section className="fp-suite fp-reveal" id="fp-suite" aria-label="Business Pro benefit explorer">
+<div className="fp-suite-top">
+<div>
+<p className="fp-kicker">{"One business. One connected workflow."}
+</p>
+<h2>{"Keep the whole job"}<br />{"moving forward."}
+</h2>
+</div>
+<p>{"Explore the moments that make Business Pro your everyday business workspace. Select a benefit to see how the pieces connect."}
+</p>
+</div>
+<div className="fp-suite-tabs" role="group" aria-label="Explore Business Pro benefits">
+<button type="button" data-outcome="0" aria-pressed={selectedOutcome === 0} onClick={() => setSelectedOutcome(0)}>{"01 · Win approval"}
+</button>
+<button type="button" data-outcome="1" aria-pressed={selectedOutcome === 1} onClick={() => setSelectedOutcome(1)}>{"02 · Coordinate the work"}
+</button>
+<button type="button" data-outcome="2" aria-pressed={selectedOutcome === 2} onClick={() => setSelectedOutcome(2)}>{"03 · Follow through"}
+</button>
+<button type="button" data-outcome="3" aria-pressed={selectedOutcome === 3} onClick={() => setSelectedOutcome(3)}>{"04 · See the business"}
+</button>
+</div>
+<div className="fp-suite-body">
+<div className="fp-suite-copy" aria-live="polite">
+<p className="fp-kicker" id="fp-outcome-kicker">{outcome.kicker}
+</p>
+<h3 id="fp-outcome-title">{outcome.title}
+</h3>
+<p id="fp-outcome-copy">{outcome.copy}
+</p>
+<a href="#fp-plans" className="fp-link">{"Explore Business Pro →"}
+</a>
+<p className="fp-suite-note" id="fp-outcome-note">{outcome.note}
+</p>
+</div>
+<div className="fp-workspace" aria-label="Illustrative Business Pro workspace">
+<div className="fp-workspace-head">
+<b>{"Finviant Office"}
+</b>
+<span>{"BUSINESS PRO"}
+</span>
+</div>
+<h4 id="fp-workspace-title">{outcome.heading}
+</h4>
+<p id="fp-workspace-copy">{outcome.sub}
+</p>
+<div id="fp-workspace-rows">{outcome.rows.map(row => <div key={row[0]} className="fp-mockrow">
+<span>
+<b>{row[0]}
+</b>
+<small>{row[1]}
+</small>
+</span>
+<em>{row[2]}
+</em>
+</div>)}
+</div>
+<div className="fp-workspace-foot">
+<span className="fp-dot">
+</span>
+<span>{"Illustrative product view · Select another benefit above"}
+</span>
+</div>
+</div>
+</div>
+</section>
+<section className="fp-worker-section fp-reveal" id="fp-workers">
+<div className="fp-worker-grid">
+<div className="fp-worker-copy">
+<p className="fp-kicker">{"More capacity. More control."}
+</p>
+<h2>{"A bigger crew."}<br />{"A clearer picture."}
+</h2>
+<p>{"Running more jobs means coordinating more people. With 25 active worker profiles on Pro, build a roster of employees, helpers or subcontractors and assign the right crew without creating an account for every person."}
+</p>
+<ul>
+<li>
+<b>{"Know who is assigned."}
+</b>{" Put one or several workers on each job."}
+</li>
+<li>
+<b>{"Plan around availability."}
+</b>{" Record working hours and time off, and check scheduling conflicts."}
+</li>
+<li>
+<b>{"Keep everyone’s work visible."}
+</b>{" Follow assignments across Jobs and your schedule."}
+</li>
+<li>
+<b>{"Keep office access separate."}
+</b>{" Adding a worker does not grant access to your account."}
+</li>
+</ul>
+<p className="fp-worker-note">{"Individual: up to 5 active worker profiles."}<br />{"Business Pro: up to 25, plus 5 account users."}<br />{"The owner counts only when included as an active worker."}
+</p>
+</div>
+<div className="fp-roster" aria-label="Example internal crew assignment">
+<header>
+<h3>{"Assign workers"}
+</h3>
+<p>{"Fall yard cleanup · Illustrative assignment"}
+</p>
+</header>
+<label className="fp-worker-row">
+<input type="checkbox" data-worker="Jordan" checked={workers.includes("Jordan")} onChange={e => setWorkers(previous => e.target.checked ? [...previous, "Jordan"] : previous.filter(name => name !== "Jordan"))} />
+<span>
+<b>{"Jordan Lee"}
+</b>
+<small>{"Landscaping · 8 AM–4 PM"}
+</small>
+</span>
+<em>{"Available"}
+</em>
+</label>
+<label className="fp-worker-row">
+<input type="checkbox" data-worker="Sam" onChange={e => setWorkers(previous => e.target.checked ? [...previous, "Sam"] : previous.filter(name => name !== "Sam"))} />
+<span>
+<b>{"Sam Morgan"}
+</b>
+<small>{"Maintenance · 8 AM–4 PM"}
+</small>
+</span>
+<em>{"Available"}
+</em>
+</label>
+<label className="fp-worker-row">
+<input type="checkbox" disabled />
+<span>
+<b>{"Taylor Reed"}
+</b>
+<small>{"Time off today"}
+</small>
+</span>
+<em>{"Unavailable"}
+</em>
+</label>
+<div className="fp-roster-footer">
+<b id="fp-crew-summary" aria-live="polite">{workers.length ? 'Assigned: '+workers.join(' + ') : 'Select available workers'}
+</b>
+<span>{"Example: one owner account manages these worker records. Workers receive no login or notification."}
+</span>
+</div>
+</div>
+</div>
+</section>
+<section className="fp-prosection fp-reveal" id="fp-pro">
+<div className="fp-progrid">
+<div>
+<p className="fp-kicker">{"The follow-through is built in"}
+</p>
+<h2>{"Keep work moving."}<br />
+<span>{"Even after you hit send."}
+</span>
+</h2>
+<p className="fp-lead">{"A professional document starts the conversation. Business Pro keeps sending, customer booking and follow-up connected to the work you’re managing."}
+</p>
+<div className="fp-prolist">
+<div className="fp-proitem"><span aria-hidden="true">✓</span><div><b>Put your business in their contacts</b><small>Your E-Business Card turns company details into a vCard customers can save on their phone. One company card, unlimited downloads and device sharing—exclusive to Business Pro.</small></div></div>
+<div className="fp-proitem">
+<span aria-hidden="true">{"✓"}
+</span>
+<div>
+<b>{"Send the PDF from Finviant"}
+</b>
+<small>{"Direct email delivery and delivery updates after activation."}
+</small>
+</div>
+</div>
+<div className="fp-proitem">
+<span aria-hidden="true">{"✓"}
+</span>
+<div>
+<b>{"Give customers a time to choose"}
+</b>
+<small>{"Private booking links use your configured availability and update the job and calendar."}
+</small>
+</div>
+</div>
+<div className="fp-proitem">
+<span aria-hidden="true">{"✓"}
+</span>
+<div>
+<b>{"Bring the office and the crew together"}
+</b>
+<small>{"5 account users, including you. 25 active internal worker profiles for your field crew."}
+</small>
+</div>
+</div>
+<div className="fp-proitem">
+<span aria-hidden="true">{"✓"}
+</span>
+<div>
+<b>{"Follow up on your schedule"}
+</b>
+<small>{"Scheduled sending and owner-enabled reminder rules after activation."}
+</small>
+</div>
+</div>
+</div>
+</div>
+<div className="fp-sending">
+<div className="fp-sendtabs" role="group" aria-label="Compare email delivery">
+<button type="button" data-send="personal" aria-pressed={proSending === false} className="cursor-interaction" onClick={() => setProSending(false)}>{"Free"}
+</button>
+<button type="button" data-send="pro" aria-pressed={proSending === true} className="cursor-interaction" onClick={() => setProSending(true)}>{"Business Pro"}
+</button>
+</div>
+<div className="fp-sendbody" aria-live="polite">
+<span className="fp-status" id="fp-sendbadge">{proSending ? 'Stays in Finviant' : 'Finish in your own app'}
+</span>
+<h3 id="fp-sendtitle">{proSending ? 'Your document. Delivered.' : 'Your document. Your email app.'}
+</h3>
+<p id="fp-sendcopy">{proSending ? 'Send email directly from Finviant with the finished PDF attached. Follow delivery updates in your workspace.' : 'Create the same professional PDF, then share it through your device. Some devices require downloading and attaching it yourself.'}
+</p>
+<div className="fp-attachment">
+<span className="fp-pdfmark" aria-hidden="true">{"PDF"}
+</span>
+<div>
+<b>{"Invoice INV-1042.pdf"}
+</b>
+<br />{"Same document. Every step."}
+</div>
+</div>
+<div className="fp-sendlabel" id="fp-sendlabel">{proSending ? 'Direct email + PDF attachment' : 'You finish sending in your app'}
+</div>
+<p style={{"fontSize":"11px","minHeight":"0","marginTop":"13px"}} id="fp-sendnote">{proSending ? 'Sender activation required. Beta sending is limited to approved recipients. This example sends no message.' : 'Personal-app sending cannot verify delivery in Finviant. This example opens no email app.'}
+</p>
+</div>
+</div>
+</div>
+</section>{"\n"}<section className="fp-section" id="fp-plans">
+<div className="fp-priceintro">
+<p className="fp-kicker">{"Choose how you run your business"}
+</p>
+<h2>{"Essentials to start."}<br />{"Business Pro to connect it all."}
+</h2>
+<p>{"Free gets you organized. Individual adds capacity for an owner. Business Pro connects the office, the crew and the customer journey."}
+</p>
+</div>
+<div className="fp-plans">
+<article className="fp-plan fp-reveal">
+<h3>{"Free"}
+</h3>
+<p>{"A professional starting point for occasional work."}
+</p>
+<div className="fp-price">{"$0"}<span>{" / month"}
+</span>
+</div>
+<ul>
+<li>{"10 active customers"}
+</li>
+<li>{"5 new job bookings / month"}
+</li>
+<li>{"Estimates, invoices & change orders"}
+</li>
+<li>{"PDF download and sharing"}
+</li>
+<li>{"Your email and text apps"}
+</li>
+<li>{"20 Fin requests + 10 voice minutes, once"}
+</li>
+</ul>
+<a href="/auth?mode=signup" className="fp-link cursor-interaction">{"Start with Free →"}
+</a>
+</article>
+<article className="fp-plan fp-reveal">
+<h3>{"Individual"}
+</h3>
+<p>{"One account for an owner managing a growing workload."}
+</p>
+<div className="fp-price">{"$19.95"}<span>{" / month"}
+</span>
+</div>
+<ul>
+<li>{"No customer or document count cap"}
+</li>
+<li>{"No job booking count cap"}
+</li>
+<li>{"5 active worker profiles"}
+</li>
+<li>{"250 manually initiated email deliveries/month*"}
+</li>
+<li>{"Your logo on documents"}
+</li>
+<li>{"150 Fin requests / month"}
+</li>
+<li>{"60 voice minutes / month"}
+</li>
+<li>{"2 GB attachments + full financial history"}
+</li>
+</ul>
+<a href="/auth?mode=signup" className="fp-link cursor-interaction">{"Choose Individual →"}
+</a>
+</article>
+<article className="fp-plan fp-featured fp-reveal">
+<span className="fp-recommend">{"THE CONNECTED BUSINESS SOLUTION"}
+</span>
+<h3>{"Business Pro"}
+</h3>
+<p>{"Your connected workflow from estimate to invoice, with team access, customer booking and managed follow-up."}
+</p>
+<div className="fp-price">{"$39.95"}<span>{" / month"}
+</span>
+</div>
+<ul>
+<li>
+<b>{"Everything in Individual"}
+</b>
+</li>
+<li>
+<b>{"5 account users + 25 workers"}
+</b>
+</li>
+<li><b>{"E-Business Card · unlimited vCard sharing"}</b></li>
+<li>{"Finviant-managed email and SMS*"}
+</li>
+<li>{"2,000 email recipients / month"}
+</li>
+<li>{"200 US SMS segments / month*"}
+</li>
+<li>{"Customer self-booking links"}
+</li>
+<li>{"600 Fin requests + 180 voice minutes / month"}
+</li>
+<li>{"10 GB shared attachment storage"}
+</li>
+</ul>
+<a href="/auth?mode=signup" className="fp-link cursor-interaction">{"Choose Business Pro →"}
+</a>
+</article>
+</div>
+<p className="fp-pricenote">
+<b>{"For $20 more per month than Individual, connect your team, customer booking, scheduled sending and automatic overdue follow-up in Business Pro."}
+</b>
+<br />
+<b>{"Planned public pricing, USD per business. Business Pro annual: $399.50 upfront ($33.29/month equivalent)."}
+</b>{" This private beta does not activate subscriptions or charge these amounts. *Managed email, SMS and reminders require sender activation; SMS registration and consent requirements apply. Pro allowances are shared across the business. Direct E-Business Card emails count toward the Pro email allowance and require activation; card texts use the included SMS segments after sender activation. Recipients confirm saving to contacts, and downloaded copies can be forwarded."}
+</p>{"\n"}<h3 className="fp-tabletitle">{"A clear view of what changes."}
+</h3>
+<table className="fp-comparison">
+<thead>
+<tr>
+<th scope="col">{"Included"}
+</th>
+<th scope="col">{"Free"}
+</th>
+<th scope="col">{"Individual"}
+</th>
+<th scope="col">{"Business Pro"}
+</th>
+</tr>
+</thead>
+<tbody>
+<tr><th scope="row">E-Business Card</th><td>—</td><td>—</td><td><b>One company card · unlimited downloads & device sharing</b></td></tr>
+<tr>
+<th scope="row">{"Professional PDFs"}
+</th>
+<td>{"Included"}
+</td>
+<td>{"Included"}
+</td>
+<td>{"Included"}
+</td>
+</tr>
+<tr>
+<th scope="row">{"Sending email"}
+</th>
+<td>{"Your email app"}
+</td>
+<td>{"Inside Finviant · 250/month*"}
+</td>
+<td>
+<b>{"Inside Finviant*"}
+</b>
+</td>
+</tr>
+<tr>
+<th scope="row">{"Customer self-booking"}
+</th>
+<td>{"—"}
+</td>
+<td>{"—"}
+</td>
+<td>
+<b>{"Included*"}
+</b>
+</td>
+</tr>
+<tr>
+<th scope="row">{"Scheduled sending & reminder rules"}
+</th>
+<td>{"Manual follow-up"}
+</td>
+<td>{"Manual follow-up"}
+</td>
+<td>
+<b>{"Owner enabled*"}
+</b>
+</td>
+</tr>
+<tr>
+<th scope="row">{"Active worker profiles"}
+</th>
+<td>{"Owner only"}
+</td>
+<td>{"5"}
+</td>
+<td>
+<b>{"25"}
+</b>
+</td>
+</tr>
+<tr>
+<th scope="row">{"Account users"}
+</th>
+<td>{"1"}
+</td>
+<td>{"1"}
+</td>
+<td>
+<b>{"5 including owner"}
+</b>
+</td>
+</tr>
+<tr>
+<th scope="row">{"Manual calendar & assignments"}
+</th>
+<td>{"Owner only; 5 job bookings / month"}
+</td>
+<td>{"5 workers; no booking count cap"}
+</td>
+<td>{"25 workers; no booking count cap"}
+</td>
+</tr>
+<tr>
+<th scope="row">{"Company logo"}
+</th>
+<td>{"Finviant branding"}
+</td>
+<td>{"Your uploaded logo"}
+</td>
+<td>{"Your uploaded logo"}
+</td>
+</tr>
+<tr>
+<th scope="row">{"Financial history"}
+</th>
+<td>{"Last 30 days"}
+</td>
+<td>{"Full available history"}
+</td>
+<td>{"Full available history"}
+</td>
+</tr>
+<tr>
+<th scope="row">{"Fin requests"}
+</th>
+<td>{"20 once"}
+</td>
+<td>{"150 / month"}
+</td>
+<td>
+<b>{"600 / month"}
+</b>
+</td>
+</tr>
+<tr>
+<th scope="row">{"Voice minutes"}
+</th>
+<td>{"10 once"}
+</td>
+<td>{"60 / month"}
+</td>
+<td>
+<b>{"180 / month"}
+</b>
+</td>
+</tr>
+<tr>
+<th scope="row">{"Attachment storage"}
+</th>
+<td>{"100 MB"}
+</td>
+<td>{"2 GB"}
+</td>
+<td>
+<b>{"10 GB shared"}
+</b>
+</td>
+</tr>
+</tbody>
+</table>{"\n"}<div className="fp-details"><details><summary>Can I manage more than one business?</summary><p>This release supports one business workspace per account on every tier. Pro’s five account users work within that same business. Separate business workspaces are not included.</p></details>
+<details>
+<summary>{"What is the difference between a worker and an account user?"}
+</summary>
+<p>{"A worker profile is an internal record used for availability and assignments. It does not grant login access or send worker notifications. An account user can sign in, subject to the permissions the owner grants. Inactive worker profiles keep their history without using the active allowance."}
+</p>
+</details>
+<details>
+<summary>{"Can I start without paying?"}
+</summary>
+<p>{"The Free plan is the starting point for occasional work. Finviant is currently in private beta: approved testers receive authorized test access without subscription charges. Public prices shown here are proposed, not an active checkout offer."}
+</p>
+</details>
+<details>
+<summary>{"Will my customer get the same PDF I reviewed?"}
+</summary>
+<p>{"Yes—the workflow uses the saved PDF version. Free shares through your device; a manual attachment may be necessary. Individual includes 250 manually initiated email deliveries per month, and Business Pro includes 2,000. Managed email includes the reviewed PDF after sender activation."}
+</p>
+</details>
+<details>
+<summary>{"Are online payments and every calendar integration ready?"}
+</summary>
+<p>{"Finviant supports payment links and recording full or partial payments. Automatic payment updates need a verified merchant connection; a payment-link click does not mark an invoice paid. External calendar connections require provider setup. Google Calendar setup is still pending. Native Tap to Pay and a complete customer portal are not being advertised as ready."}
+</p>
+</details>
+<details>
+<summary>{"Does Fin make changes without my review?"}
+</summary>
+<p>{"Fin can help prepare supported drafts and find authorized business records. Review and confirm changes before they are applied. AI results can be wrong and should be checked."}
+</p>
+</details>
+</div>
+</section>{"\n"}<section className="fp-last fp-reveal">
+<p className="fp-kicker">{"Business Pro · Start to finish"}
+</p>
+<h2>{"You handle the work."}<br />{"Bring the business together."}
+</h2>
+<p>{"Give every estimate, customer, worker and invoice a place in one connected workflow."}
+</p>
+<div className="fp-last-links">
+<a href="#fp-suite" className="fp-action cursor-interaction">{"Take another look "}<span aria-hidden="true">{"↑"}
+</span>
+</a>
+<a href="/auth?mode=signup" className="fp-link">{"Choose Business Pro →"}
+</a>
+</div>
+<p className="fp-fine">{"Private beta access is limited to approved testers."}
+</p>
+</section>{"\n"}{"\n"}<footer className="fp-footer">
+<span>{"© Finviant Office · Private beta"}
+</span>
+<nav className="fp-legal" aria-label="Footer links">
+<a href="/?view=dashboard">{"Open workspace"}
+</a>
+<a href="/install">{"Install"}
+</a>
+<a href="/legal">{"Agreement & privacy"}
+</a>
+</nav>
+</footer>
+</div>
+</main>{"\n"}{"\n"}
+</div>)
 }

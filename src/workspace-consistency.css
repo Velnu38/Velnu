@@ -1,0 +1,34 @@
+@media screen {
+/* Shared workspace controls; document print styles and public branding stay scoped. */
+.workspace-inner{--control-accent:#245f98;--control-border:#c4d2df}
+.workspace-inner .primary-button{background:var(--control-accent);color:#fff}
+.workspace-inner .primary-button:hover:not(:disabled){background:#1d4e7c}
+.workspace-inner :is(.primary-button,.secondary-button){min-height:44px;font-size:13px;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.workspace-inner .secondary-button{border:1px solid var(--control-border);background:#f5f8fb;color:#245f98}
+.workspace-inner :is(.list-card,.detail-card,.settings-disclosure){border-color:var(--control-border);border-radius:18px;background:#fff}
+.workspace-inner .page-heading h1{font-size:clamp(28px,3vw,38px);line-height:1.15}
+.workspace-inner :is(.icon-button,.remove-line){min-width:44px;min-height:44px}
+.workspace-inner :is(button,a,input,select,textarea,summary):focus-visible{outline:2px solid #245f98;outline-offset:3px}
+.workspace-quick-actions{display:flex;flex-wrap:wrap;gap:10px}
+.form-dialog{border:1px solid #c4d2df;margin:auto;max-height:90dvh;color:var(--ink);width:min(610px,calc(100% - 32px))}
+.form-dialog.wide{width:min(900px,calc(100% - 32px))}
+.form-dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(4px)}
+.form-dialog form> .modal-actions{position:sticky;bottom:-26px;background:#fff;padding:12px 0;margin-top:12px}
+@media(max-width:650px){.workspace-inner :is(input,textarea,select){font-size:16px}.workspace-quick-actions>a{flex:1 1 140px}.form-dialog{padding:20px}.form-dialog form>.modal-actions{bottom:-20px}}
+@media(prefers-reduced-motion:reduce){.workspace-inner *{animation:none!important;transition:none!important}}
+
+.workspace-inner .dashboard-calendar>.worker-select{margin:0 24px 12px}
+/* One visual treatment for the action requested in every attention row. */
+.workspace-inner .attention-action,.workspace .workspace-inner .primary-button.attention-action{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:0 0 176px;width:176px;min-width:176px;max-width:176px;height:44px;min-height:44px;padding:0 12px;border:1px solid #245f98;border-radius:10px;background:#245f98;color:#fff;font-family:inherit;font-size:13px;font-weight:700;line-height:1.2;text-align:center;text-decoration:none;white-space:normal}
+.workspace-inner .attention-workflow li,.workspace-inner .attention-reminders .calendar-reminders>li{display:grid;grid-template-columns:minmax(0,1fr) 176px;gap:14px;align-items:center}
+.workspace-inner .attention-action:hover:not(:disabled){background:#1d4e7c;border-color:#1d4e7c}
+.workspace-inner .attention-action:disabled{opacity:.55;cursor:default}
+.workspace-inner .billing-row:has(.billing-attention-action){grid-template-columns:32px minmax(0,1fr) auto auto 176px}
+@media(max-width:700px){.workspace-inner .attention-workflow li,.workspace-inner .attention-reminders .calendar-reminders>li{grid-template-columns:minmax(0,1fr)}.workspace-inner .attention-action,.workspace .workspace-inner .primary-button.attention-action{flex-basis:100%;width:100%;min-width:0;max-width:none}.workspace-inner .billing-row:has(.billing-attention-action){grid-template-columns:28px minmax(0,1fr) auto}.workspace-inner .billing-attention-action{grid-column:1/-1}}
+.form-dialog-fields{border:0;padding:0;margin:0;min-width:0}
+
+}
+
+.toolbar{flex-wrap:wrap}.toolbar>label{min-width:0;flex:1 1 150px}.toolbar input[type=date]{width:100%;min-width:0;max-width:100%}.payment-heading-actions{display:flex;flex-wrap:wrap;gap:10px;max-width:100%}.record-list-controls{min-width:0;flex-wrap:wrap}.record-list-controls>label{min-width:0}.record-list-controls nav{max-width:100%;flex-wrap:wrap}
+
+.form-dialog-topbar{display:contents}.form-dialog-brand{display:none}

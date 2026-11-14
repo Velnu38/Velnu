@@ -1,4 +1,17 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.finviant.com"
+        }
+      ],
+      "destination": "https://finviant.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/auth",
@@ -27,6 +40,14 @@
     {
       "source": "/plans",
       "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/square-return",
+      "destination": "/index.html"
     }
   ],
   "headers": [
@@ -52,12 +73,259 @@
         {
           "key": "Permissions-Policy",
           "value": "camera=(), microphone=(self), geolocation=()"
-          },
-          {
-            "key": "X-Robots-Tag",
-            "value": "noindex, nofollow, noarchive"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/auth",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/terms",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/privacy",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/services",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/install",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/legal",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/plans",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/startup-recovery.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/square-return",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/calendar.ts": {
+      "maxDuration": 120
+    },
+    "api/calendar-outlook-callback.ts": {
+      "maxDuration": 120
+    },
+    "api/calendar-worker.ts": {
+      "maxDuration": 120
+    }
+  },
+  "git": {
+    "deploymentEnabled": {
+      "review/release-replay-20261110": false,
+      "review/finviant-integration-20261109": false,
+      "review/fin-product-knowledge-20261109": false,
+      "review/next-steps-20261110": false,
+      "review/reminders-release-20261110": false,
+      "review/rls-initplans-20261110": false,
+      "review/worker-health-20261110": false,
+      "review/document-conveniences-20261110": false,
+      "review/auth-storage-acceptance-20261110": false,
+      "review/provider-burst-20261110": false,
+      "review/recovery-operations-20261110": false,
+      "review/recurring-owner-controls-20261110": false,
+      "review/jobs-directory-20261110": false,
+      "review/owner-archive-20261110": false,
+      "review/jobs-management-pagination-20261110": false,
+      "review/capacity-soak-20261110": false,
+      "review/management-queue-20261110": false,
+      "review/job-customer-search-20261110": false,
+      "review/queue-catchup-20261110": false,
+      "review/reminder-scan-20261110": false,
+      "review/commerce-concurrency-20261110": false,
+      "review/calendar-resilience-20261110": false,
+      "review/payment-recovery-20261110": false,
+      "review/payment-recovery-integration-20261111": false,
+      "review/ux-journey-20261111": false,
+      "fix/owner-export-completeness-20261112": false,
+      "ux/summary-card-reference-20261112": false,
+      "fix/business-card-job-billing-verification-20261112": false
+    }
+  }
 }

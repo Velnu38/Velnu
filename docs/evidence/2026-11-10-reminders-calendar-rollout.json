@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-10",
+  "project": "xvybcmyoblfgzokaifsx",
+  "privateBeta": true,
+  "reminder": {
+    "head": "aa9c765afb06a79fada1a3d5d0efe63a6ba44c22",
+    "ciRun": 42823052069,
+    "merge": "9a73a09f4862c9456f2e2de6af11f89c63b5bdba",
+    "deployment": "dpl_4qUNvdy97MAZXVeNGDZ5dA9CVZVR",
+    "workerVersion": 13,
+    "finVersion": 15,
+    "exactDeployedFilesMatched": true,
+    "invoiceEnabledRules": 0,
+    "appointmentEnabledRules": 0,
+    "appointmentQueue": 0,
+    "unauthorizedWorkerPost": 401
+  },
+  "calendar": {
+    "head": "af15cd085dfffdd02042f5319d63745a51654c39",
+    "ciRun": 42823063659,
+    "merge": "54ccfe796e12f6f15f48dca4f5eb2d0e312e1931",
+    "deployment": "dpl_4ZYJdcWfYQvL4oW97b7PUZ44owx1",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "outlookLastSync": "2026-11-10T13:36:00.513614Z",
+    "queue": 0,
+    "dead": 0,
+    "expiredLeases": 0,
+    "schedulerFailuresSinceGrant": 0,
+    "fullAppointmentReadGranted": false,
+    "invoiceTotalsGranted": false
+  },
+  "migrations": [
+    {
+      "name": "customer_reminder_defaults",
+      "version": "20261110133142"
+    },
+    {
+      "name": "appointment_customer_reminders",
+      "version": "20261110133145"
+    },
+    {
+      "name": "invoice_reminder_overrides",
+      "version": "20261110133149"
+    },
+    {
+      "name": "rls_identity_initplans",
+      "version": "20261110133217"
+    },
+    {
+      "name": "calendar_visit_column_access",
+      "version": "20261110133222"
+    }
+  ],
+  "openAcceptance": [
+    "controlled reminder delivery",
+    "Google OAuth configuration and consent",
+    "broader calendar lifecycle matrix",
+    "physical devices",
+    "hosted load capacity"
+  ]
+}

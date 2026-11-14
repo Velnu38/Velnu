@@ -15,3 +15,11 @@ supabase/.temp/
 
 /scripts/qa/mock-profiles.json
 /scripts/qa/seed-staging.sql
+
+.calendar-build/
+
+/tmp/operations-review/
+
+/tmp/pdfs/
+
+/tmp/release-replay/

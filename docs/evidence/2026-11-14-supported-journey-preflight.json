@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-13",
+  "timezone": "America/New_York",
+  "source": "e0d7f62f060fb045c770414ed95773bf18e6cd82",
+  "nativeReplay": {
+    "run": 43552253249,
+    "check": 132317221492,
+    "conclusion": "success",
+    "journey": "actual final migrated PostgreSQL schema; synthetic records rolled back; simulated identity/server actor; providers not called"
+  },
+  "completeCI": "not yet passing: old booking-copy browser assertions corrected in follow-up; final-head full gate required",
+  "supabase": {
+    "runtimeRevision": "3",
+    "managementHTTP": 200,
+    "betaProjectVisible": true,
+    "hostedMigrationCountBefore": 152,
+    "journeyMigrationsAppliedBefore": [],
+    "predecessorFunctions": "present; public create facade preserves original private request parameter label",
+    "providerPolicies": "fingerprints captured; no activation or record changes"
+  },
+  "betaBefore": {
+    "source": "d3525c1f3d89dc62ba7b86c71f79874820fbb7e8",
+    "deployment": "dpl_4nquRCGKGeMVduhXdBFj4tT6TRTs",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "releaseState": "not promoted; backend migrations/functions still pending"
+}

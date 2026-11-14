@@ -1,0 +1,56 @@
+{
+  "observedAt": "2026-11-10",
+  "candidateHead": "7b6c6556389fcc5380d98b2f93a5466df137f8a3",
+  "candidateTree": "2034172bc0f6cfba9af74bf1f691b0220176c6ed",
+  "run": "https://github.com/Velnu38/Velnu/actions/runs/42897597923",
+  "job": 130114937839,
+  "artifact": 13802041096,
+  "artifactSha256": "cb883201d7eb0a3f917a6feb56e609a4fca59db7d7c6596043cfe0f6d39786a8",
+  "baseline": "docs/evidence/2026-11-10-queue-baseline.json",
+  "preparationReductionPercent": 81.0,
+  "result": {
+    "sourceCommit": "5bf18c26c775cd87bd508bf03caea1ab5af81ba3",
+    "scope": "isolated PostgreSQL reminder queue with simulated provider outcomes",
+    "limits": {
+      "workspaces": 300,
+      "dispatchers": 4,
+      "claimCeiling": 2400,
+      "timeoutMs": 120000,
+      "providerDelayMs": 10
+    },
+    "prepared": 300,
+    "prepareCalls": 6,
+    "preparationMs": 7083,
+    "before": {
+      "queued": 300,
+      "oldestlagseconds": 86416
+    },
+    "catchupMs": 15359,
+    "claims": 1200,
+    "overlappingClaimsSkipped": 900,
+    "claimP95Ms": 53,
+    "claimP99Ms": 59,
+    "after": {
+      "queued": 0,
+      "sending": 0,
+      "accepted": 299,
+      "uncertain": 1,
+      "reservations": 300,
+      "messages": 299
+    },
+    "duplicateDispatches": 0,
+    "uncertainRetained": true,
+    "externalProviderRequests": 0,
+    "limitations": [
+      "Synthetic database identities; genuine JWT acceptance is measured separately.",
+      "Four local SQL dispatcher loops; hosted Edge runtime, cron cadence and real delivery are not measured.",
+      "An uncertain synthetic outcome remains for reconciliation and is never resent."
+    ],
+    "cleanup": {
+      "users": 0,
+      "businesses": 0,
+      "queued": 0,
+      "messages": 0
+    }
+  }
+}

@@ -1,0 +1,51 @@
+name: Full Supabase migration replay
+on:
+  # Called by the complete gate for every release PR and release-branch push.
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: migration-replay-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  postgres-17:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/deployment/migration-replay.test.mjs
+      # Public Ubuntu runner, fresh local Docker volumes, no hosted secrets or sends.
+      # Output is sanitized by the runner; do not upload raw CLI logs/status artifacts.
+      - run: node scripts/qa/replay-migrations.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolated-supported-journey-results
+          path: tmp/journey-results/result.json
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolated-reminder-queue-results
+          path: tmp/queue-results/result.json
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolated-commerce-concurrency-results
+          path: tmp/commerce-results/result.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: isolated-abuse-cost-results
+          path: tmp/abuse-cost-results/result.json
+          if-no-files-found: error
+          retention-days: 7

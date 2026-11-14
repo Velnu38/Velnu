@@ -1,12 +1,18 @@
+import FinBrand from './FinBrand'
 import { type FormEvent, useState } from 'react'
+import { authRedirect, passwordError, authMessage } from '../lib/authPolicy'
 import { supabase } from '../lib/supabase'
+
+const limitedProTesting = import.meta.env.VITE_SUPABASE_URL === 'https://xvybcmyoblfgzokaifsx.supabase.co'
 
 type Mode = 'signin' | 'signup' | 'reset'
 
-export default function AuthScreen({ initialMode = 'signin', initialMessage = '' }: { initialMode?: Mode; initialMessage?: string }) {
+export default function AuthScreen({ initialMode = 'signin', initialMessage = '', invitationToken }: { initialMode?: Mode; initialMessage?: string; invitationToken?: string }) {
   const [mode, setMode] = useState<Mode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(initialMessage)
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
@@ -14,6 +20,8 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
   function switchMode(next: Mode) {
     setMode(next)
     setPassword('')
+    setConfirmation('')
+    setShowPassword(false)
     setMessage('')
     setAwaitingConfirmation(false)
   }
@@ -24,18 +32,19 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
     setBusy(true)
     setMessage('')
     try {
-      const address = email.trim()
+      const address = email.trim().toLowerCase()
       if (mode === 'reset') {
         const { error } = await supabase.auth.resetPasswordForEmail(address, {
-          redirectTo: `${window.location.origin}/?recovery=1`,
+          redirectTo: authRedirect('?recovery=1'),
         })
         if (error) throw error
         setMessage('If an account exists for this email, a password-reset link will be sent. Check your inbox and spam folder.')
         return
       }
+      if (mode === 'signup') { const issue = passwordError(password); if (issue) { setMessage(issue); return } if (password !== confirmation) { setMessage('The passwords do not match.'); return } }
       const result = mode === 'signin'
         ? await supabase.auth.signInWithPassword({ email: address, password })
-        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: `${window.location.origin}/` } })
+        : await supabase.auth.signUp({ email: address, password, options: { emailRedirectTo: authRedirect(invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : 'auth'), ...(invitationToken && /^[a-f0-9]{64}$/.test(invitationToken) ? { data: { finviant_invite: invitationToken } } : {}) } })
       if (result.error) throw result.error
       if (mode === 'signup' && !result.data.session) {
         setAwaitingConfirmation(true)
@@ -43,9 +52,11 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       }
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unable to connect. Please try again.'
-      setMessage(mode === 'signin' && /invalid login credentials/i.test(detail)
-        ? 'Sign-in failed. If you just registered, confirm your email first. Otherwise, check your email and password.'
-        : detail)
+      if (mode === 'signup' && limitedProTesting && /database error saving new user/i.test(detail)) {
+        setMessage('Your account could not be created. Private beta registration requires an approved email or invitation and is limited to 10 login accounts. Contact the test administrator to check access.')
+        return
+      }
+      setMessage(authMessage(error, mode))
     } finally {
       setBusy(false)
     }
@@ -53,7 +64,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
 
   async function resendConfirmation() {
     if (busy) return
-    const address = email.trim()
+    const address = email.trim().toLowerCase()
     if (!address || !address.includes('@')) {
       setMessage('Enter your email address above first.')
       return
@@ -64,7 +75,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: address,
-        options: { emailRedirectTo: `${window.location.origin}/` },
+        options: { emailRedirectTo: authRedirect(invitationToken ? 'auth?invite=' + encodeURIComponent(invitationToken) : 'auth') },
       })
       if (error) throw error
       setAwaitingConfirmation(true)
@@ -73,7 +84,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       const detail = error instanceof Error ? error.message : 'Unable to request a new email.'
       setMessage(/rate limit|only request this after|too many requests/i.test(detail)
         ? 'Please wait a little before requesting another confirmation email. Check the message already sent to your inbox.'
-        : detail)
+        : authMessage(error, 'reset'))
     } finally {
       setBusy(false)
     }
@@ -81,16 +92,20 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
 
   return <main className="auth-page">
     <section className="auth-hero">
-      <a href="/" className="auth-brand-link" title="Back to Finviant Office home"><div className="logo-mark"><img src="/finviant-mark.svg" alt="" /></div><div className="brand-word">Finviant Office</div></a>
+      <a href="/" className="auth-brand-link" title="Back to Finviant Office home"><FinBrand/></a>
       <h1>Run your business by talking to it.</h1>
-      <p>Your AI office manager for customers, jobs, estimates, invoices, payments and follow-up.</p>
+      <p>Meet Fin, your AI office assistant for customers, jobs, estimates, invoices, payments and follow-up.</p>
       <div className="voice-example">“Create an invoice for Bob Smith for $1,450 due in 15 days.”</div>
     </section>
     <section className="auth-card">
       <div><p className="eyebrow">Welcome to Finviant Office</p><h2>{mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create your account' : 'Reset your password'}</h2></div>
+      {limitedProTesting && <p className="form-message">Private testing is limited to 10 login accounts, including the administrator. Each test workspace receives Pro access with no expiration or subscription charge.</p>}
+      {mode === 'signup' && <p>Use at least 15 characters. A unique passphrase or a password manager works well.</p>}
       <form onSubmit={submit}>
-        <label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" disabled={busy} required /></label>
-        {mode !== 'reset' && <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} minLength={mode === 'signup' ? 8 : undefined} disabled={busy} required /></label>}
+        <label>Email<input type="email" name="email" autoCapitalize="none" spellCheck={false} value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" disabled={busy} required /></label>
+        {mode !== 'reset' && <label>Password<input type={showPassword ? "text" : "password"} name="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} minLength={mode === 'signup' ? 15 : undefined} disabled={busy} required /></label>}
+        {mode === 'signup' && <label>Confirm password<input type={showPassword ? 'text' : 'password'} name="passwordConfirmation" autoComplete="new-password" required disabled={busy} value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>}
+        {mode !== 'reset' && <button type="button" className="text-button" aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)}>{showPassword ? 'Hide password' : 'Show password'}</button>}
         <button className="primary-button" disabled={busy}>{busy ? 'Working…' : mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}</button>
       </form>
       {message && <p className="form-message" role="status" aria-live="polite">{message}</p>}
@@ -103,7 +118,7 @@ export default function AuthScreen({ initialMode = 'signin', initialMessage = ''
       <button className="text-button" disabled={busy} onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}>
         {mode === 'signin' ? 'New to Finviant Office? Create an account' : 'Back to sign in'}
       </button>
-      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the one <a href="/legal" target="_blank" rel="noopener noreferrer">Finviant Office User Agreement (including AI disclosure and privacy)</a> after selecting your Free, Basic, or Pro tier.</p>
+      <p className="auth-legal-note">By continuing after signup, you will be asked to review and accept the one <a href="/legal" target="_blank" rel="noopener noreferrer">Finviant Office User Agreement (including AI disclosure and privacy)</a> before opening your private-testing workspace.</p>
       <a className="text-button auth-home-link" href="/">Return to Finviant Office homepage</a>
     </section>
   </main>

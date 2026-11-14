@@ -1,0 +1,157 @@
+{
+  "date": "2026-11-12",
+  "scope": "Stable business-card contact link and review-only estimate requests; jobs/crew/recurrence verification",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/109",
+  "status": "Merged and deployed to protected private beta",
+  "testedHead": "452b464462485ffae31e691d507a91135b9f2570",
+  "testedTree": "f59dd58cc9a8a8d391a03b177fa284f5696eb100",
+  "merge": "fe172baeed69da721876a6614560637b2d875b47",
+  "mergedTree": "f59dd58cc9a8a8d391a03b177fa284f5696eb100",
+  "testedAndMergedTreesMatch": true,
+  "workflows": [
+    {
+      "id": 43328499313,
+      "name": "Finviant assessment maintenance",
+      "conclusion": "success"
+    },
+    {
+      "id": 43328499273,
+      "name": "Finviant authentication access checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43328499296,
+      "name": "Pricing tier checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 43328499403,
+      "name": "Complete automated test checks",
+      "conclusion": "success",
+      "jobs": 22
+    }
+  ],
+  "browserChecks": "New populated live-card flows passed at 320/390/430px in hosted Chromium and iPhone-sized WebKit; full desktop and selected mobile regression also passed. This is not physical-device or actual Contacts-app acceptance.",
+  "localChecks": [
+    "53 targeted SQL/logic cases",
+    "card editor/delivery/public, recurring owner, jobs/team/availability DOM checks",
+    "TypeScript and production build; 95 startup checks",
+    "10 assessment tests and sync/check",
+    "six migration replay runner guards"
+  ],
+  "migration": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "name": "stable_business_card_contact",
+    "sourceVersion": "20261112231049",
+    "hostedVersion": "20261112233355",
+    "applied": true,
+    "doNotReapply": true
+  },
+  "hostedRollbackProbe": {
+    "source": "tests/releases/business-card-live-smoke.sql",
+    "passed": true,
+    "checks": [
+      "Stable URL in contact plus external company website",
+      "Hidden private address",
+      "Stable address on republish and fail-closed unpublish",
+      "Once-only tenant-routed inbound request and changed-retry rejection",
+      "No outbound queue growth",
+      "Anonymous publication/private-table denial",
+      "Authenticated missing-session publication denial"
+    ],
+    "afterRollback": {
+      "publications": 0,
+      "requests": 0
+    }
+  },
+  "gatewayProbes": [
+    {
+      "rpc": "get_live_business_card",
+      "status": 200,
+      "body": "null for nonexistent public card"
+    },
+    {
+      "rpc": "request_business_card_estimate",
+      "status": 401,
+      "code": "42501",
+      "note": "Nonexistent public card rejected, no request stored"
+    },
+    {
+      "rpc": "set_live_business_card",
+      "status": 401,
+      "code": "42501",
+      "note": "Anonymous publication rejected"
+    }
+  ],
+  "deployment": {
+    "id": "dpl_9zDF1a4nxGRiiquuBtpjHe2dLvBJ",
+    "url": "https://finviant-office-fybq9e60e-mbarone5-1747.vercel.app",
+    "state": "READY",
+    "environment": "preview/private beta",
+    "branch": "ux/private-testing-20261029",
+    "commit": "fe172baeed69da721876a6614560637b2d875b47",
+    "domains": [
+      "https://finviant.com",
+      "https://www.finviant.com"
+    ],
+    "domainChecks": {
+      "bothHTTP": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "ssoProtection": "all deployments",
+      "betaBackend": "xvybcmyoblfgzokaifsx"
+    },
+    "verifiedAssets": [
+      "/assets/index-B9rOXf2B.js",
+      "/assets/App-DgoN0U3j.js",
+      "/assets/index-Dg8YJYLb.css",
+      "/assets/EBusinessCard-DnXdICsA.js"
+    ],
+    "verifiedMarkers": [
+      "get_live_business_card",
+      "request_business_card_estimate",
+      "set_live_business_card",
+      "Request an Estimate",
+      "Publish live card",
+      "Unpublish live card",
+      "Estimate requests"
+    ]
+  },
+  "securityAdvisorReview": {
+    "before": {
+      "rls_enabled_no_policy": 76,
+      "extension_in_public": 1,
+      "anon_security_definer_function_executable": 5,
+      "authenticated_security_definer_function_executable": 57
+    },
+    "after": {
+      "rls_enabled_no_policy": 78,
+      "extension_in_public": 1,
+      "anon_security_definer_function_executable": 7,
+      "authenticated_security_definer_function_executable": 60
+    },
+    "disposition": "Two private deny-all RLS tables add expected INFO findings. Three intentionally callable RPCs add generic definer warnings. Grants are narrowed: only authenticated primary Pro owners may publish, public reads expose approved contact snapshots only, requests are submit-only and bounded. Anonymous/private-table and missing-session denial passed; private helper remains owner-only. No provider credentials or customer/job data are exposed."
+  },
+  "preserved": [
+    "PR97 reminder history",
+    "PR102/106 deployed layout",
+    "PR103 session security",
+    "PR104 owner archive v3",
+    "PR105 distributed controls",
+    "PR107/108 unmerged work remains separate",
+    "Private-beta restrictions and existing contact/share/delivery actions"
+  ],
+  "remainingOpen": [
+    "CARD-02 physical iPhone/Android import and tappable website; signed-in owner-business acceptance",
+    "EXPORT-01 versioned catalog follow-up for publication/request metadata; inbound request messages are already included",
+    "JOB-02 dedicated recurrence skip/cancel/series-timezone editing and progress-to-final billing allocation",
+    "JOB-01/JOB-05 broader live/device acceptance",
+    "REC-01/PAY provider/autopay gates remain unchanged"
+  ],
+  "noProviderActivation": true,
+  "noActualCustomerMessages": true,
+  "noCharges": true,
+  "noPublicLaunch": true,
+  "noCardAutoPublication": true,
+  "edgeFunctionsChanged": false
+}

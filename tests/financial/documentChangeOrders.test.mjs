@@ -9,11 +9,13 @@ await build({ entryPoints: ['src/services/changeOrders.ts'], outfile: '.qa-build
 const { offersDocumentChangeOrders, matchesChangeOrderContext } = await import('../../.qa-build/documentChangeOrders.mjs')
 const { createChangeOrder } = await import('../../.qa-build/changeOrders.mjs')
 
-test('change orders are offered on issued documents, including later sent-document statuses', () => {
-  for (const status of ['sent', 'viewed', 'partial', 'paid', 'overdue']) assert.equal(offersDocumentChangeOrders('invoice', status), true)
-  for (const status of ['sent', 'accepted', 'converted']) assert.equal(offersDocumentChangeOrders('estimate', status), true)
-  for (const status of ['draft', 'void', 'unknown']) assert.equal(offersDocumentChangeOrders('invoice', status), false)
-  for (const status of ['draft', 'declined', 'expired', 'unknown']) assert.equal(offersDocumentChangeOrders('estimate', status), false)
+test('change orders are offered on active documents, including later sent-document statuses', () => {
+  for (const status of ['draft','sent', 'viewed', 'partial', 'paid', 'overdue']) assert.equal(offersDocumentChangeOrders('invoice', status), true)
+  for (const status of ['draft','sent', 'accepted', 'converted']) assert.equal(offersDocumentChangeOrders('estimate', status), true)
+  assert.equal(offersDocumentChangeOrders('invoice','sent','completed'),false)
+  assert.equal(offersDocumentChangeOrders('estimate','draft','canceled'),false)
+  for (const status of ['void', 'unknown']) assert.equal(offersDocumentChangeOrders('invoice', status), false)
+  for (const status of ['declined', 'expired', 'unknown']) assert.equal(offersDocumentChangeOrders('estimate', status), false)
 })
 
 test('document context only offers the matching customer and linked job', () => {

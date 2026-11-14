@@ -1,3 +1,5 @@
+import {burstLimitResponse} from '../_shared/burstLimit.ts'
+import {pcmDuration} from './pcm.ts';
 import {
   providerJson,
   ProviderRequestError,
@@ -215,7 +217,7 @@ export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
         ? Number(usage.voice_limit)
         : NaN;
       if (
-        usage.plan !== "pro" || !Number.isSafeInteger(voiceLimit) ||
+        !Number.isSafeInteger(voiceLimit) ||
         voiceLimit <= 0
       ) {
         if (isJson && body?.action === "status") {
@@ -228,7 +230,7 @@ export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
         return respond(403, {
           code: "paid_plan_required",
           error:
-            "Cloud AI transcription is not included in Free. It requires an activated paid plan.",
+            "Voice transcription requires an available voice allowance.",
         });
       }
 
@@ -290,31 +292,21 @@ export function createTranscribeVoiceHandler(deps: VoiceDependencies) {
         });
       }
 
-      const duration = body.get("duration_seconds");
-      const seconds = duration === null || String(duration) === ""
-        ? null
-        : Number(duration);
-      if (
-        seconds !== null &&
-        (!Number.isFinite(seconds) || seconds <= 0 || seconds > 120)
-      ) {
-        return respond(400, {
-          error: "Recordings must be 2 minutes or shorter.",
-        });
-      }
-
-      // Failed and uncertain provider attempts remain counted; row locking prevents overshoot.
+      let seconds: number;
+      try { seconds=pcmDuration(new Uint8Array(await audio.arrayBuffer())); }
+      catch(error){return respond(422,{error:(error as Error).message});}
+      const voiceRequest = crypto.randomUUID();
       const { data: reservation, error: budgetError } = await db.rpc(
-        "reserve_ai_provider_attempt",
-        {
-          p_business_id: businessId,
-          p_kind: "transcription",
-        },
+        "reserve_ai_request",
+        {p_business:businessId,p_request:voiceRequest,p_feature:"voice",p_units:Math.ceil(seconds)},
       );
+      const limited=burstLimitResponse(budgetError,jsonHeaders);if(limited)return limited
       if (budgetError || reservation?.reserved !== true) {
         return respond(
           budgetError?.code === "42501"
             ? 403
+            : budgetError?.code === "23505"
+            ? 409
             : budgetError?.code === "P0001"
             ? 429
             : 503,

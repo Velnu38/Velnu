@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-13",
+  "verifiedAt": "2026-11-13T19:06:35.494054+00:00",
+  "status": "Implemented and tested in development. Not released to beta, not environment-published.",
+  "branch": "ux/invoice-simple-creation-20261113",
+  "betaBase": "e6b2476a4a39194a18ec43fa310da408b5947cc5",
+  "developmentBase": "40f169b3358f9d043443b05351842b9eeca6bedb",
+  "scopeGuide": "docs/INVOICE_SIMPLE_CREATION_2026-11-13.md",
+  "mockup": "docs/reference/invoice-simple-direct-send.png",
+  "actualRenderedScreenshots": [
+    "docs/reference/invoice-simple-create-390.png",
+    "docs/reference/invoice-simple-options-390.png",
+    "docs/reference/invoice-simple-review-390.png"
+  ],
+  "otherCaptures": "/workspace/finviant-setup/invoice-simple-screenshots/",
+  "syntheticViewports": [
+    320,
+    390,
+    430,
+    1440
+  ],
+  "validation": {
+    "build": "Final production build, TypeScript and all 95 startup/deployment checks passed.",
+    "browserWorkflows": "72 selected invoice/estimate/PDF/delivery/customer/voice/workflow Chromium cases passed serially during implementation; early stale selectors were updated to the real new controls.",
+    "additionalFinalCoverage": "26 targeted cases passed after personal fallback routing and phone-style corrections, including pricing adjustments, fractional rounding, recurrence/owner restrictions, phone accessibility and direct sends.",
+    "finalCreationCases": "All 17 dedicated creation cases passed across final focused runs (16-case run plus native-export follow-up). Includes programmatic-edit discard protection, saved-review close, existing-invoice reuse and approved-estimate routing.",
+    "lastExportCompatibility": "Four final-source browser cases passed: invoice and estimate canonical PDF/editing, saved-item discard/clean close, and native PDF export without recording a send.",
+    "dom": "Stored PDF/preview/revision, mobile email routing and recurring schedule DOM suites passed.",
+    "assessment": "10 tests passed; report synchronized and consistency checked."
+  },
+  "validatedRuntimeFileSha256": {
+    "src/components/CreationPreview.tsx": "c882f46c9d5554333cfe82527ec9b474756c41fdc0d37b16551cb5eb2497d8c9",
+    "src/components/CustomerEntry.tsx": "c91fdeae7cbdecbfc6519a2a37169cd48e95c9afdd8b39adf60b8d97bc4e033b",
+    "src/components/InvoiceItemChooser.tsx": "2f15b818fbaa92d6aeb5fd4f4a4a04afad4f2e575f7867316bc673400206d640",
+    "src/components/InvoiceLineEditor.tsx": "111d2587fd4a6558c99a9f673ed04b831fd0c24e54df8fba5e4a4ba33ff3c028",
+    "src/components/ManagedSmsDelivery.tsx": "e98ed56d042e798cb1691ba66ea057140ba7bd75e5112d62dac31ee46add6fa4",
+    "src/components/PaymentTerms.tsx": "84ef3a68f76c592b2300c26e1e574250810a62e2dc56533d2299954619e392a8",
+    "src/components/invoice-create.css": "68b679f913a8f1835b11db96c4c1ca2b329efde4ba353c4ae427dd21a2ef2e1c",
+    "src/components/settings/DocumentSettings.tsx": "7b5ebd64e6aa1dd82f39505c84d718cdd27219d1c4918531fa4426c2d836e8cc",
+    "src/pages/InvoicesPage.tsx": "a58d4499897521f0da093d984183dfa4651fa3ed392a01fb8262c66c2f78a470"
+  },
+  "preserved": [
+    "Existing issue-date/due-date and tax/payment defaults; no invented terms setting",
+    "One draft per creation and one immutable send identity for uncertain retries",
+    "Canonical PDF and reviewed revision enforcement",
+    "Saved services/packages, quantities, tax overrides, location, reference and private notes",
+    "Existing-invoice reuse and approved-pricing conversion path for jobs",
+    "Owner-only recurrence with explicit schedule confirmation and draft-only future invoices",
+    "Existing SMS consent and sender/plan/contact checks",
+    "Personal email/text-app handoff and separate sent confirmation",
+    "Native PDF sharing remains optional under PDF & export",
+    "All 51 launch task records/criteria and the newer calendar assessment observations"
+  ],
+  "limits": [
+    "Synthetic services and Chromium phone simulation only; no physical-device or signed-in hosted acceptance",
+    "Managed browser policy blocks completion of external mailto navigation; final personal-app checks verify preparation and absence of managed sends, not real app delivery",
+    "Full release CI/WebKit and owner/provider acceptance remain pending before beta promotion",
+    "No hosted data writes, migrations, provider activation, real customer sends, payments or beta deployment"
+  ]
+}

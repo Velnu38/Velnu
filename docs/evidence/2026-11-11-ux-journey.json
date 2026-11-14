@@ -1,0 +1,100 @@
+{
+  "date": "2026-11-11",
+  "repository": "Velnu38/Velnu",
+  "baseBranch": "ux/private-testing-20261029",
+  "baseCommit": "36fb3254a347381c581ff8f247f2ea1df97af976",
+  "candidate": "2b2de93301164790ddda08a21f96e9c5cdafbbd5",
+  "pr": 93,
+  "reviewBranch": "review/ux-journey-20261111",
+  "built": {
+    "status": "passed",
+    "startupTests": 95
+  },
+  "localTests": {
+    "typeScript": {
+      "passed": 648,
+      "failed": 0,
+      "skipped": 1,
+      "runtime": "Node 22",
+      "scope": "TypeScript source shared by 618142a and 9887d44; subsequent material-count copy change separately passed all three job-next-step tests",
+      "skip": "Existing optional dedicated PostgreSQL quota-wait/concurrent-claim/sibling-save test; database not configured"
+    },
+    "jobNextStep": {
+      "passed": 3,
+      "candidate": "8a4a62d40c9ebb2458ccbbbcb2de1e827e333ff5"
+    },
+    "dom": "Existing management (five scenarios), execution (four scenarios), component interactions, and supplementary compact-group/completion/report-link check passed",
+    "assessment": {
+      "passed": 8,
+      "generatedReportConsistent": true
+    },
+    "browser": "Not executable locally: Chromium socket permission restriction",
+    "javascriptRelease": {
+      "commit": "31c47876d1eb94a6cb56c0900c83702c89572fe7",
+      "passed": 212,
+      "failed": 0,
+      "skipped": 0,
+      "prerequisite": "npm run test:recovery generated required build and passed 72 tests. Initial direct test invocation failed three imports because that generated prerequisite was absent; corrected invocation passed."
+    }
+  },
+  "ci": {
+    "homeRun": 43050923483,
+    "fullRun": 43112291926,
+    "focusedStatus": "passed: 49 Home regressions plus 7 UX/accessibility journeys",
+    "fullStatus": "Failed: three settings-group selectors and one renamed completion-action selector. All other jobs passed except the aggregate release gate.",
+    "previousFocusedPass": {
+      "commit": "9887d4430cfdcd8fdbf41b8f3035ce63f6d6936b",
+      "run": 43048679633,
+      "homeRegressionTests": 49,
+      "uxAccessibilityTests": 7
+    },
+    "infrastructureFailure": {
+      "run": 43046845993,
+      "stage": "Install Poppler before tests",
+      "reason": "Ubuntu package repository DNS failure persisted with direct official archive; PDF tests retained"
+    },
+    "repair": {
+      "commits": [
+        "31c47876d1eb94a6cb56c0900c83702c89572fe7",
+        "01d76a83c42e4f28f5d5cc095ad827b4625eabe5"
+      ],
+      "scope": "Preserve supplied proxy through sudo apt; fail fast on package update errors; reuse existing pinned Playwright image for native handoffs, pricing and customer prediction. No tests removed.",
+      "status": "Package installation passed in 43112291926; browser shards 5/6 and 6/6 failed on stale UX selectors. Repaired-candidate hosted validation pending.",
+      "fullRun": 43112291926,
+      "supersededRun": {
+        "id": 43111517051,
+        "status": "Canceled by branch concurrency when the additional CI repair was published; no pass claimed"
+      }
+    }
+  },
+  "visualReview": "Final synthetic desktop/mobile Home and mobile Jobs captures inspected. Paired desktop cards, padded work queue and unclipped mobile group labels verified. Artifact 13870190080, sha256:d2f4be9ca079bcf580e622df5d84d5bd28bf6bc241da1286056bc656ee9d9ad8. Browser emulation only.",
+  "merged": false,
+  "migrated": "Not applicable: no schema change",
+  "edgeDeployed": "Not applicable: no Edge change",
+  "frontendDeployed": false,
+  "liveBaseline": {
+    "commit": "36fb3254a347381c581ff8f247f2ea1df97af976",
+    "deployment": "dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb",
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "activated": "No provider, subscription, fee, monitoring or public-registration activation",
+  "providerVerified": "No new live-provider certification",
+  "physicallyTested": false,
+  "costs": "No new license/subscription commitment; existing CI and hosting metering remains",
+  "approvalsNeeded": "None for this source candidate. Real messages, payments, provider activation and paid changes require their separately bounded authorization.",
+  "rollback": "Close/revert PR93 before merge; after an eventual release restore the prior frontend. No data rollback needed.",
+  "nextBatch": "Complete required repaired-candidate CI, then merge/deploy private beta; retain provider/device/public-launch gates.",
+  "selectorRepair": {
+    "base": "acc086d200580073072dc966747eedd7f9076b4b",
+    "files": [
+      "tests/e2e/pricing-tiers.spec.mjs",
+      "tests/e2e/workflow-handoffs.spec.mjs"
+    ],
+    "scope": "Align assertions with approved groups and Review completion; retain all behavior checks and add exact settings href assertions. No application changes.",
+    "localBrowser": "Blocked before tests: Chromium process_singleton_posix.cc socket() Operation not permitted. Build and fixtures completed.",
+    "hosted": "Pending required full CI on repaired candidate"
+  }
+}

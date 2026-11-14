@@ -2,7 +2,7 @@ export default function InstallPage() {
   return <main className="install-public-page">
     <header className="services-public-nav">
       <a href="/" className="marketing-brand"><span className="marketing-logo"><img src="/finviant-mark.svg" alt="" /></span><strong>Finviant<span className="brand-dot">.</span></strong></a>
-      <nav><a href="/">Home</a><a href="/services">Services</a><a href="/auth?mode=signin">Sign in</a></nav>
+      <nav><a href="/">Home</a><a href="/#features">Features</a><a href="/auth?mode=signin">Sign in</a></nav>
     </header>
     <section className="install-hero">
       <p className="marketing-section-kicker">THE WEBSITE IS THE APP</p>

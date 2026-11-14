@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-14",
+  "branch": "ux/collections-jobs-kanban-20261114",
+  "base": "76987009d7ce5ddd3577298c42c0268773617d63",
+  "scope": "Local candidate only. Collections aging Kanban first, then phone-friendly canonical Job Management board; no new backend queries or mutations.",
+  "verification": {
+    "production": "npm run build: TypeScript, Vite, 97 startup/deployment checks passed",
+    "domain": "15 cases passed: job-management.test.ts, job-execution.test.ts, management-approval.test.ts",
+    "dom": "components-dom.mjs, job-management-dom.mjs and job-execution-dom.mjs passed; financial drilldowns, approved work, restricted/empty/error states, tasks/materials, cost review, reports and visits retained",
+    "browser": "tests/operations/kanban-browser.mjs: synthetic Chromium at 320, 390 and 1440px plus restricted permissions passed; external requests blocked",
+    "visual": "Reviewed local synthetic phone captures in work/kanban; both boards scroll internally. Narrow cash metrics stack to preserve readable amounts. Not hosted or physical-device evidence."
+  },
+  "limitations": [
+    "Collections uses complete server aging totals with only the existing up-to-eight oldest past-due invoice preview; it is explicitly labeled, and authorized users can open invoice records for the full list.",
+    "Job lanes count only the current filtered, server-paginated page; approved estimates retain their existing separate queue and preparation safeguards.",
+    "No drag-to-change status or direct collection send/payment action was introduced. Existing guarded actions remain in job/invoice workspaces.",
+    "Full CI, hosted owner acceptance, WebKit and physical devices remain unverified for this candidate."
+  ],
+  "externalEffects": "No deployment, migrations, hosted data writes, real messages, charges or provider changes. Existing readiness statuses and acceptance criteria retained."
+}

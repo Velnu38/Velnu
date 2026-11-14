@@ -29,13 +29,17 @@ export function validDecimal(value: unknown, minimum: number, maximum: number): 
 export function validateDocumentInput(input: unknown): asserts input is Record<string, unknown> & { items: Array<{ description: string; quantity: number; unit_price: number; tax_rate?: number }> } {
   if (!isRecord(input) || typeof input.customer_id !== 'string' || !input.customer_id.trim()) throw new Error('Choose a customer')
   if (!Array.isArray(input.items) || input.items.length < 1 || input.items.length > 50) throw new Error('Enter 1 to 50 line items')
-  for (const field of ['due_date', 'expires_on']) {
+  for (const field of ['issue_date', 'due_date', 'expires_on']) {
     if (input[field] !== undefined && input[field] !== null && input[field] !== '' && !validCalendarDate(input[field])) throw new Error('Choose a valid document date')
   }
+  const ending = input.due_date || input.expires_on
+  if(input.payment_terms_days!=null&&(!Number.isSafeInteger(input.payment_terms_days)||Number(input.payment_terms_days)<0||Number(input.payment_terms_days)>365))throw new Error('Choose invoice payment terms from 0 to 365 days')
+  if (input.issue_date && ending && String(ending) < String(input.issue_date)) throw new Error('Due or expiration date cannot precede the issue date')
   for (const field of ['notes', 'customer_message', 'description', 'reason', 'schedule_note']) {
     const value = input[field]
     if (value !== undefined && value !== null && (typeof value !== 'string' || value.length > 4000)) throw new Error('Document text must be at most 4,000 characters')
   }
+  if(input.customer_reference!==undefined&&input.customer_reference!==null&&(typeof input.customer_reference!=='string'||input.customer_reference.trim().length>120||/[\x00-\x1f\x7f]/.test(input.customer_reference)))throw new Error('Customer PO/reference must be at most 120 characters on one line')
   let totalCents = 0n
   for (const item of input.items) {
     if (!isRecord(item) || typeof item.description !== 'string' || !item.description.trim() || item.description.length > 4000) throw new Error('Every line item needs a valid description')

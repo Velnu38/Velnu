@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-11",
+  "baseCommit": "e9b940d17808faa06949be9cc09ccf10078b4e54",
+  "originalTaskCount": 50,
+  "resultTaskCount": 51,
+  "originalTasksSha256": "85cefb6cf0185b71f333e33ac41dff4e13de196c07d9de53ad54e540f8c8df11",
+  "preservedTasksSha256": "85cefb6cf0185b71f333e33ac41dff4e13de196c07d9de53ad54e540f8c8df11",
+  "allOriginalTaskObjectsIdentical": true,
+  "originalObservationsProposalsRecommendationsSourcesPreserved": true,
+  "addedTask": "AI-03",
+  "addedTaskStatus": "open",
+  "cardCount": 29,
+  "originalPackageCount": 28,
+  "publication": "Merged and published to private beta",
+  "oldSnapshot": "c941e9e unavailable locally and via GitHub; no old snapshot applied",
+  "scope": "Documentation and assessment generator/tests only; no runtime, migration or deployment",
+  "testedCommit": "c2c9a534dcd1337eb233f2b63ffa518fc816e623",
+  "mergeCommit": "8d1db84b80ff7744dde1c376e8ca3c169bfc9279",
+  "testedAndMergedTree": "91a2838fd48398cf15abda114e0ba6da6eec60cb",
+  "deployment": "dpl_3GCkJYUeGUGxkTdGheLedEDHVgVi",
+  "state": "READY",
+  "httpDomains": [
+    "finviant.com",
+    "www.finviant.com"
+  ],
+  "httpStatus": 200,
+  "workflowsPassed": [
+    43121197565,
+    43121197581,
+    43121197572
+  ]
+}

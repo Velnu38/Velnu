@@ -1,0 +1,128 @@
+.invoice-simple-create{--invoice-teal:#008673;--invoice-ink:#14243a;color:var(--invoice-ink);max-width:640px;margin:auto;font-family:Arial,sans-serif}
+.invoice-simple-create .modal-head{margin:0 0 22px;align-items:center;gap:12px}
+.invoice-simple-create .modal-head h2,.invoice-simple-review>h2{font-size:26px;letter-spacing:-.025em;margin:0;line-height:1.2}
+.invoice-essential-form{display:grid;gap:18px}
+.invoice-simple-create :is(input,select,textarea){font-size:16px;min-height:46px;border:1px solid #c5ced9;border-radius:8px;box-shadow:none}
+.invoice-simple-create :is(input,select,textarea):focus-visible{outline:3px solid #8ad1c4;outline-offset:1px}
+.invoice-simple-create :is(button,summary,a):focus-visible{outline:3px solid var(--invoice-teal);outline-offset:3px}
+.invoice-simple-create label{font-size:15px;font-weight:400;gap:7px;color:var(--invoice-ink)}
+.invoice-simple-create label small{font-size:13px;color:#586577}
+.invoice-simple-create .customer-entry{margin:0;padding:0;border:0;display:grid;gap:8px;min-width:0}
+.invoice-simple-create .customer-entry legend,.invoice-work-editor>h3{font-size:19px;font-weight:700;letter-spacing:-.015em;padding:0;margin:0 0 10px}
+.invoice-simple-create .customer-picker,.invoice-simple-create .customer-picker-selected{min-width:0}
+.invoice-simple-create .customer-entry>.text-button{text-align:left;justify-self:start;font-size:14px}
+.invoice-simple-create .customer-entry details{font-size:14px}
+.invoice-simple-create .invoice-work-editor{display:grid;gap:10px;margin:0}
+.invoice-simple-create .invoice-work-editor>h3{margin:0}
+.invoice-simple-create .invoice-item-card{border:1px solid #c5ced9;border-radius:12px;background:white;display:grid;gap:12px;padding:14px;min-width:0;margin:0}
+.invoice-simple-create .invoice-item-card legend{font-size:13px;color:#586577;padding:0 4px}
+.invoice-simple-create .invoice-item-card input{width:100%}
+.invoice-simple-create .invoice-item-quantity{border-top:1px solid #e0e5ec;padding-top:8px}
+.invoice-simple-create .invoice-item-quantity summary{min-height:44px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:15px;list-style:none}
+.invoice-simple-create .invoice-item-quantity summary span{margin-left:auto}
+.invoice-simple-create .invoice-item-quantity summary:after{content:'⌄';font-size:20px}
+.invoice-simple-create .invoice-item-quantity[open] summary:after{content:'⌃'}
+.invoice-simple-create .invoice-item-quantity summary::-webkit-details-marker{display:none}
+.invoice-simple-create .invoice-remove-item{justify-self:start;font-size:13px;padding:5px 0;color:#586577;min-height:36px}
+.invoice-simple-create .invoice-add-item{color:var(--invoice-teal);font-size:17px;min-height:44px}
+.invoice-simple-create .invoice-item-choices{display:grid;gap:14px;border:1px solid #c5ced9;border-radius:12px;padding:14px;background:#f7fafb}
+.invoice-simple-create .invoice-item-choices ul{list-style:none;margin:0;padding:0;display:grid;max-height:280px;overflow-y:auto}
+.invoice-simple-create .invoice-item-choices li>button{display:flex;gap:12px;align-items:center;justify-content:space-between;width:100%;padding:12px 0;min-height:48px;background:transparent;border:0;border-bottom:1px solid #d8e1e7;text-align:left;color:var(--invoice-ink)}
+.invoice-simple-create .invoice-item-choices li span{min-width:0;overflow-wrap:anywhere}
+.invoice-simple-create .invoice-item-choices li strong{white-space:nowrap;font-size:14px;color:var(--invoice-teal)}
+.invoice-simple-create .invoice-item-choices li small{display:block;margin-top:5px;color:#586577}
+.invoice-simple-create .invoice-more-options{border:1px solid #c5ced9;border-radius:12px;background:white;min-width:0}
+.invoice-simple-create .invoice-more-options>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;list-style:none;cursor:pointer;min-height:62px}
+.invoice-simple-create .invoice-more-options>summary::-webkit-details-marker{display:none}
+.invoice-simple-create .invoice-more-options>summary:after{content:'⌄';font-size:22px}
+.invoice-simple-create .invoice-more-options[open]>summary:after{content:'⌃'}
+.invoice-simple-create .invoice-more-options summary strong{display:block;font-size:18px}
+.invoice-simple-create .invoice-more-options summary small{display:block;font-size:14px;color:#586577;margin-top:4px}
+.invoice-simple-create .invoice-options-content{padding:0 14px 14px;display:grid;gap:18px}
+.invoice-simple-create .payment-terms-control{display:grid;gap:12px}
+.invoice-simple-create .invoice-tax-options{display:grid;gap:12px}
+.invoice-simple-create .invoice-tax-options details{font-size:14px}
+.invoice-simple-create .invoice-tax-options details label{margin-top:12px}
+.invoice-simple-create .invoice-options-content .settings-checkbox{display:flex;gap:10px;align-items:center;font-weight:600}
+.invoice-simple-create .invoice-options-content .settings-checkbox input{width:22px;height:22px;min-height:22px;flex:0 0 22px;accent-color:var(--invoice-teal)}
+.invoice-simple-create .invoice-recurring-option{margin:0;border:0;border-top:1px solid #d8e1e7;border-radius:0;padding:14px 0 0;background:white}
+.invoice-simple-create .invoice-recurring-option p{font-size:13px;margin:7px 0 0}
+.invoice-simple-create .invoice-defaults-summary,.invoice-simple-create .invoice-source-note{font-size:14px;color:#586577;line-height:1.5;margin:0;overflow-wrap:anywhere}
+.invoice-simple-create .invoice-create-footer{position:sticky;bottom:-26px;padding:14px 0 max(12px,env(safe-area-inset-bottom));background:white;border-top:1px solid #d8e1e7;display:grid;gap:10px;z-index:3}
+.invoice-simple-create .invoice-create-total{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:23px;font-weight:700;margin-bottom:4px}
+.invoice-simple-create .primary-button{background:var(--invoice-teal);border-radius:9px;min-height:48px;font-size:17px;font-weight:700}
+.invoice-simple-create .primary-button:hover{background:#006f60;transform:none}
+.invoice-simple-create .invoice-create-footer>.text-button{min-height:44px;font-size:16px;color:var(--invoice-teal);padding:8px}
+.invoice-simple-review{position:relative;display:grid;gap:14px}
+.invoice-simple-review>.back-button{justify-self:start;margin:0;padding:8px 0;min-height:44px}
+.invoice-simple-review>.invoice-review-close{position:absolute;right:0;top:0}
+.invoice-simple-review>h2{padding-right:40px}
+.invoice-simple-review>p{margin:0;font-size:14px;line-height:1.5}
+.invoice-review-paper{border:1px solid #c5ced9;background:white;border-radius:12px;padding:18px;box-shadow:0 2px 5px #14243a0b;min-width:0}
+.invoice-review-paper>small{font-size:12px;letter-spacing:.07em;color:#586577}
+.invoice-review-paper>h3{font-size:22px;margin:8px 0 18px;overflow-wrap:anywhere}
+.invoice-review-paper p{font-size:14px;line-height:1.5;margin:12px 0 0}
+.invoice-review-paper p strong{display:block;font-size:16px}
+.invoice-review-paper ul{list-style:none;padding:0;margin:16px 0;border-top:1px solid #d8e1e7}
+.invoice-review-paper li{display:flex;gap:12px;justify-content:space-between;padding:14px 0;border-bottom:1px solid #d8e1e7;font-size:15px}
+.invoice-review-paper li span{min-width:0;overflow-wrap:anywhere}
+.invoice-review-paper li strong{white-space:nowrap;font-size:15px}
+.invoice-review-paper li small{display:block;margin-top:5px;color:#586577}
+.invoice-review-total{display:flex;justify-content:space-between;gap:12px;font-size:21px}
+.invoice-simple-review .creation-review-bar{display:grid;gap:12px;padding:0;border:0;background:white;box-shadow:none;border-radius:0}
+.invoice-suggested-delivery{display:grid;gap:12px}
+.invoice-suggested-delivery>div{display:grid;gap:10px}
+.invoice-suggested-delivery p{margin:0;font-size:14px;overflow-wrap:anywhere}
+.invoice-suggested-delivery .document-delivery-option{margin:0;padding:0;border:0;background:transparent}
+.invoice-suggested-delivery .document-delivery-option label{display:flex;align-items:flex-start;gap:8px;font-size:13px}
+.invoice-suggested-delivery .document-delivery-option label input{width:20px;min-height:20px;height:20px;flex:0 0 20px}
+.invoice-simple-create .invoice-pdf-export{border-top:1px solid #d8e1e7;padding-top:10px;font-size:14px}
+.invoice-pdf-export>summary{min-height:44px;cursor:pointer;align-content:center;color:var(--invoice-teal);font-weight:700}
+.invoice-simple-create .creation-review-links{display:flex;gap:10px;flex-wrap:wrap}
+.invoice-simple-create .creation-review-links>button{min-height:44px}
+@media(max-width:680px){
+ .form-dialog:has(.invoice-simple-create){margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:18px 16px;overflow-y:auto;overscroll-behavior:contain}
+ .form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar{display:flex;align-items:center;padding:0 0 14px;margin-bottom:18px;border-bottom:1px solid #d8e1e7}
+ .form-dialog:has(.invoice-simple-create) .form-dialog-brand{display:block}
+ .form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help{display:flex;flex:0 0 auto;margin:0 0 0 auto;padding:0;border:0;gap:0}
+ .invoice-simple-create .invoice-create-footer{bottom:-18px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+ .invoice-simple-create .invoice-create-total{font-size:22px}
+ .invoice-simple-create .modal-head h2{font-size:25px}
+}
+@media(min-width:681px){.invoice-simple-create .invoice-create-footer{bottom:-26px}}
+
+.invoice-simple-create .invoice-work-editor{border:0;padding:0;background:transparent;box-shadow:none}
+.invoice-simple-create .invoice-customer-choice{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;min-height:52px;width:100%;padding:12px 14px;border:1px solid #c5ced9;border-radius:10px;background:white;color:var(--invoice-ink);font-size:17px}
+.invoice-simple-create .invoice-customer-choice span{font-size:25px;color:var(--invoice-teal)}
+.invoice-simple-create .invoice-item-card{position:relative}
+.invoice-simple-create .invoice-remove-item{position:absolute;right:6px;top:-8px;width:40px;min-height:40px;height:40px;font-size:23px;padding:4px;text-align:center}
+
+.invoice-suggested-delivery .document-delivery-option button{background:white;color:var(--invoice-teal);border:1px solid var(--invoice-teal)}
+.invoice-suggested-delivery .document-delivery-option{padding-top:12px;border-top:1px solid #d8e1e7}
+/* Override the older phone document styles only within the simplified editor. */
+.form-dialog .invoice-simple-create .invoice-work-editor.line-items{display:grid;gap:10px;border:0;padding:0;margin:0;background:transparent;box-shadow:none}
+.form-dialog .invoice-simple-create .invoice-item-card>legend{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.form-dialog .invoice-simple-create .invoice-remove-item{top:4px;right:6px;width:32px;min-height:32px;height:32px;font-size:22px}
+.form-dialog .invoice-simple-create .invoice-suggested-delivery .document-delivery-option button{background:white;color:var(--invoice-teal);border:1px solid var(--invoice-teal)}
+.form-dialog .invoice-simple-create .invoice-suggested-delivery>.text-button{color:var(--invoice-teal)}
+@media(max-width:680px){
+ .form-dialog .invoice-simple-create .invoice-essential-form{gap:14px}
+ .form-dialog .invoice-simple-create .invoice-more-options>summary{padding:12px}
+}
+/* Keep enabled text contrast stable when the PDF/send-readiness state changes. */
+.form-dialog .invoice-simple-create :is(.primary-button,.secondary-button){transition:none}
+.form-dialog .invoice-simple-create .primary-button{background:#007762;color:#fff}
+.form-dialog .invoice-simple-create .primary-button:hover:not(:disabled){background:#006354;color:#fff}
+.form-dialog .invoice-simple-create .invoice-suggested-delivery .document-delivery-option button{background:#fff;color:#007762;border-color:#007762}
+
+.invoice-simple-create .invoice-customer-choice strong{min-width:0;overflow-wrap:anywhere}
+.invoice-simple-create .invoice-customer-choice small{display:block;font-size:13px;font-weight:400;margin-top:5px;color:#586577}
+
+/* Fin stays in the original document-dialog header, above the fields. */
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help{display:flex;margin:0;padding:0;border:0;flex:0 0 auto}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help>small{display:none}
+
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar>.task-fin-help{grid-column:2;margin:0}
+.form-dialog:has(.invoice-simple-create)>.form-dialog-fields>.form-dialog-topbar::after{grid-column:1/-1;font-size:13px;padding:6px 10px}

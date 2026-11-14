@@ -1,0 +1,101 @@
+{
+  "date": "2026-11-09",
+  "baseline_release": {
+    "commit": "8e22a952fe3e1a45455420e8bdeb474f0e6d0100",
+    "deployment": "dpl_7kAVrRwWgJ8nYCwVsQfnDmutyT3i",
+    "state": "READY"
+  },
+  "scope": "Jobs overview and mobile navigation; existing flows and entitlement rules retained",
+  "checks": [
+    {
+      "command": "npm run test:jobs-overview",
+      "dom_scenarios_passed": [
+        "populated overview and direct work-plan opening",
+        "completed/canceled history with billing follow-up",
+        "first-run empty account",
+        "restricted jobs-only viewer",
+        "failed summary response without false zero costs"
+      ]
+    },
+    {
+      "command": "node tests/operations/components-dom.mjs",
+      "result": "PASS existing finance drilldown, Board, checklist save/complete/activity and payment-settings DOM journey"
+    },
+    {
+      "command": "node --import tsx --test tests/operations/job-summaries.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "coverage": "Bounded summary, task counts/business-day due dates, tracked costs, financial field omission, permission/grant and invalid request checks"
+    },
+    {
+      "command": "node --import tsx --test tests/scheduling/job-actions.test.ts tests/records/invoiceActions.test.ts",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "command": "npm run build",
+      "startup_checks_passed": 56,
+      "failed": 0,
+      "includes": "Environment guard, TypeScript, Vite and startup/CSS checks"
+    }
+  ],
+  "database": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "migration": "20261109181418_job_plan_summaries",
+    "max_jobs_per_request": 4,
+    "summary_public_wrapper": "SECURITY INVOKER, authenticated-only",
+    "private_body": "SECURITY DEFINER, explicit membership/jobs and financial role checks",
+    "anon_execute": false,
+    "service_role_execute": false,
+    "new_tables": 0,
+    "new_security_advisor_warnings": 0,
+    "live_rollback_read": {
+      "summary_count": 2,
+      "valid_array": true,
+      "excludes_full_histories": true,
+      "note": "Authorized owner context read, transaction rolled back; output aggregates only. Not a multi-tenant/load certificate."
+    }
+  },
+  "limits": [
+    "Shared browser reaches Finviant sign-in; no authenticated session was available for visual inspection. No login credentials, customer records, messages or payment actions were used.",
+    "DOM simulation does not establish real iPhone/browser layout or touch acceptance. Updated 390px/desktop browser checks are committed for an authenticated test environment.",
+    "Crew panel shows scheduled assignments, not certified live availability/capacity.",
+    "Focus cards show at most four active jobs and recorded costs only; not complete accounting or job profit.",
+    "No additional paid plugin/service, tier change or provider activation. Existing launch acceptance gates remain open."
+  ],
+  "source_sha256": {
+    "src/components/JobsOverview.tsx": "d57de1e74a3a65f9317af93d92d921fe886906dd50263d8ed22f15f030c6f087",
+    "src/components/jobs-overview.css": "759a52976e4dddabd766270e86d31fb30c321abd386b39f0de6df65dcad35b6f",
+    "src/pages/JobsPage.tsx": "3269efea64fd696dedfda0b9e9e95b1b1658deabdc0bb3314ede2d8c73bd51db",
+    "src/components/JobDetailsDialog.tsx": "9ef4155360c5d37045a11bd34806690186bcec98b3e6c0edb9d94715f890730d",
+    "src/services/operations.ts": "d5161a1e8c9b9353217f00ede604557fae531ff91b5187c8857b56a295212ad3",
+    "supabase/migrations/20261109181418_job_plan_summaries.sql": "5f8567b69994ef26b0c964a42e1fcb4d7503849e92f18a219e7971051652acca",
+    "tests/operations/fixture.ts": "9e9ef97d08d4a43fba62e5c69c0385ca1468b1c2cfe918b18f35569b7d331a1a",
+    "tests/operations/preview.tsx": "43da2952cb3e8a67f50763c02a6b0c01bd20e05cf81b758ba511a61d327264b6",
+    "tests/operations/job-summaries.test.ts": "5a7987eba3a10656495d083d50422783464678cf2e5ec6906ee2b0c108e8f653",
+    "tests/operations/jobs-overview-dom.mjs": "d761bbf20ad99d5d7baaa0f6e67ba9cdbb3f2ffd641676ff4d61ca1f2c9607f9",
+    "tests/e2e/operations-workspaces.spec.mjs": "b18e9e07c4e123a9a789a0bcb241e5963ba3ec835f3d4979daa65cdd477e4e08",
+    "tests/e2e/critical-dashboard-schedule.spec.mjs": "96fd308e67b928f532b63fa60414ca1d1206d4acf7505abe42ebe900ecdfd3c5",
+    "package.json": "ab2825f7f2c3996022113492cf0d9e30487a824f02067919d98aed65b0153465"
+  },
+  "release": {
+    "commit": "96a121413a7e388e7581a9c0dbd6e903ca491ba2",
+    "deployment": "dpl_2m2dsSyrB6t3ZFUP5gFHsaXTrYTw",
+    "state": "READY",
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "http_200": [
+      "/?view=work",
+      "/assets/JobsPage-BHY3Pckp.css",
+      "/assets/JobsPage-Ce8FvQYF.js"
+    ],
+    "new_source_markers_verified": [
+      "Job management overview",
+      "Work in focus",
+      "Assignments today",
+      "Ready for billing"
+    ]
+  }
+}

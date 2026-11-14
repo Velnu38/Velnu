@@ -1,0 +1,155 @@
+{
+  "date": "2026-11-12",
+  "scope": "Layout-only phone Job Management reference match; preserve existing actions and data",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/102",
+  "visualAppHead": "73534fdf49537ea1ea010d5ef58dc66d88f26afb",
+  "testedHead": "a681df30fed16d372abf669563e8f95aa66b51c5",
+  "visualRun": 43219850066,
+  "focusedCases": 36,
+  "artifacts": [
+    13944597861,
+    13945207361
+  ],
+  "comparisonReport": "docs/PHONE_REFERENCE_MATCH_2026-11-12.md",
+  "viewports": [
+    320,
+    375,
+    390,
+    393,
+    430,
+    768,
+    844
+  ],
+  "reviewedScreens": [
+    "Summary",
+    "Work",
+    "Billing",
+    "Records",
+    "Tasks",
+    "Visits and crew",
+    "Materials",
+    "Photos and expenses",
+    "Invoices",
+    "Costs and budget",
+    "Change orders",
+    "Activity history",
+    "Completion reports",
+    "Add and edit task",
+    "Checklist templates",
+    "Add and edit material",
+    "Plan and edit visit",
+    "Assign crew",
+    "Reschedule",
+    "Job details",
+    "Completion report editor",
+    "Inline expense, budget and labor forms"
+  ],
+  "preservedRecords": 51,
+  "fixedFailures": [
+    "Native WebKit picker intrinsic overflow at 320px",
+    "Inherited Directions minimum width",
+    "Task title and Job actions selectors not matching rendered elements",
+    "Inconsistent inherited typography and editor control sizing",
+    "Synthetic DOM bundler missing local WOFF loader"
+  ],
+  "open": [
+    "Physical iPhone/Android and owner acceptance",
+    "Provider acceptance",
+    "Broader JOB-01/UX-01",
+    "Separate desktop document contrast finding under iPhone WebKit: run 43149844030, job 130956169675"
+  ],
+  "paused": "PR97 and sequential task queue",
+  "limitations": "Synthetic fixtures and emulated browsers; no real messages, charges, provider activation or physical-device certification.",
+  "status": "Merged and deployed to private beta; rendered comparison and required checks passed",
+  "testedTree": "f375c02703f8c93c2966244bf1052b7c494e06b8",
+  "merge": "7d827a9aad76a6a7d1dec3d8fa444606462a53b4",
+  "completeSuiteJobs": 22,
+  "workflows": [
+    {
+      "id": 43220930640,
+      "name": "Finviant assessment maintenance",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43220930625,
+      "name": "Finviant authentication access checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43220930635,
+      "name": "Home screen checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43220930621,
+      "name": "Pricing tier checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43220930708,
+      "name": "More navigation checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43220930819,
+      "name": "Complete automated test checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 43220921099,
+      "name": "Focused phone visual review",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "deployment": {
+    "id": "dpl_5Sd3MEp3rysQvyr1vrfWf4SZ1Hi7",
+    "state": "READY",
+    "target": null,
+    "domains": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "assets": {
+    "index": "/assets/index-CfkaB2Uo.js",
+    "app": "App-BVPhrlcR.js",
+    "css": "JobsPage-CRmAvB9_.css",
+    "appStatus": 200,
+    "beta": true,
+    "prod": false,
+    "shell": true,
+    "cssStatus": 200,
+    "localFont": true,
+    "selectorContainment": true,
+    "matchedClose": true,
+    "sameReviewedCss": true
+  },
+  "domains": [
+    {
+      "domain": "finviant.com",
+      "status": 200,
+      "index": "/assets/index-CfkaB2Uo.js",
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    },
+    {
+      "domain": "www.finviant.com",
+      "status": 200,
+      "index": "/assets/index-CfkaB2Uo.js",
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    }
+  ],
+  "wwwAssetRedirect": {
+    "status": 308,
+    "location": "https://finviant.com/assets/JobsPage-CRmAvB9_.css",
+    "destinationStatus": 200
+  }
+}

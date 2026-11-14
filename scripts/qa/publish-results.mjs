@@ -55,6 +55,7 @@ const text=JSON.stringify(log,null,2)+'\n'
 writeFileSync('STRESS_TEST_LOGS.json',text)
 await save('STRESS_TEST_LOGS.json',text)
 const source=await api('/contents/ASSESSMENT_REPORT.md?ref='+encodeURIComponent(branch));let report=Buffer.from(source.content,'base64').toString('utf8')
+if(report.includes('Generated from [docs/launch-readiness.json]')){console.log('Historical campaign log saved; generated launch assessment preserved.');process.exit(0)}
 const status=['<!-- CAMPAIGN_STATUS_START -->',`Updated: ${log.updated_at}. Status: **${log.status}**. Verified accumulated campaign duration: **${Math.round(log.active_seconds)} seconds** of the required 28,800 seconds.`,`Profiles exercised: ${log.totals.profiles_checked}; successful service checks: ${log.totals.passed}; failures: ${log.totals.failed}; expected input rejections: ${log.totals.expected_rejections}; live edge probes: ${log.totals.edge_probes}.`,`Workflow: https://github.com/${repo}/actions/runs/${(process.env.QA_WORKFLOW_RUN_ID??process.env.GITHUB_RUN_ID)}`,`The JSON log contains every observed unexpected exception and per-function counts. A nonzero failure count remains a finding and does not become a pass when a job finishes.`,'<!-- CAMPAIGN_STATUS_END -->'].join('\n\n')
 report=report.replace(/<!-- CAMPAIGN_STATUS_START -->[\s\S]*?<!-- CAMPAIGN_STATUS_END -->/,status)
 writeFileSync('ASSESSMENT_REPORT.md',report)

@@ -42,7 +42,7 @@
 .document-bill-to small{font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#697586}
 .document-bill-to strong{font-size:15px}
 .document-bill-to span{font-size:12px;color:#526070}
-.document-footer{border-top:1px solid #e7edf3;padding:16px 0 0;margin-top:22px;font-size:12px;color:#536174;white-space:pre-wrap}
+.document-footer{text-align:center;overflow-wrap:anywhere;border-top:1px solid #e7edf3;padding:16px 0 0;margin-top:22px;font-size:12px;color:#536174;white-space:pre-wrap}
 .estimate-preview-backdrop{z-index:99}
 .estimate-preview-modal{max-height:92vh;overflow:auto;width:min(100%,850px);background:#fff;border-radius:20px;padding:22px}
 .estimate-preview-document{margin-top:20px;padding:24px;border:1px solid #e2e8f0;border-radius:14px;background:#fff}

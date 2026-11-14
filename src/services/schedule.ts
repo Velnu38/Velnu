@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
+import { announceCalendarChange } from './calendar'
 
 export async function listAppointments(businessId: string, from?: string, to?: string) {
   let query = supabase
@@ -18,6 +19,8 @@ export async function listAppointments(businessId: string, from?: string, to?: s
 }
 
 export async function updateAppointmentStatus(appointmentId: string, status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show') {
-  const { error } = await supabase.from('appointments').update({ status }).eq('id', appointmentId)
+  const { data, error } = await supabase.rpc('update_appointment_workflow', { p_appointment: appointmentId, p_status: status })
   if (error) throw error
+  announceCalendarChange()
+  return data as { job_id?: string; visit_only?: boolean; invoice_id?: string | null; invoice_status?: string | null; invoice_ready?: boolean; needs_pricing?: boolean; needs_review?: boolean }
 }

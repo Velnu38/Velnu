@@ -1,0 +1,39 @@
+name: Collections and jobs Kanban checks
+on:
+  pull_request:
+    branches: [ux/private-testing-20261029]
+    paths: ['src/components/CollectionsKanban.tsx', 'src/components/FinancialInsights.tsx', 'src/components/kanban.css', 'src/pages/JobsPage.tsx', 'tests/operations/kanban-browser.mjs', '.github/workflows/kanban-review.yml']
+permissions:
+  contents: read
+concurrency:
+  group: kanban-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  synthetic-kanban:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/render-operations-preview.mjs
+      - name: Verify both boards and permission boundaries with synthetic data only
+        run: node tests/operations/kanban-browser.mjs
+        env:
+          KANBAN_BROWSER_ENGINE: ${{ matrix.engine }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: kanban-${{ matrix.engine }}
+          path: work/kanban/
+          retention-days: 7

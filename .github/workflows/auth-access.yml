@@ -1,0 +1,29 @@
+name: Finviant authentication access checks
+on:
+  push:
+    branches: [ux/private-testing-20261029]
+    paths: ['src/**', 'supabase/migrations/**', 'tests/onboarding/**', 'tests/auth-access/**', 'tests/admin-mfa/**', 'tests/settings/**', 'package*.json', '.github/workflows/auth-access.yml']
+  pull_request:
+    paths: ['src/**', 'supabase/migrations/**', 'tests/onboarding/**', 'tests/auth-access/**', 'tests/admin-mfa/**', 'tests/settings/**', 'package*.json', '.github/workflows/auth-access.yml']
+permissions:
+  contents: read
+jobs:
+  authentication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: node --import tsx --test tests/tiers/beta-business-lock.test.ts tests/onboarding/database.test.ts tests/auth-access/policy.test.ts tests/settings/private-test-access.test.ts tests/settings/platform-admin.test.ts tests/settings/private-beta-customer-access.test.mjs
+      - run: node tests/auth-access/dom.mjs
+      - run: node tests/admin-mfa/dom.mjs
+      - run: node tests/onboarding/dom.mjs
+      - run: node tests/settings/feature-preview-dom.mjs
+      - run: node tests/settings/upgrade-navigation-dom.mjs
+      - run: node tests/settings/beta-business-lock-dom.mjs

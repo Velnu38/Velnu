@@ -5,7 +5,7 @@ import { businessLogoUrl } from '../lib/business'
 
 export default function DocumentBrand({ business, kind }: {
   business: PublicBrand
-  kind: 'Invoice' | 'Estimate' | 'Preview'
+  kind: 'Invoice' | 'Estimate' | 'Change order' | 'Preview'
 }) {
   const logo = business.logo_path ? businessLogoUrl({ logo_path: business.logo_path }) : null
   const address = [

@@ -1,0 +1,168 @@
+{
+  "observedAt": "2026-11-10",
+  "scope": "Private-beta release acceptance; no live sends, charges or public activation",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/90",
+  "testedHead": "930ec8b6d68ec0b0c0e39041a51b79ff4fd7caec",
+  "testedTree": "fd8448fa8c982c82527b2d2595013326f02dc07f",
+  "deployedCommit": "1356853cad3173bc9df31d02ab5eb6b40aec88ff",
+  "deployedTree": "fd8448fa8c982c82527b2d2595013326f02dc07f",
+  "deployment": {
+    "id": "dpl_2kFRbA5svEcp1jspZMfyUKPKQSvD",
+    "url": "finviant-office-hoej62x5m-mbarone5-1747.vercel.app",
+    "state": "READY",
+    "target": null,
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ]
+  },
+  "completeValidation": {
+    "run": 42904649546,
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 130139569105,
+        "name": "DOM checks (1/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569535,
+        "name": "DOM checks (4/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569608,
+        "name": "node-tests",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569659,
+        "name": "DOM checks (2/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569676,
+        "name": "pure-deno-tests",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569677,
+        "name": "desktop-and-scheduling / checks",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569689,
+        "name": "isolated-provider-workload",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569698,
+        "name": "iPhone WebKit (3/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569725,
+        "name": "desktop-and-scheduling / Full browser regression (4/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569747,
+        "name": "iPhone WebKit (2/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569785,
+        "name": "iPhone WebKit (4/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569850,
+        "name": "iPhone WebKit (1/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569860,
+        "name": "native-app-handoffs",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569865,
+        "name": "private-beta-email",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569876,
+        "name": "desktop-and-scheduling / Full browser regression (2/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569879,
+        "name": "migrations / postgres-17",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139569935,
+        "name": "desktop-and-scheduling / Full browser regression (3/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139570168,
+        "name": "desktop-and-scheduling / Full browser regression (1/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139570199,
+        "name": "desktop-and-scheduling / Full browser regression (6/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139570259,
+        "name": "desktop-and-scheduling / Full browser regression (5/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130139570272,
+        "name": "DOM checks (3/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 130144118701,
+        "name": "Release validation",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "assessmentRun": 42904649626,
+  "evidence": [
+    "docs/evidence/2026-11-10-commerce-concurrency.json",
+    "docs/evidence/2026-11-10-provider-workload.json",
+    "docs/evidence/2026-11-10-hosted-connection-inventory.json"
+  ],
+  "hostedSchemaChanges": false,
+  "externalProviderRequests": 0,
+  "rollbackCommit": "a3e356cdee37c55d218092ee23a0ffab485a4b40",
+  "remaining": [
+    "Hosted transaction-pooler endpoint, external TLS and aggregate connection budgets",
+    "Representative hosted mixed workload and merchant callback/customer-confirmation concurrency",
+    "Exact controlled email/SMS recipients and budget before live delivery acceptance"
+  ],
+  "httpVerification": {
+    "checkedAt": "2026-11-10T21:34:56.532631+00:00",
+    "checks": [
+      {
+        "domain": "finviant.com",
+        "rootStatus": 200,
+        "entry": "/assets/index-DB_c_WGD.js",
+        "entryStatus": 200,
+        "robots": "noindex, nofollow, noarchive"
+      },
+      {
+        "domain": "www.finviant.com",
+        "rootStatus": 200,
+        "entry": "/assets/index-DB_c_WGD.js",
+        "entryStatus": 200,
+        "robots": "noindex, nofollow, noarchive"
+      }
+    ]
+  }
+}

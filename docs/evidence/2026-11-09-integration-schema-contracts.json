@@ -1,0 +1,70 @@
+{
+  "statement_hashes": [
+    {
+      "version": "20261110002708",
+      "name": "planned_job_visits",
+      "statement_md5": "9da146d2ab1afcb29f75a4b4543f3caf",
+      "statement_count": 1
+    },
+    {
+      "version": "20261110002741",
+      "name": "assigned_field_workspace",
+      "statement_md5": "e929689153ab18ed0e06ae1efc824aac",
+      "statement_count": 1
+    },
+    {
+      "version": "20261110002751",
+      "name": "job_cost_review_completion_reports",
+      "statement_md5": "95ff722b52a5768cf22e40ef15b38368",
+      "statement_count": 1
+    },
+    {
+      "version": "20261110003505",
+      "name": "job_execution_access_hardening",
+      "statement_md5": "dd57ffb79444c16e9c3018f620239545",
+      "statement_count": 1
+    }
+  ],
+  "availability_rpcs": [
+    {
+      "name": "get_scheduling_context",
+      "signature": "get_scheduling_context(uuid,uuid)",
+      "definition_md5": "ba87f110e8d443b070a6a3ad2d072453",
+      "security_definer": false,
+      "anonymous_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "get_worker_roster",
+      "signature": "get_worker_roster(uuid)",
+      "definition_md5": "279b35a326c6707a515b456dfc823620",
+      "security_definer": false,
+      "anonymous_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "manage_worker_time_off",
+      "signature": "manage_worker_time_off(uuid,uuid,timestamp with time zone,timestamp with time zone,text,uuid)",
+      "definition_md5": "8d8f172e93de6d12b294ad45da95a18e",
+      "security_definer": false,
+      "anonymous_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "save_scheduling_preferences",
+      "signature": "save_scheduling_preferences(uuid,jsonb)",
+      "definition_md5": "28290a5a45ac36de7e092b400730725e",
+      "security_definer": false,
+      "anonymous_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "save_worker_profile",
+      "signature": "save_worker_profile(uuid,uuid,jsonb,timestamp with time zone)",
+      "definition_md5": "59973b3c2fbdcaa55f9d6d280910c14e",
+      "security_definer": false,
+      "anonymous_execute": false,
+      "authenticated_execute": true
+    }
+  ]
+}

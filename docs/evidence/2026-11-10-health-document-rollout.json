@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-10",
+  "project": "xvybcmyoblfgzokaifsx",
+  "privateBeta": true,
+  "health": {
+    "head": "d8cecf6a5ae681a327bc68bff81904e6e23d9beb",
+    "ciRun": 42824008538,
+    "merge": "22ac4295f2293b68506ffbf1cd442ec2595aee64",
+    "deployment": "dpl_DkmU3gMxrCpyTAARAcWNxQHkKwfW",
+    "allTriggeredWorkflowsPassed": 8,
+    "completeValidationJobs": 21,
+    "protectedCounters": 17,
+    "anomaliesAtVerification": 0,
+    "anonymousExecute": false,
+    "authenticatedExecute": false,
+    "serviceExecute": true
+  },
+  "documents": {
+    "head": "3047132dcfcd0dbda74d0d3b3bc1432e159686f5",
+    "ciRun": 42825186642,
+    "merge": "755bdd6282d4fb3808b710ffcefdd29f11f503fe",
+    "deployment": "dpl_33X8Zqx9KwM7ystfJH1sSsJXpe6r",
+    "allTriggeredWorkflowsPassed": 9,
+    "completeValidationJobs": 21,
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "exactDeployedRendererFilesMatched": true,
+    "previousCoreFunctionBodiesMatchedBeforeMigration": 4,
+    "existingNonemptyReferences": 0,
+    "servicePackages": 0,
+    "packageRls": true,
+    "anonymousPackageRead": false
+  },
+  "edgeVersions": {
+    "document-pdf": 3,
+    "send-document-email": 20,
+    "send-invoice-email": 19,
+    "send-invoice-reminder": 13,
+    "email-recovery-worker": 16,
+    "reliability-health": 16,
+    "tier-delivery-worker": 14,
+    "work-scheduling": 14,
+    "business-card-delivery": 3,
+    "send-business-card": 3
+  },
+  "migrations": [
+    {
+      "name": "worker_health_coverage",
+      "version": "20261110134014"
+    },
+    {
+      "name": "reusable_service_packages",
+      "version": "20261110134122"
+    },
+    {
+      "name": "customer_document_references",
+      "version": "20261110162126"
+    }
+  ],
+  "openAcceptance": [
+    "external incident routing and controlled alert delivery",
+    "controlled actual document delivery",
+    "physical device acceptance",
+    "broader financial and historical opening balances"
+  ]
+}

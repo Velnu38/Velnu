@@ -5,7 +5,7 @@ const user = {
   id: userId, email: 'owner@example.test', aud: 'authenticated',
   role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z',
 }
-const acceptedRecord = { id: '88888888-8888-4888-8888-888888888888', user_id: userId, agreement_version: '2026-10-27-v3' }
+const acceptedRecord = { id: '88888888-8888-4888-8888-888888888888', user_id: userId, agreement_version: '2026-11-06-v5' }
 
 async function signedIn(page) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
@@ -18,22 +18,20 @@ async function signedIn(page) {
   await page.addInitScript(value => localStorage.setItem('sb-example-auth-token', JSON.stringify(value)), session)
 }
 
-test('public homepage explains Free 10-doc cap, Basic and Pro prices, and links to signup', async ({ page }) => {
+test('public homepage labels pricing as planned, keeps beta free and routes choices to signup', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Your work/ })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'A plan for where you are today.' })).toBeVisible()
-  const cards = page.locator('.marketing-price-card')
-  await expect(cards).toHaveCount(3)
-  await expect(cards.nth(0).getByText('Free', { exact: true }).first()).toBeVisible()
-  await expect(cards.nth(0).locator('li').filter({ hasText: '10 invoices and estimates combined each month' })).toBeVisible()
-  await expect(cards.nth(1).getByText('$9.99')).toBeVisible()
-  await expect(cards.nth(2).getByText('$24.99')).toBeVisible()
-  await expect(page.locator('.marketing-topup-card')).toHaveCount(4)
-  await expect(page.getByText('Proposed pricing, not available for checkout.').first()).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Another set of hands/ })).toBeVisible()
-  await expect(page.getByText(/Paid capability · In testing/)).toBeVisible()
-  await expect(page.getByText('No payment, subscription or automatic upgrade is activated by registering for the beta.')).toBeVisible()
-  await page.getByRole('link', { name: /Join private beta/i }).first().click()
+  await expect(page.getByRole('heading', {name:/Your business\.\s*Connected from\s*start to finish\./})).toBeVisible()
+  await expect(page.getByText('Private beta · Approved testers only · Public pricing is planned; no subscription charges during testing.',{exact:true})).toBeVisible()
+  const plans=page.locator('#fp-plans')
+  await expect(plans.locator('article')).toHaveCount(3)
+  await expect(plans).toContainText('Planned public pricing, USD per business.')
+  await expect(plans).toContainText('This private beta does not activate subscriptions or charge these amounts.')
+  for(const label of ['Start with Free','Choose Individual','Choose Business Pro']) await expect(plans.getByRole('link',{name:new RegExp('^'+label)})).toHaveAttribute('href','/auth?mode=signup')
+  await expect(page.locator('a[href*="checkout.stripe.com"],a[href*="billing.stripe.com"]')).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'Say it. Review it. Move on.',exact:true})).toBeVisible()
+  await expect(page.getByText('Typed and voice assistance · In beta',{exact:true})).toBeVisible()
+  await expect(page.getByText('Ask Fin to find business records or prepare a document draft. Review the customer, work details and totals before confirming changes.',{exact:true})).toBeVisible()
+  await page.getByRole('banner').getByRole('link', { name: 'Get started', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
 })
 
@@ -52,7 +50,7 @@ test('public privacy and terms pages can be read without logging in', async ({ p
 test('mobile landing page has accessible signup and no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
-  await expect(page.getByRole('link', { name: /Join private beta/i }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Get started', exact: true }).first()).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
 })
 
@@ -73,7 +71,9 @@ test('authenticated user is blocked from workspace until AI, terms and e-record 
       body: JSON.stringify(value),
     })
     if (method === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if (path.endsWith('/rpc/get_private_beta_access')) return json({allowed:true})
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/rpc/get_membership_entry')) return json(null)
     if (path.endsWith('/user_plan_preferences')) {
       if (method === 'POST') return json({ selected_tier: body.selected_tier })
       return json(null)
@@ -92,12 +92,12 @@ test('authenticated user is blocked from workspace until AI, terms and e-record 
     }
     return json([])
   })
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Choose how you want to use Finviant Office.' })).toBeVisible()
-  await page.getByRole('button', { name: /Select Free/ }).click()
+  await page.goto('/?view=dashboard')
+  await expect(page.getByRole('heading', { name: 'Welcome to Finviant Office testing.' })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue to private testing' }).click()
   await expect(page.getByRole('heading', { name: 'Review your User Agreement, AI Disclosure & Privacy Notice' })).toBeVisible()
   await expect(page.getByText(/Finviant Office uses artificial intelligence/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Set up your business' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Thank You for choosing Finviant!' })).toHaveCount(0)
   const continueButton = page.getByRole('button', { name: 'I agree · Continue to Finviant Office' })
   await expect(continueButton).toBeDisabled()
   const consent = page.getByRole('checkbox')
@@ -106,11 +106,11 @@ test('authenticated user is blocked from workspace until AI, terms and e-record 
   await expect(continueButton).toBeDisabled()
   await consent.nth(2).check()
   await continueButton.click()
-  await expect(page.getByRole('heading', { name: 'Set up your business' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Thank You for choosing Finviant!' })).toBeVisible()
   expect(writes).toHaveLength(1)
   expect(writes[0]).toMatchObject({
     user_id: user.id,
-    agreement_version: '2026-10-27-v3',
+    agreement_version: '2026-11-06-v5',
     terms_accepted: true,
     ai_disclosure_acknowledged: true,
     electronic_records_consent: true,
@@ -127,14 +127,16 @@ test('existing accepted account proceeds without accepting a second time', async
     const path = new URL(req.url()).pathname
     const json = obj => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(obj) })
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: '' })
+    if (path.endsWith('/rpc/get_private_beta_access')) return json({allowed:true})
     if (path.endsWith('/user')) return json(user)
+    if (path.endsWith('/rpc/get_membership_entry')) return json(null)
     if (path.endsWith('/user_plan_preferences')) return json({ selected_tier: 'free' })
     if (path.endsWith('/user_agreement_acceptances')) { agreementsRead++; return json(acceptedRecord) }
     if (path.endsWith('/business_members')) return json(null)
     return json([])
   })
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Set up your business' })).toBeVisible()
+  await page.goto('/?view=dashboard')
+  await expect(page.getByRole('heading', { name: 'Thank You for choosing Finviant!' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Review your User Agreement, AI Disclosure & Privacy Notice' })).toHaveCount(0)
   expect(agreementsRead).toBeGreaterThanOrEqual(1)
 })

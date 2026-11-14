@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-11",
+  "testedCommit": "4846fc9635f4c090e8f2ec2548980ee70beb543f",
+  "mergeCommit": "4339c3a559cb14164ea273efa79ee1fba2b1c399",
+  "testedAndMergedTree": "fc3ea7de057fbd0f7ff9d6268e72c8a45ce582a0",
+  "deployment": "dpl_3Rxnuofgv9m9NuM2W9oPAUubYd8U",
+  "state": "READY",
+  "domains": [
+    "finviant.com",
+    "www.finviant.com"
+  ],
+  "httpStatus": 200,
+  "entryAsset": "/assets/index-CZTK5yB_.js",
+  "robots": "noindex, nofollow, noarchive",
+  "cache": "private, no-store, max-age=0",
+  "ssoProtection": "all",
+  "migrations": [],
+  "edgeDeployments": [],
+  "rollbackDeployment": "dpl_9FNK5BTXgwpe5qxpcmPG2mWEgFSb",
+  "limitations": [
+    "No new hosted signed-in workflow verification",
+    "No provider activation or physical-device certificate"
+  ],
+  "workflowsPassed": [
+    43118163373,
+    43118163377,
+    43118163226,
+    43118163375,
+    43118163288,
+    43118163229,
+    43118163252,
+    43118163230,
+    43118163266,
+    43118163303
+  ]
+}

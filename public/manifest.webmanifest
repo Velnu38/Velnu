@@ -1,5 +1,5 @@
 {
-  "name": "Finviant Office — Business Assistant",
+  "name": "Finviant Office \u2014 Business Assistant",
   "short_name": "Finviant",
   "description": "Finviant Office web app for customers, jobs, estimates, invoices, and business tools.",
   "start_url": "/auth?mode=signin",
@@ -9,7 +9,7 @@
   "theme_color": "#0f2747",
   "icons": [
     {
-      "src": "/finviant-mark.svg",
+      "src": "/finviant-app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

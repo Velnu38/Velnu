@@ -1,0 +1,108 @@
+.record-resources {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px 0 4px;
+}
+.record-resources-head, .record-resources-title {
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+}
+.record-resources-head { justify-content: space-between; }
+.record-resources-title h1, .record-resources-title h2 { margin: 0; }
+.record-resources-entry, .record-resources-shortcut { min-height: 44px; }
+.record-linked-job { margin: 0; }
+.record-private-note, .record-resources p, .receipt-capture p { margin: 0; }
+.record-resources .quiet, .receipt-capture .quiet { line-height: 1.5; }
+
+.record-detail-tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid #dce6e9;
+  margin: 12px 0 16px;
+}
+.record-detail-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #193843;
+  font: inherit;
+  font-weight: 650;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.record-detail-tabs button[aria-selected="true"] {
+  border-bottom-color: #007d6e;
+  color: #006458;
+}
+.record-resource-actions {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.record-resource-actions > * { flex: 1 1 150px; min-height: 44px; }
+.photo-upload {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+}
+.photo-upload input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.photo-upload:focus-within { outline: 2px solid #2563eb; outline-offset: 3px; }
+.photo-upload.disabled { opacity: .5; }
+
+.record-resource-section {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #dce6e9;
+  padding-top: 14px;
+  margin-top: 4px;
+}
+.record-resources h3 { margin: 0; }
+.record-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+.record-photo-grid figure { margin: 0; min-width: 0; background: #f7f9fa; padding: 10px; border-radius: 12px; }
+.record-photo-grid img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; }
+.record-photo-grid figcaption { font-size: 12px; overflow-wrap: anywhere; margin: 8px 0; }
+.record-photo-grid button { font-size: 12px; }
+.photo-unavailable { font-size: 12px; padding: 15px; min-height: 100px; }
+.record-expense-form { padding: 16px; background: #f7f9fa; border-radius: 12px; }
+.record-expense-list { margin: 0; padding: 0; list-style: none; }
+.record-expense-list li { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e8edef; }
+.record-expense-list li > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.record-expense-list span { display: block; color: #586a76; font-size: 13px; margin-top: 4px; }
+.record-expense-list li > strong { white-space: nowrap; }
+
+.receipt-capture { display: grid; gap: 8px; }
+.receipt-scan-button { display: flex; width: 100%; min-height: 52px; align-items: center; justify-content: center; gap: 9px; }
+.receipt-scan-hint { text-align: left; }
+.receipt-source-choices > p { margin-top: 8px; }
+.receipt-preview { display: block; width: auto; height: auto; max-width: 100%; max-height: 11rem; border-radius: 8px; }
+.attachment-storage-warning { border-left: 3px solid #b27222; padding: 7px 10px; background: #fff8eb; color: #664417; }
+.financial-entry-options { margin: 12px 0; }
+.receipt-link summary { cursor: pointer; }
+.receipt-link a, .receipt-link [role="status"] { display: block; }
+
+@media (max-width: 540px) {
+  .record-expense-form { grid-template-columns: 1fr; }
+  .record-expense-list li { gap: 9px; flex-wrap: wrap; }
+  .record-detail-tabs { gap: 2px; }
+  .record-detail-tabs button { padding-inline: 9px; }
+}
+@media print {
+  .record-resources, .record-detail-tabs { display: none !important; }
+}

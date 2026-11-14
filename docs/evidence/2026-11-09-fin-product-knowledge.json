@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-09",
+  "baseline": "6cacfe7",
+  "scope": "Local product guidance and deterministic contract verification only",
+  "checks": {
+    "focused_product_knowledge": {"passed": 4, "failed": 0},
+    "fin_protocol_and_handler": {"passed": 17, "failed": 0},
+    "settings_suite": {"passed": 120, "failed": 0},
+    "production_build": "passed",
+    "startup_suite": {"passed": 56, "failed": 0},
+    "assessment_suite": {"passed": 7, "failed": 0},
+    "assessment_consistency": "passed",
+    "diff_whitespace": "passed"
+  },
+  "coverage": {"navigation_areas": 19, "existing_catalog_resources": 25},
+  "limits": [
+    "No deployment, live model evaluation or physical-device testing performed.",
+    "No model fine-tuning, new provider, API permission, database migration or expanded action tools.",
+    "Newer Job Management task/material/labor/budget/visit data remains outside Fin lookup and action capabilities.",
+    "Reconcile against concurrent Job Management changes before release.",
+    "Additional runtime instructions consume ordinary model input tokens under existing budgets."
+  ]
+}

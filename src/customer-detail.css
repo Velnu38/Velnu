@@ -1,1 +1,36 @@
 .customer-row-button{width:100%;border:0;background:#fff;text-align:left;color:inherit}.row-chevron{font-size:24px;color:#a5adba;margin-left:6px}.detail-top{margin-bottom:-8px}.back-button{border:0;background:transparent;padding:0;color:#647083;font-weight:800}.back-button:hover{color:#172033}.customer-hero{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;background:#fff;border:1px solid #e5e9f0;border-radius:20px;padding:24px}.avatar.large{width:62px;height:62px;border-radius:18px;font-size:22px}.customer-hero-main h1{font-size:34px;letter-spacing:-.04em;margin-bottom:7px}.customer-contact{display:flex;flex-wrap:wrap;gap:8px 16px;color:#758091;font-size:12px}.customer-balance{text-align:right;display:grid;gap:3px}.customer-balance span{font-size:11px;font-weight:800;color:#8a94a2;text-transform:uppercase;letter-spacing:.08em}.customer-balance strong{font-size:25px;letter-spacing:-.04em}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.detail-card{background:#fff;border:1px solid #e5e9f0;border-radius:18px;padding:22px;min-width:0}.detail-card h2{font-size:22px;letter-spacing:-.03em;margin-bottom:16px}.detail-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.small-button{min-height:36px;padding:0 12px;font-size:12px}.quiet{color:#8993a1;margin-bottom:0;font-size:13px}.property-list,.history-list{display:grid}.property-item{display:grid;gap:3px;padding:13px 0;border-top:1px solid #edf0f4}.property-item:first-child{border-top:0;padding-top:0}.property-item strong{font-size:13px}.property-item span{font-size:12px;color:#667183}.property-item small{margin-top:4px;color:#9099a6}.mini-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.mini-metrics>div{background:#f8fafc;border-radius:13px;padding:14px;display:grid;gap:3px}.mini-metrics strong{font-size:23px}.mini-metrics span{font-size:10px;color:#8993a1;text-transform:uppercase;font-weight:800}.customer-notes{margin:16px 0 0;padding-top:16px;border-top:1px solid #edf0f4;color:#657083;line-height:1.6;font-size:13px}.history-row{display:flex;align-items:center;gap:16px;padding:13px 0;border-top:1px solid #edf0f4}.history-row:first-child{border-top:0;padding-top:0}.history-row .status-chip{margin-left:auto}.compact-history>strong{white-space:nowrap}.detail-loading{padding:60px;text-align:center;color:#7a8494}@media(max-width:760px){.customer-hero{grid-template-columns:auto 1fr}.customer-balance{grid-column:1/-1;text-align:left;border-top:1px solid #edf0f4;padding-top:14px}.detail-grid{grid-template-columns:1fr}.customer-hero-main h1{font-size:28px}.detail-card{padding:18px}.row-chevron{display:none}}
+
+.customer-record-actions{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.customer-record-actions>a{display:grid;gap:7px;padding:20px;border:1px solid #b9d8d5;border-radius:14px;background:#f0faf8;color:#164b49;text-decoration:none;min-height:100px;transition:background .15s,border-color .15s}
+.customer-record-actions>a:hover{background:#def3ee;border-color:#318c80}
+.customer-record-actions>a:focus-visible{outline:3px solid #178879;outline-offset:3px}
+.customer-record-actions>a>span{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#28645d}
+.customer-record-actions>a strong{font-size:28px}
+.customer-address-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.customer-contact-address .property-item{padding:18px 0;overflow-wrap:anywhere}
+.customer-contact-address .property-item:first-child{padding-top:0}
+.customer-record-scope{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border:1px solid #b9d8d5;background:#f0faf8;padding:16px;border-radius:14px}
+.customer-record-scope>div{display:grid;gap:4px;margin-right:auto}
+.customer-record-scope span{font-size:13px;color:#526d68}
+@media(max-width:480px){.customer-record-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.customer-record-actions>a{padding:14px 10px;min-height:90px}.customer-record-actions>a>span{font-size:10px}.customer-contact-address .detail-card-head{flex-wrap:wrap}.customer-record-scope>a{font-size:13px}}
+
+/* Contact addresses belong to the contact itself, above its record snapshot. */
+.customer-contact-actions{grid-column:1/-1;display:flex;justify-content:flex-end}
+.customer-contact-address{grid-column:1/-1;min-width:0;border-top:1px solid #c6d2df;padding-top:18px}
+.customer-contact-address h2{font-size:17px;margin:0 0 5px;color:#172033}
+.customer-contact-address .detail-card-head{align-items:center;margin-bottom:16px}
+.customer-contact-address .property-list{border:1px solid #d2dde8;border-radius:12px;padding:0 16px;background:#f8fafc}
+.customer-contact-address .property-item,.customer-contact-address .property-item:first-child{padding:14px 0}
+.customer-contact-address .property-item+.property-item{border-top:1px solid #c6d2df}
+.customer-contact-address .quiet{color:#5b6b7e}
+.customer-hero-main,.customer-contact{min-width:0;overflow-wrap:anywhere}
+/* The generic button reset used to erase the list dividers. */
+.customer-directory>.customer-row-button{min-height:82px;border:0;border-bottom:2px solid #c6d2df;border-radius:0;background:#fff}
+.customer-directory>.customer-row-button:nth-child(even){background:#f7fafc}
+.customer-directory>.customer-row-button:last-child{border-bottom:0}
+.customer-directory>.customer-row-button:hover{background:#edf7f5}
+.customer-directory>.customer-row-button:focus-visible{outline:3px solid #178879;outline-offset:-4px;background:#edf7f5}
+.customer-directory .row-main strong{font-size:15px;color:#172033;overflow-wrap:anywhere}
+.customer-directory .row-chevron{display:block;color:#577185}
+@media(max-width:480px){.customer-contact-actions{justify-content:stretch}.customer-contact-actions>button{width:100%}.customer-contact-address .detail-card-head{align-items:flex-start}.customer-contact-address .property-list{padding:0 12px}.customer-directory>.customer-row-button{padding:16px 14px}}
+.customer-create-actions { display: flex; flex-wrap: wrap; gap: 8px; }

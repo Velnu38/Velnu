@@ -1,0 +1,9 @@
+import {useEffect,useRef,useState} from 'react'
+import {squareRequest} from '../services/square'
+export default function CustomerSquareCheckout({token,blocked=false}:{token:string;blocked?:boolean}){
+ const [status,setStatus]=useState<{state:string;available:boolean;message?:string}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),request=useRef(crypto.randomUUID())
+ useEffect(()=>{let active=true;let pending=false;const check=()=>{if(document.visibilityState==='hidden')return;void squareRequest({token,mode:'online_status'}).then(next=>{if(active){setStatus(next);pending=next.state==='pending'}}).catch(()=>{if(active)setStatus(null)})};check();const timer=window.setInterval(()=>{if(pending)check()},10000);window.addEventListener('focus',check);return()=>{active=false;window.clearInterval(timer);window.removeEventListener('focus',check)}},[token])
+ async function pay(){if(busy||blocked||!status?.available)return;setBusy(true);setError('');try{const next=await squareRequest({token,mode:'checkout',request_id:request.current});if(!next.available||typeof next.checkout_url!=='string')throw Error(next.message||'Square payment is unavailable.');const u=new URL(next.checkout_url);if(u.protocol!=='https:'||!['square.link','sandbox.square.link'].includes(u.hostname)||u.username||u.password||u.port||!u.pathname.startsWith('/u/'))throw Error('Payment address could not be verified.');location.assign(u.href)}catch(e){setError((e as Error).message);setStatus(null)}finally{setBusy(false)}}
+ if(!status||['disabled','not_connected','not_payable'].includes(status.state))return error?<p role="alert">{error}</p>:null
+ return <div className="square-customer-checkout">{status.available?<button type="button" className="primary-button" disabled={busy||blocked} onClick={()=>void pay()}>{busy?'Opening Square…':'Pay invoice with Square'}</button>:<p role="status">{status.message}</p>}{error&&<p role="alert">{error}</p>}</div>
+}

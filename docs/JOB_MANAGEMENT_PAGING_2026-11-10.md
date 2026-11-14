@@ -1,0 +1,11 @@
+# Bounded Job Management queue
+
+The Jobs / Job Management split is preserved. Management no longer downloads every job, hydrates every workflow or requests all attention signals before presenting ten cards. One authorized RPC returns ten combined job/legacy-approved-work entries, visible-job signals, complete scope totals and a clamped page. Customer scope and literal, case-insensitive job/customer/address search apply on the server. Filters retain their existing meanings, including in-progress work with no active visit in Ready to schedule. Billing details, approved financial records and billing attention are withheld from jobs-only users.
+
+The parent Jobs screen no longer scans jobs in Management mode. The selected job still resolves directly by ID, including deep links and jobs outside the current page. Refreshes preserve the workspace and unsaved material/task forms. A failed queue request shows recovery, clears obsolete cards/counts and retains search input. Navigation confirmation and all existing management actions remain in place.
+
+The additive migration does not change stored records or existing RPCs. The rollback is the previous frontend; leaving this unused read function is safe. Do not remove it while this frontend is deployed.
+
+Validation includes a 50,002-job SQL fixture with bounded payloads, page clamping and literal `%` search; legacy accepted work and incomplete task/material attention; staff financial redaction, revoked module, anonymous and foreign membership denial; genuine local Auth/PostgREST calls in complete migration replay; phone/desktop browser checks for paging, search, recovery, complete counts and absence of Jobs REST scans; and existing management/execution DOM journeys. New regression coverage verifies an open material draft survives Refresh.
+
+Final PR89 candidate 7b6c655 passed all eight applicable workflows, including full PostgreSQL/Auth replay, browser and management DOM checks. Migration 20261110205944 and the matching frontend were deployed to the private beta at merge 1a83c98; see `docs/evidence/2026-11-10-performance-rollout.json`. The customer selector now uses bounded search, documented separately. The successful isolated 300-workspace campaign measures earlier directory/Overview paths, not this new Management RPC; hosted latency and physical-device acceptance remain open.

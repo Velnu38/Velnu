@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-13",
+  "scope": "Owner-approved Home revised Option B after the completed invoice release",
+  "baseCommit": "77c3016b833295e1c8c47c6884750f79b19f0484",
+  "branch": "ux/home-revised-option-b-20261113",
+  "approvedReference": "docs/reference/home-revised-option-b.png",
+  "implementationGuide": "docs/HOME_REVISED_OPTION_B_2026-11-13.md",
+  "validation": {
+    "build": "Production build and 95 startup/deployment checks passed during implementation",
+    "focusedBrowser": "15 synthetic Chromium cases passed at 320/390/430/1440px: layout, accessibility, keyboard focus, permissions, detailed destinations, calendar return date, payment reconciliation and billing return path",
+    "earlierWorkflowSelection": "26 cases passed; one calendar-entry test needed its new visible Calendar entry point and subsequently passed",
+    "dom": "Home layout/review/calendar regression passed",
+    "assessment": "10 tests passed; generated report and registry consistent",
+    "initialCI": "Focused Chromium and WebKit Home visual reviews passed at aa48665664bc994189f4137466199980fbb083f7 (run 43466199482). The full gate failed; it is superseded only by a passing final candidate.",
+    "regressionCorrections": "Broader checks caught hidden configured phone logos, Ask Fin shifting between Home and Customers, and a stale More-to-finances test entry point. Logos and launcher positioning are restored; More uses View finances. FinancialInsights retains its component identity across summary/detail transitions to reuse its read.",
+    "localCorrections": "19 Home, More-navigation and native synthetic-audio cases passed after the header correction. Four previously failing attention paging and estimate review cases, plus phone logo coverage, passed against a stable customer-actions-enabled fixture build.",
+    "localLimit": "The personal-email external-app test reaches a managed-browser mailto policy block locally; required CI must verify its normal browser handoff. No provider was invoked.",
+    "localWorkflows": "28 synthetic Chromium Home/workflow/accessibility cases passed after financial-component identity preservation, including exactly one financial overview request across summary/detail return.",
+    "narrowPhoneReview": "Manual 320px screenshot review caught wrapped decimal digits. Narrow-screen financial column spacing and font size are corrected; all four reference viewport tests require sample amounts to occupy one line.",
+    "fullDesktopReplay": "77 of 78 cases passed locally. The remaining failure reproduced a pre-existing immediate assertion after asynchronous Fin confirmation (fin-workflow.spec.mjs); it now waits for exactly one execution and the visible completion result without changing runtime confirmation behavior.",
+    "candidate5d0a206": "Focused Chromium/WebKit and the other nine workflows passed. The full gate failed on desktop shard 4 and is not a release receipt; final corrected-head CI is required.",
+    "ciDiagnostics": "Repeated desktop/WebKit gate failures require final diagnosis. Added concise synthetic assertion annotations to browser workflows so failure details remain reviewable through GitHub Checks when the managed network blocks downloadable log and artifact hosts. These steps do not skip tests or alter their exit status.",
+    "runnerFontMetrics": "Run 43472628539 annotations isolated the remaining desktop failure to wrapped sample currency amounts at 320/390/430px in runner Chrome. All four WebKit shards passed. Mobile currency sizing now uses a conservative 13\u201318px responsive range and no wrapping; assertions wait for fonts and verify both one-line height and no horizontal text overflow.",
+    "desktopReplayAfterFinFix": "All 78 desktop shard-4 cases passed locally after the asynchronous Fin confirmation assertion was corrected. CI remains authoritative for runner-specific font metrics."
+  },
+  "requiredReleaseGate": "Passed on final candidate 3d9f3af2b26183c1c2211c8fe8973239b46d9a15; PR115 is merged and both beta domains are verified. See releaseReceipt.",
+  "limits": [
+    "Synthetic data only; no signed-in hosted tenant or physical-device acceptance claim",
+    "No hosted data modifications, migrations, provider activation, customer sends or charges",
+    "The simplified three-screen invoice-creation mockup remains unimplemented"
+  ],
+  "releaseReceipt": "docs/evidence/2026-11-13-home-beta-release.json"
+}

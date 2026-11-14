@@ -2,10 +2,16 @@ import { pathToFileURL } from 'node:url'
 
 // This project is deliberately retained as staging, including its existing data.
 export const STAGING_PROJECT_REF = 'xvybcmyoblfgzokaifsx'
+export const PRIVATE_BETA_GIT_REF = 'ux/private-testing-20261029'
+export const INTEGRATION_REVIEW_GIT_REF = 'review/finviant-integration-20261109'
+export const MIGRATION_REVIEW_GIT_REF = 'review/release-replay-20261110'
 
 export function validateDeploymentEnvironment(env) {
   const target = env.VERCEL_ENV
   if (!target && env.VERCEL !== '1') return { target: 'local', checked: false }
+  if ([INTEGRATION_REVIEW_GIT_REF, MIGRATION_REVIEW_GIT_REF, 'review/next-steps-20261110', 'review/reminders-release-20261110', 'review/rls-initplans-20261110', 'review/worker-health-20261110', 'review/document-conveniences-20261110', 'review/auth-storage-acceptance-20261110', 'review/provider-burst-20261110', 'review/recovery-operations-20261110', 'review/recurring-owner-controls-20261110', 'review/jobs-directory-20261110', 'review/owner-archive-20261110', 'review/jobs-management-pagination-20261110', 'review/capacity-soak-20261110', 'review/management-queue-20261110', 'review/job-customer-search-20261110', 'review/queue-catchup-20261110', 'review/reminder-scan-20261110', 'review/calendar-resilience-20261110', 'review/payment-recovery-20261110', 'review/payment-recovery-integration-20261111', 'review/ux-journey-20261111'].includes(env.VERCEL_GIT_COMMIT_REF)) {
+    throw new Error('This review branch is not approved for hosted deployment')
+  }
   if (!['production', 'preview', 'development'].includes(target)) {
     throw new Error('A recognized VERCEL_ENV is required for hosted builds')
   }
@@ -35,6 +41,10 @@ export function validateDeploymentEnvironment(env) {
   }
   if (!production && env.VITE_ENABLE_CUSTOMER_ACTIONS === 'true') {
     throw new Error('Customer delivery must remain disabled in shared staging deployments')
+  }
+  if (env.VITE_ENABLE_PRIVATE_BETA_EMAIL === 'true'
+      && (target !== 'preview' || env.VERCEL_GIT_COMMIT_REF !== PRIVATE_BETA_GIT_REF)) {
+    throw new Error('Private beta email requires the registered staging preview branch')
   }
   if (production) {
     const releaseBranch = env.FINVIANT_PRODUCTION_GIT_REF

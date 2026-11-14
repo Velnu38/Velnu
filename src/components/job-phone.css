@@ -1,0 +1,369 @@
+@font-face{font-family:FinviantJobSans;src:url("../assets/fonts/job-sans-regular.woff") format("woff");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:FinviantJobSans;src:url("../assets/fonts/job-sans-bold.woff") format("woff");font-weight:700;font-style:normal;font-display:swap}
+/* Phone Job Management: one composition shared by the approved screen family. */
+.jm-picker-identity,.jm-phone-status,.jm-context-heading{display:none}
+.jm-alert-disclosure>summary{display:none}
+.jm-mobile-heading:empty{display:none}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .finviant-workspace.job-phone-shell{display:block;width:100%;max-width:none;min-width:0;background:#fff;font-synthesis:weight;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+ .finviant-workspace.job-phone-shell>.sidebar{display:none}
+ .finviant-workspace.job-phone-shell>.workspace{display:block;width:100%;max-width:none;min-width:0;margin:0}
+ .finviant-workspace.job-phone-shell .topbar{position:relative;top:auto;width:100%;height:calc(56px + env(safe-area-inset-top));min-height:calc(56px + env(safe-area-inset-top));padding:calc(6px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 6px max(16px,env(safe-area-inset-left));gap:12px;background:white;border:0}
+ .finviant-workspace.job-phone-shell .mobile-brand .fin-wordmark{font-size:34px}
+ .finviant-workspace.job-phone-shell .mobile-brand .fin-mark{width:31px;height:36px}
+ .finviant-workspace.job-phone-shell .mobile-brand .fin-brand>span{display:none}
+ .jm-account-banner{margin:0 14px 8px;border:1px solid #8fc6bb;border-left:4px solid #008673;border-radius:12px;background:#e8f6f2;color:#173b36}
+ .jm-account-banner>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;font-size:16px;min-height:44px;cursor:pointer;list-style:none}
+ .jm-account-banner>summary::-webkit-details-marker{display:none}
+ .jm-account-banner>summary span{font-size:12px;color:#40665e}
+ .jm-account-banner[open]>div{padding:0 10px 10px}
+ .jm-account-banner .private-testing-app{padding:0}
+ .jm-account-banner .private-beta-notice,.jm-account-banner .tier-banner{margin:8px 0;font-size:12px;flex-wrap:wrap}
+ .finviant-workspace.job-phone-shell .workspace-inner{width:100%;max-width:none;margin:0;padding:6px max(14px,env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+ .finviant-workspace .phone-job-page{font-family:FinviantJobSans,Arial,sans-serif;width:100%;min-width:0;gap:8px;position:relative}
+ .phone-job-page>.detail-top{position:absolute;right:0;top:100%;margin:12px 0;z-index:1}
+ .phone-job-page>.detail-top .back-button{font-size:13px;min-height:44px}
+ .finviant-workspace .phone-job-page .module-page-heading{display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:8px;margin:0;padding:0;min-height:44px}
+ .finviant-workspace .phone-job-page .module-page-heading>div:first-child{flex:1 1 auto;min-width:0}
+ .finviant-workspace .phone-job-page.jobs-module .module-page-heading h1{font-size:clamp(16px,4.5vw,18px);line-height:1.2;margin:0;color:#12243c;letter-spacing:-.035em}
+ .phone-job-page .module-page-heading .eyebrow,.phone-job-page .module-page-intro{display:none}
+ .phone-job-page .work-heading-actions{display:flex;flex-wrap:nowrap;gap:6px;flex:0 0 auto}
+ .finviant-workspace .phone-job-page .module-page-heading .work-heading-actions button{min-height:44px;font-size:14px;padding:8px;width:auto}
+ .finviant-workspace .phone-job-page .module-page-heading .refresh-button{width:40px;max-width:40px;min-width:40px;padding:8px}
+ .phone-job-page .refresh-button>span{display:none}
+ .phone-job-page .jobs-workspace-tabs .record-tabs{padding:0;margin:0;border-bottom:1px solid #d4dee3;gap:10px;background:transparent}
+ .phone-job-page .jobs-workspace-tabs .record-tabs button{font-size:16px;min-height:44px;padding:6px 12px;border-radius:0;background:transparent;border-bottom:3px solid transparent}
+ .phone-job-page .jobs-workspace-tabs .record-tabs button[aria-selected=true]{border-bottom-color:#008673;color:#123c35}
+ .phone-job-page .job-management{display:flex;flex-direction:column;gap:0;width:100%;min-width:0}
+ .phone-job-page .jm-summary{order:3;margin:12px 0 0;border:0;padding:0;background:transparent}
+ .phone-job-page .jm-summary>summary{font-size:13px;min-height:44px;padding:10px 4px}
+ .phone-job-page .jm-metrics{gap:8px}
+ .phone-job-page .jm-metrics button{padding:12px;min-height:80px}
+ .phone-job-page .jm-metrics strong{font-size:24px}
+ .phone-job-page .jm-layout{display:block;width:100%;min-width:0}
+ .phone-job-page .jm-queue,.phone-job-page .jm-welcome{display:none}
+ .phone-job-page .jm-browsing .jm-queue{display:block;padding:16px;margin-top:12px}
+ .phone-job-page .jm-mobile-picker{display:block;overflow:hidden;margin:0;padding:8px 12px 10px;background:white;border:1px solid #d2dce2;border-radius:14px 14px 0 0}
+ .phone-job-page .jm-mobile-picker label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;overflow:hidden;gap:4px;font-size:16px;font-weight:700}
+ /* Contain WebKit native selected-option text, not the page or native picker popup. */
+ .phone-job-page .jm-mobile-picker:focus-within{outline:3px solid #137d69;outline-offset:2px}
+ .phone-job-page .jm-mobile-picker select{width:100%;max-width:100%;min-width:0;min-height:44px;font-size:16px;border:1px solid #c9d4db;border-radius:9px;background:white;padding:8px 10px;color:#243442}
+ .phone-job-page .jm-phone-workspace{width:100%;min-width:0;display:flex;flex-direction:column;padding:12px;gap:10px;border:1px solid #cbd5df;border-radius:12px;background:white;box-shadow:0 2px 5px #1734450a;margin-top:-8px;color:#15283b}
+ .phone-job-page .jm-job-header{display:block;margin:0}
+ .phone-job-page .jm-job-header .eyebrow{font-size:13px;font-weight:700;letter-spacing:.02em;margin:0 0 8px}
+ .phone-job-page .jm-phone-status{display:table;margin:0 0 8px;padding:4px 9px;font-size:14px;font-weight:700;background:#c9f3e8;border:1px solid #8bd6c3;color:#075c4c;border-radius:20px}
+ .phone-job-page .jm-job-header h2{font-size:24px;line-height:1.16;margin:0 0 6px;letter-spacing:-.035em;overflow-wrap:anywhere}
+ .phone-job-page .jm-job-header p{margin:5px 0;font-size:16px;line-height:1.35}
+ .phone-job-page .jm-job-header p .jm-status{display:none}
+ .phone-job-page .jm-job-header .jm-address,.phone-job-page .jm-job-header .quiet{font-size:14px;color:#5a6c74}
+ .phone-job-page .jm-next-action{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:#008673;color:white;border:0;border-radius:12px;padding:12px}
+ .phone-job-page .jm-next-action>div:first-child{flex:1 1 130px;min-width:0;overflow-wrap:anywhere}
+ .phone-job-page .jm-next-action small{color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+ .phone-job-page .jm-next-action strong{display:block;font-size:18px;line-height:1.25;margin-top:5px}
+ .phone-job-page .jm-next-action .primary-button{min-height:44px;min-width:100px;padding:10px 12px;font-size:14px;font-weight:700;background:white;color:#086451;border:1px solid #d6e7e0;border-radius:10px}
+ .phone-job-page .jm-alert-disclosure>summary{display:list-item;padding:10px;background:#fff5df;border-radius:10px;font-size:13px;cursor:pointer}
+ .phone-job-page .jm-section-groups{display:grid;grid-template-columns:1.25fr .85fr .9fr 1.1fr;gap:6px;margin:0}
+ .phone-job-page .jm-section-groups button{min-width:0;font-size:clamp(12px,3.85vw,16px);font-weight:500;min-height:44px;padding:8px 2px;white-space:nowrap;background:white;border:1px solid #cbd5df;border-radius:10px;color:#182b3d}
+ .phone-job-page .jm-section-groups button[aria-pressed=true]{background:#e5f5ef;color:#006a55;font-weight:700;box-shadow:inset 0 -3px #008673}
+ .phone-job-page .jm-phone-summary{display:grid;gap:12px}
+ .phone-job-page .jm-visit-facts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0}
+ .phone-job-page .jm-visit-facts>div+div{border-left:1px solid #d4dce2;padding-left:12px}
+ .phone-job-page .jm-visit-facts dt{font-size:12px;color:#5b6774;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+ .phone-job-page .jm-visit-facts dd{font-size:16px;line-height:1.3;margin:0;overflow-wrap:anywhere}
+ .phone-job-page .jm-job-actions{max-width:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px;width:100%}
+ .phone-job-page .jm-job-actions :is(a,button){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:68px;width:100%;padding:10px 5px;border:1px solid #cbd5df;border-radius:12px;background:white;color:#135b4d;font-size:13px;font-weight:400;line-height:1.3;text-decoration:none}
+ .phone-job-page .jm-job-actions>*{min-width:0;max-width:100%}
+ .phone-job-page .jm-job-actions .google-maps-tools.compact .google-maps-link{min-width:0;width:100%;min-height:68px;padding:10px 5px;font-size:13px;font-weight:400;line-height:1.3;border-radius:12px;background:white}
+ .phone-job-page .google-maps-tools,.phone-job-page .google-maps-actions{display:block;margin:0}
+ .phone-job-page .jm-job-actions a[href^="tel:"]:before{content:'';display:block;width:28px;height:28px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%203h4l2%205-3%202c2%203%203%204%206%206l2-3%205%202v4c-10%204-21-7-16-16Z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M5%203h4l2%205-3%202c2%203%203%204%206%206l2-3%205%202v4c-10%204-21-7-16-16Z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+ .phone-job-page .jm-job-actions button:before{content:'';display:block;width:28px;height:28px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M6%202h8l5%205v15H6Z%20M14%202v6h5%20M9%2012h7%20M9%2016h7%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M6%202h8l5%205v15H6Z%20M14%202v6h5%20M9%2012h7%20M9%2016h7%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+ .phone-job-page .jm-job-actions .directions:before{content:'';display:block;width:28px;height:28px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22m3%2010%2018-7-7%2018-3-8Z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22m3%2010%2018-7-7%2018-3-8Z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+ .phone-job-page .jm-job-actions .directions>span{display:none}
+ .phone-job-page .jm-progress-line{font-size:13px;color:#61717a;padding-top:12px;margin:0;border-top:1px solid #d7dfe4}
+ .phone-job-page .jm-notes-disclosure>summary{font-size:14px;min-height:44px;padding:10px 0;cursor:pointer}
+ .phone-job-page .jm-notes-disclosure textarea{width:100%;min-height:110px;font-size:16px}
+ .phone-job-page:has(.jm-compact-job) .module-page-heading{display:none}
+ .phone-job-page:has(.jm-compact-job) .jobs-workspace-tabs{display:none}
+ .phone-job-page:has(.jm-compact-job) .jm-context-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0;min-height:44px}
+ .phone-job-page .jm-context-heading button{border:0;background:transparent;color:#00715c;font-size:16px;padding:8px 0;min-height:44px}
+ .phone-job-page .jm-context-heading strong{font-size:20px;color:#14253c}
+ .phone-job-page:has(.jm-compact-job) .jm-mobile-picker{position:relative;padding:8px 14px;margin:0 0 8px;border-radius:12px}
+ .phone-job-page:has(.jm-compact-job) .jm-picker-label{display:none}
+ .phone-job-page:has(.jm-compact-job) .jm-picker-identity{display:grid;gap:5px;padding-right:28px;color:#15283b;font-weight:400}
+ .phone-job-page .jm-picker-identity strong{font-size:21px;line-height:1.2;overflow-wrap:anywhere}
+ .phone-job-page:has(.jm-compact-job) .jm-mobile-picker:after{content:'⌄';position:absolute;right:14px;top:20px;font-size:24px;pointer-events:none}
+ .phone-job-page:has(.jm-compact-job) .jm-mobile-picker select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+ .phone-job-page .jm-compact-job{padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;gap:12px}
+ .phone-job-page .jm-compact-job .jm-job-header{display:none}
+ .phone-job-page .jm-mobile-menu{display:grid;gap:12px}
+ .phone-job-page :is(h1,h2,h3,.jm-context-heading strong,.jm-picker-identity strong,.jm-quick-tile strong,.jm-next-action strong){font-weight:700}
+ .phone-job-page .jm-mobile-menu h3{font-size:28px;line-height:1.2;letter-spacing:-.025em;margin:0}
+ .phone-job-page .jm-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .phone-job-page .jm-quick-tile{display:grid;grid-template-columns:1fr auto;align-content:start;gap:6px;padding:12px;min-height:124px;border:1px solid #cbd5df;border-radius:12px;background:white;color:#182b3d;text-align:left;font:inherit}
+ .phone-job-page .jm-quick-tile>svg{width:32px;height:32px;color:#007661}
+ .phone-job-page .jm-quick-tile>span:not(.jm-tile-chevron){grid-column:1/-1;display:grid;gap:6px;min-width:0}
+ .phone-job-page .jm-quick-tile strong{font-size:18px;line-height:1.2}
+ .phone-job-page .jm-quick-tile small{font-size:14px;line-height:1.3;color:#64717c}
+ .phone-job-page .jm-tile-chevron{grid-column:2;grid-row:1;font-size:26px;color:#526774}
+ .phone-job-page .jm-quick-rows{grid-template-columns:1fr}
+ .phone-job-page .jm-quick-rows .jm-quick-tile strong{font-size:20px}
+ .phone-job-page .jm-quick-rows .jm-quick-tile{grid-template-columns:50px 1fr auto;align-items:center;min-height:76px}
+ .phone-job-page .jm-quick-rows .jm-quick-tile>span:not(.jm-tile-chevron){grid-column:2;border-left:1px solid #cbd5df;padding-left:14px}
+ .phone-job-page .jm-quick-rows .jm-tile-chevron{grid-column:3}
+ .phone-job-page .jm-menu-finances{padding:14px;border:1px solid #cbd5df;border-radius:12px;background:white}
+ .phone-job-page .jm-menu-finances .quiet{font-size:12px;line-height:1.4;margin-bottom:0}
+ .phone-job-page .jm-mobile-heading{display:grid;gap:12px;outline:none;scroll-margin-top:12px}
+ .phone-job-page .jm-mobile-heading h3{font-size:28px;margin:0}
+ .phone-job-page .jm-phone-workspace:has(.jm-panel:not([hidden]) .jm-section-heading h3) .jm-mobile-heading h3{display:none}
+ .phone-job-page .jm-phone-workspace:has(.jm-panel:not([hidden])>h3) .jm-mobile-heading h3{display:none}
+ .phone-job-page .jm-panel>h3:first-child{font-size:28px;margin:0 0 12px}
+ .phone-job-page .jm-back-button{justify-self:start;border:0;background:transparent;color:#00715c;min-height:44px;padding:8px 0;font-size:16px;font-weight:600}
+ .phone-job-page .jm-panel{padding:0;min-width:0}
+ .phone-job-page .jm-section-heading{flex-wrap:wrap;gap:10px}
+ .phone-job-page .jm-section-heading h3{font-size:28px}
+ .phone-job-page .jm-panel :is(input,select,textarea){font-size:16px;max-width:100%;min-width:0}
+ .phone-job-page .jm-panel :is(button,a){min-height:44px}
+ .phone-job-page .jm-task-list>li,.phone-job-page .jm-lines>li{padding:16px 0;gap:12px;flex-wrap:wrap}
+ .phone-job-page .jm-task-list>li>label>span{font-size:19px;line-height:1.25;font-weight:700;color:#142337}
+ .phone-job-page .jm-panel .jm-inline-actions{flex-wrap:wrap;gap:8px}
+ .phone-job-page .jm-workspace-footer{margin-top:0}
+ .phone-job-page :is(button,a,summary):focus-visible{outline:3px solid #137d69;outline-offset:3px}
+ .phone-job-page:has(.jm-compact-job) .jm-summary{display:none}
+ .phone-job-page .jm-mobile-heading:empty{display:none}
+ .phone-job-page .jm-panel h3{font-size:24px;line-height:1.25}
+ .phone-job-page .jm-panel h4{font-size:20px;line-height:1.3}
+ .phone-job-page .jm-panel .jm-activity strong{font-size:18px;font-weight:700}
+ .phone-job-page .jm-panel .jm-activity small{font-size:14px}
+ .phone-job-page .jm-panel .work-plan-section>summary{font-size:16px;min-height:44px;padding:12px}
+ .phone-job-page .jm-panel{font-size:16px;line-height:1.45;color:#172b40}
+ .phone-job-page .jm-panel :is(label,p,dt,dd){font-size:16px}
+ .phone-job-page .jm-panel :is(.primary-button,.secondary-button){min-height:44px;border-radius:10px;padding:10px 14px;font-size:16px;font-weight:700}
+ .phone-job-page .jm-panel .jm-section-heading{display:grid;grid-template-columns:1fr;margin:0 0 16px;gap:12px}
+ .phone-job-page .jm-panel .jm-section-heading>.jm-inline-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));width:100%;gap:8px}
+ .phone-job-page .jm-panel .jm-section-heading>.jm-inline-actions>.primary-button{order:-1}
+ .phone-job-page .jm-panel .jm-task-list{display:grid;gap:12px;margin:0;padding:0}
+ .phone-job-page .jm-panel .jm-task-list>li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;border:1px solid #cbd5df;border-radius:12px;padding:14px;gap:8px;background:#fff}
+ .phone-job-page .jm-task-list>li>label{display:flex;gap:10px;margin:0}
+ .phone-job-page .jm-task-list input[type=checkbox]{width:24px;min-width:24px;height:24px;margin:2px 0}
+ .phone-job-page .jm-task-list small{font-size:15px;font-weight:400;line-height:1.4;margin-top:6px}
+ .phone-job-page .jm-task-list .jm-overdue{display:table;font-size:13px;font-weight:700;padding:3px 8px;border-radius:12px;background:#e2f5ee;color:#075c4c!important}
+ .phone-job-page .jm-task-list>li>.jm-inline-actions{display:flex;flex-direction:column;gap:0}
+ .phone-job-page .jm-task-list .text-button{font-size:15px;color:#006b57;font-weight:700;padding:4px;min-height:44px}
+ .phone-job-page .jm-panel .jm-lines{display:grid;gap:12px}
+ .phone-job-page .jm-panel .jm-lines>li{padding:14px;border:1px solid #cbd5df;border-radius:12px;background:white}
+ .phone-job-page .jm-panel .jm-lines small{font-size:14px}
+ .phone-job-page .jm-menu-finances .jm-financial-lines>div{font-size:16px;padding:6px 0}
+ .phone-job-page .jm-workspace-footer{border-top:0;padding-top:0}
+ .phone-job-page .jm-workspace-footer .record-more>summary{font-size:16px;font-weight:700;min-height:44px;border-radius:10px}
+ .phone-job-page .jm-menu-note{margin:-8px 0 0;font-size:16px;color:#566273}
+ .phone-job-page .jm-menu-context{padding:14px;border:1px solid #cbd5df;border-radius:12px;font-size:16px;display:grid;gap:8px}
+ .phone-job-page .jm-record-details{display:grid;grid-template-columns:50px 1fr auto;align-items:center;gap:14px;width:100%;min-height:64px;padding:12px;border:1px solid #cbd5df;border-radius:12px;background:white;color:#182b3d;text-align:left;font-size:20px}
+ .phone-job-page .jm-record-details svg{width:32px;height:32px;color:#007661}
+ .phone-job-page .jm-record-details strong{border-left:1px solid #cbd5df;padding-left:14px}
+ .phone-job-page .jm-menu-context:has(>h4){overflow:hidden;padding-top:0}
+ .phone-job-page .jm-menu-context h4{background:#e5f5ef;margin:0 -14px;padding:8px 14px}
+ .phone-job-page .jm-menu-context h4{font-size:20px;color:#075c4c}
+ .phone-job-page .jm-menu-context .jm-activity{margin:0;padding:0;list-style:none}
+ .phone-job-page .jm-menu-context .jm-activity li{padding:0;border:0}
+ .phone-job-page .jm-menu-context .jm-activity small{font-size:14px}
+ .phone-job-page .jm-picker-status{display:inline-block;font-size:13px;font-weight:700;color:#075c4c;background:#c9f3e8;border:1px solid #8bd6c3;border-radius:16px;padding:3px 8px;margin-left:6px}
+ .phone-job-page .jm-detail-return{width:100%;min-height:44px;font-size:17px;font-weight:700;border:1px solid #00715c;border-radius:10px;background:white;color:#00715c}
+ .phone-job-page:has(.jm-back-button) .jm-context-heading{display:none}
+ .phone-job-page:has(.jm-back-button) .jm-mobile-picker{border:0;padding:8px 0;margin-bottom:0}
+ .phone-job-page:has(.jm-back-button) .jm-picker-status{display:none}
+ .phone-job-page .jm-completed-tasks{border:1px solid #cbd5df;border-radius:12px;margin-top:12px;background:white}
+ .phone-job-page .jm-completed-tasks>summary{padding:12px 14px;font-size:18px;font-weight:700;cursor:pointer;min-height:44px}
+ .phone-job-page .jm-completed-tasks .jm-task-list{padding:12px}
+ .phone-job-page .jm-task-progress::-webkit-progress-bar{background:#dce3e9;border-radius:8px}
+ .phone-job-page .jm-task-progress::-webkit-progress-value{background:#008673;border-radius:8px}
+ .phone-job-page .jm-task-progress::-moz-progress-bar{background:#008673;border-radius:8px}
+ .phone-job-page .jm-task-progress{width:100%;height:10px;accent-color:#008673;grid-column:1/-1;border:0;border-radius:8px;overflow:hidden}
+ .phone-job-page .jm-menu-context:has(>.secondary-button){grid-template-columns:minmax(0,1fr) auto;align-items:center}
+ .phone-job-page .jm-menu-context:has(>.secondary-button)>strong{font-size:13px;text-transform:uppercase}
+ .phone-job-page .jm-menu-context:has(>.secondary-button)>span{grid-column:1;font-size:16px}
+ .phone-job-page .jm-menu-context>.secondary-button{grid-column:2;grid-row:1/3;min-height:44px;font-size:16px;background:white;border:1px solid #00715c;border-radius:10px;color:#006b57;padding:8px 12px}
+ .phone-job-page .jm-menu-context .jm-activity strong{font-size:20px}
+ body:has(.phone-job-page) .form-dialog{font-family:FinviantJobSans,Arial,sans-serif;font-synthesis:weight;box-sizing:border-box;inset:0;margin:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain}
+ body:has(.phone-job-page) .form-dialog :is(label,input,select,textarea){font-size:16px;max-width:100%;min-width:0}
+ body:has(.phone-job-page) .form-dialog .form-grid{grid-template-columns:1fr}
+ body:has(.phone-job-page) .form-dialog :is(.primary-button,.secondary-button,.google-maps-link){min-height:44px;font-size:16px;font-weight:700;border-radius:10px;padding:10px 14px}
+ body:has(.phone-job-page) .form-dialog .google-maps-tools.compact .google-maps-link{min-width:0;min-height:44px;font-size:16px;padding:10px;border-radius:10px}
+ body:has(.phone-job-page) .form-dialog .record-tabs button{min-height:44px;font-size:14px}
+ body:has(.phone-job-page) .form-dialog :is(.icon-button,.guided-dialog-head>.calendar-arrow){width:44px;height:44px;min-width:44px;flex:0 0 44px;border:0;border-radius:10px;background:#f3f4f7;color:#52606c;font-size:24px}
+ body:has(.phone-job-page) .form-dialog .modal-head h2{font-size:25px}
+ body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions){position:sticky;bottom:-18px;background:white;padding:14px 0;display:flex;flex-wrap:wrap;gap:10px;z-index:1}
+ body:has(.phone-job-page) .form-dialog :is(.modal-actions,.guided-actions) button{flex:1 1 auto;min-height:44px;font-size:16px;border-radius:10px}
+}
+
+@media(max-width:360px){
+ .finviant-workspace .phone-job-page .module-page-heading{flex-wrap:wrap}
+ .finviant-workspace .phone-job-page .module-page-heading>div:first-child{flex:1 1 100%}
+ .phone-job-page .work-heading-actions{margin-left:auto}
+}
+
+/* Summary card only: match the approved reference without changing the next card. */
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .finviant-workspace.job-phone-shell:has(.jm-phone-summary) .workspace-inner{padding-top:0}
+ .finviant-workspace:has(.jm-phone-summary) .phone-job-page{font-family:Arial,sans-serif;gap:8px}
+ .phone-job-page:has(.jm-phone-summary) .jobs-workspace-tabs .record-tabs button{font-size:14px;padding:4px 12px}
+ .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker{padding:8px 12px 12px;border-radius:12px 12px 0 0}
+ .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker label{font-size:13px;line-height:1.2;gap:4px}
+ .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker select{font-family:Arial,sans-serif;font-size:16px;font-weight:400;min-height:44px;padding:6px 10px;border-radius:7px}
+ .phone-job-page .jm-phone-workspace:has(.jm-phone-summary){gap:10px;padding:12px;border-radius:14px;color:#121b2b}
+ .phone-job-page:has(.jm-phone-summary) .jm-job-header .eyebrow{font-size:12px;line-height:1.2;letter-spacing:0;margin:0 0 6px;color:#121b2b}
+ .phone-job-page:has(.jm-phone-summary) .jm-phone-status{font-size:13px;line-height:1.2;padding:3px 8px;margin:0 0 6px}
+ .phone-job-page:has(.jm-phone-summary) .jm-job-header h2{font-size:24px;line-height:1.12;letter-spacing:-.035em;margin:0 0 4px}
+ .phone-job-page:has(.jm-phone-summary) .jm-job-header p:not(.eyebrow){font-size:15px;line-height:1.25;margin:4px 0;color:#121b2b}
+ .phone-job-page:has(.jm-phone-summary) .jm-job-header .jm-address{font-size:14px;line-height:1.3}
+ .phone-job-page:has(.jm-phone-summary) .jm-next-action{gap:8px;padding:8px 10px;border-radius:10px}
+ .phone-job-page:has(.jm-phone-summary) .jm-next-action strong{font-size:20px;line-height:1.1;margin-top:2px}
+ .phone-job-page:has(.jm-phone-summary) .jm-next-action .primary-button{font-family:Arial,sans-serif;padding:8px 12px;border-radius:8px;font-size:14px}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups{grid-template-columns:1.2fr 1fr 1fr 1fr;gap:5px}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups button{font-family:Arial,sans-serif;font-size:14px;padding:6px 2px;border-radius:8px}
+ .phone-job-page:has(.jm-phone-summary) .jm-phone-summary{gap:10px}
+ .phone-job-page:has(.jm-phone-summary) .jm-visit-facts{gap:12px}
+ .phone-job-page:has(.jm-phone-summary) .jm-visit-facts dt{font-size:12px;margin-bottom:3px;color:#39414d}
+ .phone-job-page:has(.jm-phone-summary) .jm-visit-facts dd{font-size:16px;line-height:1.2;color:#121b2b}
+ .phone-job-page:has(.jm-phone-summary) .jm-job-actions :is(a,button),
+ .phone-job-page:has(.jm-phone-summary) .jm-job-actions .google-maps-tools.compact .google-maps-link{min-height:62px;font-family:Arial,sans-serif;font-size:13px;padding:7px 4px;gap:4px;border-radius:10px;background:#fff;color:#121b2b}
+ .phone-job-page:has(.jm-phone-summary) .jm-job-actions :is(a,button):before{width:24px;height:24px;background:#086b59}
+ .phone-job-page:has(.jm-phone-summary) .jm-progress-line{font-size:13px;line-height:1.3;padding-top:8px;color:#454d59}
+}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .finviant-workspace.job-phone-shell:has(.jm-phone-summary),
+ .finviant-workspace.job-phone-shell:has(.jm-phone-summary)>.workspace{background:#f6f7f9}
+ .finviant-workspace.job-phone-shell:has(.jm-phone-summary) .jm-account-banner{margin-bottom:0;border-radius:8px}
+ .finviant-workspace.job-phone-shell:has(.jm-phone-summary) .topbar .fin-action-button{min-height:44px;min-width:104px;padding:8px 12px;border-width:1px;border-radius:8px}
+ .finviant-workspace .phone-job-page.jobs-module:has(.jm-phone-summary) .module-page-heading h1{font-size:clamp(16px,5.4vw,21px)}
+ .phone-job-page:has(.jm-phone-summary) .jm-job-header h2{font-size:26px}
+ .phone-job-page:has(.jm-phone-summary) .jm-next-action{background:linear-gradient(100deg,#008673,#007c65)}
+ /* Paint a reference-height tab within its unchanged 44px touch target. */
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups button{position:relative;isolation:isolate;border:0;background:transparent;box-shadow:none}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups button:before{content:'';position:absolute;inset:5px 0;z-index:-1;border:1px solid #d4d6da;border-radius:8px;background:#fff}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups button[aria-pressed=true]:before{background:#e5f5ef;box-shadow:inset 0 -3px #008673}
+}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .phone-job-page .jm-summary-secondary{display:grid;gap:8px;margin:12px 0 0;padding:0 12px;font-family:Arial,sans-serif}
+ .phone-job-page .jm-summary-secondary .jm-notes-disclosure>summary{font-size:14px;color:#364553}
+}
+
+/* Attached Work/Billing/Records/Tasks references, November 12.
+   Scoped to this workspace; real content and existing actions remain visible. */
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .phone-job-page:has(.jm-compact-job){font-family:Arial,sans-serif;color:#101a2c;gap:12px}
+ .phone-job-page .jm-compact-job{gap:16px;color:#101a2c}
+ .phone-job-page:has(.jm-compact-job) .jm-context-heading{gap:12px;margin:0 0 6px}
+ .phone-job-page:has(.jm-compact-job) .jm-context-heading strong{font-size:20px;letter-spacing:-.025em}
+ .phone-job-page:has(.jm-compact-job) .jm-context-heading button{font-size:16px}
+ .phone-job-page:has(.jm-compact-job) .jm-mobile-picker{padding:10px 12px;margin:0 0 12px;border-color:#c4cad7;border-radius:10px}
+ .phone-job-page:has(.jm-compact-job) .jm-picker-identity{gap:4px;padding-right:30px;font-size:16px;line-height:1.3;color:#101a2c}
+ .phone-job-page:has(.jm-compact-job) .jm-picker-identity strong{font-size:22px;letter-spacing:-.025em}
+ .phone-job-page:has(.jm-compact-job) .jm-picker-status{font-size:14px;text-transform:capitalize;background:#c7f5ec;color:#006b58;border-color:#6ddbc6;padding:3px 8px;line-height:1.2}
+ .phone-job-page:has(.jm-compact-job) .jm-mobile-picker:after{right:10px;top:16px;display:grid;place-items:center;width:34px;height:34px;font-size:24px;border:1px solid #bcc4d2;border-radius:8px;background:white;color:#101a2c}
+ .phone-job-page .jm-compact-job .jm-section-groups{grid-template-columns:1.15fr 1fr 1fr 1.05fr;gap:6px;margin:0 0 2px}
+ .phone-job-page .jm-compact-job .jm-section-groups button{font:400 16px/1.2 Arial,sans-serif;min-height:38px;padding:8px 2px;border-radius:8px;border-color:#c4cad7;color:#101a2c}
+ .phone-job-page .jm-compact-job .jm-section-groups button[aria-pressed=true]{font-weight:700;color:#006b58;background:#d9f6ef;box-shadow:inset 0 -3px #007762;border-color:transparent}
+ .phone-job-page .jm-mobile-menu{gap:14px}
+ .phone-job-page .jm-mobile-menu h3,.phone-job-page .jm-compact-job .jm-mobile-heading h3,.phone-job-page .jm-compact-job .jm-panel .jm-section-heading h3,.phone-job-page .jm-compact-job .jm-panel>h3:first-child{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.025em;color:#101a2c;margin:0}
+ .phone-job-page .jm-menu-note{font-size:16px;line-height:1.3;color:#596170;margin:-8px 0 2px}
+ .phone-job-page .jm-quick-grid{gap:10px}
+ .phone-job-page .jm-quick-tile{min-height:118px;padding:10px 14px;border:1px solid #c4cad7;border-radius:10px;gap:6px;background:#fff;color:#101a2c}
+ .phone-job-page .jm-quick-tile>svg{width:34px;height:34px;color:#007762}
+ .phone-job-page .jm-quick-tile strong{font-size:20px;font-weight:700;line-height:1.1;letter-spacing:-.02em}
+ .phone-job-page .jm-quick-tile small{font-size:16px;line-height:1.25;color:#596170}
+ .phone-job-page .jm-quick-tile>span:not(.jm-tile-chevron){gap:6px}
+ .phone-job-page .jm-tile-chevron{font-size:28px;line-height:1.2;color:#434c5b}
+ .phone-job-page .jm-quick-rows .jm-quick-tile{grid-template-columns:54px minmax(0,1fr) auto;min-height:70px;padding:12px;gap:10px}
+ .phone-job-page .jm-quick-rows .jm-quick-tile>svg{width:36px;height:36px;justify-self:center;grid-row:1}
+ .phone-job-page .jm-quick-rows .jm-quick-tile>span:not(.jm-tile-chevron){grid-row:1;padding-left:14px;border-left:1px solid #bfc7d3}
+ .phone-job-page .jm-quick-rows .jm-quick-tile strong{font-size:21px}
+ .phone-job-page .jm-billing-menu .jm-quick-tile{min-height:94px;grid-template-columns:1fr;justify-items:center;text-align:center;align-content:center;padding:8px;gap:7px}
+ .phone-job-page .jm-billing-menu .jm-quick-tile>span:not(.jm-tile-chevron){grid-column:1}
+ .phone-job-page .jm-billing-menu .jm-quick-tile strong{font-size:18px}
+ .phone-job-page .jm-billing-menu .jm-quick-tile small{font-size:14px}
+ .phone-job-page .jm-billing-menu .jm-tile-chevron{display:none}
+ .phone-job-page .jm-menu-finances{padding:10px 16px;border-color:#c4cad7;border-radius:10px}
+ .phone-job-page .jm-menu-finances .jm-financial-lines>div{font-size:17px;line-height:1.25;padding:8px 0;gap:12px}
+ .phone-job-page .jm-menu-finances .jm-financial-lines dd{font-weight:700;font-size:18px;color:#101a2c}
+ .phone-job-page .jm-menu-finances .quiet{font-size:13px;color:#596170;line-height:1.4;margin:5px 0 0}
+ .phone-job-page .jm-billing-primary{display:flex;justify-content:center;align-items:center;width:100%;min-height:46px;border:0;border-radius:12px;font-size:21px;font-weight:700;text-decoration:none;background:linear-gradient(100deg,#008673,#006d59);color:#fff}
+ .phone-job-page .jm-menu-context{padding:12px 14px;border-color:#c4cad7;border-radius:10px;gap:4px;font-size:16px;color:#101a2c}
+ .phone-job-page .jm-menu-context:has(>.secondary-button)>strong{font-size:13px;color:#596170}
+ .phone-job-page .jm-menu-context:has(>.secondary-button)>span{font-size:17px}
+ .phone-job-page .jm-menu-context>.secondary-button{font-weight:700;border-radius:9px;border-color:#007762;font-size:17px;min-height:40px;margin-left:8px}
+ .phone-job-page .jm-menu-context:has(>h4){padding-top:0}
+ .phone-job-page .jm-menu-context h4{font-size:20px;font-weight:700;background:#dcf5ef;color:#006b58;margin:0 -14px 6px;padding:8px 14px}
+ .phone-job-page .jm-menu-context .jm-activity strong{font-size:22px;color:#101a2c}
+ .phone-job-page .jm-menu-context .jm-activity small{font-size:16px;line-height:1.4;color:#596170}
+ .phone-job-page .jm-record-details{min-height:58px;grid-template-columns:54px minmax(0,1fr) auto;border-color:#c4cad7;border-radius:10px;gap:10px;font-size:21px;padding:10px 12px}
+ .phone-job-page .jm-record-details svg{width:36px;height:36px;justify-self:center}
+ .phone-job-page .jm-record-details strong{padding-left:14px}
+ .phone-job-page:has(.jm-back-button) .jm-mobile-picker{padding:4px 0;border:0;margin:0}
+ .phone-job-page:has(.jm-back-button) .jm-mobile-picker:after{display:none}
+ .phone-job-page:has(.jm-back-button) .jm-picker-identity{padding-right:0}
+ .phone-job-page .jm-compact-job .jm-panel .jm-section-heading{gap:14px;margin-bottom:20px}
+ .phone-job-page .jm-compact-job .jm-panel .jm-section-heading p{font-size:17px;color:#596170;margin:14px 0 0}
+ .phone-job-page .jm-compact-job .jm-task-progress{height:10px}
+ .phone-job-page .jm-compact-job .jm-panel .jm-section-heading>.jm-inline-actions{grid-template-columns:1fr 1fr;gap:10px}
+ .phone-job-page .jm-compact-job .jm-panel :is(.primary-button,.secondary-button){font-size:17px;min-height:44px;border-radius:10px}
+ .phone-job-page .jm-compact-job .jm-panel .primary-button{background:linear-gradient(100deg,#008673,#006d59);color:white}
+ .phone-job-page .jm-compact-job .jm-panel .secondary-button{background:white;border-color:#007762;color:#00705b}
+ .phone-job-page .jm-compact-job .jm-task-list{gap:12px}
+ .phone-job-page .jm-compact-job .jm-task-list>li{border-color:#c4cad7;border-radius:11px;padding:14px;gap:10px}
+ .phone-job-page .jm-compact-job .jm-task-list input[type=checkbox]{appearance:none;border:1.5px solid #006957;border-radius:50%;width:23px;min-width:23px;height:23px;background:white}
+ .phone-job-page .jm-compact-job .jm-task-list input[type=checkbox]:checked{background:#007762;box-shadow:inset 0 0 0 4px white}
+ .phone-job-page .jm-compact-job .jm-task-list input[type=checkbox]:disabled{opacity:.6}
+ .phone-job-page .jm-compact-job .jm-task-list>li>label>span{font-size:21px;line-height:1.15;color:#101a2c}
+ .phone-job-page .jm-compact-job .jm-task-list small{font-size:16px;color:#596170}
+ .phone-job-page .jm-compact-job .jm-task-list .jm-overdue{font-size:14px;padding:4px 8px;background:#c9f5e9;border-radius:12px}
+ .phone-job-page .jm-compact-job .jm-task-list .text-button{font-size:16px}
+ .phone-job-page .jm-compact-job .jm-completed-tasks{border-color:#c4cad7;border-radius:10px}
+ .phone-job-page .jm-compact-job .jm-completed-tasks>summary{font-size:18px;padding:12px 14px}
+ .phone-job-page .jm-detail-return{margin-top:24px;min-height:44px;font-size:18px;font-weight:700;border:1px solid #007762;border-radius:9px;padding:10px;background:white;color:#00705b}
+ .phone-job-page .jm-compact-job .jm-workspace-footer .record-more>summary{border:1px solid #c4cad7;border-radius:10px;background:white;padding:10px 14px;min-height:38px;font-size:17px;color:#101a2c}
+}
+@media(max-width:360px){
+ .phone-job-page:has(.jm-compact-job) .jm-context-heading strong{font-size:18px}
+ .phone-job-page .jm-compact-job .jm-section-groups button{font-size:14px}
+ .phone-job-page .jm-quick-tile{padding:10px;min-height:112px}
+ .phone-job-page .jm-quick-tile strong{font-size:18px}
+ .phone-job-page .jm-quick-tile small{font-size:14px}
+ .phone-job-page .jm-billing-menu .jm-quick-tile strong{font-size:16px}
+ .phone-job-page .jm-quick-rows .jm-quick-tile strong{font-size:19px}
+}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ /* A detail keeps the back action before job identity, as in Tasks reference. */
+ .phone-job-page:has(.jm-back-button) .jm-mobile-picker{display:none}
+ .phone-job-page:has(.jm-back-button) .jm-mobile-heading{display:contents}
+ .phone-job-page:has(.jm-back-button) .jm-back-button{order:-2;align-self:flex-start;font-size:17px;font-weight:400}
+ .phone-job-page .jm-compact-job:has(.jm-back-button) .jm-job-header{display:block;order:-1}
+ .phone-job-page .jm-compact-job:has(.jm-back-button) .jm-job-header :is(.eyebrow,.jm-phone-status,.jm-address,.quiet,.jm-status){display:none}
+ .phone-job-page .jm-compact-job:has(.jm-back-button) .jm-job-header h2{font-size:24px;line-height:1.2;margin:0 0 4px;color:#101a2c}
+ .phone-job-page .jm-compact-job:has(.jm-back-button) .jm-job-header p{font-size:17px;color:#596170;margin:0 0 2px}
+}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .phone-job-page .jm-compact-job .jm-section-groups button{min-height:44px}
+ .phone-job-page .jm-menu-context>.secondary-button,.phone-job-page .jm-compact-job .jm-workspace-footer .record-more>summary{min-height:44px}
+}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .phone-job-page .jm-quick-tile{gap:4px;padding:10px;min-height:118px}
+ .phone-job-page .jm-quick-tile>svg{width:32px;height:32px}
+ .phone-job-page .jm-quick-tile>span:not(.jm-tile-chevron){gap:4px}
+ .phone-job-page .jm-quick-tile strong{font-size:18px;line-height:1.1}
+ .phone-job-page .jm-quick-rows .jm-quick-tile small{font-size:15px}
+ .phone-job-page .jm-compact-job .jm-task-list input[type=checkbox]{min-height:23px;max-height:23px;flex:0 0 23px;align-self:flex-start;aspect-ratio:1}
+}
+@media(max-width:900px),(max-width:1100px) and (pointer:coarse){
+ .phone-job-page .jm-context-heading h1{margin:0;font-size:20px;line-height:1.2;font-weight:700;letter-spacing:-.025em;color:#101a2c}
+ /* Summary shares the attached family’s identity and tab shell. */
+ .finviant-workspace.job-phone-shell:has(.jm-phone-summary),.finviant-workspace.job-phone-shell:has(.jm-phone-summary)>.workspace{background:white}
+ .phone-job-page .jm-phone-workspace.jm-compact-job:has(.jm-phone-summary){padding:0;margin:0;border:0;border-radius:0;box-shadow:none;background:transparent;gap:16px}
+ .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker{padding:10px 12px;margin-bottom:12px;border-radius:10px}
+ .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker label{font-size:16px;line-height:1.3}
+ .phone-job-page:has(.jm-phone-summary) .jm-mobile-picker select{position:absolute;inset:0;width:100%;height:100%;opacity:0}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups{grid-template-columns:1.15fr 1fr 1fr 1.05fr;gap:6px}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups button{font:400 16px/1.2 Arial,sans-serif;min-height:44px;padding:8px 2px;border:1px solid #c4cad7;border-radius:8px;background:white;box-shadow:none}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups button:before{display:none}
+ .phone-job-page:has(.jm-phone-summary) .jm-section-groups button[aria-pressed=true]{font-weight:700;background:#d9f6ef;color:#006b58;box-shadow:inset 0 -3px #007762;border-color:transparent}
+}
+@media(max-width:360px){.phone-job-page .jm-context-heading h1{font-size:18px}.phone-job-page:has(.jm-phone-summary) .jm-section-groups button{font-size:14px}}

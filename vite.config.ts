@@ -1,10 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  server: { allowedHosts: ['terminal.local'] },
   build: {
     rollupOptions: {
+      // Local browser fixtures are built separately after startup validation;
+      // hosted builds always contain just the application entry point.
       output: {
         // Stable vendor caches; analytics remains a consent-gated dynamic import.
         manualChunks(id) {

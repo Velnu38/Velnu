@@ -1,20 +1,32 @@
+import DocumentPdfPreview from '../components/DocumentPdfPreview'
+import {useBusinessRefresh} from '../lib/useBusinessRefresh'
+import ChangeOrderTotals from '../components/ChangeOrderTotals'
+import { changeOrderDisplayLine, type ChangeOrderAmounts } from '../lib/changeOrderAmounts'
+import DocumentDelivery from '../components/DocumentDelivery'
+import DocumentActions from '../components/DocumentActions'
+import DocumentBrand from '../components/DocumentBrand'
+import CustomerEditDialog from '../components/CustomerEditDialog'
+import DocumentRecord,{type DocumentDates} from '../components/DocumentRecord'
+import DocumentLineEditor from '../components/DocumentLineEditor'
+import FormDialog from '../components/FormDialog'
+import WorkspaceBack from '../components/WorkspaceBack'
 import { previewDocumentTotal } from '../lib/financialValidation'
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { canManageFinances, type CurrentBusiness } from '../lib/business'
 import { listJobs } from '../services/jobs'
-import { createChangeOrder, listChangeOrders, updateChangeOrderStatus } from '../services/changeOrders'
+import { createChangeOrder, listChangeOrders, listChangeOrderItems, updateChangeOrderStatus, getDocumentChangeContext, createDocumentChangeOrder, getChangeOrderSourceLines, getChangeOrderBilling, billApprovedChangeOrder, type ChangeOrderBilling, type ChangeSourceLine, type DocumentChangeSource } from '../services/changeOrders'
 import { createApprovalLink } from '../services/approvals'
-import { sendDocumentEmail } from '../services/communications'
-import { customerActionsEnabled } from '../lib/releaseFlags'
+import { customerDocumentActionsEnabled } from '../lib/releaseFlags'
 import ApprovalLinkDialog from '../components/ApprovalLinkDialog'
-import { matchesChangeOrderContext, type DocumentChangeOrderContext } from '../lib/documentChangeOrders'
+import { changeOrderStatusLabel, isLinkedChangeOrder, matchesChangeOrderContext, type DocumentChangeOrderContext } from '../lib/documentChangeOrders'
 
-type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null }
+type Customer = { id: string; first_name: string | null; last_name: string | null; company: string | null; email?:string|null; phone?:string|null }
 type Job = { id: string; title: string; status: string; customer_id: string; customers: Customer[] | Customer | null }
-type ChangeOrder = { id: string; customer_id: string; job_id: string; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
+type ChangeOrder = DocumentDates & { id: string; customer_id: string; job_id: string|null; estimate_id?:string|null; source_invoice_id?:string|null; change_order_number: string | null; status: string; title: string; description: string | null; reason: string | null; schedule_impact_days: number; schedule_note: string | null; issue_date: string; subtotal: number; tax_amount: number; total: number; change_totals?: ChangeOrderAmounts | null; approved_at: string | null; customers: Customer[] | null; jobs: { id: string; title: string; status: string }[] | null }
 type Line = { description: string; quantity: string; unit_price: string; tax_rate: string }
-type ApprovalLinkState = { url: string; title: string; expiresAt: string }
+type ApprovalLinkState = { url: string; title: string; expiresAt: string | null; documentId: string }
 
+const money = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})
 const blankLine = (): Line => ({ description: '', quantity: '1', unit_price: '', tax_rate: '0' })
 
 function customerName(customer?: Customer | null) {
@@ -26,16 +38,52 @@ function jobCustomer(job: Job) {
   return Array.isArray(job.customers) ? job.customers[0] : job.customers
 }
 
-export default function ChangeOrdersPage({ business, context, onBack }: { business: CurrentBusiness; context?: DocumentChangeOrderContext; onBack?: () => void }) {
+export default function ChangeOrdersPage({ business, context, initialOrder, onBack }: { business: CurrentBusiness; context?: DocumentChangeOrderContext; initialOrder?: string; onBack?: () => void }) {
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(initialOrder === 'new')
+  const [reviewId,setReviewId]=useState<string|null>(null),[reviewItems,setReviewItems]=useState<Awaited<ReturnType<typeof listChangeOrderItems>>>([]),[reviewLoading,setReviewLoading]=useState(false),[reviewError,setReviewError]=useState(''),[editCustomer,setEditCustomer]=useState(false)
+  const reviewFetch=useRef(0)
+  const billingFlight=useRef(false)
+  const [billing,setBilling]=useState<ChangeOrderBilling|null>(null)
+  const [billingError,setBillingError]=useState('')
+  const [billingVersion,setBillingVersion]=useState(0)
+  useEffect(()=>()=>{reviewFetch.current++},[business.id])
+  const reviewed=changeOrders.find(order=>order.id===reviewId)
+  const canBill=canManageFinances(business.role)
+  const approvedId=reviewed?.status==='approved'?reviewed.id:null
+  useEffect(()=>{
+    setBilling(null);setBillingError('')
+    if(!approvedId||!canBill)return
+    let active=true
+    void getChangeOrderBilling(approvedId).then(value=>{if(active)setBilling(value)})
+      .catch(err=>{if(active)setBillingError(err.message||'Unable to check billing.')})
+    return()=>{active=false}
+  },[approvedId,canBill,billingVersion])
+
+  async function billChange(){
+    if(billingFlight.current||!approvedId||!billing||billing.total===undefined)return
+    const {action,total}=billing
+    if(action!=='add_to_draft'&&action!=='create_invoice')return
+    if(!window.confirm(action==='add_to_draft'?'Add the approved change to this draft invoice?':'Create a separate draft invoice for this approved change?'))return
+    billingFlight.current=true;setBusy(true);setBillingError('')
+    try{setBilling(await billApprovedChangeOrder(approvedId,action,total))}
+    catch(err){setBillingError(err instanceof Error?err.message:'Unable to bill this change. Reload billing before retrying.')}
+    finally{billingFlight.current=false;setBusy(false)}
+  }
+
+  const [sourceLines,setSourceLines]=useState<ChangeSourceLine[]>([])
+  const [lineLoadError,setLineLoadError]=useState('')
+  const [lineLoadComplete,setLineLoadComplete]=useState(false)
+  const [revision,setRevision]=useState<{line:ChangeSourceLine;description:string;quantity:string;price:string}|null>(null)
+  const [source,setSource]=useState<DocumentChangeSource|null>(null)
+  const saving=useRef(false)
   const [approvalLink, setApprovalLink] = useState<ApprovalLinkState | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [jobId, setJobId] = useState(context?.jobId || '')
-  const [title, setTitle] = useState('')
+  const [title, setTitle] = useState(context?'Change to '+context.documentNumber:'')
   const [description, setDescription] = useState('')
   const [reason, setReason] = useState('')
   const [scheduleImpactDays, setScheduleImpactDays] = useState('0')
@@ -44,35 +92,80 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   const retryRef = useRef<{ signature: string; requestId: string } | null>(null)
 
   async function refresh() {
-    const [orders, jobRows] = await Promise.all([listChangeOrders(business.id), listJobs(business.id)])
-    setChangeOrders(orders as ChangeOrder[])
+    const [jobRows, source] = await Promise.all([
+      context ? Promise.resolve([]) : listJobs(business.id),
+      context ? getDocumentChangeContext(context.documentType, context.documentId) : Promise.resolve(null),
+    ])
+    const scope = context && { ...context, jobId: source?.job_id ?? context.jobId }
+    const orders = await listChangeOrders(business.id, scope)
+    if(context)setSource(source)
+    const linkedOrders = (scope ? orders.filter(order => isLinkedChangeOrder(order, scope)) : orders) as ChangeOrder[]
+    setChangeOrders(linkedOrders)
     setJobs((jobRows as unknown as Job[]).filter((job) => job.status !== 'canceled'))
+    return linkedOrders
   }
 
-  useEffect(() => { void refresh().catch(err => setError(err instanceof Error ? err.message : 'Unable to load change orders')) }, [business.id])
+  useBusinessRefresh(business.id,()=>refresh().then(()=>{}))
+  useEffect(() => {
+    let active = true
+    const requested = context ? initialOrder : new URLSearchParams(location.search).get('document')
+    void refresh().then(orders => {
+      if (!active || !requested || requested === 'new') return
+      const order = orders.find(row => row.id === requested)
+      if (order) void openReview(order)
+      else setError('This change order is unavailable in this workspace.')
+    }).catch(err => { if (active) setError(err instanceof Error ? err.message : 'Unable to load change orders') })
+    return () => { active = false }
+  }, [business.id, initialOrder])
 
-  const availableJobs = jobs.filter(job => matchesChangeOrderContext({ customer_id: job.customer_id, job_id: job.id }, context))
-  const visibleOrders = changeOrders.filter(order => matchesChangeOrderContext(order, context))
+  useEffect(()=>{
+    if(!context||!showForm)return
+    let active=true
+    setSourceLines([]);setLineLoadError('');setLineLoadComplete(false)
+    void getChangeOrderSourceLines(context.documentType,context.documentId)
+      .then(rows=>{if(active){setSourceLines(rows);setLineLoadError('');setLineLoadComplete(true)}})
+      .catch(()=>{if(active)setLineLoadError('Could not load editable items. Reopen the document to try again.')})
+    return()=>{active=false}
+  },[context?.documentType,context?.documentId,showForm])
 
-  const preview = useMemo(() => previewDocumentTotal(lines), [lines])
+  const availableJobs = jobs.filter(job => matchesChangeOrderContext({ customer_id: job!.customer_id, job_id: job!.id }, context))
+
+  const addedLines=useMemo(()=>lines.filter(line=>!revision||line.description.trim()||line.unit_price!==''),[lines,revision])
+  const additionsTotal=addedLines.length?previewDocumentTotal(addedLines):revision?0:null
+  const previousTotal=revision?(Number(revision.line.quantity)===0?0:previewDocumentTotal([revision.line])):null
+  const revisedTotal=revision&&revision.quantity!==''&&revision.price!==''
+    ? Number(revision.quantity)===0 ? 0 : previewDocumentTotal([{...revision.line,quantity:revision.quantity,unit_price:revision.price}])
+    : null
+  const adjustment=revisedTotal!==null&&previousTotal!==null?Math.round((revisedTotal-previousTotal)*100)/100:null
+  const preview=additionsTotal===null||revision&&adjustment===null?null:additionsTotal+(adjustment??0)
+  const currentTotal=source?Number(source.current_total??source.total):null
+  const draftTotals:ChangeOrderAmounts|null=currentTotal!==null&&preview!==null ? {
+    current_total:currentTotal,change_amount:preview,revised_total:Math.round((currentTotal+preview)*100)/100,
+    deposit_paid:Number(source?.deposit_paid||0),other_paid:Number(source?.other_paid||0),
+  }:null
 
   function resetForm() {
-    setJobId(context?.jobId || ''); setTitle(''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
+    setRevision(null);setJobId(context?.jobId || ''); setTitle(context?'Change to '+context.documentNumber:''); setDescription(''); setReason(''); setScheduleImpactDays('0'); setScheduleNote(''); setLines([blankLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); if (!canManageFinances(business.role) || busy) return; setBusy(true); setError(''); setNotice('')
+    event.preventDefault(); if (!canManageFinances(business.role) || saving.current) return;saving.current=true; setBusy(true); setError(''); setNotice('')
     try {
       const job = availableJobs.find((row) => row.id === jobId)
-      if (!job) throw new Error('Choose a job')
+      if (!context&&!job) throw new Error('Choose a job')
+      if(context&&!source?.can_change)throw new Error('This work is complete or its source document is unavailable.')
+      if(revision&&adjustment===null)throw new Error('Enter valid revised values.')
+      if(draftTotals&&draftTotals.revised_total<0)throw new Error('The revised total cannot be below zero.')
+      const change=revision?{id:revision.line.id,previous:revision.line,description:revision.description,quantity:Number(revision.quantity),unit_price:Number(revision.price)}:undefined
       const sourceNote = context ? `Requested from ${context.documentType} ${context.documentNumber} (${context.documentId}).` : undefined
-      const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines,estimateId:context?.estimateId,sourceNote})
+      const signature = JSON.stringify({jobId,title,description,reason,scheduleImpactDays,scheduleNote,lines,change,estimateId:context?.estimateId,sourceNote})
       if (retryRef.current?.signature !== signature) retryRef.current = {signature, requestId: crypto.randomUUID()}
-      await createChangeOrder(business.id, {
+      const additions={title,description,reason,expected_current_total:source?.current_total,schedule_impact_days:Number(scheduleImpactDays||0),schedule_note:scheduleNote,items:addedLines.map(line=>({description:line.description,quantity:Number(line.quantity),unit_price:Number(line.unit_price),tax_rate:Number(line.tax_rate||0)}))}
+      const created=context?await createDocumentChangeOrder(context.documentType,context.documentId,retryRef.current.requestId,additions,change):await createChangeOrder(business.id, {
         request_id: retryRef.current.requestId,
-        customer_id: job.customer_id,
-        job_id: job.id,
-        estimate_id: context?.estimateId || undefined,
+        customer_id: job!.customer_id,
+        job_id: job!.id,
+        estimate_id: undefined,
         notes: sourceNote,
         title,
         description,
@@ -86,10 +179,10 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
           tax_rate: Number(line.tax_rate || 0),
         })),
       })
-      resetForm(); setShowForm(false); await refresh()
+      resetForm(); setShowForm(false); const orders=await refresh(); const saved=orders.find(order=>order.id===created.id); if(saved)void openReview(saved);else setNotice('Change order saved. Open it below to review and send.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create change order')
-    } finally { setBusy(false) }
+    } finally { saving.current=false;setBusy(false) }
   }
 
   async function changeStatus(id: string, status: 'sent' | 'void') {
@@ -107,74 +200,131 @@ export default function ChangeOrdersPage({ business, context, onBack }: { busine
   }
 
   async function shareForApproval(order: ChangeOrder) {
-    if (!customerActionsEnabled) return
+    if (!customerDocumentActionsEnabled) return
     setBusy(true); setError(''); setNotice('')
     try {
       const link = await createApprovalLink(business.id, 'change_order', order.id)
-      setApprovalLink({ url: link.url, title: `${order.change_order_number || 'Change order'} approval link`, expiresAt: link.expires_at })
+      setApprovalLink({ url: link.url, title: `${order.change_order_number || 'Change order'} approval link`, expiresAt: link.expires_at, documentId: order.id })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create approval link')
     } finally { setBusy(false) }
   }
 
-  async function emailForApproval(order: ChangeOrder) {
-    if (!customerActionsEnabled || !window.confirm('Send this change order to the customer for approval?')) return
-    setBusy(true); setError(''); setNotice('')
-    try {
-      const sent = await sendDocumentEmail(business.id, 'change_order', order.id)
-      setNotice(`Change order sent to ${sent.recipient}.`)
-      await refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to email change order')
-    } finally { setBusy(false) }
+  function closeForm() {
+    if (saving.current) return
+    setShowForm(false)
+    resetForm()
+    if (context && initialOrder === 'new') onBack?.()
+  }
+
+  function closeReview(){reviewFetch.current++;setReviewId(null);setReviewError('');setReviewLoading(false);if(context)onBack?.()}
+  async function openReview(order:ChangeOrder){
+    const request=++reviewFetch.current
+    setReviewId(order.id);setReviewItems([]);setReviewLoading(true);setReviewError('')
+    try{const items=await listChangeOrderItems(business.id,order.id);if(request===reviewFetch.current)setReviewItems(items)}catch{if(request===reviewFetch.current)setReviewError('Could not load the saved line items. Reload them before sending.')}finally{if(request===reviewFetch.current)setReviewLoading(false)}
   }
 
   return <div className="page-stack">
-    {onBack && <div className="detail-top"><button type="button" className="back-button" onClick={onBack}>← Back to {context?.documentType || 'document'}</button></div>}
+    {!onBack&&<WorkspaceBack/>}{onBack && <div className="detail-top"><button type="button" className="back-button" onClick={onBack}>← Back to {context?.documentType || 'document'}</button></div>}
     <div className="page-heading split-heading">
-      <div><p className="eyebrow">Change orders</p><h1>Capture scope changes before they become lost revenue.</h1></div>
-      {canManageFinances(business.role) && <button className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
+      <div><p className="eyebrow">Change orders</p><h1>{context?`Changes to ${context.documentNumber}`:'Change orders'}</h1></div>
+      {canManageFinances(business.role) && (!context || source?.can_change) && <button type="button" className="primary-button compact" onClick={() => setShowForm(true)}>+ New change order</button>}
     </div>
-    {context && <section className="document-change-context"><strong>From {context.documentNumber}</strong><p>{context.jobId ? 'Change orders for this document’s customer and linked job.' : 'Change orders for this document’s customer. Choose the relevant job when creating a change order.'}</p></section>}
+    {context && <section className="document-change-context"><strong>From {context.documentNumber}</strong><p>Changes inherit this document’s customer, service address and linked work.</p></section>}
     <section className="change-order-intro"><strong>Accuracy first.</strong><span>Added work, price, tax and schedule impact stay separate until the customer approves the change.</span></section>
-    {!customerActionsEnabled && <p className="form-message">Customer emails and approval links are disabled in this private preview until the sender domain and public link are configured.</p>}
     {notice && <p className="form-message success-text">{notice}</p>}
     {error && !showForm && <p className="form-message error-text">{error}</p>}
     <section className="list-card">
-      {visibleOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : visibleOrders.map((order) => {
+      {changeOrders.length === 0 ? <div className="empty-state"><div className="empty-icon">CO</div><h2>No change orders yet</h2><p>When the scope changes, document the added work and cost here before doing it.</p></div> : changeOrders.map((order) => {
         const customer = order.customers?.[0]
         const job = order.jobs?.[0]
         return <article className="document-row change-order-row" key={order.id}>
-          <div className="row-main"><strong>{order.change_order_number || 'Draft change order'} · {order.title}</strong><span>{customerName(customer)} · {job?.title || 'Job'}{order.schedule_impact_days ? ` · ${order.schedule_impact_days > 0 ? '+' : ''}${order.schedule_impact_days} day schedule impact` : ''}</span></div>
-          <div className="invoice-money"><strong className="money">${Number(order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
+          <button type="button" className="row-main estimate-document-open" onClick={()=>void openReview(order)}><strong>{order.change_order_number || 'Draft change order'} · {order.title}</strong><span>{customerName(customer)} · {job?.title || 'Job'}{order.schedule_impact_days ? ` · ${order.schedule_impact_days > 0 ? '+' : ''}${order.schedule_impact_days} day schedule impact` : ''}</span></button>
+          <div className="invoice-money"><strong className="money">${Number(order.change_totals?.change_amount??order.total).toFixed(2)}</strong><span>{order.status === 'approved' ? 'approved' : 'proposed change'}</span></div>
           <div className="document-actions">
-            <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{order.status}</span>
-            {canManageFinances(business.role) && order.status === 'draft' && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'sent')}>Mark sent manually</button>}
-            {canManageFinances(business.role) && ['draft','sent'].includes(order.status) && <button className="secondary-button compact" disabled={busy} onClick={() => changeStatus(order.id, 'void')}>Void</button>}
-            {canManageFinances(business.role) && order.status === 'draft' && <button className="primary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => emailForApproval(order)}>Email customer</button>}
-            {canManageFinances(business.role) && order.status === 'sent' && <button className="secondary-button compact" disabled={busy || !customerActionsEnabled} onClick={() => shareForApproval(order)}>Get customer approval link</button>}
+            <button type="button" className="primary-button compact" onClick={()=>void openReview(order)}>Review / Send</button>
+            <span className={`status-chip ${order.status === 'approved' ? 'paid' : ''}`}>{changeOrderStatusLabel(order.status)}</span>
           </div>
         </article>
       })}
     </section>
-    {showForm && <div className="modal-backdrop" onMouseDown={() => { setShowForm(false); resetForm() }}><section className="modal wide" onMouseDown={(e) => e.stopPropagation()}>
-      <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" onClick={() => { setShowForm(false); resetForm() }}>×</button></div>
+    {showForm && <FormDialog label="Create change order" busy={busy} onClose={closeForm} wide>
+      <div className="modal-head"><div><p className="eyebrow">New change order</p><h2>Document added or changed work</h2></div><button className="icon-button" disabled={busy} onClick={closeForm} aria-label="Close" type="button">×</button></div>
       <form onSubmit={submit} className="estimate-form">
         <div className="form-grid">
-          <label className="full">Job<select value={jobId} onChange={(e) => setJobId(e.target.value)} required><option value="">Choose job…</option>{availableJobs.map((job) => <option value={job.id} key={job.id}>{customerName(jobCustomer(job))} — {job.title}</option>)}</select></label>
-          {context && availableJobs.length === 0 && <p className="form-message full">{context.jobId ? 'The linked job is unavailable. Review its status in Jobs before adding a change order.' : 'No available job matches this customer. Create a job for this customer in Jobs before adding a change order.'}</p>}
+          {context&&<section className="document-change-context full" aria-label="Original document">{source?<><strong>{source.number} · {source.customer_name}</strong>{(source.customer_email||source.customer_phone)&&<p>{[source.customer_email,source.customer_phone].filter(Boolean).join(' · ')}</p>}{source.address&&<p>{source.address}</p>}<p>Original total: ${Number(source.total).toFixed(2)} · Work: {source.work_status.replaceAll('_',' ')}</p><details><summary>Original scope and prices</summary><ul>{source.items.map((item,i)=><li key={i}>{item.description} · {item.quantity} × ${Number(item.unit_price).toFixed(2)}</li>)}</ul></details><p className="quiet">Choose an existing item to adjust its quantity or rate, or add new work below.</p>{!source.can_change&&<p role="alert">This work is complete or the original document is no longer active.</p>}</>:<p role="status">Loading original document…</p>}</section>}
+          {context&&sourceLines.length>0&&<fieldset className="full">
+            <legend>Change an existing item</legend>
+            <label>Current item<select value={revision?.line.id??''} onChange={event=>{
+              const line=sourceLines.find(item=>item.id===event.target.value)
+              setRevision(line?{line,description:line.description,quantity:String(line.quantity),price:String(line.unit_price)}:null)
+            }}><option value="">Add new work only</option>{sourceLines.map(line=><option key={line.id} value={line.id}>{line.description} · {line.quantity} × ${line.unit_price}</option>)}</select></label>
+            {revision&&<><div className="form-grid">
+              <label className="full">Revised description<input required maxLength={1000} value={revision.description} onChange={event=>setRevision({...revision,description:event.target.value})}/></label>
+              <label>Revised unit price<input type="number" min="0" step="0.01" required value={revision.price} onChange={event=>setRevision({...revision,price:event.target.value})}/></label>
+              <label>Revised quantity<input type="number" min="0" step="0.01" required value={revision.quantity} onChange={event=>setRevision({...revision,quantity:event.target.value})}/></label>
+              <p className="quiet full">Set the quantity to 0 to remove this item from the revised scope.</p>
+            </div><p>Current: ${previousTotal?.toFixed(2)} · Revised: {revisedTotal===null?'Enter the revised values':'$'+revisedTotal.toFixed(2)}{adjustment!==null&&<> · Difference: {adjustment<0?'−':'+'}${Math.abs(adjustment).toFixed(2)}</>}. Includes the original tax rate.</p>
+            {adjustment!==null&&adjustment<0&&<p role="status">The customer can approve this reduction. Review any affected issued invoice for a credit after approval.</p>}
+            {adjustment===0&&<p role="status">This revision has no price impact.</p>}</>}
+          </fieldset>}
+          {context&&lineLoadComplete&&sourceLines.length===0&&!!source?.items.length&&<p className="quiet full">These older invoice lines could not be matched to the approved scope. Review the linked records before adjusting an existing charge.</p>}
+          {lineLoadError&&<p className="quiet full" role="status">{lineLoadError}</p>}
+          {!context&&<label className="full">Job<select value={jobId} onChange={(e) => setJobId(e.target.value)} required><option value="">Choose job…</option>{availableJobs.map((job) => <option value={job.id} key={job.id}>{customerName(jobCustomer(job))} — {job.title}</option>)}</select></label>}
           <label className="full">Change order title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add two recessed lights" required /></label>
-          <label className="full">Scope change<textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe exactly what is being added, removed, or changed." /></label>
-          <label>Reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Customer requested" /></label>
+          <label className="full">Scope change<textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the requested change." /></label>
+          <details className="full"><summary>Reason and schedule impact</summary><div className="form-grid"><label>Reason<input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Customer requested" /></label>
           <label>Schedule impact (days)<input type="number" step="1" value={scheduleImpactDays} onChange={(e) => setScheduleImpactDays(e.target.value)} /></label>
-          <label className="full">Schedule note<input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} placeholder="Adds one working day to completion." /></label>
+          <label className="full">Schedule note<input value={scheduleNote} onChange={(e) => setScheduleNote(e.target.value)} placeholder="Adds one working day to completion." /></label></div></details>
         </div>
-        <div className="line-items"><div className="line-items-head"><strong>Price change</strong><button type="button" className="text-button" onClick={() => setLines([...lines, blankLine()])}>+ Add line</button></div>{lines.map((line, index) => <div className="line-item" key={index}><input placeholder="Description" value={line.description} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} required /><input type="number" min="0.01" step="0.01" placeholder="Qty" value={line.quantity} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, quantity: e.target.value } : item))} required /><input type="number" min="0" step="0.01" placeholder="Unit price" value={line.unit_price} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, unit_price: e.target.value } : item))} required /><input type="number" min="0" max="100" step="0.01" placeholder="Tax %" value={line.tax_rate} onChange={(e) => setLines(lines.map((item, i) => i === index ? { ...item, tax_rate: e.target.value } : item))} /><button type="button" className="remove-line" onClick={() => setLines(lines.length === 1 ? [blankLine()] : lines.filter((_, i) => i !== index))}>×</button></div>)}</div>
-        <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong><small>Final totals are calculated by Finviant Office when saved. Customer approval is the next workflow step.</small></div>
-        {error && <p className="form-message error-text">{error}</p>}
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => { setShowForm(false); resetForm() }}>Cancel</button><button className="primary-button" disabled={busy}>{busy ? 'Saving…' : 'Create change order'}</button></div>
+        {(!revision||addedLines.length>0)&&<DocumentLineEditor businessId={business.id} lines={lines} onChange={setLines} newLine={blankLine}/>}
+        {revision&&addedLines.length===0&&<button type="button" className="text-button" onClick={()=>setLines([{...blankLine(),description:'Additional work'}])}>Add new item</button>}
+        {draftTotals ? <ChangeOrderTotals amounts={draftTotals}/> : <div className="estimate-total"><span>Proposed change</span><strong>{preview === null ? 'Check line amounts' : '$' + preview.toFixed(2)}</strong></div>}
+        <p className="quiet">Save and review, then send for approval.</p>
+        {error && <p role="alert" className="form-message error-text">{error}</p>}
+        <div className="modal-actions"><button type="button" className="secondary-button" disabled={busy} onClick={closeForm}>Cancel</button><button className="primary-button" disabled={busy||!!context&&!source?.can_change||!!revision&&adjustment===null||!!draftTotals&&draftTotals.revised_total<0}>{busy ? 'Saving…' : 'Save and review'}</button></div>
       </form>
-    </section></div>}
-    {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onClose={() => setApprovalLink(null)} />}
+    </FormDialog>}
+    {reviewId&&<FormDialog label="Review change order" wide busy={busy} onClose={closeReview}><section className="change-order-review">
+      <div className="modal-head"><div><p className="eyebrow">{reviewed ? changeOrderStatusLabel(reviewed.status) : 'Saved document'}</p><h2>Review change order</h2></div><button type="button" className="icon-button" aria-label="Close review" onClick={closeReview}>×</button></div>
+      {reviewed?<>
+        {!context && (reviewed.source_invoice_id || reviewed.estimate_id) && <p className="calendar-no-print"><a href={reviewed.source_invoice_id
+          ? '/?view=invoices&document='+encodeURIComponent(reviewed.source_invoice_id)
+          : '/?view=estimates&document='+encodeURIComponent(reviewed.estimate_id!)}>{reviewed.source_invoice_id ? 'Open original invoice' : 'Open original estimate'}</a></p>}
+        <p className="quiet">{reviewed.status==='draft'?'Next: send this change to the customer for approval.':reviewed.status==='sent'?'Waiting for customer approval.':reviewed.status==='approved'?'Customer approved this change.':''}</p>
+        {canManageFinances(business.role)&&['draft','sent'].includes(reviewed.status)&&<DocumentDelivery onBusyChange={setBusy} key={reviewed.id} businessId={business.id} kind="change_order" documentId={reviewed.id} refreshKey={reviewed.updated_at||''} email={reviewed.customers?.[0]?.email} phone={reviewed.customers?.[0]?.phone} disabled={busy||reviewLoading||!!reviewError} onEditContact={()=>setEditCustomer(true)} onSent={refresh}/>}
+        {editCustomer&&<CustomerEditDialog businessId={business.id} customerId={reviewed.customer_id} onClose={()=>setEditCustomer(false)} onSaved={()=>void refresh()}/>}
+        {reviewLoading&&<p role="status">Loading saved line items…</p>}
+        {reviewError&&<div><p role="alert">{reviewError}</p><button type="button" className="secondary-button" onClick={()=>void openReview(reviewed)}>Reload line items</button></div>}
+        {(!canManageFinances(business.role)||!['draft','sent'].includes(reviewed.status))&&<DocumentPdfPreview source={{businessId:business.id,kind:'change_order',documentId:reviewed.id}} title="Change order PDF"/>}
+        {approvedId&&canBill&&<section aria-label="Change order billing">
+          <h3>Billing next step</h3>
+          {!billing&&!billingError&&<p role="status">Checking billing…</p>}
+          {billing?.action==='included_on_final'&&<p>This approved change will be included when you create the final invoice from the estimate.</p>}
+          {billing?.action==='verify_existing'&&<p>Review the existing final invoice before charging this change. It may already be included.</p>}
+          {billing?.action==='manual_review'&&<p>{reviewed.change_totals?.manual_billing
+            ? 'Review the source invoice and payments before recording a credit or billing adjustment.'
+            : 'Review the linked records before billing this change.'}</p>}
+          {billing?.action==='scope_only'&&<p>The customer approved a scope change with no change to the amount due.</p>}
+          {(billing?.action==='add_to_draft'||billing?.action==='create_invoice')&&<>
+            <p>{billing.action==='add_to_draft'
+              ?`Draft invoice total: $${Number(billing.total).toFixed(2)} → $${(Number(billing.total)+Number(billing.change_total)).toFixed(2)}`
+              :`Separate draft invoice: $${Number(billing.change_total).toFixed(2)}. The issued invoice stays intact.`}</p>
+            <button type="button" className="primary-button" disabled={busy} onClick={()=>void billChange()}>{billing.action==='add_to_draft'?'Add to draft invoice':'Create change invoice'}</button>
+          </>}
+          {billing?.action==='billed'&&<p role="status">{billing.status==='void'?'The linked invoice was voided. Review billing history before creating a replacement.':`Included on ${billing.number||'the linked invoice'}.`}</p>}
+          {billing?.invoice_id&&['billed','verify_existing'].includes(billing.action)&&<a href={'/?view=invoices&document='+encodeURIComponent(billing.invoice_id)}>Open invoice</a>}
+          {billingError&&<p role="alert">{billingError} <button type="button" className="text-button" disabled={busy} onClick={()=>setBillingVersion(value=>value+1)}>Reload billing</button></p>}
+        </section>}
+        <DocumentRecord dates={reviewed} timezone={business.timezone} customerId={reviewed.customer_id} customerName={customerName(reviewed.customers?.[0])}/>
+        <DocumentActions primary={null} secondary={canManageFinances(business.role)&&<>
+          {reviewed.status==='draft'&&<button type="button" disabled={busy} onClick={()=>void changeStatus(reviewed.id,'sent')}>Mark sent manually</button>}
+          {reviewed.status==='sent'&&<button type="button" disabled={busy||!customerDocumentActionsEnabled} onClick={()=>void shareForApproval(reviewed)}>Approval link</button>}
+          {['draft','sent'].includes(reviewed.status)&&<button type="button" className="danger-action" disabled={busy} onClick={()=>void changeStatus(reviewed.id,'void')}>Void</button>}
+        </>}/>
+        {error&&<p role="alert" className="form-message error-text">{error}</p>}{notice&&<p role="status" className="form-message">{notice}</p>}
+      </>:<p role="status">Loading saved change order…</p>}
+    </section></FormDialog>}
+    {approvalLink && <ApprovalLinkDialog url={approvalLink.url} title={approvalLink.title} expiresAt={approvalLink.expiresAt} onReplace={async()=>{const link=await createApprovalLink(business.id,'change_order',approvalLink.documentId,{rotate:true});setApprovalLink({...approvalLink,url:link.url,expiresAt:link.expires_at})}} onClose={() => setApprovalLink(null)} />}
   </div>
 }

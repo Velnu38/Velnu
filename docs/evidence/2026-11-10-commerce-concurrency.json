@@ -1,0 +1,39 @@
+{
+  "observedAt": "2026-11-10",
+  "testedHead": "930ec8b6d68ec0b0c0e39041a51b79ff4fd7caec",
+  "testedTree": "fd8448fa8c982c82527b2d2595013326f02dc07f",
+  "run": "https://github.com/Velnu38/Velnu/actions/runs/42904649546",
+  "job": 130139569879,
+  "artifact": 13804472060,
+  "artifactSha256": "769ab5906dfda05d65d96607a12089472420fd75d59d32db22715218bcc172c2",
+  "result": {
+    "sourceCommit": "0ed7c29a3ded9e0b02fa24dead49dde4c36ff7d0",
+    "scope": "owned PostgreSQL concurrent owner booking/manual payment acceptance; no card provider",
+    "limits": {
+      "workspaces": 20,
+      "connections": 20,
+      "statementMs": 15000
+    },
+    "overlappingCalls": 80,
+    "bookingWinners": 20,
+    "bookingConflicts": 20,
+    "paymentWinners": 20,
+    "overpaymentRejections": 20,
+    "sharedPaymentRetries": 40,
+    "uniqueFinalPayments": 40,
+    "appointments": 20,
+    "duplicates": 0,
+    "p95IncludingBarrierMs": 154,
+    "externalProviderRequests": 0,
+    "limitations": [
+      "Synthetic SQL identities; genuine JWT acceptance is covered separately.",
+      "Timing includes the deliberate lock barrier, not a production latency estimate.",
+      "Customer confirmation, signed merchant callbacks and hosted concurrency remain separate."
+    ],
+    "cleanup": {
+      "users": 0,
+      "businesses": 0,
+      "payments": 0
+    }
+  }
+}

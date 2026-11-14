@@ -1,0 +1,4 @@
+{
+  "extends": "../tsconfig.calendar.json",
+  "include": ["./*.ts", "../server/calendar/**/*.ts"]
+}
