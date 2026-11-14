@@ -1,13 +1,16 @@
 // Synthetic local fixture only: deny all external browser requests.
-import {chromium} from '@playwright/test'
+import {chromium,webkit} from '@playwright/test'
 import {createServer} from 'node:http'
-import {readFileSync,mkdirSync} from 'node:fs'
+import {readFileSync,mkdirSync,existsSync} from 'node:fs'
 import assert from 'node:assert/strict'
 const html=readFileSync('tmp/operations-review/preview.html')
 const server=createServer((req,res)=>{res.setHeader('Content-Type','text/html');res.end(html)})
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
 const origin=`http://127.0.0.1:${server.address().port}`
-const browser=await chromium.launch({executablePath:process.env.FINVIANT_TEST_BROWSER_PATH||'/usr/bin/chromium',args:['--no-sandbox']})
+const engine=process.env.KANBAN_BROWSER_ENGINE||'chromium'
+assert.ok(['chromium','webkit'].includes(engine),'Supported browser engine')
+const executablePath=process.env.FINVIANT_TEST_BROWSER_PATH||(engine==='chromium'&&existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined)
+const browser=await (engine==='webkit'?webkit:chromium).launch({executablePath,...(engine==='chromium'?{args:['--no-sandbox']}:{})})
 mkdirSync('work/kanban',{recursive:true})
 try {
  for(const width of [320,390,1440]){
@@ -45,7 +48,7 @@ try {
   const kitchen=board.getByRole('button',{name:'Open job Kitchen renovation',exact:true})
   await kitchen.click();await page.locator('.jm-workspace h2').waitFor({state:'visible'})
   assert.deepEqual(errors,[])
-  console.log(`PASS synthetic Chromium Kanban ${width}px: totals, chart, records, lanes, list switch, workspace and viewport`)
+  console.log(`PASS synthetic ${engine} Kanban ${width}px: totals, chart, records, lanes, list switch, workspace and viewport`)
   await page.close()
  }
  const restricted=await browser.newPage({viewport:{width:390,height:900}})
