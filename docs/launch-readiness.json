@@ -8,31 +8,31 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
-      "title": "Job actions phone overlap corrected — release still gated",
+      "title": "Job actions phone overlap corrected \u2014 release still gated",
       "detail": "Candidate cb27392 passed the Chromium and focused Chromium/WebKit checks but full iPhone WebKit shard 4 reproduced the bottom dock intercepting Request a Google review in the absolute-positioned Job actions menu. The unified Jobs footer now expands its menu in document flow so all actions and nested controls can scroll above the dock. Existing pointer-action assertion is retained; no forced click, skipped test or provider call. Fresh final-head full CI remains required before beta promotion. All 51 task statuses/criteria retained.",
       "evidence": "https://github.com/Velnu38/Velnu/pull/118",
       "verifiedAt": "2026-11-13"
     },
     {
-      "title": "Unified Jobs beta release preparation — PR118",
+      "title": "Unified Jobs beta release preparation \u2014 PR118",
       "detail": "Owner authorized beta deployment. Migrating broad browser/component tests from retired split Jobs/Management and Job details navigation to the actual canonical workspace, preserving business assertions. Readiness checks also found and corrected missing customer-name context on filtered Jobs pages using bounded selected-customer lookup and current result fallback. First PR run exposes old navigation assertions; no checks bypassed and no beta merge yet. Existing completion, pricing, provider and paid/physical-device gates remain. The future supported customer journey remains specification only.",
       "evidence": "https://github.com/Velnu38/Velnu/pull/118",
       "verifiedAt": "2026-11-13"
     },
     {
-      "title": "Supported customer journey defined — specification only",
+      "title": "Supported customer journey defined \u2014 specification only",
       "detail": "Defined one USD fixed-price, manager-operated journey: agreed estimate, canonical linked job, reviewed crew/appointment offer, customer booking/confirmation, multi-visit work, reviewed completion/final draft, reviewed invoice delivery, verified partial/full payment, suppression and receipt. Optional deposits and approved changes retain one billing history. Existing disabled 48-hour appointment and 2/7/3 overdue-email defaults, saved overrides, separate work/payment states and manager-only crew scope remain. Fin uses the same authorized actions. Failure/retry, duplicate, real-provider/two-business/device acceptance are explicit. Target contract only; no runtime implementation, provider activation, hosted write, send, charge, deployment or gate closure.",
       "evidence": "docs/SUPPORTED_CUSTOMER_JOURNEY_2026-11-13.md",
       "verifiedAt": "2026-11-13"
     },
     {
-      "title": "End-to-end customer/work/payment assessment — recommendations only",
+      "title": "End-to-end customer/work/payment assessment \u2014 recommendations only",
       "detail": "Repository and existing release evidence confirm substantial relational records, scheduling, completion-to-final-invoice, delivery queues and verified payment handlers, but do not establish a fully enabled/certified automatic lifecycle. Missing or selected follow-up includes billable pricing/progress policy, completion autosend policy, customer/worker notification coverage, guided rescheduling, invoice-link opened/Viewed alert, multi-stage payment reminders and payment receipt/financial closure acceptance. Source reminder defaults remain disabled (appointment 48 elapsed hours; overdue invoice email 2/7/3); saved account values were not read. Last recorded calendar failure/provider inventories are not new current account observations. No automation implementation, provider activation, hosted data edit, message, charge or deployment occurred in this assessment. All 51 task records/statuses/criteria retained.",
       "evidence": "docs/END_TO_END_AUTOMATION_ASSESSMENT_2026-11-13.md",
       "verifiedAt": "2026-11-13"
     },
     {
-      "title": "Unified Job Management and restored document Fin — local candidate",
+      "title": "Unified Job Management and restored document Fin \u2014 local candidate",
       "detail": "Owner-authorized one directory/workspace replaces competing product Jobs/Management paths, retaining direct actions, atomic creation, Board/history/search/paging, crew/visits, approved work, canonical invoices, role/dirty/completion guards and calendar/deep-link returns. Mobile CSS no longer hides Fin in New Invoice/New Estimate. Current-source local production TypeScript/build plus 95 startup checks, 32 Chromium Jobs/Fin/shared-document cases, 21 domain cases, seven component scenarios and shared PDF acceptance pass. Actual synthetic captures retained. No beta promotion; full release regression, broad navigation-fixture migration, WebKit, physical-device/owner/provider acceptance remain. No migration, provider change, real send or charge.",
       "evidence": "docs/evidence/2026-11-13-unified-job-management.json",
       "verifiedAt": "2026-11-13"
@@ -659,6 +659,12 @@
       "detail": "Read-only beta review found one dead calendar queue item (one attempt, no expired lease), where the previous verified audit found an empty queue. The only Outlook integration still says connected but has an error; its recorded last successful sync is 2026-11-11T00:14:00.29838Z. Queue available_at is 2026-11-13T01:35:14.441662Z. A connected row and active minute cron do not establish working sync. The safe error classification is unclassified; no root cause, token failure or specific provider fault is inferred. OPS-03 and CAL-01 remain open. No reconnect, retry, requeue, configuration change or provider write was attempted.",
       "evidence": "2026-11-13 read-only beta aggregate receipt at audited source 77c3016b833295e1c8c47c6884750f79b19f0484: calendar queue total=1, dead=1, attempts=1, expired leases=0; one Outlook integration state=connected with error present, last successful sync 2026-11-11T00:14:00.29838Z; queue available_at 2026-11-13T01:35:14.441662Z. Safe error classification was unclassified; root cause and recovery are not verified. No credentials, integration identifiers, raw errors, requeues or provider writes retained/performed.",
       "verifiedAt": "2026-11-13"
+    },
+    {
+      "title": "Twilio beta configuration preparation",
+      "detail": "Read-only beta inventory found zero active SMS senders, zero configured sender numbers and zero reply routes across three managed delivery accounts. Existing send-document-sms, managed-sms-events, twilio-test-events and tier-delivery-worker are deployed. Added a local secret-redacting preflight and an exact beta runbook distinguishing Edge credentials, Supabase Auth phone verification, Integration Testing allowlist and managed business activation. Preflight and existing signed callback/inbound handler tests pass. Hosted secret presence is inaccessible through the connected tools, so credentials/Auth setup remain unverified. Appointment SMS currently omits a status callback; accepted is not delivered. No hosted settings, provider activation, message, purchase or customer data changed.",
+      "evidence": "docs/TWILIO_BETA_SETUP.md; scripts/check-twilio-beta.mjs; tests/deployment/twilio-config.test.mjs; tests/integrations/managed-sms-events.test.ts; read-only Supabase aggregate and function inventory; source f421e562853002d9e7a31fa4a427a5a08bd5b753",
+      "verifiedAt": "2026-11-13"
     }
   ],
   "tasks": [
@@ -841,7 +847,7 @@
       "status": "blocked_external",
       "title": "Activate and certify managed SMS",
       "owner": "Owner + developer",
-      "why": "The owner authorized two controlled SMS messages within a $1 combined cap, but the selected workspace has managed Twilio SMS inactive and no sender/reply route; registration/balance cannot be verified. No SMS was sent and no paid activation was attempted. Existing card SMS code remains implemented; manual native-phone sharing is separate.",
+      "why": "The owner authorized two controlled SMS messages within a $1 combined cap, but the selected workspace has managed Twilio SMS inactive and no sender/reply route; registration/balance cannot be verified. No SMS was sent and no paid activation was attempted. Existing card SMS code remains implemented; manual native-phone sharing is separate. Twilio beta setup preparation: exact callbacks/secrets/Auth configuration documented in docs/TWILIO_BETA_SETUP.md; zero active senders/sender numbers/reply routes observed. Hosted credentials and real delivery remain unverified; appointment SMS status callback correlation remains incomplete.",
       "acceptance": "Complete provider registration, verified sending/reply route, opt-in/STOP/START handling, signed callbacks, consent/recipient scope, segment-cost display and quota tests on controlled live numbers. Check uncertain sends/reconciliation and cross-business sender isolation. Keep activation gates until accepted.",
       "evidence": [
         {
@@ -2033,6 +2039,7 @@
     "PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design.",
     "The owner authorized combining Jobs and Job Management into one efficient canonical workspace, superseding the earlier separate-workspace rule. The local candidate retains existing actions, directory views, deep links, permissions and completion review. Capture actual candidate comparisons and record exact source/viewport/check evidence; full release regression and beta verification remain required before promotion. This does not authorize new automation or providers in the current assessment.",
     "All 51 canonical task records and their criteria/history are retained unchanged. AI-03 remains the sole formally completed record; this is not a measure of total application completion. No other requested change is removed merely for implementation, merge or deployment. Provider setup, real-device acceptance, security, full hosted restore/load, commercial decisions and public launch remain separately gated.",
-    "Hero/introduction claims must be checked against verified enabled beta capabilities and approved plan terms. This checkpoint does not establish new hero verification or a pricing decision. No application code, provider settings, activation, customer sends, purchases or costs changed in this report."
+    "Hero/introduction claims must be checked against verified enabled beta capabilities and approved plan terms. This checkpoint does not establish new hero verification or a pricing decision. No application code, provider settings, activation, customer sends, purchases or costs changed in this report.",
+    "Twilio beta setup preparation is documented in docs/TWILIO_BETA_SETUP.md with a secret-redacting local preflight. No active sender, sender number or reply route is configured. Secure credentials, Auth phone setup and controlled provider acceptance remain required; no SMS activation or send was performed."
   ]
 }
