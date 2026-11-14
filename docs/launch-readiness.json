@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Admin authenticator recovery guidance — local candidate, access not yet restored",
+      "detail": "The owner reports a code field but no authenticator entry. The public /admin route responds HTTP200; this does not establish signed-in access. Added clear instructions identifying the authenticator app as the code source, a recovery disclosure for existing registered factors, owner-controlled Supabase MFA recovery steps and a setup recheck. Existing server operator/session/AAL2 checks are preserved. TypeScript and the focused MFA DOM regression pass, including no dashboard access before verification. No authenticator reset, role change, send or deployment occurred. Supabase admin access remains unavailable in this environment; actual owner recovery and signed-in acceptance remain pending. All 51 task statuses/criteria remain.",
+      "evidence": "docs/evidence/2026-11-14-admin-authenticator-guidance.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
       "title": "Google Calendar credentials — verified beta configuration refresh",
       "detail": "The owner saved GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_CLIENT_SECRET as sensitive Preview variables; metadata confirms both keys, available across Preview branches. Values were not read or exposed. Existing verified PR118 source f421e562853002d9e7a31fa4a427a5a08bd5b753 on ux/private-testing-20261029 was redeployed as READY dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA, and both Finviant aliases were assigned and verified with HTTP200/private no-store/noindex. No application source change, automation-candidate rollout, migration, environment publication, customer send/charge or Google authorization was performed. Owner Connect Google and live booking/reschedule/cancel/refresh acceptance remain. All 51 readiness records remain.",
       "evidence": "docs/evidence/2026-11-14-google-calendar-beta-config.json",

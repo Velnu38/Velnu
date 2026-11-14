@@ -2,6 +2,11 @@
 
 Checked November 14, 2026 UTC.
 
+## Current admin access interruption — recovery pending
+
+- Owner reports an authenticator-code field and no Finviant entry in an authenticator app. `/admin` responds HTTP200; signed-in access is not established. The existing UI selects a registered verified factor when one is present. No token/factor secret was read, reset or exposed. Supabase admin access is unavailable here; owner-controlled identity verification/reset of the existing factor and replacement enrollment are required. Do not remove server operator/session/AAL2 guards or treat a second URL/password reset as MFA recovery.
+- Local guidance now explains the code source, provides registered-factor recovery steps and allows rechecking setup after an external reset. TypeScript and focused MFA DOM regression pass, including no dashboard bypass before verification. [Local evidence](evidence/2026-11-14-admin-authenticator-guidance.json). This guidance is not deployed. Automation remains the main task; the first local framework slice below is committed/tested but still undeployed, and broader handoffs remain outstanding. All 51 readiness histories/statuses remain.
+
 ## Current Google Calendar configuration refresh
 
 - Both Google OAuth key names are saved as sensitive Vercel Preview variables, available to Preview branches. Metadata was checked without reading values. Existing verified PR118 beta source `f421e562853002d9e7a31fa4a427a5a08bd5b753` was redeployed as READY `dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA`; both Finviant aliases and HTTP200/private no-store/noindex responses are verified. [Configuration refresh receipt](evidence/2026-11-14-google-calendar-beta-config.json). This supersedes the earlier deployment ID for the same application source.
