@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Collections and Job Management Kanban released to private beta",
+      "detail": "PR120 merged as 9df9e755247bfd717122983837199ba0fbf6161c after all nine workflows and all 22 complete-suite jobs passed at 71063d660ed2fb0b047f661235adbc32d929c52d; tested and merged trees match. Dedicated synthetic Chromium/WebKit checks cover 320/390/1440px and restricted permissions. READY dpl_2KELiEGmV1C9kqVLkThrXTfrAfTE serves both domains with HTTP200/private no-store/noindex, retained SSO and beta backend. Live board bundles and exact reviewed CSS verified. Collections invoice cards explicitly preview the eight oldest past-due records alongside complete aging totals; job lanes count the current server-filtered page. Existing totals, charts, records and guarded workflows retained. No backend/provider/settings changes, hosted data writes, messages, charges or environment publication. All 51 task statuses/criteria/history retained; signed-in owner, physical-device and provider acceptance remain open.",
+      "evidence": "docs/evidence/2026-11-14-kanban-beta-release.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
       "title": "Collections and Job Management Kanban — local synthetic candidate",
       "detail": "Added a collections aging board using existing financial overview totals and labeled oldest-invoice preview, then exposed and improved the canonical Job Management board with page counts, empty lanes and horizontal phone scrolling. Cash totals, charts, transaction records, search/paging, permissions and guarded workflow actions retained. Production build/97 startup checks, 15 domain cases, existing operations DOM suites and synthetic Chromium at 320/390/1440px plus restricted access pass. No backend/provider/hosted changes, real sends, charges or deployment. Full CI, WebKit, hosted owner and physical-device acceptance remain open under existing UX/JOB gates; no task status or acceptance criterion changed.",
       "evidence": "docs/evidence/2026-11-14-collections-jobs-kanban.json",
