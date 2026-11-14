@@ -30,4 +30,17 @@ test('money uses exact decimal arithmetic and invented prices or taxes require c
  assert.throws(()=>validateReply({...proposal,steps:[{...proposal.steps[0],fields:{items:[{...fields.items[0],tax_rate:'6'}]}}]},records,['Mowing $200']),/tax rate/)
 })
 test('cached identical requests return without extra provider attempts',async()=>{const f=fixture();f.state.cached={answer:'Saved earlier',sources:[],limits:[]};assert.equal((await f.h(request())).status,200);assert.equal(f.state.reserves,0);assert.equal(f.state.calls,0)})
+test('Fin carries explicitly requested estimate payment terms, preserves saved terms, and cannot treat a term duration as a price',()=>{
+ const items=[{description:'Work',quantity:'1',unit_price:'200',tax_rate:'0'}]
+ const proposal={...base,steps:[{operation:'create_estimate',target:null,customer:'customers:'+C,fields:{items,payment_terms_days:'15'}}]}
+ assert.equal(validateReply(proposal,records,['Estimate Jane $200, Net 15']).steps[0].fields.payment_terms_days,'15')
+ assert.throws(()=>validateReply(proposal,records,['Estimate Jane $200']),/cannot assume a default/)
+ assert.throws(()=>validateReply({...proposal,steps:[{...proposal.steps[0],fields:{items,payment_terms_days:'366'}}]},records,['Estimate $200, Net 366']),/0 to 365/)
+ assert.throws(()=>validateReply({...proposal,steps:[{...proposal.steps[0],fields:{items:[{...items[0],unit_price:'15'}],payment_terms_days:'15'}}]},records,['Prepare a Net 15 estimate']),/price/)
+ const saved:RecordSet[]=[...records,{resource:'estimates',rows:[{id:T,updated_at:'2026-11-04T12:00:00Z',payment_terms_days:15,items}],matching_count:1,offset:0,complete:true}]
+ const update={...base,steps:[{operation:'update_estimate',target:'estimates:'+T,customer:null,fields:{items,payment_terms_days:'15'}}]}
+ assert.equal(validateReply(update,saved,['Keep the saved $200 work']).steps[0].fields.payment_terms_days,'15')
+ const missing:RecordSet[]=[{...saved[1],rows:[{...saved[1].rows[0],payment_terms_days:null}]}]
+ assert.throws(()=>validateReply({...update,steps:[{...update.steps[0],fields:{items,payment_terms_days:'0'}}]},missing,['Keep the saved $200 work']),/cannot assume a default/)
+})
 test('a verified multistep proposal remains a proposal; response never invokes a write executor',async()=>{const f=fixture();let call=0;f.deps.complete=async()=>++call===1?{output:[{type:'function_call',name:'lookup_account_records',call_id:'a',arguments:JSON.stringify(query)}]}:result({...base,steps:[{operation:'create_job',target:null,customer:'customers:'+C,fields:{title:'Mow lawn',description:'Mowing'}},{operation:'schedule_job',target:'$step:0',customer:null,fields:{starts_at:'2026-11-10T09:00:00-05:00',ends_at:'2026-11-10T10:00:00-05:00'}}]});const response=await f.h(request({text:'Create a mowing job for Jane and schedule November 10, 9–10 am.'}));assert.equal(response.status,200);assert.equal(f.state.saves,1);assert.equal((await response.json()).steps.length,2)})

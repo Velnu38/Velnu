@@ -2,6 +2,12 @@
 
 Checked November 14, 2026 UTC.
 
+## Current expanded supported journey candidate — backend-first release pending
+
+- Owner requests complete workflow verification and beta deployment. Future-only default-off booking/payment emails, exact reviewed reschedule/cancel notices, explicit required-deposit guards, agreed invoice terms and reviewed Fin term support are implemented on the existing actions/outbox. [Scope and rollout](SUPPORTED_JOURNEY_FRAMEWORK_2026-11-14.md). Earlier first-slice gap lists below are historical and superseded for source implementation, not live acceptance.
+- Local checks: 32 framework/Fin cases, 15 management/execution/approval regressions, production TypeScript/build and 95 startup checks. Seven phone Chromium scenarios pass after the final shared-checkbox presentation recheck. Native connected-journey SQL and required WebKit coverage are added; full CI/replay remain pending; final synthetic phone captures are reviewed. [Candidate receipt](evidence/2026-11-14-supported-journey-candidate.json).
+- Running environment still has no Supabase deployment token/password. Prepare/check the PR, but do not promote frontend requiring missing RPCs. Backend migrations001–004 and worker/Fin deployment must precede beta promotion. Preserve latest beta disabled Twilio setup. No hosted migration, test account creation, provider authorization, real send/charge, beta release or environment publication has occurred. All 51 readiness histories/statuses/criteria remain; signed-in hosted/provider/physical-device acceptance remains open.
+
 ## Current admin access interruption — recovery pending
 
 - Owner reports an authenticator-code field and no Finviant entry in an authenticator app. `/admin` responds HTTP200; signed-in access is not established. The existing UI selects a registered verified factor when one is present. No token/factor secret was read, reset or exposed. Supabase admin access is unavailable here; owner-controlled identity verification/reset of the existing factor and replacement enrollment are required. Do not remove server operator/session/AAL2 guards or treat a second URL/password reset as MFA recovery.

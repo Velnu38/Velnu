@@ -21,6 +21,7 @@ Deno.serve(async(req:Request)=>{
  if(mode!=='disabled'){
   try{
    const tasks=await db.rpc('prepare_due_delivery_tasks');if(tasks.error)throw tasks.error;prepared=tasks.data
+   const notices=await db.rpc('prepare_due_journey_notices');if(notices.error)throw notices.error;prepared+=notices.data
    const{data,error}=await db.rpc('list_due_document_emails');if(error||!Array.isArray(data))throw Error('Queue unavailable')
    for(const row of data.slice(0,3)){try{const result=await dispatchQueuedEmail(db,env('RESEND_API_KEY'),row.id,crypto.randomUUID());if(result.status===200)accepted++;else unconfirmed++}catch{unconfirmed++}}
   }catch{documentQueueFailed=true}

@@ -7,7 +7,7 @@ function block(sql:string,marker:string,end='end $$;'){
   assert.ok(a>=0&&b>a,marker)
   return sql.slice(a,b+end.length)
 }
-export async function journeyFixture(){
+export async function journeyFixture(notices=false){
  const db=await managementFixture()
  try{
   await db.exec('reset role')
@@ -25,6 +25,13 @@ export async function journeyFixture(){
   await db.exec(block(versions,'create or replace function public.get_shared_document('))
   await db.exec(`create function private.owner_archive_sources(b uuid,owner_id uuid) returns table(collection text,payload jsonb) language sql as $$select null::text,null::jsonb where false$$;`)
   await db.exec(await readFile('supabase/migrations/20261114000100_supported_journey_framework.sql','utf8'))
+  if(notices){
+   const pro=await readFile('supabase/migrations/20261108155833_pro_value_workflow_release.sql','utf8')
+   await db.exec(block(pro,'create or replace function private.manual_or_pro_email(', '$$;'))
+   await db.exec(block(pro,'CREATE OR REPLACE FUNCTION private.claim_document_email_before_pdf(', '$function$\n;'))
+   await db.exec(`create or replace function private.claim_document_email_before_invoice_preferences(p_request uuid,p_pdf_capable boolean) returns jsonb language sql security definer as $$select private.claim_document_email_before_pdf(p_request)$$;`)
+   await db.exec(await readFile('supabase/migrations/20261114000200_journey_customer_notices.sql','utf8'))
+  }
   return db
  }catch(error){await db.close();throw error}
 }

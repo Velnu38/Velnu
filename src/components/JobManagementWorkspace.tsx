@@ -7,6 +7,7 @@ import { JOB_PHONE_QUERY, JobMenuIcon } from './JobMobileMenu'
 import {jobNextStep} from '../lib/jobNextStep'
 import {jobJourney} from '../lib/jobJourney'
 import WorkflowActivity from './WorkflowActivity'
+import JourneyNoticeReview from './JourneyNoticeReview'
 import {
   lazy,
   Suspense,
@@ -138,6 +139,7 @@ export default function JobManagementWorkspace({
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [compactSections,setCompactSections]=useState(()=>window.matchMedia(JOB_PHONE_QUERY).matches);
+  const[noticeReview,setNoticeReview]=useState<string|null>(null);
   useEffect(()=>{const media=window.matchMedia(JOB_PHONE_QUERY);const update=()=>setCompactSections(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update)},[]);
   const [mobileBilling, setMobileBilling] = useState<'invoices'|'costs'>(new URLSearchParams(location.search).get('billing') === 'costs' ? 'costs' : 'invoices');
   const [section, setSection] = useState<Section>(initialSection),
@@ -1150,7 +1152,7 @@ export default function JobManagementWorkspace({
                 <p className="quiet">
                   Work-plan changes, bookings, invoice openings and payment handoffs.
                 </p>
-                {section==='activity'&&(data.journey?<WorkflowActivity businessId={business.id} jobId={jobId} timezone={zone} entries={data.activity} refreshKey={data.activity[0]?.created_at}/>:<Activity entries={data.activity} zone={zone}/>)}
+                {section==='activity'&&(data.journey?<WorkflowActivity businessId={business.id} jobId={jobId} timezone={zone} entries={data.activity} refreshKey={data.activity[0]?.created_at} canNotify={canBill&&canSchedule}/>:<Activity entries={data.activity} zone={zone}/>)}
               </div>
             </>
           )}
@@ -1206,10 +1208,11 @@ export default function JobManagementWorkspace({
           mode={dispatch}
           needsAppointmentRepair={!booked}
           onReschedule={() => setDispatch("appointment")}
-          onSaved={changed}
+          onSaved={noticeId=>{changed();if(noticeId&&canBill&&canSchedule)setNoticeReview(noticeId)}}
           onClose={() => setDispatch(null)}
         />
       )}
+      {noticeReview&&canBill&&canSchedule&&<JourneyNoticeReview key={business.id+jobId+noticeReview} businessId={business.id} eventId={noticeReview} onClose={()=>setNoticeReview(null)} onSaved={changed}/>}
       {completion && data && job && canEdit && !closed && (
         <FormDialog
           label="Complete job review"

@@ -3,7 +3,7 @@ import { DateTime } from 'luxon'
 import type { CurrentBusiness } from '../../lib/business'
 import { localInstant } from '../../lib/calendarTime'
 import { useTierUsage } from '../../lib/useTierUsage'
-import { isPrimaryOwner } from '../../lib/workspaceAccess'
+import { canAccess,isPrimaryOwner } from '../../lib/workspaceAccess'
 import { assignJobCrew, getSchedulingContext, saveJobAppointment, type SchedulingContext } from '../../services/schedulingWorkflow'
 import FormDialog from '../FormDialog'
 import PlanRestriction from '../PlanRestriction'
@@ -25,7 +25,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
   initialDay?: string
   needsAppointmentRepair?: boolean
   onClose: () => void
-  onSaved: () => void
+  onSaved: (noticeId?:string|null) => void
   onReschedule?: () => void
 }) {
   const saving = useRef(false)
@@ -86,13 +86,15 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
     setError('')
     setCanResolveWithTime(false)
     try {
+      let noticeId:string|null=null
       if (crewOnly) {
         await assignJobCrew(job, selectedWorkers)
       } else {
-        await saveJobAppointment(job, start === originalStart && job.scheduled_start ? job.scheduled_start : localInstant(start, zone),
-          end === originalEnd && job.scheduled_end ? job.scheduled_end : localInstant(end, zone), useMySchedule)
+        noticeId=await saveJobAppointment(job, start === originalStart && job.scheduled_start ? job.scheduled_start : localInstant(start, zone),
+          end === originalEnd && job.scheduled_end ? job.scheduled_end : localInstant(end, zone), useMySchedule,
+          plan==='pro'&&canAccess(business,'billing')&&['owner','admin','office'].includes(business.role)?business.id:undefined)
       }
-      onSaved()
+      onSaved(noticeId)
       onClose()
     } catch (e) {
       const code = e instanceof Error && 'code' in e ? e.code : undefined
@@ -136,7 +138,7 @@ export default function DispatchJobDialog({ business, job, mode = 'appointment',
         </button>}
       </fieldset>}
     </> : <>
-      <p className="quiet">Times use {zone.replaceAll('_', ' ')}. {mustReassign ? 'Moving this job to your schedule changes its crew.' : 'The current crew stays assigned.'} Confirm the time with your customer. Finviant sends no customer message when you save.</p>
+      <p className="quiet">Times use {zone.replaceAll('_', ' ')}. {mustReassign ? 'Moving this job to your schedule changes its crew.' : 'The current crew stays assigned.'} Confirm the time with your customer. Saving does not send a change notice. Eligible rescheduled visits open a customer email for review afterward.</p>
       {mustReassign && <label className="guided-approval">
         <input type="checkbox" checked={useMySchedule} onChange={event => setUseMySchedule(event.target.checked)}/>
         <span>Move this job to my schedule. The current crew assignment isn’t available on this plan.</span>

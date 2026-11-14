@@ -68,10 +68,14 @@ export async function assignJobCrew(job:JobScheduleSnapshot,workers:string[]) {
     p_expected_start:job.scheduled_start,p_expected_end:job.scheduled_end??null})
   announceCalendarChange()
 }
-export async function saveJobAppointment(job:JobScheduleSnapshot,start:string,end:string,useMySchedule:boolean) {
+export async function saveJobAppointment(job:JobScheduleSnapshot,start:string,end:string,useMySchedule:boolean,noticeBusiness?:string) {
   await rpc('save_job_appointment',{p_job:job.id,p_start:start,p_end:end,p_expected_start:job.scheduled_start,
     p_expected_end:job.scheduled_end??null,p_use_my_schedule:useMySchedule})
   announceCalendarChange()
+  if(noticeBusiness&&job.scheduled_start){
+    try{const{data,error}=await supabase.rpc('get_job_change_notice',{p_business:noticeBusiness,p_job:job.id,p_start:start,p_end:end});return !error&&typeof data==='string'?data:null}catch{return null}
+  }
+  return null
 }
 export function createJobInvoice(job:string,request:string,items:Array<{description:string;quantity:number;unit_price:number;tax_rate:number}>,due?:string,details?:{issue_date:string;notes:string;customer_reference?:string;payment_links?:import('./settings').PaymentLink[];payment_instructions?:string}) {return rpc<{id:string;already_created:boolean}>('create_job_invoice',{p_job:job,p_request:request,p_items:items,p_due:due || null,p_details:details || {}})}
 

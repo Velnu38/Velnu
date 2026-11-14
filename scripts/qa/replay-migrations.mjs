@@ -96,7 +96,9 @@ export async function main({capacity=false}={}) {
   if (process.argv.length > 2) throw new Error('Replay accepts no database URL, project ref, or command-line arguments')
   const directory = mkdtempSync(join(tmpdir(), 'finviant-replay-'))
   const projectId = `finviant-replay-${randomUUID().slice(0, 8)}`
-  const env = { ...cleanCliEnvironment(), SUPABASE_HOME: join(directory, 'runtime') }
+  const npmCache = join(tmpdir(), 'finviant-replay-npm-cache')
+  mkdirSync(npmCache, { recursive: true })
+  const env = { ...cleanCliEnvironment(), npm_config_cache: npmCache, SUPABASE_HOME: join(directory, 'runtime') }
   const cli = (args, timeout = 120_000) => {
     const result = spawnSync('npm', ['exec', '--yes', `--package=supabase@${CLI_VERSION}`, '--', 'supabase', ...args, '--workdir', directory], {
       cwd: directory, env, encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024,
@@ -139,6 +141,20 @@ export async function main({capacity=false}={}) {
       console.error(JSON.stringify({ phase: 'fresh-schema-financial-tenant-smoke', error: safeDatabaseError(error) }))
       throw new Error('Fresh-schema financial/tenant smoke failed')
     }
+    const journeySql = readFileSync(join(root, 'tests/migrations/supported-journey-smoke.sql'), 'utf8')
+    try {
+      await client.query(journeySql)
+    } catch (error) {
+      console.error(JSON.stringify({ phase: 'supported-journey-smoke', error: safeDatabaseError(error) }))
+      throw new Error('Supported customer journey smoke failed')
+    }
+    mkdirSync(join(root, 'tmp/journey-results'), { recursive: true })
+    writeFileSync(join(root, 'tmp/journey-results/result.json'), JSON.stringify({
+      sourceCommit: process.env.GITHUB_SHA || null,
+      file: 'tests/migrations/supported-journey-smoke.sql',
+      sha256: createHash('sha256').update(journeySql).digest('hex'),
+      passed: true, rolledBack: true, identity: 'simulated-jwt', providers: 'not_called',
+    }, null, 2) + '\n')
     const abuseCostSmoke = await verifyAbuseCostReplay(client,localDatabaseUrl(status.DB_URL))
     mkdirSync(join(root,'tmp/abuse-cost-results'),{recursive:true})
     writeFileSync(join(root,'tmp/abuse-cost-results/result.json'),JSON.stringify({sourceCommit:process.env.GITHUB_SHA||null,...abuseCostSmoke},null,2)+'\n')
@@ -162,6 +178,7 @@ export async function main({capacity=false}={}) {
     console.log(JSON.stringify({ result: 'passed', cli: CLI_VERSION,
       cronLaunchActiveJobs: false, reminderSmoke, authStorageSmoke, queueCatchup, capacity:capacityResult,
       smoke: { file: 'tests/migrations/release-smoke.sql', sha256: createHash('sha256').update(smokeSql).digest('hex'), passed: true, rolledBackCounts: cleanup },
+      journeySmoke: { file: 'tests/migrations/supported-journey-smoke.sql', sha256: createHash('sha256').update(journeySql).digest('hex'), passed: true, providers: 'not_called' },
       migrations: result.applied.length, ...result }, null, 2))
   } finally {
     if (client) await client.end()

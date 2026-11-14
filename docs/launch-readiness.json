@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Supported journey expanded \u2014 release candidate; backend and live acceptance pending",
+      "detail": "Implemented future-only default-off booking/payment emails on the existing durable transport, exact reviewed schedule-change notices, required-deposit booking guards, agreed estimate-to-final payment terms and reviewed Fin term support. Local framework checks pass 32 cases; existing management/execution/approval checks pass 15; production TypeScript/build and 95 startup/deployment checks pass. Seven Chromium phone scenarios pass at 320/390px after final shared-checkbox capture review; full CI/native replay remain required. The connected native SQL journey now joins mandatory replay and phone cases join required WebKit CI. Supabase deployment credentials remain absent from the running environment. No hosted migration, beta promotion, provider activation, customer send/charge or environment publication. All 51 task histories/statuses/criteria retained.",
+      "evidence": "docs/evidence/2026-11-14-supported-journey-candidate.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
       "title": "Admin authenticator recovery guidance — local candidate, access not yet restored",
       "detail": "The owner reports a code field but no authenticator entry. The public /admin route responds HTTP200; this does not establish signed-in access. Added clear instructions identifying the authenticator app as the code source, a recovery disclosure for existing registered factors, owner-controlled Supabase MFA recovery steps and a setup recheck. Existing server operator/session/AAL2 checks are preserved. TypeScript and the focused MFA DOM regression pass, including no dashboard access before verification. No authenticator reset, role change, send or deployment occurred. Supabase admin access remains unavailable in this environment; actual owner recovery and signed-in acceptance remain pending. All 51 task statuses/criteria remain.",
       "evidence": "docs/evidence/2026-11-14-admin-authenticator-guidance.json",

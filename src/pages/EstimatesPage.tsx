@@ -1,6 +1,8 @@
 import '../components/document-phone.css'
 import {JobMenuIcon} from '../components/JobMobileMenu'
 import PaymentTerms from '../components/PaymentTerms'
+import EstimatePaymentTerms from '../components/EstimatePaymentTerms'
+import {estimatePaymentMessage} from '../lib/estimatePaymentTerms'
 import CopyDocumentButton from '../components/CopyDocumentButton'
 import UpgradeLink from '../components/UpgradeLink'
 import EstimateBilling from '../components/EstimateBilling'
@@ -117,6 +119,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
   const [notes, setNotes] = useState('')
   const [customerReference,setCustomerReference]=useState('')
   const [customerTerms, setCustomerTerms] = useState('')
+  const[paymentTermsDays,setPaymentTermsDays]=useState('')
   const [defaultTax, setDefaultTax] = useState(0)
   const [documentTax, setDocumentTax] = useState('0')
   const [defaultsReady,setDefaultsReady] = useState(false)
@@ -177,7 +180,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
     event.preventDefault();setError('')
     try{
       if(!customerId)newCustomerFields(customerDraft)
-      validateDocumentInput({customer_id:customerId||'new',issue_date:issueDate,expires_on:expiresOn,items:lines.map(l=>({description:l.description,quantity:Number(l.quantity),unit_price:Number(l.unit_price),tax_rate:Number(l.tax_rate)}))})
+      validateDocumentInput({customer_id:customerId||'new',issue_date:issueDate,expires_on:expiresOn,customer_message:estimatePaymentMessage(customerTerms,paymentTermsDays),items:lines.map(l=>({description:l.description,quantity:Number(l.quantity),unit_price:Number(l.unit_price),tax_rate:Number(l.tax_rate)}))})
       if(documentPayments.payment_links.some(link=>!validPaymentLink(link)))throw new Error('Enter a valid HTTPS payment link.')
       if ((event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'draft') {
         void submit()
@@ -187,7 +190,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
 
   function resetForm() {
     setCreationPreview(false); setCreationNumber('');setEditedByControls(false);savedCreation.current=null;setSavedCustomerId(''); dateEdited.current=false; setDocumentTax(String(defaultTax))
-    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId('');setServiceAddress(''); setExpiresOn(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate')); setNotes(''); setCustomerReference(''); setCustomerTerms(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
+    setIssueDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!); setCustomerId('');setCustomerDraft(emptyCustomerDraft());customerRequest.current=null;setDocumentPayments(defaultPayments); setPropertyId('');setServiceAddress(''); setExpiresOn(documentEndDate(DateTime.now().setZone(business.timezone || 'UTC').toISODate()!, 'estimate')); setNotes(''); setCustomerReference(''); setCustomerTerms(''); setPaymentTermsDays(''); setLines([newLine()]); setError(''); setNotice(''); retryRef.current = null
   }
 
   async function submit(sendEmail=false, stayOnPreview=false, expectedRevisionId?:string) {
@@ -207,7 +210,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         customer={customer_id:customerRequest.current.id,new_customer:fields}
       }
       const payments=isPrimaryOwner(business)?documentPayments:{}
-      const signature = JSON.stringify({ issueDate, customer, payments, propertyId, expiresOn, notes, customerReference, customerTerms, lines })
+      const signature = JSON.stringify({ issueDate, customer, payments, propertyId, expiresOn, notes, customerReference, customerTerms, paymentTermsDays, lines })
       if (retryRef.current?.signature !== signature) retryRef.current = { signature, requestId: crypto.randomUUID() }
       const created = await createEstimate(business.id, { request_id: retryRef.current.requestId,
         ...customer,...payments,
@@ -217,6 +220,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
         notes,
         customer_reference:customerReference,
         customer_message: customerTerms,
+        payment_terms_days:paymentTermsDays===''?null:Number(paymentTermsDays),
         items: lines.map((line) => ({
           description: line.description,
           quantity: Number(line.quantity),
@@ -415,6 +419,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
           <label>Customer PO / reference (optional)<input maxLength={120} value={customerReference} onChange={e=>setCustomerReference(e.target.value)}/></label>
           <label>Internal note <small>Only your business can see this</small><textarea maxLength={4000} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
           <label>Customer-facing estimate terms (optional)<textarea rows={3} maxLength={4000} value={customerTerms} onChange={e=>setCustomerTerms(e.target.value)}/></label>
+          <EstimatePaymentTerms value={paymentTermsDays} onChange={setPaymentTermsDays}/>
           <CustomerPropertySelect selectSingle businessId={business.id} customerId={customerId} value={propertyId} onChange={(id,address)=>{setPropertyId(id);setServiceAddress(address)}} disabled={busy}/>
           {customerId&&<button type="button" className="text-button" onClick={()=>setEditCreationCustomer('all')}>Edit customer contact</button>}
         </div></details>
@@ -424,7 +429,7 @@ export default function EstimatesPage({ business }: { business: CurrentBusiness 
       </form>
 
       {editCreationCustomer&&creationContactId&&<CustomerEditDialog businessId={business.id} customerId={creationContactId} contactField={editCreationCustomer==='all'?undefined:editCreationCustomer} onClose={()=>setEditCreationCustomer(null)} onSaved={()=>{void refresh().catch(e=>setError(e.message))}}/>}
-      {creationPreview&&<CreationPreview simple onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',number:creationNumber,customer:creationCustomer,customerReference,serviceAddress,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:customerTerms,paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
+      {creationPreview&&<CreationPreview simple onEditContact={creationContactId?setEditCreationCustomer:undefined} onDraftContact={(field,value)=>setCustomerDraft(current=>({...current,[field]:value}))} canUpgrade={isPrimaryOwner(business)} busy={busy} error={error} saved={!!savedCreation.current} paper={{business,kind:'estimate',number:creationNumber,customer:creationCustomer,customerReference,serviceAddress,issued:issueDate,ending:expiresOn,items:lines,...previewAmounts(lines),message:estimatePaymentMessage(customerTerms,paymentTermsDays),paymentLinks:documentPayments.payment_links,paymentInstructions:documentPayments.payment_instructions}} onBack={()=>{if(savedCreation.current)void finishCreation(savedCreation.current,true).catch(e=>setError(e.message));else setCreationPreview(false)}} onSave={()=>void submit(false)} saveForDelivery={()=>submit(false,true)} onEmail={revisionId=>void submit(true,false,revisionId)}/>}
       </div>
     </FormDialog>}
     {convertTarget && <FormDialog label="Create the invoice" busy={busy} onClose={() => { setConvertTarget(null); setConvertDueDate(''); setError('') }}>

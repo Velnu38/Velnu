@@ -100,8 +100,8 @@ begin
  end if;
  if new.status='canceled' and exists(select 1 from public.appointments a where a.business_id=new.business_id and a.job_id=new.job_id and a.starts_at=new.starts_at and a.ends_at=new.ends_at and a.id<>new.id and a.status in('scheduled','confirmed','in_progress')) then return new;end if;
  kind:=case when new.status='canceled' and (tg_op='INSERT' or old.status<>'canceled') then 'appointment_canceled'
-  when new.status in('scheduled','confirmed') and (tg_op='INSERT' or old.status in('canceled','no_show')) then 'appointment_booked'
-  when tg_op='UPDATE' and new.status in('scheduled','confirmed') and (new.starts_at,new.ends_at) is distinct from (previous_start,previous_end) then 'appointment_changed' end;
+  when tg_op='UPDATE' and new.status in('scheduled','confirmed') and (new.starts_at,new.ends_at) is distinct from (previous_start,previous_end) then 'appointment_changed'
+  when new.status in('scheduled','confirmed') and (tg_op='INSERT' or old.status in('canceled','no_show') or new.status='confirmed' and old.status='scheduled') then 'appointment_booked' end;
  if kind is null then return new;end if;
  insert into private.workflow_events(business_id,job_id,kind,event_key,facts)
  values(new.business_id,new.job_id,kind,'visit:'||new.job_id||':'||kind||':'||coalesce(previous_start::text,'new')||':'||coalesce(previous_end::text,'new')||':'||new.starts_at||':'||new.ends_at||':'||txid_current(),
@@ -121,7 +121,7 @@ begin
   j:=new.job_id;
   if j is null and new.deposit_estimate_id is not null then select id into j from public.jobs where business_id=new.business_id and source_estimate_id=new.deposit_estimate_id;end if;
   insert into private.workflow_events(business_id,job_id,invoice_id,kind,event_key,facts)
-  values(new.business_id,j,new.id,kind,'invoice:'||new.id||':'||kind||':'||txid_current(),jsonb_build_object('amount_paid',new.amount_paid,'balance_due',new.balance_due,'deposit',new.deposit_estimate_id is not null)) on conflict do nothing;
+  values(new.business_id,j,new.id,kind,'invoice:'||new.id||':'||kind||':'||txid_current()||':'||old.amount_paid||':'||new.amount_paid||':'||new.balance_due,jsonb_build_object('amount_paid',new.amount_paid,'balance_due',new.balance_due,'deposit',new.deposit_estimate_id is not null)) on conflict(business_id,event_key) do nothing;
  end if;
  if new.status in('paid','void') then
   -- A queued operation can be stopped. A claimed/in-flight operation retains its outcome.
