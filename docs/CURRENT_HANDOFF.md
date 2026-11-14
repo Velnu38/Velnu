@@ -2,6 +2,11 @@
 
 Checked November 14, 2026 UTC.
 
+## Current Google Calendar configuration refresh
+
+- Both Google OAuth key names are saved as sensitive Vercel Preview variables, available to Preview branches. Metadata was checked without reading values. Existing verified PR118 beta source `f421e562853002d9e7a31fa4a427a5a08bd5b753` was redeployed as READY `dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA`; both Finviant aliases and HTTP200/private no-store/noindex responses are verified. [Configuration refresh receipt](evidence/2026-11-14-google-calendar-beta-config.json). This supersedes the earlier deployment ID for the same application source.
+- The owner must complete Calendar Connections → Connect Google. Google authorization and live provider behavior remain unverified. No automation candidate, migration, provider authorization, real send/charge or environment publication was performed. The separate automation candidate below remains undeployed; all 51 readiness records and external gates remain.
+
 ## Current supported journey implementation candidate — not deployed
 
 - The owner subsequently authorized implementation and beta deployment. A first candidate on `ux/supported-journey-20261113` adds derived work/payment status in the existing workspace, direct next actions, a private workflow ledger, bounded authorized activity, revision-specific invoice openings, pending Stripe/Square reminder holds and immediate queued reminder cancellation on settlement/void. In-flight provider outcomes remain untouched; new records join the existing owner archive source. [Scope and remaining work](SUPPORTED_JOURNEY_FRAMEWORK_2026-11-14.md).
