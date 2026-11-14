@@ -5,6 +5,7 @@ import { getSharedDocument, type SharedDocument } from '../services/personalDeli
 import { supabase } from '../lib/supabase'
 import { safePaymentLinks, invoicePaymentUrl, paymentProviderName } from '../lib/paymentLinks'
 import DocumentPdfPreview from '../components/DocumentPdfPreview'
+import {recordInvoiceOpen} from '../services/workflowActivity'
 
 type PaymentReadiness = { available: boolean; state: string; message?: string }
 function payableDocument(doc:SharedDocument|null) {
@@ -19,6 +20,7 @@ export default function SharedDocumentPage({ token }: { token: string }) {
   const [attempt, setAttempt] = useState(0)
   const checkoutRequest = useRef(crypto.randomUUID())
   const statusRequest=useRef(0)
+  const opened=useRef(new Set<string>())
   const [statusVerified,setStatusVerified]=useState(false)
   useEffect(() => {
     let active = true
@@ -27,6 +29,10 @@ export default function SharedDocumentPage({ token }: { token: string }) {
     void getSharedDocument(token).then(async next => {
       if (!active||request!==statusRequest.current) return
       setDoc(next);setStatusVerified(true)
+      if(next.kind==='invoice'&&next.revision_id&&['sent','viewed','partial','overdue','paid'].includes(next.live_status||next.status)){
+        const key=token+':'+next.revision_id
+        if(!opened.current.has(key)){opened.current.add(key);void recordInvoiceOpen(token).catch(()=>{opened.current.delete(key)})}
+      }
       if (next.kind === 'invoice' && next.pro_actions_enabled && Number(next.live_balance_due ?? next.balance_due) > 0) {
         const { data, error: failure } = await supabase.functions.invoke('customer-invoice-checkout', { body: { token, mode: 'status', request_id: checkoutRequest.current } })
         if (active&&request===statusRequest.current) setPayment(failure ? { available: false, state: 'unavailable', message: 'Online invoice payment is temporarily unavailable. Contact the business to confirm its status.' } : data)

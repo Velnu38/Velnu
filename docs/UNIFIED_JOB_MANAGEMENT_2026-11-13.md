@@ -1,6 +1,6 @@
 # Unified Job Management and restored Fin
 
-Implemented on `ux/unified-job-management-20261113`, based on the verified invoice/estimate beta release and its handoff receipt. This is a development candidate, not a beta deployment. The owner's instruction to consolidate the two job areas supersedes the earlier handoff's separate-workspace guidance.
+Implemented on `ux/unified-job-management-20261113`, based on the verified invoice/estimate beta release and its handoff receipt. Released to private beta through PR118; see the [release receipt](evidence/2026-11-13-unified-job-management-beta-release.json). The owner's instruction to consolidate the two job areas supersedes the earlier handoff's separate-workspace guidance.
 
 ## One entry and one job workspace
 
@@ -27,6 +27,6 @@ The simplified document form's mobile CSS explicitly hid its existing task-level
 
 The [development receipt](evidence/2026-11-13-unified-job-management.json) records the current-source production TypeScript/build and 95 startup checks, 32 Chromium browser cases (24 Jobs/Fin plus eight shared document cases), 21 domain cases, seven management/phone component scenarios and shared PDF/document acceptance. All 32 unique browser cases are verified across a 29-pass main run and three passing bounded rechecks. Two whole-test timeouts and one corrected assertion of the generic retry guidance are recorded in the receipt; a clean single-run result is not claimed. Other listed checks passed. Actual synthetic phone captures are retained in `docs/reference/unified-jobs-*`. Chromium checks cover 320/390/430/1440 widths, direct actions, typed creation, booking, stable retries, list/Calendar history and Back, approved work, role limits, dirty drafts, completion rechecks and Fin. The tested 390px Jobs fixture has no axe WCAG A/AA violations; this is bounded automated coverage.
 
-The new Chromium/WebKit workflow is configured for a future PR; it has not run. Local verification does not establish WebKit, physical-device, owner or live-provider acceptance. Several older broad browser journeys still assert the retired category menus/Job details path and require navigation migration before the full release suite can certify this candidate. Broader release regression remains a promotion gate; no beta release is claimed.
+Release validation supersedes the earlier local-only checkpoint: all 16 applicable workflows and all 22 full-suite jobs passed at `02f165820003f857500eddb0506e4d9cbad49e32`, including focused and broad Chromium/WebKit checks. Retired navigation assertions were migrated while retaining business and recovery checks. A real WebKit dock-overlap failure was corrected by letting Job actions expand in document flow; the original pointer assertions pass. The merged tree matches the tested tree, and both domains serve the reviewed Jobs/Fin CSS and beta backend. Physical-device, authenticated owner and live-provider acceptance remain open.
 
 No hosted data edits, migration, provider activation, real customer message or charge is part of this implementation. All 51 launch task records and acceptance criteria are retained.

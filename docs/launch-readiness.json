@@ -1,14 +1,50 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-13",
+  "updatedAt": "2026-11-14",
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "69445e74360417f40d178a9c220998f94d828be4",
+  "auditedCommit": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
-      "title": "Job actions phone overlap corrected \u2014 release still gated",
+      "title": "Supported journey native replay passes; Supabase deployment access restored",
+      "detail": "Connected journey on the real final PostgreSQL schema passes at e0d7f62, check132317221492 in complete run43552253249. Test uses the existing service-only completion boundary and verifies direct browser denial; all synthetic records roll back and providers are not called. Full CI still needs final-head booking-copy assertions to pass. Runtime revision3 now exposes the saved Supabase binding; management API200 and beta-project access succeed. Read-only preflight finds 152 migrations and none of the new four; prior functions are present and delivery-policy fingerprints captured. Both beta domains currently serve READY dpl_4nquRCGKGeMVduhXdBFj4tT6TRTs at d3525c1, preserved as pre-release baseline. No hosted migration, provider activation, customer send/charge or beta promotion yet. All 51 task histories/statuses/criteria remain.",
+      "evidence": "docs/evidence/2026-11-14-supported-journey-preflight.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
+      "title": "Supported journey expanded \u2014 release candidate; backend and live acceptance pending",
+      "detail": "Implemented future-only default-off booking/payment emails on the existing durable transport, exact reviewed schedule-change notices, required-deposit booking guards, agreed estimate-to-final payment terms and reviewed Fin term support. Local framework checks pass 32 cases; existing management/execution/approval checks pass 15; production TypeScript/build and 95 startup/deployment checks pass. Seven Chromium phone scenarios pass at 320/390px after final shared-checkbox capture review; full CI/native replay remain required. The connected native SQL journey now joins mandatory replay and phone cases join required WebKit CI. Supabase deployment credentials remain absent from the running environment. No hosted migration, beta promotion, provider activation, customer send/charge or environment publication. All 51 task histories/statuses/criteria retained.",
+      "evidence": "docs/evidence/2026-11-14-supported-journey-candidate.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
+      "title": "Admin authenticator recovery guidance — local candidate, access not yet restored",
+      "detail": "The owner reports a code field but no authenticator entry. The public /admin route responds HTTP200; this does not establish signed-in access. Added clear instructions identifying the authenticator app as the code source, a recovery disclosure for existing registered factors, owner-controlled Supabase MFA recovery steps and a setup recheck. Existing server operator/session/AAL2 checks are preserved. TypeScript and the focused MFA DOM regression pass, including no dashboard access before verification. No authenticator reset, role change, send or deployment occurred. Supabase admin access remains unavailable in this environment; actual owner recovery and signed-in acceptance remain pending. All 51 task statuses/criteria remain.",
+      "evidence": "docs/evidence/2026-11-14-admin-authenticator-guidance.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
+      "title": "Google Calendar credentials — verified beta configuration refresh",
+      "detail": "The owner saved GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_CLIENT_SECRET as sensitive Preview variables; metadata confirms both keys, available across Preview branches. Values were not read or exposed. Existing verified PR118 source f421e562853002d9e7a31fa4a427a5a08bd5b753 on ux/private-testing-20261029 was redeployed as READY dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA, and both Finviant aliases were assigned and verified with HTTP200/private no-store/noindex. No application source change, automation-candidate rollout, migration, environment publication, customer send/charge or Google authorization was performed. Owner Connect Google and live booking/reschedule/cancel/refresh acceptance remain. All 51 readiness records remain.",
+      "evidence": "docs/evidence/2026-11-14-google-calendar-beta-config.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
+      "title": "Supported journey framework — development candidate, not deployed",
+      "detail": "Separate branch ux/supported-journey-20261113 adds derived work/money status, existing next actions, private workflow history, revision-specific invoice-link opening and pending-payment/settlement reminder safeguards, plus owner archive source coverage. TypeScript/production build with 95 startup checks, 16 focused rule/database cases and four phone Chromium cases pass; final rules recheck passes. Synthetic captures are reviewed at 390px; 320px assertions also pass. Full release CI/PostgreSQL replay and hosted migration/promotion remain pending. Supabase deployment access is unavailable in this runtime. Booking confirmations, payment receipts, reviewed reschedule notifications and required-deposit enforcement remain implementation gaps. No provider activation, real sends/charges, hosted data edit or environment publication. All 51 task statuses/criteria remain.",
+      "evidence": "docs/evidence/2026-11-14-supported-journey-framework.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
+      "title": "Unified Job Management and restored Fin — beta released",
+      "detail": "PR118 merged as f421e562853002d9e7a31fa4a427a5a08bd5b753 after all 16 applicable workflows and all 22 full-suite jobs passed at 02f165820003f857500eddb0506e4d9cbad49e32. Tested/merged trees match. READY deployment dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS serves both Finviant domains; reviewed Jobs/Fin CSS hashes, unified workspace/direct sections, retained Home/invoice/estimate features, private no-store/noindex and beta backend verified. A reproduced phone Job actions dock overlap was corrected and pointer checks retained. No migrations, hosted data edits, provider activation, real sends, charges or environment publication. The supported automation journey remains specification only; all 51 statuses/acceptance criteria and owner/physical-device/provider gates remain.",
+      "evidence": "docs/evidence/2026-11-13-unified-job-management-beta-release.json",
+      "verifiedAt": "2026-11-13"
+    },
+    {
+      "title": "Job actions phone overlap corrected — release still gated",
       "detail": "Candidate cb27392 passed the Chromium and focused Chromium/WebKit checks but full iPhone WebKit shard 4 reproduced the bottom dock intercepting Request a Google review in the absolute-positioned Job actions menu. The unified Jobs footer now expands its menu in document flow so all actions and nested controls can scroll above the dock. Existing pointer-action assertion is retained; no forced click, skipped test or provider call. Fresh final-head full CI remains required before beta promotion. All 51 task statuses/criteria retained.",
       "evidence": "https://github.com/Velnu38/Velnu/pull/118",
       "verifiedAt": "2026-11-13"
@@ -2033,7 +2069,9 @@
     "handoff": "docs/CURRENT_HANDOFF.md"
   },
   "currentState": [
-    "November 13 latest verified beta: Home PR115, invoice PR116 and estimate PR117 are released; beta branch rechecked at cc594261abb9aea23cf02872e8175b2085d55127. Their receipts record passing applicable workflows and all 22 full-suite jobs. Earlier CI-in-progress/failing PR112 checkpoints are superseded, not evidence against these releases. Unified Job Management and restored Fin are a separate locally verified candidate with no beta deployment; full release regression and WebKit remain pending for that candidate. Latest owner request is end-to-end assessment only; conceptual guide does not authorize automation implementation or provider activation.",
+    "November 14 Calendar configuration refresh: both sensitive Google OAuth keys are saved for Preview. Existing verified PR118 source f421e562853002d9e7a31fa4a427a5a08bd5b753 was redeployed as READY dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA and verified on both Finviant domains. This supersedes the prior deployment ID while retaining the same application source. Google owner authorization and calendar provider acceptance remain unverified; the new automation source candidate below is not deployed.",
+    "November 14 development checkpoint: first supported journey framework candidate is local on ux/supported-journey-20261113. Derived job/payment status, private activity/invoice-link opens and pending/settled reminder safeguards pass focused synthetic verification. This is not a deployed end-to-end automation release: full CI/PostgreSQL replay, Supabase backend access/rollout, booking/receipt communication and remaining reference-journey acceptance are outstanding. Last verified beta remains PR118 below. All 51 task statuses, acceptance histories and external gates remain.",
+    "November 13 latest verified beta: PR118 unified Job Management and restored Fin released as f421e562853002d9e7a31fa4a427a5a08bd5b753, READY deployment dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS on both Finviant domains. All 16 applicable workflows and 22 full-suite jobs passed at 02f165820003f857500eddb0506e4d9cbad49e32; tested and merged trees match. One canonical job directory/workspace and direct actions preserve permissions, dirty drafts, history, scheduling/completion/invoice safeguards. Customer context and a phone footer overlap were corrected. Home PR115, invoice PR116 and estimate PR117 are retained. No backend/provider/data/message/payment changes. The broader supported customer journey is not verified in beta; the November 14 source candidate is recorded separately above. Owner, physical-device, live-provider and public-launch gates stay open.",
     "Last recorded operational issue: November 13 read-only beta evidence found one dead calendar queue item and one Outlook integration with an error despite state=connected; last successful sync November 11 00:14 UTC. OPS-03/CAL-01 remain open. Current provider state and recovery were not rechecked in the end-to-end source assessment, and no requeue, reconnect or provider change was performed.",
     "PR97 reminder history is already merged and beta-deployed; the old pause/open-PR97 instructions are historical and superseded. Preserve its migration and receipts without reapplying. AUTO-02 still needs hosted owner/provider/physical-device acceptance. PR103 security, PR104 archive and PR105 abuse/cost work have implementation/release evidence, not full hosted isolation, restore, capacity, provider or operating-owner acceptance.",
     "PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design.",

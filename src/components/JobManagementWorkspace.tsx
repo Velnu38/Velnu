@@ -5,6 +5,9 @@ import {useTierUsage} from '../lib/useTierUsage'
 import type {ReminderJob} from '../services/reminders'
 import { JOB_PHONE_QUERY, JobMenuIcon } from './JobMobileMenu'
 import {jobNextStep} from '../lib/jobNextStep'
+import {jobJourney} from '../lib/jobJourney'
+import WorkflowActivity from './WorkflowActivity'
+import JourneyNoticeReview from './JourneyNoticeReview'
 import {
   lazy,
   Suspense,
@@ -136,6 +139,7 @@ export default function JobManagementWorkspace({
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [compactSections,setCompactSections]=useState(()=>window.matchMedia(JOB_PHONE_QUERY).matches);
+  const[noticeReview,setNoticeReview]=useState<string|null>(null);
   useEffect(()=>{const media=window.matchMedia(JOB_PHONE_QUERY);const update=()=>setCompactSections(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update)},[]);
   const [mobileBilling, setMobileBilling] = useState<'invoices'|'costs'>(new URLSearchParams(location.search).get('billing') === 'costs' ? 'costs' : 'invoices');
   const [section, setSection] = useState<Section>(initialSection),
@@ -421,7 +425,11 @@ export default function JobManagementWorkspace({
   const alertCount = Number(missingMaterials.length > 0 && !closed) + Number(outstandingTasks.some(t=>t.due_on && t.due_on < DateTime.now().setZone(zone).toISODate()!) && !closed) + Number(unbilledChanges.length > 0) + Number(pendingChanges.length > 0) + Number(!closed && !job?.assigned_user_ids?.length && canSchedule);
   const step=jobNextStep({status:job?.status||'',ready:!!data&&!loading&&!error,canEdit,canSchedule,canBill,booked,
     crew:!!job?.assigned_user_ids?.length,futureVisit:!!job?.scheduled_start&&Date.parse(job.scheduled_start)>Date.now(),
-    remainingVisits,tasks:outstandingTasks.length,materials:missingMaterials.length,changes:pendingChanges.length+unbilledChanges.length,invoice:billingInvoice});
+    remainingVisits,tasks:outstandingTasks.length,materials:missingMaterials.length,changes:pendingChanges.length+unbilledChanges.length,invoice:billingInvoice,journey:data?.journey});
+  const journey=data?.journey?jobJourney(data.journey):null;
+  const stepHref=step.action==='estimate'&&data?.journey?.estimateId?'/?view=estimates&document='+encodeURIComponent(data.journey.estimateId)
+    :step.action==='deposit'&&data?.journey?.depositInvoiceId?'/?view=invoices&document='+encodeURIComponent(data.journey.depositInvoiceId)
+    :step.action==='invoice'?'/?view=invoices&'+(data?.journey?.invoice?.id?'document='+encodeURIComponent(data.journey.invoice.id):billingInvoice?'document='+billingInvoice.id:'job='+jobId):null;
   function takeNextStep(){
     if(step.action==='schedule'||step.action==='crew')setDispatch(step.action==='crew'?'crew':'appointment');
     else if(step.action==='start')void run(()=>updateJobStatus(jobId,'in_progress'),'Job started.');
@@ -545,7 +553,7 @@ export default function JobManagementWorkspace({
               <p className="eyebrow">
                 Selected job · {job.id.slice(0, 8).toUpperCase()}
               </p>
-              <span className="jm-phone-status jm-status">{jobStatusLabels[job.status as JobStatus] || job.status}</span>
+              <span className="jm-phone-status jm-status">{journey?.label || jobStatusLabels[job.status as JobStatus] || job.status}</span>
               <h2>{job.title}</h2>
               <p>
                 {job.customers
@@ -556,7 +564,7 @@ export default function JobManagementWorkspace({
                   )
                   .join(", ") || "Customer"}{" "}
                 <span className="jm-status">
-                  {jobStatusLabels[job.status as JobStatus] || job.status}
+                  {journey?.label || jobStatusLabels[job.status as JobStatus] || job.status}
                 </span>
               </p>
               {job.properties[0] ? (
@@ -581,7 +589,7 @@ export default function JobManagementWorkspace({
           <div className="jm-next-action">
             <div><small>Next action</small><strong title={step.detail}>{compactSections && step.label==='Review visit' ? 'Upcoming visit' : step.detail}</strong></div>
             <div className="jm-inline-actions">
-              {step.action==='invoice'?<a className="primary-button" href={billingInvoice?'/?view=invoices&document='+billingInvoice.id:'/?view=invoices&job='+jobId}>{step.label}</a>:
+              {stepHref?<a className="primary-button" href={stepHref}>{step.label}</a>:
                 <button type="button" className="primary-button" disabled={busy||!data||loading||!!error} onClick={takeNextStep}>{step.label}</button>}
 
             </div>
@@ -1142,9 +1150,9 @@ export default function JobManagementWorkspace({
               >
                 <h3>Activity history</h3>
                 <p className="quiet">
-                  The latest 50 work-plan and job changes.
+                  Work-plan changes, bookings, invoice openings and payment handoffs.
                 </p>
-                <Activity entries={data.activity} zone={zone} />
+                {section==='activity'&&(data.journey?<WorkflowActivity businessId={business.id} jobId={jobId} timezone={zone} entries={data.activity} refreshKey={data.activity[0]?.created_at} canNotify={canBill&&canSchedule}/>:<Activity entries={data.activity} zone={zone}/>)}
               </div>
             </>
           )}
@@ -1200,10 +1208,11 @@ export default function JobManagementWorkspace({
           mode={dispatch}
           needsAppointmentRepair={!booked}
           onReschedule={() => setDispatch("appointment")}
-          onSaved={changed}
+          onSaved={noticeId=>{changed();if(noticeId&&canBill&&canSchedule)setNoticeReview(noticeId)}}
           onClose={() => setDispatch(null)}
         />
       )}
+      {noticeReview&&canBill&&canSchedule&&<JourneyNoticeReview key={business.id+jobId+noticeReview} businessId={business.id} eventId={noticeReview} onClose={()=>setNoticeReview(null)} onSaved={changed}/>}
       {completion && data && job && canEdit && !closed && (
         <FormDialog
           label="Complete job review"

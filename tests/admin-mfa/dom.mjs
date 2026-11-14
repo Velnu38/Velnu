@@ -18,6 +18,14 @@ async function click(b){assert.ok(b,'Button exists');await act(async()=>b.click(
 async function amount(value){const input=document.querySelector('dialog input[type=number]');await act(async()=>{Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));input.dispatchEvent(new dom.window.Event('change',{bubbles:true}))})}
 try{
  await act(async()=>{await server.ssrLoadModule('/tests/admin-mfa/harness.tsx')});await tick()
+ assert.match(document.body.textContent,/Your authenticator app provides the six-digit code/)
+ assert.match(document.body.textContent,/I don’t have a Finviant authenticator code/)
+ assert.match(document.body.textContent,/A password reset does not reset the authenticator/)
+ assert.equal(button('Set up authenticator'),undefined)
+ assert.doesNotMatch(document.body.textContent,/Test logins/)
+ window.factorRemoved=true
+ await click(button('Check authenticator setup again'))
+ assert.doesNotMatch(document.body.textContent,/Test logins/)
  await click(button('Set up authenticator'))
  const key=[...document.querySelectorAll('input')].find(i=>i.readOnly)
  assert.equal(key?.value,'TESTONLYSETUPKEY')

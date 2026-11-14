@@ -33,6 +33,7 @@ export function validateDocumentInput(input: unknown): asserts input is Record<s
     if (input[field] !== undefined && input[field] !== null && input[field] !== '' && !validCalendarDate(input[field])) throw new Error('Choose a valid document date')
   }
   const ending = input.due_date || input.expires_on
+  if(input.payment_terms_days!=null&&(!Number.isSafeInteger(input.payment_terms_days)||Number(input.payment_terms_days)<0||Number(input.payment_terms_days)>365))throw new Error('Choose invoice payment terms from 0 to 365 days')
   if (input.issue_date && ending && String(ending) < String(input.issue_date)) throw new Error('Due or expiration date cannot precede the issue date')
   for (const field of ['notes', 'customer_message', 'description', 'reason', 'schedule_note']) {
     const value = input[field]

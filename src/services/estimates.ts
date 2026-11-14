@@ -5,6 +5,7 @@ import { validateDocumentInput } from '../lib/financialValidation'
 import { supabase } from '../lib/supabase'
 import { asList } from './relations'
 import { createShareToken } from '../lib/personalDelivery'
+import {estimatePaymentMessage} from '../lib/estimatePaymentTerms'
 
 export type EstimateWorkflowContext = {
   estimate_id: string
@@ -66,9 +67,9 @@ export async function listEstimates(businessId: string, customerId?: string) {
 
 export async function createEstimate(
   businessId: string,
-  input: Partial<DocumentPayments> & { new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; property_id?: string; issue_date?: string; expires_on?: string; notes?: string; customer_reference?: string; customer_message?: string; request_id?: string; items: EstimateLineInput[] },
+  input: Partial<DocumentPayments> & { new_customer?:ReturnType<typeof newCustomerFields>; customer_id: string; property_id?: string; issue_date?: string; expires_on?: string; notes?: string; customer_reference?: string; customer_message?: string; payment_terms_days?:number|null; request_id?: string; items: EstimateLineInput[] },
 ) {
-  validateDocumentInput(input)
+  validateDocumentInput({...input,customer_message:estimatePaymentMessage(input.customer_message||'',input.payment_terms_days==null?'':String(input.payment_terms_days))})
 
   // This database function inserts the document and all line items atomically.
   // An identical request_id can be retried safely after a lost network response.
@@ -87,6 +88,7 @@ export async function createEstimate(
       notes: input.notes?.trim() || null,
       customer_reference: input.customer_reference?.trim() || null,
       customer_message: input.customer_message?.trim() || null,
+      ...(input.payment_terms_days!==undefined?{payment_terms_days:input.payment_terms_days}:{}),
       items: input.items.map(item => ({
         description: item.description.trim(), quantity: item.quantity,
         unit_price: item.unit_price, tax_rate: item.tax_rate ?? 0,

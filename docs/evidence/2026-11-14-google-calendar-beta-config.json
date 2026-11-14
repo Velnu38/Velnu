@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-14",
+  "scope": "Google Calendar OAuth configuration refresh of the existing verified beta source",
+  "sourceCommit": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
+  "branch": "ux/private-testing-20261029",
+  "deployment": {
+    "id": "dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA",
+    "url": "finviant-office-qmqs78vhk-mbarone5-1747.vercel.app",
+    "readyState": "READY",
+    "target": null,
+    "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo",
+    "branch": "ux/private-testing-20261029",
+    "sha": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
+    "verifiedExactBetaSource": true
+  },
+  "aliases": {
+    "commit": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
+    "deployment": "dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA",
+    "previous": {
+      "finviant.com": "dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA",
+      "www.finviant.com": "dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA"
+    },
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "verified": true
+  },
+  "http": [
+    {
+      "domain": "finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    },
+    {
+      "domain": "www.finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    }
+  ],
+  "credentialMetadata": {
+    "keys": [
+      "GOOGLE_CALENDAR_CLIENT_ID",
+      "GOOGLE_CALENDAR_CLIENT_SECRET"
+    ],
+    "target": "Preview",
+    "gitBranchScope": null,
+    "type": "sensitive",
+    "valuesRead": false
+  },
+  "changes": {
+    "applicationSourceChanged": false,
+    "automationCandidateDeployed": false,
+    "migrationsApplied": false,
+    "environmentPublished": false,
+    "customerMessagesSent": 0,
+    "charges": 0,
+    "providerAuthorizationPerformed": false
+  },
+  "remaining": "Owner must complete Connect Google authorization in Finviant; calendar provider behavior remains unverified.",
+  "googleConnectionVerified": false
+}

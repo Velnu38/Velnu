@@ -1,6 +1,7 @@
 import './document-phone.css'
 import {JobMenuIcon} from './JobMobileMenu'
 import InvoiceReminderHistory from './InvoiceReminderHistory'
+import WorkflowActivity from './WorkflowActivity'
 import InvoiceReminderPreference from './InvoiceReminderPreference'
 import CopyDocumentButton from './CopyDocumentButton'
 import SquareInvoicePayment from './SquareInvoicePayment'
@@ -37,7 +38,7 @@ const RepeatInvoiceDialog=lazy(()=>import('./RecurringInvoices').then(module=>({
 const InvoiceJobDialog=lazy(()=>import('./scheduling/InvoiceJobDialog'))
 const ChangeOrdersPage=lazy(()=>import('../pages/ChangeOrdersPage'))
 type Customer={id:string;first_name:string|null;last_name:string|null;company:string|null;email:string|null;phone:string|null}
-type Invoice=DocumentDates&{properties?:ServiceAddress|ServiceAddress[]|null;deposit_estimate_id:string|null;deposit_source_invoice_id:string|null;deposit_credit:number;id:string;invoice_number:string|null;status:string;issue_date:string;due_date:string|null;subtotal:number;tax_amount:number;total:number;amount_paid:number;balance_due:number;notes:string|null;customer_message:string|null;customer_reference?:string|null;sent_at:string|null;paid_at:string|null;customer_id:string;job_id:string|null;estimate_id:string|null;customers:Customer|Customer[]|null}
+type Invoice=DocumentDates&{journey_terms_review_required?:boolean;properties?:ServiceAddress|ServiceAddress[]|null;deposit_estimate_id:string|null;deposit_source_invoice_id:string|null;deposit_credit:number;id:string;invoice_number:string|null;status:string;issue_date:string;due_date:string|null;subtotal:number;tax_amount:number;total:number;amount_paid:number;balance_due:number;notes:string|null;customer_message:string|null;customer_reference?:string|null;sent_at:string|null;paid_at:string|null;customer_id:string;job_id:string|null;estimate_id:string|null;customers:Customer|Customer[]|null}
 type Item={id:string;description:string;quantity:number;unit_price:number;tax_rate:number;line_total:number}
 type Payment={id:string;amount:number;method:string|null;status:string;paid_at:string;notes:string|null;provider?:string|null}
 type Message={provider?:string;id:string;direction:string;channel:string;recipient:string|null;subject:string|null;body:string;status:string;sent_at:string|null;created_at:string}
@@ -106,6 +107,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
   const {invoice}=detail,customer=Array.isArray(invoice.customers)?invoice.customers[0]:invoice.customers
   const today=DateTime.now().setZone(business.timezone||'UTC').toISODate()!
   const policy=invoiceActionPolicy(invoice,{today,canManage,paymentState:detail.paymentOperations.state,recovery})
+  const needsDueDate=invoice.status==='draft'&&invoice.journey_terms_review_required===true&&!!invoice.job_id&&!!invoice.estimate_id&&!invoice.due_date
   const overdue=invoiceIsOverdue(invoice,today),status=invoiceDisplayStatus(invoice,today)
   const canSchedule=canManage&&canSeeWork&&canCalendar&&!invoice.deposit_estimate_id&&invoice.status!=='void'
   const job=detail.work.job,appointment=detail.work.appointment
@@ -118,7 +120,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
   const netReceived=detail.paymentOperations.state==='unavailable'?null:grossReceived-detail.paymentOperations.refunds.reduce((sum,refund)=>sum+Number(refund.amount),0)
   const context={documentId:invoice.id,documentNumber:invoice.invoice_number||'Invoice',customerId:invoice.customer_id,jobId:invoice.job_id,estimateId:invoice.estimate_id,documentType:'invoice' as const}
   const site=Array.isArray(invoice.properties)?invoice.properties[0]:invoice.properties
-  const action=(id:'send'|'mark_paid'|'reminder'|'edit'|null,primary:boolean)=>id?<button type="button" className={primary?'primary-button':'secondary-button'} disabled={busy} onClick={()=>id==='send'?setDelivery('send'):id==='mark_paid'?setShowPayment(true):id==='reminder'?setShowReminder(true):setShowEdit(true)}>{id==='send'?'Send invoice':id==='mark_paid'?'Mark Paid':id==='reminder'?'Send reminder':'Edit draft'}</button>:null
+  const action=(id:'send'|'mark_paid'|'reminder'|'edit'|null,primary:boolean)=>id?<button type="button" className={primary?'primary-button':'secondary-button'} disabled={busy} onClick={()=>id==='send'?setDelivery('send'):id==='mark_paid'?setShowPayment(true):id==='reminder'?setShowReminder(true):setShowEdit(true)}>{id==='send'?'Send invoice':id==='mark_paid'?'Mark Paid':id==='reminder'?'Send reminder':needsDueDate?'Set payment due date':'Edit draft'}</button>:null
   if(showChangeOrders&&!invoice.deposit_estimate_id)return <Suspense fallback={<p role="status">Loading change orders…</p>}><ChangeOrdersPage business={business} context={context} initialOrder={showChangeOrders} onBack={()=>{setShowChangeOrders(null);void refresh()}}/></Suspense>
   return <div className="page-stack invoice-detail-page document-phone-page">
     <div className="detail-top"><button className="back-button" onClick={()=>{if(confirmNavigation())onBack()}}>← Invoices</button></div>
@@ -132,10 +134,10 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
       <CopyDocumentButton businessId={business.id} kind="invoice" id={invoice.id} disabled={busy}/>
       {plan==='pro'&&!recovery&&!['draft','paid','void'].includes(invoice.status)&&<button type="button" onClick={()=>setShowSquare(true)}>Take payment with Square</button>}
       {policy.canSendCopy&&!recovery&&<button type="button" onClick={()=>setDelivery('share')}>Send invoice copy</button>}
-      {canManage&&invoice.status==='draft'&&policy.primary!=='send'&&!recovery&&<button type="button" onClick={()=>setDelivery('send')}>Send invoice</button>}
+      {canManage&&invoice.status==='draft'&&policy.primary!=='send'&&!needsDueDate&&!recovery&&<button type="button" onClick={()=>setDelivery('send')}>Send invoice</button>}
       {canManage&&plan==='pro'&&!['paid','void'].includes(invoice.status)&&!recovery&&detail.paymentOperations.state==='clear'&&<button type="button" onClick={()=>setDelivery('schedule')}>Schedule email delivery</button>}
       {canManage&&invoice.status!=='void'&&!recovery&&<button type="button" onClick={()=>setShowCustomer(true)}>Edit customer contact</button>}
-      {canManage&&invoice.status==='draft'&&!recovery&&<button type="button" onClick={()=>void markSent()}>Mark sent manually</button>}
+      {canManage&&invoice.status==='draft'&&!needsDueDate&&!recovery&&<button type="button" onClick={()=>void markSent()}>Mark sent manually</button>}
       {canManage&&canCalendar&&!['draft','paid','void'].includes(invoice.status)&&Number(invoice.balance_due)>0&&<button type="button" onClick={()=>setShowFollowUp(true)}>Remind me to follow up</button>}
       {canSchedule&&invoice.job_id&&activeJob&&!hasAppointment&&<a href={jobHref+'&schedule=1'}>Schedule existing job</a>}
       {canSchedule&&!invoice.job_id&&<button type="button" onClick={()=>setShowJob(true)}>Schedule job</button>}
@@ -151,7 +153,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
     <RecordTabs tabs={[{id:tabIds.document,label:'Details'},{id:tabIds.resources,label:'Photos & expenses'},{id:tabIds.activity,label:'Activity',badge:detail.payments.length+detail.paymentOperations.refunds.length+detail.messages.length}]} active={tabIds[tab as keyof typeof tabIds]} onChange={changeTab} label="Invoice details"/>
     <section id={tabIds.document+'-panel'} role="tabpanel" aria-labelledby={tabIds.document+'-tab'} hidden={tab!=='document'}>
       <div className="document-phone-only document-phone-summary"><h3>Invoice summary</h3><dl><div><dt>Invoice total</dt><dd>{money(invoice.total)}</dd></div><div><dt>Applied payments</dt><dd>{money(invoice.amount_paid)}</dd></div><div><dt>{invoice.status==='void'?'Voided invoice':'Balance due'}</dt><dd>{money(invoice.balance_due)}</dd></div></dl></div>
-      <div className="document-phone-actions"><DocumentPdfPreview compact source={{businessId:business.id,kind:'invoice',documentId:invoice.id}} title="Issued invoice PDF" refreshKey={invoice.updated_at||''}/>
+      <div className="document-phone-actions">{needsDueDate?<p>Choose the agreed payment due date to prepare the final invoice PDF.</p>:<DocumentPdfPreview compact source={{businessId:business.id,kind:'invoice',documentId:invoice.id}} title="Issued invoice PDF" refreshKey={invoice.updated_at||''}/>}
         <button type="button" className="document-phone-only document-action-tile" onClick={()=>changeTab(tabIds.activity)}><JobMenuIcon kind="costs"/><strong>Payments</strong><small>Review payments</small></button>
         {!invoice.deposit_estimate_id&&canManage&&<button type="button" className="document-phone-only document-action-tile" onClick={()=>document.getElementById(tabIds.document+'-changes')?.scrollIntoView({behavior:'smooth',block:'start'})}><JobMenuIcon kind="changes"/><strong>Change orders</strong><small>Review changes</small></button>}
         {canSeeWork&&jobHref&&<a className="document-phone-only document-action-tile" href={jobHref}><JobMenuIcon kind="billing"/><strong>Linked job</strong><small>Review linked work</small></a>}
@@ -169,6 +171,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
     </section>
     <section id={tabIds.resources+'-panel'} role="tabpanel" aria-labelledby={tabIds.resources+'-tab'} hidden={tab!=='resources'}>{canSeeWork&&jobHref&&<p><a href={jobHref+'&tab=photos-expenses'}>View linked job photos &amp; expenses</a></p>}{resourcesOpened&&<RecordResources business={business} target={{kind:'invoice',id:invoice.id}} active={tab==='resources'}/>}</section>
     <section id={tabIds.activity+'-panel'} role="tabpanel" aria-labelledby={tabIds.activity+'-tab'} hidden={tab!=='activity'}>
+      {tab==='activity'&&<article className="detail-card"><h2>Workflow activity</h2><WorkflowActivity businessId={business.id} invoiceId={invoice.id} timezone={business.timezone} refreshKey={invoice.updated_at||''}/></article>}
       <article className="detail-card"><h2>Payment history</h2><p>Received funds, net of refunds: <strong>{netReceived===null?'Not verified':money(netReceived)}</strong> · Applied to invoice: <strong>{money(invoice.amount_paid)}</strong></p>
         {!detail.payments.length&&!detail.paymentOperations.refunds.length?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'} · {payment.provider==='stripe_customer'?'Verified online payment':'Recorded payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span>{payment.notes&&<small>{payment.notes}</small>}</div><strong>{money(payment.amount)}</strong></div>)}{detail.paymentOperations.refunds.map(refund=><div className="history-row compact-history" key={refund.id}><div className="row-main"><strong>Customer refund</strong><DocumentTime value={refund.refunded_at} timezone={business.timezone}/></div><strong>−{money(refund.amount)}</strong></div>)}</div>}
         {canManage&&detail.paymentOperations.state==='unavailable'&&<p role="alert">Refund history could not be verified. Refresh before reconciling this ledger.</p>}

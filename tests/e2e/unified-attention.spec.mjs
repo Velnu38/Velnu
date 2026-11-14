@@ -83,7 +83,7 @@ for(const width of [1440,390])test(`one attention area below billing and shared 
  await expect(dialog.getByRole('button',{name:'Confirm booking',exact:true})).toBeEnabled()
  await expect(dialog.getByRole('checkbox',{name:/I have agreed/})).toHaveCount(0)
  await dialog.getByRole('button',{name:'Confirm booking',exact:true}).click()
- await expect(dialog.getByRole('status')).toContainText('No customer message was sent.')
+ await expect(dialog.getByRole('status')).toContainText('Check job activity for any enabled customer confirmation.')
  await dialog.getByRole('button',{name:'Close scheduling'}).click()
  await expect(attention.getByRole('button',{name:'Schedule job',exact:true})).toHaveCount(0)
  const calendar=page.getByRole('region',{name:'Work calendar'})

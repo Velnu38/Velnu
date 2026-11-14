@@ -1,0 +1,332 @@
+{
+  "observedAt": "2026-11-13T18:38:57.870960-05:00",
+  "pr": 118,
+  "prUrl": "https://github.com/Velnu38/Velnu/pull/118",
+  "testedCommit": "02f165820003f857500eddb0506e4d9cbad49e32",
+  "mergedCommit": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
+  "tree": "5420bd6a5f4ada3c0aa13da1bc6ee59058f2a04b",
+  "testedAndMergedTreesIdentical": true,
+  "workflows": [
+    {
+      "id": 43526260059,
+      "name": "Focused phone visual review",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260059"
+    },
+    {
+      "id": 43526260148,
+      "name": "Simplified invoice visual review",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260148"
+    },
+    {
+      "id": 43526260485,
+      "name": "Home screen checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260485"
+    },
+    {
+      "id": 43526260234,
+      "name": "Pricing tier checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260234"
+    },
+    {
+      "id": 43526259996,
+      "name": "Unified Job Management visual review",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526259996"
+    },
+    {
+      "id": 43526260039,
+      "name": "Simplified estimate visual review",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260039"
+    },
+    {
+      "id": 43526260100,
+      "name": "Finviant assessment maintenance",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260100"
+    },
+    {
+      "id": 43526260283,
+      "name": "Finviant authentication access checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260283"
+    },
+    {
+      "id": 43526260013,
+      "name": "Jobs directory visual review",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260013"
+    },
+    {
+      "id": 43526260099,
+      "name": "Customer contact checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260099"
+    },
+    {
+      "id": 43526260050,
+      "name": "Document design checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260050"
+    },
+    {
+      "id": 43526260046,
+      "name": "More navigation checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260046"
+    },
+    {
+      "id": 43526260004,
+      "name": "Revised Home visual review",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260004"
+    },
+    {
+      "id": 43526260012,
+      "name": "Calendar integration checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260012"
+    },
+    {
+      "id": 43526260194,
+      "name": "Complete automated test checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526260194"
+    },
+    {
+      "id": 43526259978,
+      "name": "Voice review delivery checks",
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43526259978"
+    }
+  ],
+  "completeJobs": [
+    {
+      "id": 132232831560,
+      "name": "private-beta-email",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831790,
+      "name": "node-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831805,
+      "name": "iPhone WebKit (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831852,
+      "name": "DOM checks (2/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831913,
+      "name": "iPhone WebKit (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831920,
+      "name": "native-app-handoffs",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831927,
+      "name": "DOM checks (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831953,
+      "name": "iPhone WebKit (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831958,
+      "name": "DOM checks (3/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232831988,
+      "name": "pure-deno-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832048,
+      "name": "iPhone WebKit (1/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832061,
+      "name": "DOM checks (4/4)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832078,
+      "name": "migrations / postgres-17",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832135,
+      "name": "desktop-and-scheduling / checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832198,
+      "name": "isolated-provider-workload",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832232,
+      "name": "desktop-and-scheduling / Full browser regression (2/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832268,
+      "name": "desktop-and-scheduling / Full browser regression (4/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832311,
+      "name": "desktop-and-scheduling / Full browser regression (6/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832326,
+      "name": "desktop-and-scheduling / Full browser regression (1/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832368,
+      "name": "desktop-and-scheduling / Full browser regression (5/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132232832378,
+      "name": "desktop-and-scheduling / Full browser regression (3/6)",
+      "conclusion": "success"
+    },
+    {
+      "id": 132236822882,
+      "name": "Release validation",
+      "conclusion": "success"
+    }
+  ],
+  "deployment": {
+    "id": "dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS",
+    "commit": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
+    "state": "READY",
+    "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo",
+    "target": null,
+    "branch": "ux/private-testing-20261029"
+  },
+  "aliases": {
+    "commit": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
+    "deployment": "dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS",
+    "previous": {
+      "finviant.com": "dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS",
+      "www.finviant.com": "dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS"
+    },
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "verified": true
+  },
+  "live": [
+    {
+      "origin": "https://finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "checks": {
+        "unifiedJobs": true,
+        "directJobSections": true,
+        "jobManagementNavigation": true,
+        "reviewedJobsStyles": true,
+        "reviewedFinStyles": true,
+        "homeRevised": true,
+        "simpleInvoice": true,
+        "simpleEstimate": true,
+        "betaBackend": true
+      },
+      "verified": true,
+      "reviewedStyles": [
+        {
+          "path": "/assets/index-DTlNujVe.css",
+          "sha256": "fd904642429ffd1dee1fe7c8adcc4274537702b6f2301729b0380237e6f4649e"
+        },
+        {
+          "path": "/assets/JobsPage-BC6ClbVu.css",
+          "sha256": "3c30bd69b3a1d250191412c2cecd804ebb67217e409510926f20c0e689229a36"
+        },
+        {
+          "path": "/assets/CustomerEntry-BiDu1nRx.css",
+          "sha256": "f665c082eabe1a068d81182fd5027ef7051875b199d767a283fcd5842996aa7b"
+        }
+      ]
+    },
+    {
+      "origin": "https://www.finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "checks": {
+        "unifiedJobs": true,
+        "directJobSections": true,
+        "jobManagementNavigation": true,
+        "reviewedJobsStyles": true,
+        "reviewedFinStyles": true,
+        "homeRevised": true,
+        "simpleInvoice": true,
+        "simpleEstimate": true,
+        "betaBackend": true
+      },
+      "verified": true,
+      "reviewedStyles": [
+        {
+          "path": "/assets/index-DTlNujVe.css",
+          "sha256": "fd904642429ffd1dee1fe7c8adcc4274537702b6f2301729b0380237e6f4649e"
+        },
+        {
+          "path": "/assets/JobsPage-BC6ClbVu.css",
+          "sha256": "3c30bd69b3a1d250191412c2cecd804ebb67217e409510926f20c0e689229a36"
+        },
+        {
+          "path": "/assets/CustomerEntry-BiDu1nRx.css",
+          "sha256": "f665c082eabe1a068d81182fd5027ef7051875b199d767a283fcd5842996aa7b"
+        }
+      ]
+    }
+  ],
+  "scope": [
+    "One canonical Job Management directory and Summary/Work/Billing/Records workspace",
+    "Direct contextual actions, atomic booking/retry, approval and completion safeguards, calendar/deep-link/history returns",
+    "Restored Fin in New Invoice and New Estimate, including narrow phones",
+    "Bounded customer-name context for filtered Jobs pages",
+    "Job actions expands in document flow above phone navigation"
+  ],
+  "validationNotes": [
+    "Final candidate passed all 16 applicable workflows and all 22 complete-suite jobs. Chromium/WebKit focused and broad regression checks are included.",
+    "Earlier candidate cb27392 failed a real iPhone WebKit dock-overlap case; final CSS corrects the menu flow. Existing pointer assertions passed without forced clicks, skipped tests or bypass.",
+    "Canonical documents, roles, task/visit/material/cost/report, dirty-edit, duplicate-retry and partial-failure assertions were retained while migrating retired navigation paths.",
+    "Final local production TypeScript/build and all 95 startup checks passed; two affected phone-width review controls passed.",
+    "Existing synthetic phone references remain under docs/reference/unified-jobs-*.png."
+  ],
+  "boundaries": {
+    "privateBetaBackend": "xvybcmyoblfgzokaifsx",
+    "hostedDataEdits": false,
+    "migrations": false,
+    "providerActivation": false,
+    "realCustomerMessages": false,
+    "paymentsCharged": false,
+    "environmentConfigurationPublished": false,
+    "newAutomationJourneyImplemented": false,
+    "physicalDeviceOwnerAndProviderAcceptance": "Still open; automated browsers and static assets do not certify these gates.",
+    "all51TaskStatusesAndAcceptanceCriteriaRetained": true
+  }
+}

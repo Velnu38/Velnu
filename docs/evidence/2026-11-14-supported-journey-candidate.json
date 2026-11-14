@@ -1,0 +1,92 @@
+{
+  "date": "2026-11-13",
+  "timezone": "America/New_York",
+  "scope": "Expanded supported journey release candidate; not deployed",
+  "branch": "ux/supported-journey-20261113",
+  "sourceParent": "ac268e8",
+  "checks": {
+    "frameworkRulesDatabaseFin": {
+      "passed": 32,
+      "failed": 0,
+      "engine": "PGlite and pure protocol/rules; synthetic"
+    },
+    "managementExecutionApproval": {
+      "passed": 15,
+      "failed": 0,
+      "engine": "PGlite; synthetic"
+    },
+    "productionBuild": "passed with TypeScript and 95 startup/deployment checks; final presentation-only checkbox class confirmed by rebuilt browser fixtures",
+    "phoneChromium": {
+      "passed": 7,
+      "failed": 0,
+      "widths": [
+        320,
+        390
+      ],
+      "finalLog": "/tmp/finviant-release-journey-phone-reviewed.log"
+    },
+    "nativeConnectedJourney": "added to mandatory unchanged full-schema replay; not yet executed successfully",
+    "fullRequiredCI": "pending"
+  },
+  "screenshots": [
+    {
+      "path": "docs/evidence/supported-journey-candidate-2026-11-14/paid-phone.png",
+      "sha256": "aa6b2f377f2cfb339b39cb3443e042e34834d8c6ed78bac2b2345cd3b9a650ff",
+      "viewportWidth": 390,
+      "data": "synthetic"
+    },
+    {
+      "path": "docs/evidence/supported-journey-candidate-2026-11-14/pending-phone.png",
+      "sha256": "9febcdeaea6ff259d5bbc3f830e72ba8b11c4147fec7d18f038b814ca461afad",
+      "viewportWidth": 390,
+      "data": "synthetic"
+    },
+    {
+      "path": "docs/evidence/supported-journey-candidate-2026-11-14/activity-phone.png",
+      "sha256": "47d789a53eb6821e73bad8443d6c9ddda32fefa7654bb630f3ba2e9a0c970771",
+      "viewportWidth": 390,
+      "data": "synthetic"
+    },
+    {
+      "path": "docs/evidence/supported-journey-candidate-2026-11-14/notification-settings-phone.png",
+      "sha256": "724b7e2609d1da2c13ed0cc185b4159878b22b687642422eabd5897b56c56e77",
+      "viewportWidth": 390,
+      "data": "synthetic"
+    },
+    {
+      "path": "docs/evidence/supported-journey-candidate-2026-11-14/notice-review-phone.png",
+      "sha256": "0f8b0501c2e3a12b0a137d1643181b471ca8b51988ca977beb3e4bca86cef998",
+      "viewportWidth": 390,
+      "data": "synthetic"
+    }
+  ],
+  "backendRequired": {
+    "migrations": [
+      "20261114000100",
+      "20261114000200",
+      "20261114000300",
+      "20261114000400"
+    ],
+    "functions": [
+      "tier-delivery-worker",
+      "fin-workflow"
+    ],
+    "credentials": "Supabase deployment token/password unavailable in running environment"
+  },
+  "notVerified": [
+    "hosted migration rollout",
+    "signed-in hosted complete journey",
+    "Google OAuth/live calendar outcomes",
+    "actual email delivery",
+    "live/sandbox merchant webhook acceptance",
+    "physical-device owner acceptance"
+  ],
+  "safety": {
+    "hostedDataChanged": false,
+    "providerActivated": false,
+    "realMessagesOrCharges": false,
+    "environmentPublished": false,
+    "betaPromoted": false,
+    "all51TaskHistoriesPreserved": true
+  }
+}

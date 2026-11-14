@@ -6,7 +6,7 @@ Assessed November 13, 2026. Assessment and recommendations only. The owner's exa
 
 Finviant has a real relational backend and several connected, transactional workflows. It does not yet meet the promise of a verified, hands-off customer-to-work-to-payment system. The remaining work combines missing lifecycle features, incomplete provider setup, clearer workflow presentation and real operational acceptance. Rebuilding the application or creating parallel copies of its existing records would add risk and repetition.
 
-The currently verified beta includes the simplified invoice and estimate creators and revised Home. The beta branch was read again at `cc594261abb9aea23cf02872e8175b2085d55127`. Unified Job Management and the restored Fin buttons are a separate local development candidate, not a beta release. Neither release presence nor passing synthetic tests certifies customer messages, payment settlement or physical-phone operation.
+The currently verified beta includes the simplified invoice and estimate creators and revised Home. The beta branch was read again at `cc594261abb9aea23cf02872e8175b2085d55127`. At the assessment checkpoint, unified Job Management and the restored Fin buttons were a local candidate. They subsequently shipped through PR118; see the [UI release receipt](evidence/2026-11-13-unified-job-management-beta-release.json). This does not certify the broader automated journey. Neither release presence nor passing synthetic tests certifies customer messages, payment settlement or physical-phone operation.
 
 ## What exists and what remains
 
@@ -59,4 +59,4 @@ Key sources:
 - [Payment acceptance and outstanding gates](payments/PAYMENT_ACCEPTANCE_2026-11-10.md), [payment recovery release](evidence/2026-11-11-payment-recovery-rollout.json), [verified Stripe handler](../supabase/functions/customer-payment-events/handler.ts), [verified Square handler](../supabase/functions/square-payment-events/handler.ts), [ledger recalculation](../supabase/migrations/20261108001511_verified_customer_invoice_payments.sql).
 - [Fin action/review contract](../supabase/functions/fin-workflow/protocol.ts), [Fin account-answer contract](../supabase/functions/fin-assistant/core.ts), [local unified Jobs and Fin candidate](UNIFIED_JOB_MANAGEMENT_2026-11-13.md).
 
-No automation features were built, providers activated, hosted records changed, customer messages sent or payments charged by this assessment. Existing local Job Management/Fin work remains separately identified and unreleased. All 51 readiness task records, statuses and acceptance criteria are retained.
+No automation features were built, providers activated, hosted records changed, customer messages sent or payments charged by this assessment. The separately authorized Job Management/Fin UI release is now verified through PR118; the automation recommendations remain unimplemented by this assessment. All 51 readiness task records, statuses and acceptance criteria are retained.

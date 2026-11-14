@@ -64,4 +64,4 @@ The journey is accepted only after isolated tests and separately authorized prov
 
 Synthetic billing example: accepted work $2,400 plus approved change $300, no tax, deposit already paid $500. Final charges are $2,700, credited deposit $500, remaining balance $2,200. A $1,000 payment leaves $1,200; verified final payment closes the financial stage and suppresses reminders. None of these figures is hosted business data.
 
-Dependencies/gaps remain as recorded in the [assessment](END_TO_END_AUTOMATION_ASSESSMENT_2026-11-13.md). This definition closes no readiness gate and does not certify the unreleased [unified Jobs/Fin candidate](UNIFIED_JOB_MANAGEMENT_2026-11-13.md).
+Dependencies/gaps remain as recorded in the [assessment](END_TO_END_AUTOMATION_ASSESSMENT_2026-11-13.md). This definition closes no readiness gate and does not certify the end-to-end automation merely from the released [unified Jobs/Fin UI](UNIFIED_JOB_MANAGEMENT_2026-11-13.md).

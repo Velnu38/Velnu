@@ -116,7 +116,7 @@ test('phone agreement books once and sends no customer message',async({page})=>{
  await dialog.getByRole('radio').first().check()
  await expect(confirm).toBeEnabled()
  await confirm.evaluate(button=>{button.click();button.click()})
- await expect(dialog.getByRole('status')).toContainText('No customer message was sent.')
+ await expect(dialog.getByRole('status')).toContainText('Check job activity for any enabled customer confirmation.')
  await expect(dialog.getByRole('link',{name:'Open job'})).toHaveAttribute('href','/?view=work&document='+J)
  expect(state.calls.filter(c=>c.path.endsWith('/rpc/book_approved_estimate'))).toHaveLength(1)
  expect(state.calls.filter(c=>c.path.endsWith('/functions/v1/work-scheduling'))).toHaveLength(0)
