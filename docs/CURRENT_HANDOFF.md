@@ -2,6 +2,12 @@
 
 Checked November 14, 2026 UTC.
 
+## Local collections and Job Management Kanban candidate — not deployed
+
+- Branch `ux/collections-jobs-kanban-20261114` starts from latest remote `ux/private-testing-20261029` at `76987009d7ce5ddd3577298c42c0268773617d63`. Collections aging board uses existing complete aging totals plus the clearly labeled up-to-eight oldest unpaid invoice preview; full records remain linked for authorized users. Cash totals, chart and drilldowns remain; narrow phone cash metrics stack for readability.
+- Canonical Job Management retains one directory/workspace. Its Board control is visible beside List; lanes show current-page counts/empty states and scroll within phone width. Existing server search/filter/paging, approved queue, customer scope, deep links, permissions, unsaved edits and job/billing safeguards remain. No drag mutations or new send/payment action.
+- Production build/97 startup checks, 15 targeted domain cases, existing operations DOM suites and synthetic Chromium 320/390/1440px plus restricted access pass. See [candidate evidence](evidence/2026-11-14-collections-jobs-kanban.json). Full CI, WebKit, hosted owner and physical-device acceptance remain open. No deployment, backend/provider/hosted change, real messages or payments. All 51 task statuses and criteria retained.
+
 ## Current verified release — November 14 report reconciliation
 
 - November 14 read-only report checkpoint: PR119 is merged as b340e5f95f102a9ec11befe3d814dafa02771fe9; both Finviant domains resolve to READY dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN at that source. Final candidate d8343d48f3d938a3dc4a96285e973b47baa0dd8c passed all nine returned workflows and all 22 full-suite jobs in run43553054639; candidate and merge trees match. Supported journey source and frontend deployment are verified, not real-provider or physical-device acceptance.
