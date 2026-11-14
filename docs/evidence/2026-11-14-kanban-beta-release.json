@@ -1,0 +1,255 @@
+{
+  "date": "2026-11-14",
+  "verifiedAt": "2026-11-14 20:58:12 UTC",
+  "pullRequest": "https://github.com/Velnu38/Velnu/pull/120",
+  "testedHead": "71063d660ed2fb0b047f661235adbc32d929c52d",
+  "mergeCommit": "9df9e755247bfd717122983837199ba0fbf6161c",
+  "tree": "372736a78c720be2c26fed0107563b65ca71bb72",
+  "testedAndMergedTreesIdentical": true,
+  "workflows": [
+    {
+      "name": "Finviant assessment maintenance",
+      "id": 43639131329,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131329"
+    },
+    {
+      "name": "Finviant authentication access checks",
+      "id": 43639131413,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131413"
+    },
+    {
+      "name": "Collections and jobs Kanban checks",
+      "id": 43639131397,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131397"
+    },
+    {
+      "name": "Financial entry checks",
+      "id": 43639131389,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131389"
+    },
+    {
+      "name": "Jobs directory visual review",
+      "id": 43639131320,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131320"
+    },
+    {
+      "name": "Revised Home visual review",
+      "id": 43639131318,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131318"
+    },
+    {
+      "name": "Pricing tier checks",
+      "id": 43639131464,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131464"
+    },
+    {
+      "name": "Unified Job Management visual review",
+      "id": 43639131382,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131382"
+    },
+    {
+      "name": "Complete automated test checks",
+      "id": 43639131377,
+      "conclusion": "success",
+      "url": "https://github.com/Velnu38/Velnu/actions/runs/43639131377"
+    }
+  ],
+  "fullSuiteJobs": [
+    {
+      "name": "isolated-provider-workload",
+      "id": 132582589671,
+      "conclusion": "success"
+    },
+    {
+      "name": "private-beta-email",
+      "id": 132582589870,
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (3/4)",
+      "id": 132582589901,
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (4/4)",
+      "id": 132582589919,
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / checks",
+      "id": 132582589921,
+      "conclusion": "success"
+    },
+    {
+      "name": "native-app-handoffs",
+      "id": 132582589931,
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (2/4)",
+      "id": 132582589939,
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (1/4)",
+      "id": 132582589945,
+      "conclusion": "success"
+    },
+    {
+      "name": "node-tests",
+      "id": 132582589958,
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (1/4)",
+      "id": 132582589959,
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (4/4)",
+      "id": 132582590038,
+      "conclusion": "success"
+    },
+    {
+      "name": "migrations / postgres-17",
+      "id": 132582590087,
+      "conclusion": "success"
+    },
+    {
+      "name": "DOM checks (2/4)",
+      "id": 132582590119,
+      "conclusion": "success"
+    },
+    {
+      "name": "pure-deno-tests",
+      "id": 132582590123,
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (5/6)",
+      "id": 132582590136,
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (1/6)",
+      "id": 132582590147,
+      "conclusion": "success"
+    },
+    {
+      "name": "iPhone WebKit (3/4)",
+      "id": 132582590187,
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (3/6)",
+      "id": 132582590188,
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (4/6)",
+      "id": 132582590254,
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (6/6)",
+      "id": 132582590276,
+      "conclusion": "success"
+    },
+    {
+      "name": "desktop-and-scheduling / Full browser regression (2/6)",
+      "id": 132582590313,
+      "conclusion": "success"
+    },
+    {
+      "name": "Release validation",
+      "id": 132585120025,
+      "conclusion": "success"
+    }
+  ],
+  "deployment": {
+    "id": "dpl_2KELiEGmV1C9kqVLkThrXTfrAfTE",
+    "url": "https://finviant-office-q4myztw77-mbarone5-1747.vercel.app",
+    "state": "READY",
+    "target": "preview / existing private beta",
+    "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo",
+    "buildDurationSeconds": 55.744,
+    "previousDeployment": "dpl_2PuWZDZ3CqHSHVGu6rkrLV79PHnb"
+  },
+  "aliases": [
+    {
+      "alias": "finviant.com",
+      "deploymentId": "dpl_2KELiEGmV1C9kqVLkThrXTfrAfTE",
+      "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo"
+    },
+    {
+      "alias": "www.finviant.com",
+      "deploymentId": "dpl_2KELiEGmV1C9kqVLkThrXTfrAfTE",
+      "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo"
+    }
+  ],
+  "http": [
+    {
+      "domain": "finviant.com",
+      "status": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    },
+    {
+      "domain": "www.finviant.com",
+      "status": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive"
+    }
+  ],
+  "assets": [
+    {
+      "path": "/assets/FinancialPerformance-CRyKY8o3.js",
+      "httpStatus": 200,
+      "collectionsKanban": true,
+      "explicitPreview": true,
+      "cashChartRetained": true
+    },
+    {
+      "path": "/assets/kanban-E5IEvpND.css",
+      "httpStatus": 200,
+      "exactReviewedCss": true,
+      "phoneScrolling": true
+    },
+    {
+      "path": "/assets/JobsPage-DT_UMUDv.js",
+      "httpStatus": 200,
+      "jobsKanban": true,
+      "pageCounts": true
+    }
+  ],
+  "betaBackend": "xvybcmyoblfgzokaifsx",
+  "deploymentProtection": {
+    "enabled": true,
+    "deploymentType": "all"
+  },
+  "runtimeErrorScan": "No error/fatal log groups returned for this deployment in the first five-minute window; no provider or owner-flow acceptance implied.",
+  "regressionRepair": "Initial Jobs mockup review used the old filter-panel button location and old board region name. Only selectors were updated; all ten focused Chromium tests and final complete CI passed. Earlier failed checks at 9d52a83 are superseded by the passing final head.",
+  "preserved": "Cash/receivable totals, cash chart, transactions/receipts, permissions, approved queue, server search/filter/paging, unsaved edits, scheduling and completion/billing safeguards; all 51 readiness records/statuses/criteria/history retained.",
+  "limitations": [
+    "Collection lanes have complete server totals with the explicitly labeled existing up-to-eight oldest past-due invoice preview; full invoices remain separately accessible to authorized users.",
+    "Job board lane counts cover the current filtered/paginated page.",
+    "Automated Chromium/WebKit coverage and deployed-asset checks do not certify physical-device or signed-in owner/provider acceptance."
+  ],
+  "externalEffects": {
+    "hostedApplicationRelease": true,
+    "hostedDataWrites": false,
+    "migrationsApplied": false,
+    "providerChanges": false,
+    "realMessagesSent": false,
+    "paymentsCharged": false,
+    "environmentConfigurationPublished": false
+  }
+}
