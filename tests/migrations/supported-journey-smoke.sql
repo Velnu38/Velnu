@@ -10,7 +10,7 @@ declare
  share_token text:=encode(extensions.gen_random_bytes(32),'hex'); schedule_token text:=encode(extensions.gen_random_bytes(32),'hex');
  invoice_token text:=encode(extensions.gen_random_bytes(32),'hex'); approval_hash text;
  doc jsonb; offered jsonb; result jsonb; facts jsonb; slot jsonb; event_id uuid; settings jsonb;
- checkpoint text:='setup'; today date:=(now() at time zone 'America/New_York')::date; visit_version integer;
+ checkpoint text:='setup'; today date:=(now() at time zone 'America/New_York')::date; visit_version integer; blocked boolean:=false;
 begin
  insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at)
  values(owner_id,'authenticated','authenticated','journey-owner@example.test',now(),now(),now());
@@ -96,6 +96,13 @@ begin
  checkpoint:='finish_visit';
  perform public.manage_job_visit(business_id,job_id,'finish',jsonb_build_object('id',appointment_id,'version',visit_version));
  checkpoint:='complete_job';
+ -- The browser calls the authenticated work-scheduling Edge action. Its database
+ -- completion RPC is deliberately service-only; simulate that validated server
+ -- actor here, and verify that direct browser execution remains forbidden.
+ begin perform public.complete_job_workflow(job_id,owner_id,false);
+ exception when insufficient_privilege then blocked:=true;end;
+ if not blocked then raise exception 'Browser bypassed server completion action' using errcode='23514',constraint='journey_completion_service_boundary';end if;
+ execute 'set local role service_role';
  result:=public.complete_job_workflow(job_id,owner_id,false);invoice_id:=(result->>'invoice_id')::uuid;
  if invoice_id is null or (result->>'invoice_ready')::boolean is not true then
   raise exception 'Completion did not prepare a final invoice' using errcode='23514',constraint='journey_final_draft';
@@ -106,6 +113,7 @@ begin
   raise exception 'Final draft must preserve scope, terms and retry identity' using errcode='23514',constraint='journey_final_scope_terms';
  end if;
  checkpoint:='issue_invoice';
+ execute 'set local role authenticated';
  doc:=public.prepare_personal_document(business_id,'invoice',invoice_id,invoice_token);
  perform public.confirm_personal_document_sent(business_id,invoice_token,'email');
  execute 'reset role';
