@@ -1,0 +1,50 @@
+# Release evidence recipe. Reuse requires an authorized beta QA run.
+# No embedded credentials, generated identity values or live provider payloads.
+import os,json,urllib.request,urllib.error,uuid,hashlib
+from pathlib import Path
+PROJECT='xvybcmyoblfgzokaifsx';base='https://api.supabase.com/v1/projects/'+PROJECT
+headers={'Authorization':'Bearer '+os.environ['SUPABASE_ACCESS_TOKEN'],'Content-Type':'application/json'}
+def sql(query):
+ q=urllib.request.Request(base+'/database/query',headers=headers,data=json.dumps({'query':query}).encode())
+ try:
+  with urllib.request.urlopen(q,timeout=60) as r:return json.load(r)
+ except urllib.error.HTTPError as e:
+  body=e.read().decode(errors='replace')
+  # Only fixed checkpoint identifiers and SQLSTATE, never SQL/row/privileged context.
+  import re
+  stage=re.search(r'journey_checkpoint_[a-z_]+',body)
+  state=re.search(r'(?:ERROR:|SQLSTATE)\s*([0-9A-Z]{5})',body)
+  denied=re.search(r'permission denied for (?:table|schema|function|sequence) ([a-zA-Z0-9_.]+)',body)
+  raise RuntimeError('Hosted rollback canary HTTP '+str(e.code)+' checkpoint '+(stage.group(0) if stage else 'unavailable')+' SQLSTATE '+(state.group(1) if state else 'unknown')+' deniedObject='+(denied.group(1) if denied else 'unknown')+' roleBoundary='+str('cannot set role' in body.lower())) from None
+capacity=sql("select count(*)::int n from private.test_account_slots")[0]['n'];assert capacity<10,'Existing beta cap retained; a dedicated approved test login is required'
+nonce=uuid.uuid4().hex;email='journey-owner-'+nonce+'@example.test';business='Synthetic journey replay '+nonce
+assert sql("select count(*)::int n from auth.users where email='"+email+"'")[0]['n']==0
+source=Path('/workspace/Velnu/tests/migrations/supported-journey-smoke.sql').read_text()
+# A distinct hosted canary: no sender activation, no policy enable, no queue worker
+# invocation. Exercise only this isolated tenant's core database transitions.
+s=source[source.index('begin;'):]
+for marker,phase in [(' insert into auth.users','auth_user_seed'),(' insert into auth.sessions','auth_session_seed'),(' insert into public.user_agreement_acceptances','agreement_seed')]:
+ s=s.replace(marker," checkpoint:='"+phase+"';\n"+marker,1)
+s=s.replace("raise exception 'Supported journey checkpoint failed' using errcode=sqlstate,constraint='journey_checkpoint_'||checkpoint;","raise exception 'journey_checkpoint_% SQLSTATE %',checkpoint,sqlstate using errcode=sqlstate;")
+s=s.replace('journey-owner@example.test',email).replace('Synthetic journey replay',business)
+s=s.replace(" checkpoint:='auth_user_seed';"," checkpoint:='synthetic_beta_allowlist';\n insert into private.private_beta_registration_allowlist(email) values('"+email+"');\n checkpoint:='auth_user_seed';",1)
+block=""" -- Sender readiness is synthetic and rolled back. Delivery worker/vault stay disabled.
+ checkpoint:='synthetic_sender';
+ insert into private.managed_delivery_accounts(business_id,email_active,reply_to)
+ values(business_id,true,'"""+email+"""');
+"""
+assert block in s;s=s.replace(block,'')
+assert ' perform public.save_journey_notice_settings(business_id,true,true,0);' in s
+s=s.replace(' perform public.save_journey_notice_settings(business_id,true,true,0);',' -- Keep every new communication policy off in this hosted canary.')
+a=s.index(' if public.prepare_due_journey_notices()<>1');b=s.index(' -- A fast test',a);s=s[:a]+s[b:]
+a=s.index(' if public.prepare_due_journey_notices()<>1');b=s.index(" if (select count(*) from private.workflow_events",a)
+s=s[:a]+" if exists(select 1 from private.journey_notices n where n.business_id=business_id) or exists(select 1 from private.finviant_email_outbox o where o.business_id=business_id) then\n  raise exception 'Hosted canary must not queue customer mail' using errcode='23514',constraint='journey_no_live_mail';end if;\n"+s[b:]
+assert s.lstrip().startswith('begin;') and s.rstrip().endswith('rollback;')
+for forbidden in ['insert into private.managed_delivery_accounts','save_journey_notice_settings(business_id,true','prepare_due_journey_notices','claim_document_email','finish_document_email']:
+ assert forbidden not in s,forbidden
+result=sql(s)
+cleanup=sql("select (select count(*) from auth.users where email='"+email+"')::int users,(select count(*) from public.businesses where name='"+business+"')::int businesses,(select count(*) from private.private_beta_registration_allowlist where email='"+email+"')::int allowlist")[0]
+assert cleanup=={'users':0,'businesses':0,'allowlist':0},'Rollback cleanup unconfirmed; do not delete unrelated data'
+r={'project':PROJECT,'result':'passed','mode':'isolated synthetic hosted transaction; rolled back','adaptedFrom':'tests/migrations/supported-journey-smoke.sql','sourceSha256':hashlib.sha256(source.encode()).hexdigest(),'canarySha256':hashlib.sha256(s.encode()).hexdigest(),'stages':['exact approved estimate revision and terms','one canonical job','customer booking and crew','visit start and finish','one final draft with agreed due date','issued revision open','idempotent partial payment','final payment and settled journey facts'],'testIdentitiesRemoved':True,'temporarySyntheticBetaApprovalRemoved':True,'existingBetaGateAndAccountCapRetained':True,'testBusinessesRemoved':True,'identity':'SQL JWT/server-actor simulation; not a genuine browser Auth session','customerNotifications':'policies kept off; no queue-preparation/claim/dispatch calls','externalProviders':'not invoked','realMessagesOrCharges':False}
+Path('/workspace/finviant-setup/journey-hosted-canary.json').write_text(json.dumps(r,indent=2)+'\n')
+print(json.dumps(r,indent=2))

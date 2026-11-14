@@ -2,6 +2,13 @@
 
 Checked November 14, 2026 UTC.
 
+## Current verified supported journey framework release — PR119
+
+- Released as `b340e5f95f102a9ec11befe3d814dafa02771fe9`, identical tree to tested `d8343d48f3d938a3dc4a96285e973b47baa0dd8c`. All nine applicable workflows and all 22 complete-suite jobs pass. READY Preview `dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN` serves both Finviant domains; HTTP200/private no-store/noindex, beta backend, new activity/notification/terms controls and retained reviewed Jobs/Fin/Home/invoice/estimate assets verified. [Release receipt](evidence/2026-11-14-supported-journey-beta-release.json).
+- Four journey migrations are applied, mapped from source versions to actual hosted history in the receipt; **do not reapply them**. `tier-delivery-worker`18 and `fin-workflow`19 are ACTIVE with their original JWT modes. Three new private RLS tables/ACLs, server-only completion, default-off policies and existing provider-policy fingerprints verified. Four live unauthenticated RPC/function probes correctly return401. Supabase binding is now applied and usable; earlier missing-token statements below are historical.
+- A rollback-only hosted core journey passes exact approval/terms → one job/customer booking/crew → visit execution/completion → one final draft → current invoice opening → partial/final recorded payments/settled facts. Private beta correctly denied the first unapproved synthetic identity. One temporary synthetic approval was then used inside the rolled-back transaction; signup/account-cap guards remained enabled, and cleanup confirms no synthetic account, business or approval entry persisted. This uses SQL identity/server-actor simulation, not genuine browser Auth or actual provider delivery. No sender/policy activation, real message/charge or existing customer-record edit.
+- New booking/payment email policies remain off until the owner chooses them. Existing appointment/overdue defaults and saved rules remain. Signed-in owner/physical-device, Google OAuth/live calendar, email/SMS callback, merchant/payment/refund and live Fin acceptance are not certified. All 51 readiness histories/statuses/criteria remain. Earlier pending-release statements below are superseded by this receipt; the broader public-launch/provider gates remain open.
+
 ## Current release preflight — Supabase access restored, native journey passes
 
 - Supabase token is now bound/applied (runtime revision3); API200 and beta-project visibility verified. Read-only migration/function/policy preflight passes: 152 migrations; none of journey001–004 applied yet. Both beta aliases currently serve READY `dpl_4nquRCGKGeMVduhXdBFj4tT6TRTs` at disabled-Twilio source `d3525c1`; preserve it as the current pre-release baseline.

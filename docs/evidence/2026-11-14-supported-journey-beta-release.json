@@ -1,0 +1,485 @@
+{
+  "verifiedDate": "2026-11-13",
+  "timezone": "America/New_York",
+  "verifiedAtUTC": "2026-11-14T04:11:06.243339+00:00",
+  "scope": "Supported job journey framework \u2014 private beta release",
+  "pr": "https://github.com/Velnu38/Velnu/pull/119",
+  "source": {
+    "pr": 119,
+    "testedCommit": "d8343d48f3d938a3dc4a96285e973b47baa0dd8c",
+    "mergedCommit": "b340e5f95f102a9ec11befe3d814dafa02771fe9",
+    "testedTree": "6834945f7b0421bbff2f53abc3fb706d92d8da55",
+    "mergedTree": "6834945f7b0421bbff2f53abc3fb706d92d8da55",
+    "equal": true
+  },
+  "ci": {
+    "testedCommit": "d8343d48f3d938a3dc4a96285e973b47baa0dd8c",
+    "applicableWorkflows": 9,
+    "workflowsPassed": 9,
+    "completeSuiteJobs": 22,
+    "completeSuiteJobsPassed": 22,
+    "runs": [
+      {
+        "id": 43553054603,
+        "name": "Finviant assessment maintenance",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054603"
+      },
+      {
+        "id": 43553054599,
+        "name": "Finviant authentication access checks",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054599"
+      },
+      {
+        "id": 43553054597,
+        "name": "Focused document mockup review",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054597"
+      },
+      {
+        "id": 43553054600,
+        "name": "Unified Job Management visual review",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054600"
+      },
+      {
+        "id": 43553054614,
+        "name": "More navigation checks",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054614"
+      },
+      {
+        "id": 43553054645,
+        "name": "Pricing tier checks",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054645"
+      },
+      {
+        "id": 43553054655,
+        "name": "Simplified estimate visual review",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054655"
+      },
+      {
+        "id": 43553054639,
+        "name": "Complete automated test checks",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054639"
+      },
+      {
+        "id": 43553054681,
+        "name": "Voice review delivery checks",
+        "conclusion": "success",
+        "url": "https://github.com/Velnu38/Velnu/actions/runs/43553054681"
+      }
+    ],
+    "completeJobs": [
+      {
+        "id": 132319737776,
+        "name": "node-tests",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319737942,
+        "name": "desktop-and-scheduling / Full browser regression (3/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319737949,
+        "name": "iPhone WebKit (4/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319737976,
+        "name": "DOM checks (4/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319737977,
+        "name": "desktop-and-scheduling / Full browser regression (5/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319737983,
+        "name": "desktop-and-scheduling / Full browser regression (4/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319737986,
+        "name": "isolated-provider-workload",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319737997,
+        "name": "desktop-and-scheduling / Full browser regression (2/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738006,
+        "name": "pure-deno-tests",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738020,
+        "name": "DOM checks (3/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738021,
+        "name": "DOM checks (2/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738031,
+        "name": "iPhone WebKit (2/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738047,
+        "name": "native-app-handoffs",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738057,
+        "name": "private-beta-email",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738093,
+        "name": "desktop-and-scheduling / Full browser regression (6/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738140,
+        "name": "iPhone WebKit (3/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738155,
+        "name": "iPhone WebKit (1/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738182,
+        "name": "DOM checks (1/4)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738297,
+        "name": "desktop-and-scheduling / Full browser regression (1/6)",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738306,
+        "name": "migrations / postgres-17",
+        "conclusion": "success"
+      },
+      {
+        "id": 132319738320,
+        "name": "desktop-and-scheduling / checks",
+        "conclusion": "success"
+      },
+      {
+        "id": 132322506278,
+        "name": "Release validation",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "localChecks": {
+    "frameworkRulesDatabaseFin": 32,
+    "managementExecutionApproval": 15,
+    "productionStartupDeployment": 97,
+    "phoneChromium": 7,
+    "bookingCopyChromium": 5,
+    "assessment": 10,
+    "failed": 0,
+    "phoneWidths": [
+      320,
+      390
+    ],
+    "screenshots": "docs/evidence/supported-journey-candidate-2026-11-14"
+  },
+  "backendDeployment": {
+    "source": "d8343d48f3d938a3dc4a96285e973b47baa0dd8c",
+    "project": "xvybcmyoblfgzokaifsx",
+    "migrations": [
+      {
+        "sourceVersion": "20261114000100",
+        "name": "supported_journey_framework",
+        "version": "20261114035902",
+        "sha256": "035a90b024443ce0f95c95405e1d6c9c71ca77a1b162e82b3dd2612e56043495"
+      },
+      {
+        "sourceVersion": "20261114000200",
+        "name": "journey_customer_notices",
+        "version": "20261114035906",
+        "sha256": "576ef8d74e3c918fa3685c84f8666621d77923737868323cf7449ce8297844a8"
+      },
+      {
+        "sourceVersion": "20261114000300",
+        "name": "journey_booking_and_payment_terms",
+        "version": "20261114035909",
+        "sha256": "ea5d201581a68a8658404495dcb772a9264c3d5bc6061dcb239226e048b14379"
+      },
+      {
+        "sourceVersion": "20261114000400",
+        "name": "fin_reviewed_estimate_terms",
+        "version": "20261114035912",
+        "sha256": "91828276f56470ec200489cd35e6508b422b1628fa07df0ee3de6904cb4168f6"
+      }
+    ],
+    "functions": [
+      {
+        "slug": "tier-delivery-worker",
+        "version": 18,
+        "status": "ACTIVE",
+        "verify_jwt": false,
+        "files": [
+          {
+            "path": "index.js",
+            "sha256": "08d71925dc889a6ae7bf67638ddbe17fa34d41cbaadddd4a036f34d67e88572f"
+          },
+          {
+            "path": "font-data.ts",
+            "sha256": "983e2ba6bec85ddd35acbaf0a497d519000f5777281660a9601003ad6f04ba3d"
+          },
+          {
+            "path": "deno.json",
+            "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+          }
+        ]
+      },
+      {
+        "slug": "fin-workflow",
+        "version": 19,
+        "status": "ACTIVE",
+        "verify_jwt": true,
+        "files": [
+          {
+            "path": "functions/_shared/burstLimit.ts",
+            "sha256": "7c603186a1bea58e9ec0893727e6c53e58cefbd9f419a18443d783f4934f0b0c"
+          },
+          {
+            "path": "functions/_shared/providerRequest.ts",
+            "sha256": "b469ab40e2d6e652a7c9814bff050e02d5df6b118c7afa43a6e24584d4cd3077"
+          },
+          {
+            "path": "functions/_shared/signedEvents.ts",
+            "sha256": "6c54efecd0c98bd03052c87b9b7ad14ac6a5000146cf9584097d618d5da0a458"
+          },
+          {
+            "path": "functions/fin-assistant/core.ts",
+            "sha256": "5ba670cb071a4df0842d12964ca725b1532c30e0a9220b4353afa5e09894b4f2"
+          },
+          {
+            "path": "functions/fin-workflow/accountFields.ts",
+            "sha256": "e87568a4a3e5c98a3e57a1d96e223b8ef46f81ad44bdb6fc16714d14e31cd4bf"
+          },
+          {
+            "path": "functions/fin-workflow/catalog.ts",
+            "sha256": "2b6ec211275087ae08ae7cca473266e844c1d7dec63ddae3b512f094fcf7cd32"
+          },
+          {
+            "path": "functions/fin-workflow/handler.ts",
+            "sha256": "999139fbfff557014c037bedb6f6178af9b748690226f68d940d080cb294dce2"
+          },
+          {
+            "path": "functions/fin-workflow/index.ts",
+            "sha256": "5dc3bf0d7978b039529afca4388ac8df3067f5bc2debb1d14bc2c983e21a250c"
+          },
+          {
+            "path": "functions/fin-workflow/productKnowledge.ts",
+            "sha256": "7755192a14b36ad14738146f210e456fc03a9422f4a5b600a7f7c02f2eec0c9e"
+          },
+          {
+            "path": "functions/fin-workflow/protocol.ts",
+            "sha256": "03a62426679adb80457dd7af6faf64c7bc392b75c192248d3e357cb4c2137e04"
+          }
+        ]
+      }
+    ],
+    "providersActivated": false,
+    "hostedBusinessRecordsEdited": false
+  },
+  "backendVerification": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "schema": {
+      "journey_migrations": 4,
+      "private_rls_tables": 3,
+      "ledger_private": true,
+      "activity_acl": true,
+      "settings_acl": true,
+      "worker_acl": true,
+      "completion_boundary": true,
+      "enabled_new_policies": 0,
+      "workflow_event_count": 0,
+      "notice_count": 0,
+      "fin_terms_read": true,
+      "final_terms_guard": true,
+      "deposit_guard": true,
+      "create_retains_invoker": true
+    },
+    "functions": [
+      {
+        "slug": "fin-workflow",
+        "status": "ACTIVE",
+        "version": 19,
+        "verify_jwt": true
+      },
+      {
+        "slug": "tier-delivery-worker",
+        "status": "ACTIVE",
+        "version": 18,
+        "verify_jwt": false
+      }
+    ],
+    "existingProviderPoliciesUnchanged": true,
+    "liveNegativeAuthProbes": [
+      {
+        "rpc": "get_journey_notice_settings",
+        "anonymousHTTP": 401
+      },
+      {
+        "rpc": "prepare_due_journey_notices",
+        "anonymousHTTP": 401
+      },
+      {
+        "function": "tier-delivery-worker",
+        "unauthenticatedHTTP": 401
+      },
+      {
+        "function": "fin-workflow",
+        "unauthenticatedHTTP": 401
+      }
+    ],
+    "providerMessagesOrCharges": false
+  },
+  "hostedRollbackCanary": {
+    "project": "xvybcmyoblfgzokaifsx",
+    "result": "passed",
+    "mode": "isolated synthetic hosted transaction; rolled back",
+    "adaptedFrom": "tests/migrations/supported-journey-smoke.sql",
+    "sourceSha256": "20c0254b791b0c930b5018061eac98512a3319eae0c895e93c5526ff00794da9",
+    "canarySha256": "4161515ae9b64127bbf0f2782d0002c5da4229876c90d6633f7e6230f65210cc",
+    "stages": [
+      "exact approved estimate revision and terms",
+      "one canonical job",
+      "customer booking and crew",
+      "visit start and finish",
+      "one final draft with agreed due date",
+      "issued revision open",
+      "idempotent partial payment",
+      "final payment and settled journey facts"
+    ],
+    "testIdentitiesRemoved": true,
+    "temporarySyntheticBetaApprovalRemoved": true,
+    "existingBetaGateAndAccountCapRetained": true,
+    "testBusinessesRemoved": true,
+    "identity": "SQL JWT/server-actor simulation; not a genuine browser Auth session",
+    "customerNotifications": "policies kept off; no queue-preparation/claim/dispatch calls",
+    "externalProviders": "not invoked",
+    "realMessagesOrCharges": false
+  },
+  "initialHostedCanaryRestriction": {
+    "outcome": "Unapproved synthetic email rejected by existing private-beta registration guard with42501",
+    "resolution": "One synthetic email approved inside the same rolled-back transaction; guard/account cap retained; no persistent tester approval or account",
+    "broaderPermissionsChanged": false
+  },
+  "applicationDeployment": {
+    "id": "dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN",
+    "commit": "b340e5f95f102a9ec11befe3d814dafa02771fe9",
+    "state": "READY",
+    "projectId": "prj_qSyNebSGZi7kVTE0KyozhMdQ1MLo",
+    "target": null,
+    "branch": "ux/private-testing-20261029"
+  },
+  "aliases": {
+    "commit": "b340e5f95f102a9ec11befe3d814dafa02771fe9",
+    "deployment": "dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN",
+    "previous": {
+      "finviant.com": "dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN",
+      "www.finviant.com": "dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN"
+    },
+    "aliases": [
+      "finviant.com",
+      "www.finviant.com"
+    ],
+    "verified": true
+  },
+  "liveAssetVerification": [
+    {
+      "origin": "https://finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "checks": {
+        "unifiedJobs": true,
+        "directJobSections": true,
+        "jobManagementNavigation": true,
+        "reviewedJobsStyles": true,
+        "reviewedFinStyles": true,
+        "homeRevised": true,
+        "simpleInvoice": true,
+        "simpleEstimate": true,
+        "betaBackend": true,
+        "workflowActivityRPC": true,
+        "journeyPolicyRPC": true,
+        "estimateTerms": true,
+        "reviewCustomerNotice": true
+      },
+      "verified": true
+    },
+    {
+      "origin": "https://www.finviant.com",
+      "httpStatus": 200,
+      "cacheControl": "private, no-store, max-age=0",
+      "robots": "noindex, nofollow, noarchive",
+      "checks": {
+        "unifiedJobs": true,
+        "directJobSections": true,
+        "jobManagementNavigation": true,
+        "reviewedJobsStyles": true,
+        "reviewedFinStyles": true,
+        "homeRevised": true,
+        "simpleInvoice": true,
+        "simpleEstimate": true,
+        "betaBackend": true,
+        "workflowActivityRPC": true,
+        "journeyPolicyRPC": true,
+        "estimateTerms": true,
+        "reviewCustomerNotice": true
+      },
+      "verified": true
+    }
+  ],
+  "assetManifestSha256": "ac834199a4c802e5d78799ee0baa20ace170578297d9d007ff191d47c5210c2a",
+  "preserved": {
+    "existingProviderPolicies": true,
+    "existingCustomerRecords": true,
+    "betaRegistrationGateAndAccountCap": true,
+    "all51ReadinessTasks": true,
+    "priorHomeInvoiceEstimateAndFin": true
+  },
+  "notCertified": [
+    "genuine hosted browser Auth/owner acceptance",
+    "physical iPhone/Android acceptance",
+    "Google owner OAuth authorization and live calendar booking/reschedule/cancel/refresh",
+    "actual email/SMS delivery and signed callback receipts",
+    "real/sandbox merchant webhook acceptance, settlement and refund/reconciliation",
+    "OpenAI live Fin acceptance; background automation uses no AI calls"
+  ],
+  "safety": {
+    "newCommunicationPoliciesEnabled": false,
+    "providerActivated": false,
+    "realMessagesOrCharges": false,
+    "testDataCommitted": false,
+    "agentEnvironmentPublication": false
+  },
+  "rollback": {
+    "frontendDeployment": "dpl_4nquRCGKGeMVduhXdBFj4tT6TRTs",
+    "frontendCommit": "d3525c1f3d89dc62ba7b86c71f79874820fbb7e8",
+    "backend": "Prior function bundles/packages retained in execution workspace; additive schema may remain on frontend rollback. Preserve uncertain/in-flight transport outcomes."
+  }
+}

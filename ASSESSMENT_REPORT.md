@@ -12,6 +12,8 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 ## Current state and next action
 
+- PR119 supported journey framework is beta-released as b340e5f with identical tested tree, all nine workflows/22 release jobs passing, four mapped migrations and worker18/Fin19 verified. Hosted rollback-only core journey passes with no persisted synthetic data; signup/account cap and existing delivery settings remain. New communication policies are off. Genuine browser Auth/owner, physical-device and live provider/Fin acceptance remain open; all 51 readiness histories/statuses/criteria are preserved.
+
 - November 14 Calendar configuration refresh: both sensitive Google OAuth keys are saved for Preview. Existing verified PR118 source f421e562853002d9e7a31fa4a427a5a08bd5b753 was redeployed as READY dpl_7Rh3NWPuL62xYMGpdEQD2ehhCgQA and verified on both Finviant domains. This supersedes the prior deployment ID while retaining the same application source. Google owner authorization and calendar provider acceptance remain unverified; the new automation source candidate below is not deployed.
 
 - November 14 development checkpoint: first supported journey framework candidate is local on ux/supported-journey-20261113. Derived job/payment status, private activity/invoice-link opens and pending/settled reminder safeguards pass focused synthetic verification. This is not a deployed end-to-end automation release: full CI/PostgreSQL replay, Supabase backend access/rollout, booking/receipt communication and remaining reference-journey acceptance are outstanding. Last verified beta remains PR118 below. All 51 task statuses, acceptance histories and external gates remain.
