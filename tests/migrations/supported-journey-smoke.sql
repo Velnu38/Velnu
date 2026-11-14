@@ -7,8 +7,8 @@ declare
  owner_id uuid:=gen_random_uuid(); business_id uuid:=gen_random_uuid(); customer_id uuid:=gen_random_uuid();
  estimate_id uuid; job_id uuid; invoice_id uuid; appointment_id uuid; revision_id uuid;
  request_id uuid:=gen_random_uuid(); payment_id uuid:=gen_random_uuid(); offer_id uuid:=gen_random_uuid();
- share_token text:=encode(gen_random_bytes(32),'hex'); schedule_token text:=encode(gen_random_bytes(32),'hex');
- invoice_token text:=encode(gen_random_bytes(32),'hex'); approval_hash text;
+ share_token text:=encode(extensions.gen_random_bytes(32),'hex'); schedule_token text:=encode(extensions.gen_random_bytes(32),'hex');
+ invoice_token text:=encode(extensions.gen_random_bytes(32),'hex'); approval_hash text;
  doc jsonb; offered jsonb; result jsonb; facts jsonb; slot jsonb; event_id uuid; settings jsonb;
  today date:=(now() at time zone 'America/New_York')::date; visit_version integer;
 begin
@@ -29,7 +29,7 @@ begin
  execute 'set local role authenticated';
  insert into public.customers(id,business_id,first_name,last_name,email)
  values(customer_id,business_id,'Journey','Synthetic','journey-customer@example.test');
- perform public.save_worker_profile(business_id,owner_id,jsonb_build_object('name','Synthetic crew','active',true),null);
+ -- Business creation provisions the owner roster record; booking validates it.
  settings:=public.get_journey_notice_settings(business_id);
  if settings->>'booking_confirmation'<>'false' or settings->>'payment_receipt'<>'false' then
   raise exception 'New notifications must start disabled' using errcode='23514',constraint='journey_default_off';
@@ -42,10 +42,11 @@ begin
  doc:=public.prepare_personal_document(business_id,'estimate',estimate_id,share_token);
  revision_id:=(doc->>'revision_id')::uuid;
  approval_hash:=encode(sha256(convert_to(doc->>'approval_token','UTF8')),'hex');
- if doc#>>'{snapshot,customer_message}' not like '%Invoice payment terms: Net 15 days.%' then
+ if (doc#>>'{snapshot,customer_message}' like '%Invoice payment terms: Net 15 days.%') is distinct from true then
   raise exception 'Agreed revision omitted payment terms' using errcode='23514',constraint='journey_visible_terms';
  end if;
  -- Explicit owner confirmation records an unverified personal-app send, not provider delivery.
+ perform public.release_personal_approval(business_id,share_token);
  perform public.confirm_personal_document_sent(business_id,share_token,'email');
  execute 'reset role';
  result:=public.consume_document_approval(approval_hash,'approved','Journey Synthetic','Synthetic replay',true,revision_id);
@@ -73,7 +74,8 @@ begin
  end if;
  -- A fast test cannot wait for the future visit. Move only this synthetic visit
  -- back two weeks (same weekday/local working hour); keep every source guard enabled.
- update public.appointments a set starts_at=a.starts_at-interval '14 days',ends_at=a.ends_at-interval '14 days' where a.id=appointment_id;
+ update public.appointments a set starts_at=((a.starts_at at time zone 'America/New_York')-interval '14 days') at time zone 'America/New_York',
+  ends_at=((a.ends_at at time zone 'America/New_York')-interval '14 days') at time zone 'America/New_York' where a.id=appointment_id;
  execute 'set local role authenticated';
  select a.visit_version into visit_version from public.appointments a where a.id=appointment_id;
  perform public.manage_job_visit(business_id,job_id,'start',jsonb_build_object('id',appointment_id,'version',visit_version));
