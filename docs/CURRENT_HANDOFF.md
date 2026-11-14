@@ -2,6 +2,12 @@
 
 Checked November 14, 2026 UTC.
 
+## Current release preflight — Supabase access restored, native journey passes
+
+- Supabase token is now bound/applied (runtime revision3); API200 and beta-project visibility verified. Read-only migration/function/policy preflight passes: 152 migrations; none of journey001–004 applied yet. Both beta aliases currently serve READY `dpl_4nquRCGKGeMVduhXdBFj4tT6TRTs` at disabled-Twilio source `d3525c1`; preserve it as the current pre-release baseline.
+- Actual final-schema PostgreSQL replay plus connected journey passes at `e0d7f62`, check132317221492/run43552253249. A test-setup service-only completion boundary was corrected without widening grants; direct browser execution remains denied. Broad browser failures were outdated booking-copy expectations; Pro directs users to enabled confirmation activity, other plans correctly report no customer send. Final-head complete CI remains required. [Preflight receipt](evidence/2026-11-14-supported-journey-preflight.json).
+- Proceed backend-first only after final checks: apply missing four migrations, deploy matching worker/Fin functions, verify grants/defaults/contracts, then promote exact reviewed beta source. No hosted backend/application release, provider activation or real send/charge has occurred at this checkpoint. Earlier missing-token notes below are historical. All 51 readiness histories/statuses/criteria remain; live provider/owner/physical-device acceptance is not certified.
+
 ## Current expanded supported journey candidate — backend-first release pending
 
 - Owner requests complete workflow verification and beta deployment. Future-only default-off booking/payment emails, exact reviewed reschedule/cancel notices, explicit required-deposit guards, agreed invoice terms and reviewed Fin term support are implemented on the existing actions/outbox. [Scope and rollout](SUPPORTED_JOURNEY_FRAMEWORK_2026-11-14.md). Earlier first-slice gap lists below are historical and superseded for source implementation, not live acceptance.

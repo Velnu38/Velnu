@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Supported journey native replay passes; Supabase deployment access restored",
+      "detail": "Connected journey on the real final PostgreSQL schema passes at e0d7f62, check132317221492 in complete run43552253249. Test uses the existing service-only completion boundary and verifies direct browser denial; all synthetic records roll back and providers are not called. Full CI still needs final-head booking-copy assertions to pass. Runtime revision3 now exposes the saved Supabase binding; management API200 and beta-project access succeed. Read-only preflight finds 152 migrations and none of the new four; prior functions are present and delivery-policy fingerprints captured. Both beta domains currently serve READY dpl_4nquRCGKGeMVduhXdBFj4tT6TRTs at d3525c1, preserved as pre-release baseline. No hosted migration, provider activation, customer send/charge or beta promotion yet. All 51 task histories/statuses/criteria remain.",
+      "evidence": "docs/evidence/2026-11-14-supported-journey-preflight.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
       "title": "Supported journey expanded \u2014 release candidate; backend and live acceptance pending",
       "detail": "Implemented future-only default-off booking/payment emails on the existing durable transport, exact reviewed schedule-change notices, required-deposit booking guards, agreed estimate-to-final payment terms and reviewed Fin term support. Local framework checks pass 32 cases; existing management/execution/approval checks pass 15; production TypeScript/build and 95 startup/deployment checks pass. Seven Chromium phone scenarios pass at 320/390px after final shared-checkbox capture review; full CI/native replay remain required. The connected native SQL journey now joins mandatory replay and phone cases join required WebKit CI. Supabase deployment credentials remain absent from the running environment. No hosted migration, beta promotion, provider activation, customer send/charge or environment publication. All 51 task histories/statuses/criteria retained.",
       "evidence": "docs/evidence/2026-11-14-supported-journey-candidate.json",
