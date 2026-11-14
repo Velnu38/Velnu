@@ -8,6 +8,12 @@
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
+      "title": "Collections and Job Management Kanban — local synthetic candidate",
+      "detail": "Added a collections aging board using existing financial overview totals and labeled oldest-invoice preview, then exposed and improved the canonical Job Management board with page counts, empty lanes and horizontal phone scrolling. Cash totals, charts, transaction records, search/paging, permissions and guarded workflow actions retained. Production build/97 startup checks, 15 domain cases, existing operations DOM suites and synthetic Chromium at 320/390/1440px plus restricted access pass. No backend/provider/hosted changes, real sends, charges or deployment. Full CI, WebKit, hosted owner and physical-device acceptance remain open under existing UX/JOB gates; no task status or acceptance criterion changed.",
+      "evidence": "docs/evidence/2026-11-14-collections-jobs-kanban.json",
+      "verifiedAt": "2026-11-14"
+    },
+    {
       "title": "Supported journey backend and private beta verified; live acceptance remains open",
       "detail": "November 14 read-only report checkpoint: PR119 is merged as b340e5f95f102a9ec11befe3d814dafa02771fe9; both Finviant domains resolve to READY dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN at that source. Final candidate d8343d48f3d938a3dc4a96285e973b47baa0dd8c passed all nine returned workflows and all 22 full-suite jobs in run43553054639; candidate and merge trees match. Supported journey source and frontend deployment are verified, not real-provider or physical-device acceptance. Direct beta verification on November 14 confirms four journey migrations applied as 20261114035902/06/09/12, tier-delivery-worker ACTIVE v18 and fin-workflow ACTIVE v19 at 03:59 UTC, before PR119 merge. All ten deployed Fin bundle files matched the merge. Earlier missing-backend/credential and undeployed-candidate notes are historical; do not request credentials or reapply migrations on that basis. Hosted end-to-end acceptance and exact bundled worker comparison remain distinct. No runtime/provider/settings changes, tests against external recipients, charges or task closures were performed by this report.",
       "evidence": "https://github.com/Velnu38/Velnu/pull/119; https://github.com/Velnu38/Velnu/actions/runs/43553054639",

@@ -1,0 +1,13 @@
+.workflow-kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:12px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x proximity;max-width:100%;min-width:0}
+.workflow-lane{background:#f3f6fa;border:1px solid #dce4ee;border-radius:12px;padding:12px;min-width:0;scroll-snap-align:start;overflow-wrap:anywhere}
+.workflow-lane header{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}.workflow-lane h5,.workflow-lane h3{font-size:15px;margin:0}.workflow-lane header>span{font-size:13px;color:#526174}
+.workflow-card{display:flex;flex-direction:column;gap:8px;background:white;border:1px solid #dce4ee;border-radius:8px;padding:12px;margin-bottom:10px;overflow-wrap:anywhere}
+.collections-kanban{margin:18px 0}.collections-kanban h4{margin-bottom:8px}
+@media(max-width:600px){.workflow-kanban{grid-auto-columns:85%;}.workflow-lane{padding:10px}}
+
+.kanban-view-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.kanban-view-controls [role=group]{display:flex;gap:8px}.kanban-view-controls button{min-height:44px}
+.unified-jobs .job-board.workflow-kanban{display:grid;grid-template-columns:none;grid-auto-columns:minmax(260px,1fr);overflow-x:auto;padding-bottom:14px;align-items:start}
+.unified-jobs .workflow-lane h2{font-size:16px;margin:0}.unified-jobs .workflow-lane .module-job-card{margin-bottom:12px}.unified-jobs .workflow-lane .jobs-directory-actions{flex-wrap:wrap}
+@media(max-width:600px){.unified-jobs .job-board.workflow-kanban{grid-auto-columns:85%}}
+
+@media(max-width:400px){.financial-performance .performance-metrics{grid-template-columns:minmax(0,1fr)}.financial-performance .performance-metric strong{font-size:22px}}
