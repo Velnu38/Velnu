@@ -65,7 +65,7 @@ export default function ScheduleEstimateDialog({business,estimateId,initialMode=
       const input={title:title.trim(),property_id:site || null,workers:[...workers].sort(),slots:selected,note:note.trim(),recipient_email:context.estimate.customer_email}
       if(mode==='book'){
         const result=await bookApprovedEstimate(estimateId,{title:input.title,property_id:input.property_id,workers:input.workers,...selected[0]})
-        setNotice(result.already_booked?'This estimate already has a job.':`Appointment booked for ${when(selected[0])}. Check job activity for any enabled customer confirmation.`)
+        setNotice(result.already_booked?'This estimate already has a job.':`Appointment booked for ${when(selected[0])}. ${teamScheduling?'Check job activity for any enabled customer confirmation.':'No customer message was sent.'}`)
         onSaved?.();setCreated({id:result.job_id,url:'',token:'',expires:''});return
       }
       let saved=created
