@@ -2,6 +2,12 @@
 
 Checked November 14, 2026 UTC.
 
+## Radix UI foundation candidate — not deployed
+
+- `ux/radix-record-tabs-20261114` starts from PR120 beta `9df9e755247bfd717122983837199ba0fbf6161c`, carrying its release receipt forward. Added pinned MIT-licensed `@radix-ui/react-tabs` 1.2.1 to the shared record tabs used by invoices, estimates and legacy job details. Radix owns keyboard/focus behavior; existing controlled selection, caller-owned panels/IDs, lazy records/drafts and visual styles remain. Optional disabled tabs and explicit RTL direction are supported. No subscription/account is required.
+- Production build/97 startup checks, four final focused Chromium cases at 320/390/1440px (including axe), 29 retained document/calendar/contact cases, existing record/operations/management DOM suites and a dependency audit pass. A dedicated Chromium/WebKit workflow is added; CI/WebKit remain pending at this local checkpoint. [Candidate evidence](evidence/2026-11-14-radix-record-tabs.json).
+- No live-beta deployment, backend/provider/settings changes, hosted data writes, messages or charges. Existing UX/JOB/physical-device/owner/provider gates stay open; all 51 task statuses and criteria/history remain.
+
 ## Current verified collections and Job Management Kanban release
 
 - PR120 is merged as `9df9e755247bfd717122983837199ba0fbf6161c`. All nine workflows and all 22 complete-suite jobs passed at `71063d660ed2fb0b047f661235adbc32d929c52d`; candidate, tested merge and final merge trees match. Dedicated synthetic Chromium/WebKit Kanban checks cover 320/390/1440px and restricted access. Initial Jobs mockup failures were stale selectors for the relocated controls/renamed board region; the corrected tests and final CI pass.

@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-14",
+  "branch": "ux/radix-record-tabs-20261114",
+  "base": "9df9e755247bfd717122983837199ba0fbf6161c",
+  "scope": "First Radix UI slice: shared RecordTabs used by invoice, estimate and legacy job detail views. Radix owns focus/arrow/Home/End navigation, disabled-tab skipping and optional explicit RTL direction; Finviant retains controlled selection and caller-owned panel lifecycle/IDs/styles.",
+  "dependency": {"package":"@radix-ui/react-tabs","version":"1.2.1","license":"MIT","subscriptionRequired":false},
+  "localVerification": {
+    "build": "Production TypeScript/Vite build and 97 startup/deployment checks passed via Playwright webServer build.",
+    "focusedBrowser": "Four final radix-record-tabs.spec.mjs Chromium cases passed: 320/390/1440px, axe WCAG 2 A/AA/2.1 AA scan, keyboard and explicit RTL, disabled tabs, guarded selection, native click, preserved drafts/no accidental form submit and real invoice/estimate panel navigation without mutations.",
+    "retainedBrowser": "All 29 document-calendar-contacts.spec.mjs cases passed in the same candidate run; the initial new integration assertion incorrectly classified record_photos GETs as writes, then passed after restricting the assertion to mutation requests.",
+    "dom": "record-detail-dom.mjs, components-dom.mjs and job-management-dom.mjs passed, retaining busy/retry/PDF revision, scoped recovery, closed-copy sharing, job work and restricted/empty/error behaviors.",
+    "dependencyAudit": "npm audit --omit=dev --audit-level=high returned zero known vulnerabilities.",
+    "reactReview": "Controlled state retained; no panel remounts or new data effects; direct primitive import; existing form-safe button type, ARIA relationships and lazy route structure retained."
+  },
+  "ci": "Dedicated Chromium/WebKit Radix workflow added. Full CI and WebKit pending at this local checkpoint.",
+  "limitations": "Local synthetic evidence does not certify hosted owner, physical-device or live-provider acceptance.",
+  "externalEffects": "No live-beta release, hosted data writes, backend changes, provider activation, real messages or charges. No paid service or new account is required. All readiness statuses, acceptance criteria and histories retained.",
+  "documentationCarryForward": "Carries the verified PR120 Kanban release receipt from the preceding working branch so the current handoff retains the deployed baseline."
+}
