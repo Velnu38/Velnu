@@ -1,6 +1,6 @@
 # Finviant Assessment Report
 
-**Reviewed: 2026-11-13 (America/New_York).** Focused work queue; acceptance records are not counts of unbuilt features.
+**Reviewed: 2026-11-14 (America/New_York).** Focused work queue; acceptance records are not counts of unbuilt features.
 
 > Generated from [docs/launch-readiness.json](docs/launch-readiness.json). Completed tasks are removed from this report automatically; evidence/history remains in the registry and Git history. Do not edit this generated file directly.
 
@@ -12,7 +12,9 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 ## Current state and next action
 
-- November 13 latest verified beta: PR118 unified Job Management and restored Fin released as f421e562853002d9e7a31fa4a427a5a08bd5b753, READY deployment dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS on both Finviant domains. All 16 applicable workflows and 22 full-suite jobs passed at 02f165820003f857500eddb0506e4d9cbad49e32; tested and merged trees match. One canonical job directory/workspace and direct actions preserve permissions, dirty drafts, history, scheduling/completion/invoice safeguards. Customer context and a phone footer overlap were corrected. Home PR115, invoice PR116 and estimate PR117 are retained. No backend/provider/data/message/payment changes. Supported customer journey is a definition, not a new implemented automation pipeline. Owner, physical-device, live-provider and public-launch gates stay open.
+- November 14 development checkpoint: first supported journey framework candidate is local on ux/supported-journey-20261113. Derived job/payment status, private activity/invoice-link opens and pending/settled reminder safeguards pass focused synthetic verification. This is not a deployed end-to-end automation release: full CI/PostgreSQL replay, Supabase backend access/rollout, booking/receipt communication and remaining reference-journey acceptance are outstanding. Last verified beta remains PR118 below. All 51 task statuses, acceptance histories and external gates remain.
+
+- November 13 latest verified beta: PR118 unified Job Management and restored Fin released as f421e562853002d9e7a31fa4a427a5a08bd5b753, READY deployment dpl_H3j5zc3YH4Jso4U3zYU4ABC9cDkS on both Finviant domains. All 16 applicable workflows and 22 full-suite jobs passed at 02f165820003f857500eddb0506e4d9cbad49e32; tested and merged trees match. One canonical job directory/workspace and direct actions preserve permissions, dirty drafts, history, scheduling/completion/invoice safeguards. Customer context and a phone footer overlap were corrected. Home PR115, invoice PR116 and estimate PR117 are retained. No backend/provider/data/message/payment changes. The broader supported customer journey is not verified in beta; the November 14 source candidate is recorded separately above. Owner, physical-device, live-provider and public-launch gates stay open.
 
 - Last recorded operational issue: November 13 read-only beta evidence found one dead calendar queue item and one Outlook integration with an error despite state=connected; last successful sync November 11 00:14 UTC. OPS-03/CAL-01 remain open. Current provider state and recovery were not rechecked in the end-to-end source assessment, and no requeue, reconnect or provider change was performed.
 

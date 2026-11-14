@@ -1,0 +1,110 @@
+{
+  "date": "2026-11-14",
+  "scope": "First supported journey framework development checkpoint",
+  "branch": "ux/supported-journey-20261113",
+  "verifiedBetaBase": "f421e562853002d9e7a31fa4a427a5a08bd5b753",
+  "headBeforeImplementation": "7b9df2e8355cbbeb34dfa4e7aa0b0ee32d6f9f04",
+  "checks": {
+    "typeScript": "passed after final source edits",
+    "productionBuild": "passed; 95 startup/deployment checks",
+    "rulesAndDatabase": {
+      "passed": 16,
+      "failed": 0,
+      "engine": "PGlite, isolated synthetic data"
+    },
+    "finalRulesRecheck": {
+      "passed": 11,
+      "failed": 0
+    },
+    "phoneChromium": {
+      "passed": 4,
+      "failed": 0,
+      "widths": [
+        320,
+        390
+      ]
+    },
+    "fullReleaseCI": "pending",
+    "fullPostgreSQLReplay": "pending"
+  },
+  "implementation": [
+    "derived work/money journey and existing next action",
+    "private tenant-linked event ledger and bounded authorized activity",
+    "capability-validated revision-specific invoice opening",
+    "Stripe/Square pending or review reminder holds",
+    "queued reminder cancellation on settlement/void; in-flight outcomes preserved",
+    "workflow events included in existing owner archive source"
+  ],
+  "corrections": [
+    "Phone header initially retained only operational status; corrected to use the same verified journey as desktop.",
+    "New browser test adopted the existing Activity history navigation helper.",
+    "Test ledger settlement uses a posted payment rather than writing the generated balance column."
+  ],
+  "screenshots": [
+    {
+      "path": "docs/evidence/supported-journey-2026-11-14/paid-phone.png",
+      "sha256": "aa6b2f377f2cfb339b39cb3443e042e34834d8c6ed78bac2b2345cd3b9a650ff",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "data": "synthetic",
+      "reviewed": true
+    },
+    {
+      "path": "docs/evidence/supported-journey-2026-11-14/pending-phone.png",
+      "sha256": "9febcdeaea6ff259d5bbc3f830e72ba8b11c4147fec7d18f038b814ca461afad",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "data": "synthetic",
+      "reviewed": true
+    },
+    {
+      "path": "docs/evidence/supported-journey-2026-11-14/activity-phone.png",
+      "sha256": "c83a1116d95737deb9551438db9ece5f24ae6730ffae349f84b4ed35abfbeac3",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "data": "synthetic",
+      "reviewed": true
+    }
+  ],
+  "sourceSha256": {
+    "src/lib/jobJourney.ts": "81dad674d382caa4c96bf91c3c6d3a6ed0cbc17565c15b5541b62879bdd3cd5c",
+    "src/lib/jobNextStep.ts": "56cf7809a9a398ad693ce7db43699d880d66f661031aa3294b11f401b7d9ccc1",
+    "src/components/WorkflowActivity.tsx": "5ce21805278fe11823778d18fbfd00d6e0202ebb0711341ff7ccec84fff2c594",
+    "src/components/JobManagementWorkspace.tsx": "cf539827db2b6f380bfd83f3eff829067405307d09970b7a08cd5d641bcf9541",
+    "src/components/InvoiceDetail.tsx": "b60bf3f7332f5d5ba931e7024149c9e540b833c03f6942c97ea7914d72f0c5d4",
+    "src/pages/SharedDocumentPage.tsx": "d200be66c88b102ea630b6ce775274f880952aa3840b0000fda9b3034fba02e3",
+    "src/services/workflowActivity.ts": "92e6c43aca03dd758545f3a3aed96bc45507cf0c35f8a55d70bd6e3c509f3b0c",
+    "src/services/jobManagement.ts": "91b67f5044be64946fe9bfefa16466863f8b4886d7d18df4a3eca244d73240e2",
+    "supabase/migrations/20261114000100_supported_journey_framework.sql": "cc05ef6d1e57841f464d46d6577ed383e5e4c8a30263ecf20254d5bdf51f780c",
+    "tests/operations/job-journey.test.ts": "63b69e829191e20a56c6691981e3a3c7572a94a3b08b5d26ece6acb620862644",
+    "tests/operations/journey-database.test.ts": "6c9f46e915a4f57e1c1a2cbbc69eaf2161a9ea6af86f0baddfade28802686dcb",
+    "tests/operations/journey-fixture.ts": "257ae27c7099378e947f249cad14e499e635952741f0315a85ca17f97532923f",
+    "tests/e2e/supported-journey.spec.mjs": "5e15ac0aa5f92eaf90f26eb3c3d9059d557ec0f0e85862528146bd2f1a41b054"
+  },
+  "release": {
+    "migrationApplied": false,
+    "betaPromoted": false,
+    "environmentPublished": false,
+    "providerActivated": false,
+    "realMessagesSent": 0,
+    "realCharges": 0,
+    "blocker": "Supabase deployment access is unavailable in the runtime; full release checks and backend verification remain required."
+  },
+  "remaining": [
+    "booking confirmation and receipt policies/outbox preparation",
+    "reviewed reschedule/cancel notifications",
+    "required-deposit booking policy and agreed terms",
+    "full reference-journey/hosted/provider/owner/physical-device acceptance"
+  ],
+  "readiness": {
+    "taskRecordsRetained": 51,
+    "statusesChanged": false,
+    "acceptanceCriteriaChanged": false
+  }
+}

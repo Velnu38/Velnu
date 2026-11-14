@@ -1,6 +1,7 @@
 import './document-phone.css'
 import {JobMenuIcon} from './JobMobileMenu'
 import InvoiceReminderHistory from './InvoiceReminderHistory'
+import WorkflowActivity from './WorkflowActivity'
 import InvoiceReminderPreference from './InvoiceReminderPreference'
 import CopyDocumentButton from './CopyDocumentButton'
 import SquareInvoicePayment from './SquareInvoicePayment'
@@ -169,6 +170,7 @@ export default function InvoiceDetail({business,invoiceId,onBack,initialEdit=fal
     </section>
     <section id={tabIds.resources+'-panel'} role="tabpanel" aria-labelledby={tabIds.resources+'-tab'} hidden={tab!=='resources'}>{canSeeWork&&jobHref&&<p><a href={jobHref+'&tab=photos-expenses'}>View linked job photos &amp; expenses</a></p>}{resourcesOpened&&<RecordResources business={business} target={{kind:'invoice',id:invoice.id}} active={tab==='resources'}/>}</section>
     <section id={tabIds.activity+'-panel'} role="tabpanel" aria-labelledby={tabIds.activity+'-tab'} hidden={tab!=='activity'}>
+      {tab==='activity'&&<article className="detail-card"><h2>Workflow activity</h2><WorkflowActivity businessId={business.id} invoiceId={invoice.id} timezone={business.timezone} refreshKey={invoice.updated_at||''}/></article>}
       <article className="detail-card"><h2>Payment history</h2><p>Received funds, net of refunds: <strong>{netReceived===null?'Not verified':money(netReceived)}</strong> · Applied to invoice: <strong>{money(invoice.amount_paid)}</strong></p>
         {!detail.payments.length&&!detail.paymentOperations.refunds.length?<p className="quiet">No payments recorded.</p>:<div className="history-list">{detail.payments.map(payment=><div className="history-row compact-history" key={payment.id}><div className="row-main"><strong>{payment.method||'Payment'} · {payment.provider==='stripe_customer'?'Verified online payment':'Recorded payment'}</strong><span><DocumentTime value={payment.paid_at} timezone={business.timezone}/> · {payment.status}</span>{payment.notes&&<small>{payment.notes}</small>}</div><strong>{money(payment.amount)}</strong></div>)}{detail.paymentOperations.refunds.map(refund=><div className="history-row compact-history" key={refund.id}><div className="row-main"><strong>Customer refund</strong><DocumentTime value={refund.refunded_at} timezone={business.timezone}/></div><strong>−{money(refund.amount)}</strong></div>)}</div>}
         {canManage&&detail.paymentOperations.state==='unavailable'&&<p role="alert">Refund history could not be verified. Refresh before reconciling this ledger.</p>}

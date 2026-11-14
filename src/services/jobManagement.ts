@@ -3,6 +3,7 @@ import { announceCalendarChange } from "../lib/workEvents";
 import type { JobWorkflow } from "./jobs";
 import type { ServiceAddress } from "../lib/googleMaps";
 import type { JobWorkspace } from "./operations";
+import { verifiedJourney, type JourneyFacts } from '../lib/jobJourney';
 export type JobMaterial = {
   id: string;
   name: string;
@@ -14,6 +15,7 @@ export type JobMaterial = {
   version: number;
 };
 export type JobManagementData = Omit<JobWorkspace, "activity"> & {
+  journey?: JourneyFacts;
   billing_access: boolean;
   calendar_access: boolean;
   materials: JobMaterial[];
@@ -73,7 +75,8 @@ function verified(data: unknown): JobManagementData {
       (!Array.isArray(d.documents) || !Array.isArray(d.changes)))
   )
     throw Error("Job management could not be verified. Please retry.");
-  return d;
+  const journey=verifiedJourney(d.journey);
+  return {...d,journey:journey?.billingVisible===d.billing_access?journey:undefined};
 }
 export async function getJobManagement(business: string, job: string) {
   const { data, error } = await supabase.rpc("get_job_management", {

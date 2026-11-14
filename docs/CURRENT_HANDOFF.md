@@ -1,6 +1,12 @@
 # Current repository handoff
 
-Checked November 13, 2026 UTC.
+Checked November 14, 2026 UTC.
+
+## Current supported journey implementation candidate — not deployed
+
+- The owner subsequently authorized implementation and beta deployment. A first candidate on `ux/supported-journey-20261113` adds derived work/payment status in the existing workspace, direct next actions, a private workflow ledger, bounded authorized activity, revision-specific invoice openings, pending Stripe/Square reminder holds and immediate queued reminder cancellation on settlement/void. In-flight provider outcomes remain untouched; new records join the existing owner archive source. [Scope and remaining work](SUPPORTED_JOURNEY_FRAMEWORK_2026-11-14.md).
+- Local verification passes TypeScript, production build/95 startup checks, 16 focused rule/database cases and four Chromium phone cases at 320/390px, with reviewed synthetic captures. [Development receipt](evidence/2026-11-14-supported-journey-framework.json). Full CI/PostgreSQL replay, hosted backend rollout and beta promotion remain pending. Supabase deployment access is unavailable in this runtime; a secret declaration in the environment draft is not a saved/applied token binding. No provider activation, real send/charge, hosted data write or environment publication.
+- This is the first framework slice, not completion of the reference journey. Owner-controlled booking confirmations/payment receipts, reviewed reschedule/cancel notifications, explicit required-deposit enforcement/terms and full reference-journey acceptance remain. All 51 readiness task statuses/criteria/history are retained. Historical specification-only notes below describe the earlier assessment and are superseded for source implementation by this candidate; PR118 remains the last verified beta release.
 
 ## Current verified unified Job Management and Fin release
 
