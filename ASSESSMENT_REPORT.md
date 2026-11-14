@@ -30,6 +30,8 @@ Owner authorized publication, merge and private-beta deployment after required c
 
 - Hero/introduction claims must be checked against verified enabled beta capabilities and approved plan terms. This checkpoint does not establish new hero verification or a pricing decision. No application code, provider settings, activation, customer sends, purchases or costs changed in this report.
 
+- Twilio beta setup preparation is documented in docs/TWILIO_BETA_SETUP.md with a secret-redacting local preflight. No active sender, sender number or reply route is configured. Secure credentials, Auth phone setup and controlled provider acceptance remain required; no SMS activation or send was performed.
+
 [Current handoff](docs/CURRENT_HANDOFF.md) · [Detailed task cards](docs/FOCUSED_TASK_CARDS.md). Select one card; do not repeat the full audit. Recheck current heads before publication or release.
 
 ## Focused task cards
