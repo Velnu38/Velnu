@@ -30,9 +30,9 @@ test('Jobs phone mockup states render and preserve the directory handoffs',async
 
  await page.getByRole('button',{name:'Open filters'}).click()
  await expect(page.locator('.unified-filters')).toBeVisible()
- await page.locator('.unified-filters').getByRole('button',{name:'Board'}).click()
- await expect(page.getByRole('region',{name:'Jobs',exact:true})).toBeVisible()
- await page.locator('.unified-filters').getByRole('button',{name:'List'}).click()
+ await page.getByRole('group',{name:'Job layout',exact:true}).getByRole('button',{name:'Board'}).click()
+ await expect(page.getByRole('region',{name:'Job Management Kanban',exact:true})).toBeVisible()
+ await page.getByRole('group',{name:'Job layout',exact:true}).getByRole('button',{name:'List'}).click()
  await page.getByRole('combobox',{name:'Job view'}).selectOption('all')
  await page.getByRole('button',{name:'Close filters'}).click()
  await expect(cards).toHaveCount(4)
