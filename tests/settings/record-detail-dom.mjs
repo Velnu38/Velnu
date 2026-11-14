@@ -55,7 +55,7 @@ try{
  await mount(Tabs,{},'tabs')
  const tabs=[...document.querySelectorAll('[role=tab]')]
  assert.deepEqual(tabs.map(tab=>tab.textContent),['Details','Photos & expenses','Activity'])
- await act(async()=>tabs[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true})))
+ await act(async()=>tabs[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true})));await tick()
  assert.equal(tabs[1].getAttribute('aria-selected'),'true');assert.equal(document.activeElement,tabs[1])
  await mount(RecordActionBar,{primary:h('button',null,'Send'),secondary:h('button',null,'Edit'),more:h('button',null,'Archive')},'actions')
  assert.equal(document.querySelectorAll('.record-action-primary>button').length,1)

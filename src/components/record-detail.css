@@ -7,3 +7,4 @@
 @media(max-width:680px){.record-detail-title h2{font-size:21px}.record-action-controls{gap:8px}.record-action-primary{flex:1}.record-action-primary>button{width:100%;justify-content:center}.record-action-controls .record-more{flex-shrink:0}.record-more-content{left:auto;right:0}.record-tabs>button{padding:12px 11px;font-size:13px}.record-delivery-recovery{align-items:flex-start}.document-delivery-dialog .document-pdf-frame{height:400px}.record-detail-header-extra{width:100%}}
 @media print{.record-action-bar,.record-tabs,.record-more,.record-delivery-recovery{display:none!important}}
 .appointment-workflow{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.record-tabs>button:disabled{opacity:.5;cursor:not-allowed}

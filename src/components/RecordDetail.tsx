@@ -1,22 +1,31 @@
-import {Children,Fragment,isValidElement,useEffect,useRef,useState,type KeyboardEvent,type ReactNode} from 'react'
+import {Children,Fragment,isValidElement,useEffect,useRef,useState,type ReactNode} from 'react'
+import * as Tabs from '@radix-ui/react-tabs'
 import './record-detail.css'
 
 export function RecordDetailHeader({title,eyebrow,subtitle,status,children}:{title:ReactNode;eyebrow?:string;subtitle?:ReactNode;status?:ReactNode;children?:ReactNode}){
  return <header className="record-detail-header"><div className="record-detail-heading">{eyebrow&&<p className="eyebrow">{eyebrow}</p>}<div className="record-detail-title"><h2>{title}</h2>{status&&<div className="record-detail-status">{status}</div>}</div>{subtitle&&<div className="record-detail-subtitle">{subtitle}</div>}</div>{children&&<div className="record-detail-header-extra">{children}</div>}</header>
 }
 
-export type RecordTab={id:string;label:string;badge?:ReactNode}
+export type RecordTab={id:string;label:string;badge?:ReactNode;disabled?:boolean}
 function hasContent(value:ReactNode):boolean{
  return Children.toArray(value).some(child=>isValidElement<{children?:ReactNode}>(child)&&child.type===Fragment?hasContent(child.props.children):child!==null&&child!==undefined&&child!=='')
 }
-/** Each id also names its caller-owned `${id}-panel` tab panel. */
-export function RecordTabs({tabs,active,onChange,label='Record sections'}:{tabs:RecordTab[];active:string;onChange:(id:string)=>void;label?:string}){
- function navigate(event:KeyboardEvent<HTMLButtonElement>,index:number){
-  const next=event.key==='ArrowRight'?(index+1)%tabs.length:event.key==='ArrowLeft'?(index-1+tabs.length)%tabs.length:event.key==='Home'?0:event.key==='End'?tabs.length-1:null
-  if(next===null)return
-  event.preventDefault();onChange(tabs[next].id);document.getElementById(tabs[next].id+'-tab')?.focus()
- }
- return <div className="record-tabs" role="tablist" aria-label={label}>{tabs.map((tab,index)=><button key={tab.id} id={tab.id+'-tab'} type="button" role="tab" aria-selected={active===tab.id} aria-controls={tab.id+'-panel'} tabIndex={active===tab.id?0:-1} onClick={()=>onChange(tab.id)} onKeyDown={event=>navigate(event,index)}>{tab.label}{tab.badge!==undefined&&<span className="record-tab-badge">{tab.badge}</span>}</button>)}</div>
+/**
+ * Radix owns keyboard navigation and the roving tab stop. The caller retains
+ * selection and panel lifecycle so drafts, lazy records and permissions survive.
+ * Explicit IDs preserve the existing caller-owned `${id}-panel` relationships.
+ */
+export function RecordTabs({tabs,active,onChange,label='Record sections',dir}:{tabs:RecordTab[];active:string;onChange:(id:string)=>void;label?:string;dir?:'ltr'|'rtl'}){
+ return <Tabs.Root asChild dir={dir} value={active} onValueChange={onChange} activationMode="automatic">
+  <Tabs.List className="record-tabs" aria-label={label} loop>
+   {tabs.map(tab=><Tabs.Trigger key={tab.id} value={tab.id} id={tab.id+'-tab'} aria-controls={tab.id+'-panel'} disabled={tab.disabled}
+    // Native/programmatic click activation must work too; pointer/focus normally
+    // selects through Radix before click, so do not request an already active tab.
+    onClick={()=>{if(active!==tab.id)onChange(tab.id)}}>
+     {tab.label}{tab.badge!==undefined&&<span className="record-tab-badge">{tab.badge}</span>}
+   </Tabs.Trigger>)}
+  </Tabs.List>
+ </Tabs.Root>
 }
 
 /** Native disclosure keeps ordinary buttons and links keyboard accessible. */

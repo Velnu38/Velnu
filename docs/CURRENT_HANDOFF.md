@@ -2,7 +2,19 @@
 
 Checked November 14, 2026 UTC.
 
-## Local collections and Job Management Kanban candidate — not deployed
+## Radix UI foundation candidate — not deployed
+
+- `ux/radix-record-tabs-20261114` starts from PR120 beta `9df9e755247bfd717122983837199ba0fbf6161c`, carrying its release receipt forward. Added pinned MIT-licensed `@radix-ui/react-tabs` 1.2.1 to the shared record tabs used by invoices, estimates and legacy job details. Radix owns keyboard/focus behavior; existing controlled selection, caller-owned panels/IDs, lazy records/drafts and visual styles remain. Optional disabled tabs and explicit RTL direction are supported. No subscription/account is required.
+- Production build/97 startup checks, four final focused Chromium cases at 320/390/1440px (including axe), 29 retained document/calendar/contact cases, existing record/operations/management DOM suites and a dependency audit pass. A dedicated Chromium/WebKit workflow is added; CI/WebKit remain pending at this local checkpoint. [Candidate evidence](evidence/2026-11-14-radix-record-tabs.json).
+- No live-beta deployment, backend/provider/settings changes, hosted data writes, messages or charges. Existing UX/JOB/physical-device/owner/provider gates stay open; all 51 task statuses and criteria/history remain.
+
+## Current verified collections and Job Management Kanban release
+
+- PR120 is merged as `9df9e755247bfd717122983837199ba0fbf6161c`. All nine workflows and all 22 complete-suite jobs passed at `71063d660ed2fb0b047f661235adbc32d929c52d`; candidate, tested merge and final merge trees match. Dedicated synthetic Chromium/WebKit Kanban checks cover 320/390/1440px and restricted access. Initial Jobs mockup failures were stale selectors for the relocated controls/renamed board region; the corrected tests and final CI pass.
+- READY `dpl_2KELiEGmV1C9kqVLkThrXTfrAfTE` serves both Finviant domains. HTTP200, private no-store/noindex, retained project SSO, beta backend and exact reviewed Kanban CSS verified. Both live JS bundles contain their new boards; the cash chart remains. [Release receipt](evidence/2026-11-14-kanban-beta-release.json).
+- Collections lanes retain complete aging totals with the clearly labeled existing eight-oldest-past-due invoice preview; full invoice records remain linked for authorized users. Job board counts cover the current filtered/paginated page. No backend/provider/settings changes, hosted data writes, messages, charges or environment publication. All 51 readiness statuses/criteria/history remain; physical-device, signed-in owner and provider acceptance remain open. The local-candidate notes below are superseded by this release.
+
+## Historical local collections and Job Management Kanban candidate — superseded by PR120
 
 - Branch `ux/collections-jobs-kanban-20261114` starts from latest remote `ux/private-testing-20261029` at `76987009d7ce5ddd3577298c42c0268773617d63`. Collections aging board uses existing complete aging totals plus the clearly labeled up-to-eight oldest unpaid invoice preview; full records remain linked for authorized users. Cash totals, chart and drilldowns remain; narrow phone cash metrics stack for readability.
 - Canonical Job Management retains one directory/workspace. Its Board control is visible beside List; lanes show current-page counts/empty states and scroll within phone width. Existing server search/filter/paging, approved queue, customer scope, deep links, permissions, unsaved edits and job/billing safeguards remain. No drag mutations or new send/payment action.
