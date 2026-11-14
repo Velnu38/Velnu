@@ -26,6 +26,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
+      - run: bash scripts/qa/install-pdf-tools.sh
       - name: Check keyboard navigation, retained drafts and document actions with synthetic data
         run: npx playwright test tests/e2e/radix-record-tabs.spec.mjs tests/e2e/document-calendar-contacts.spec.mjs --config=${{ matrix.engine == 'webkit' && 'playwright.mobile.config.mjs' || 'playwright.config.mjs' }} --workers=2
       - name: Annotate failed browser assertions
