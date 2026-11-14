@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "repository": "Velnu38/Velnu",
   "branch": "ux/private-testing-20261029",
-  "auditedCommit": "b340e5f95f102a9ec11befe3d814dafa02771fe9",
+  "auditedCommit": "3a3c02c32ff1b8aa67a3232c4ddc1e21142fb657",
   "verdict": "Controlled private beta only. Public launch for hundreds of businesses and paid subscriptions remain blocked until the applicable gates below are verified.",
   "observations": [
     {
@@ -707,6 +707,12 @@
       "detail": "Read-only beta inventory found zero active SMS senders, zero configured sender numbers and zero reply routes across three managed delivery accounts. Existing send-document-sms, managed-sms-events, twilio-test-events and tier-delivery-worker are deployed. Added a local secret-redacting preflight and an exact beta runbook distinguishing Edge credentials, Supabase Auth phone verification, Integration Testing allowlist and managed business activation. Preflight and existing signed callback/inbound handler tests pass. Hosted secret presence is inaccessible through the connected tools, so credentials/Auth setup remain unverified. Appointment SMS currently omits a status callback; accepted is not delivered. No hosted settings, provider activation, message, purchase or customer data changed.",
       "evidence": "docs/TWILIO_BETA_SETUP.md; scripts/check-twilio-beta.mjs; tests/deployment/twilio-config.test.mjs; tests/integrations/managed-sms-events.test.ts; read-only Supabase aggregate and function inventory; source f421e562853002d9e7a31fa4a427a5a08bd5b753",
       "verifiedAt": "2026-11-13"
+    },
+    {
+      "title": "November 14 calendar queue cleared; event publishing unverified",
+      "detail": "The previously recorded dead item is no longer present: queued/dead/expired leases are all zero. Google and Outlook each have one connected record with no current error and a November 14 reconciliation timestamp. Both auto_sync flags are false and there are zero published event mappings. Worker source can advance last_synced_at without calling the provider, so the timestamps and cleared queue do not prove refresh, event publication, reconnect/revoke, conflict handling or actual phone acceptance. No cause or repair is inferred; the audit did not retry, reconnect, toggle sync or change provider state. CAL-01 and OPS-03 remain open.",
+      "evidence": "2026-11-14 read-only beta aggregate receipt at 3a3c02c32ff1b8aa67a3232c4ddc1e21142fb657: calendar queued/dead/expired leases=0/0/0; Google and Outlook each connected=1, error count=0, auto_sync=false, published calendar_event_links=0. Recorded last_synced_at Google 2026-11-14T13:02:00.905670Z; Outlook 2026-11-14T13:03:00.363508Z. server/calendar/worker.ts records successful reconciliation timestamps even with no provider operations. No tokens, account identifiers, event content or raw errors retrieved.",
+      "verifiedAt": "2026-11-14"
     }
   ],
   "tasks": [
@@ -822,13 +828,18 @@
       "status": "not_verified",
       "title": "Verify scheduled work and reconcile uncertain deliveries",
       "owner": "Developer",
-      "why": "Active cron schedules and accepted HTTP dispatches do not establish successful background work. November 10: actual calendar worker failure identified and narrow column grant repair prepared; expanded queue health and failure/recovery tests prepared. Backend recovery remains pending. November 13 regression: one dead calendar queue item, one connected Outlook integration with an error and last successful sync November 11 00:14 UTC. Root cause and recovery unverified; no requeue/reconnect attempted.",
+      "why": "The November 13 dead calendar queue item and integration errors are no longer present on November 14. Both connected provider records have auto-sync disabled and no published event mappings, so an empty queue and newer reconciliation timestamps do not prove provider work or sustained reliability. Worker completion, heartbeat/lag, retry/429/expired-lease behavior, uncertain-send review, alerting and outage recovery still need complete acceptance.",
       "acceptance": "Observe actual worker completion, heartbeat age, queue lag, failed/dead tasks, token refresh, provider 429s, expired leases, duplicate/missed runs and outage recovery. Provide operator review for uncertain sends; alert without automatically duplicating a possibly delivered message.",
       "evidence": [
         {
           "reference": "2026-11-13 read-only beta aggregate receipt at audited source 77c3016b833295e1c8c47c6884750f79b19f0484: calendar queue total=1, dead=1, attempts=1, expired leases=0; one Outlook integration state=connected with error present, last successful sync 2026-11-11T00:14:00.29838Z; queue available_at 2026-11-13T01:35:14.441662Z. Safe error classification was unclassified; root cause and recovery are not verified. No credentials, integration identifiers, raw errors, requeues or provider writes retained/performed.",
           "verifiedAt": "2026-11-13",
           "commit": "77c3016b833295e1c8c47c6884750f79b19f0484"
+        },
+        {
+          "reference": "2026-11-14 read-only beta aggregate receipt at 3a3c02c32ff1b8aa67a3232c4ddc1e21142fb657: calendar queued/dead/expired leases=0/0/0; Google and Outlook each connected=1, error count=0, auto_sync=false, published calendar_event_links=0. Recorded last_synced_at Google 2026-11-14T13:02:00.905670Z; Outlook 2026-11-14T13:03:00.363508Z. server/calendar/worker.ts records successful reconciliation timestamps even with no provider operations. No tokens, account identifiers, event content or raw errors retrieved.",
+          "verifiedAt": "2026-11-14",
+          "commit": "3a3c02c32ff1b8aa67a3232c4ddc1e21142fb657"
         }
       ]
     },
@@ -917,13 +928,18 @@
       "status": "blocked_external",
       "title": "Finish Google setup and multi-account calendar certification",
       "owner": "Owner + developer",
-      "why": "Outlook sync recovered and the beta queue is empty. Step 16 adds correct Graph Retry-After handling, bounded calendar listing and clear personal-calendar limitations. External events remain user/business scoped and display-only for booking. Google configuration/consent and separate live-provider refresh/reconnect/revoke/device tests remain open. November 13 regression: one dead calendar queue item, one connected Outlook integration with an error and last successful sync November 11 00:14 UTC. Root cause and recovery unverified; no requeue/reconnect attempted.",
+      "why": "Google and Outlook each have one connected beta record; the November 13 dead queue item and recorded errors have cleared as of November 14. Both auto-sync flags are false and zero provider-event mappings exist. Reconciliation timestamps alone do not certify a provider call. Google publishing/verification requirements and both providers’ refresh, reconnect/revoke, conflicts, duplicates, DST and separate-account/device acceptance remain unverified; CAL-01 stays open.",
       "acceptance": "Finish the Google external OAuth app/verification as required, scopes/redirects, publishing and token refresh; verify Google and Outlook connections, refresh/reconnect/revoke, background sync, conflicts, duplicates, time zones/DST and job/calendar consistency with separate accounts.",
       "evidence": [
         {
           "reference": "2026-11-13 read-only beta aggregate receipt at audited source 77c3016b833295e1c8c47c6884750f79b19f0484: calendar queue total=1, dead=1, attempts=1, expired leases=0; one Outlook integration state=connected with error present, last successful sync 2026-11-11T00:14:00.29838Z; queue available_at 2026-11-13T01:35:14.441662Z. Safe error classification was unclassified; root cause and recovery are not verified. No credentials, integration identifiers, raw errors, requeues or provider writes retained/performed.",
           "verifiedAt": "2026-11-13",
           "commit": "77c3016b833295e1c8c47c6884750f79b19f0484"
+        },
+        {
+          "reference": "2026-11-14 read-only beta aggregate receipt at 3a3c02c32ff1b8aa67a3232c4ddc1e21142fb657: calendar queued/dead/expired leases=0/0/0; Google and Outlook each connected=1, error count=0, auto_sync=false, published calendar_event_links=0. Recorded last_synced_at Google 2026-11-14T13:02:00.905670Z; Outlook 2026-11-14T13:03:00.363508Z. server/calendar/worker.ts records successful reconciliation timestamps even with no provider operations. No tokens, account identifiers, event content or raw errors retrieved.",
+          "verifiedAt": "2026-11-14",
+          "commit": "3a3c02c32ff1b8aa67a3232c4ddc1e21142fb657"
         }
       ]
     },
@@ -2075,11 +2091,11 @@
     "handoff": "docs/CURRENT_HANDOFF.md"
   },
   "currentState": [
-    "November 14 read-only report checkpoint: PR119 is merged as b340e5f95f102a9ec11befe3d814dafa02771fe9; both Finviant domains resolve to READY dpl_EDVpN5Wv9KqtPgmBB5U3aUCxiWXN at that source. Final candidate d8343d48f3d938a3dc4a96285e973b47baa0dd8c passed all nine returned workflows and all 22 full-suite jobs in run43553054639; candidate and merge trees match. Supported journey source and frontend deployment are verified, not real-provider or physical-device acceptance.",
+    "November 14 verified audit: current HEAD 3a3c02c32ff1b8aa67a3232c4ddc1e21142fb657 matches READY deployment dpl_UuQGLsVeyT5uHrVbJN4N64nnQs1Q on both Finviant domains. All five returned HEAD workflows passed, including all 22 full-suite jobs in run43591570100. PR119 source/backend evidence is preserved below; full CI and READY are not real-provider, physical-device or public-launch acceptance.",
     "Direct beta verification on November 14 confirms four journey migrations applied as 20261114035902/06/09/12, tier-delivery-worker ACTIVE v18 and fin-workflow ACTIVE v19 at 03:59 UTC, before PR119 merge. All ten deployed Fin bundle files matched the merge. Earlier missing-backend/credential and undeployed-candidate notes are historical; do not request credentials or reapply migrations on that basis. Hosted end-to-end acceptance and exact bundled worker comparison remain distinct.",
     "PR118 unified Job Management/restored Fin, PR115 Home, PR116 invoice and PR117 estimate releases are retained. Prior PR112 failed checks were superseded by passing release repairs; do not restart that obsolete failure diagnosis. Owner-approved combination of Jobs and Job Management supersedes the old separate-workspace rule. Financial Performance/View Finances redesign remains mockup discussion, not an instruction in this report to implement.",
-    "Google configuration exists, but the latest work chat reports Google access blocked by testing/verification restrictions. A successful authorized connection and full calendar acceptance are not established. Stripe beta test-mode availability is not a completed sandbox transaction. Twilio configuration/provider acceptance remains pending: fresh read-only evidence finds 3 managed-delivery accounts, 0 active SMS accounts, 0 configured senders, 0 reply routes and no managed/business-card SMS records. Functions being ACTIVE does not prove delivery. The setup chat last shows an expired OAuth state and subsequent owner go, with no visible completion; check existing work before duplicating setup or sign-in requests.",
-    "Last recorded operational issue: November 13 read-only beta evidence found one dead calendar queue item and one Outlook integration with an error despite state=connected; last successful sync November 11 00:14 UTC. OPS-03/CAL-01 remain open. Current provider state and recovery were not rechecked in the end-to-end source assessment, and no requeue, reconnect or provider change was performed.",
+    "Google and Outlook now each have one connected beta record with no current error. Both have auto-sync turned off and no published event mappings; full calendar provider acceptance is not established. Stripe remains without a verified live merchant, and Twilio has zero active SMS senders. Existing setup work and recipient/provider gates remain; no provider configuration or activation was performed by this audit.",
+    "November 14 read-only recheck supersedes the November 13 queue failure snapshot: no queued/dead/expired calendar leases remain; both provider records show November 14 reconciliation timestamps and cleared errors. This is queue/error-state recovery only. With auto-sync off and zero event mappings, provider event delivery is unverified. Root cause and repair are not certified; CAL-01/OPS-03 stay open.",
     "PR97 reminder history is already merged and beta-deployed; the old pause/open-PR97 instructions are historical and superseded. Preserve its migration and receipts without reapplying. AUTO-02 still needs hosted owner/provider/physical-device acceptance. PR103 security, PR104 archive and PR105 abuse/cost work have implementation/release evidence, not full hosted isolation, restore, capacity, provider or operating-owner acceptance.",
     "PR109 stable live business-card links and PR110 Job Management visual correction have release evidence. Retain CARD-02 contact-import/owner acceptance, JOB-01/UX-01/DEVICE-01 mockup and physical-device gates. PR111 invoices and PR113 estimates were owner-approved for implementation; do not treat them as proposal-only. The current phone screenshot discrepancy remains unresolved; do not presume a caching cause or claim the owner sees the deployed design.",
     "All 51 canonical task records and their criteria/history are retained unchanged. AI-03 remains the sole formally completed record; this is not a measure of total application completion. No other requested change is removed merely for implementation, merge or deployment. Provider setup, real-device acceptance, security, full hosted restore/load, commercial decisions and public launch remain separately gated.",
